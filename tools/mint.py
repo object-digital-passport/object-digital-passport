@@ -53,7 +53,7 @@ NETWORKS = {
     },
     "polygon": {
         "name":     "Polygon PoS (mainnet)",
-        "rpc":      "https://polygon-rpc.com",
+        "rpc":      "https://polygon-bor.publicnode.com",
         "chain_id": 137,
         "explorer": "https://polygonscan.com",
     },
@@ -380,7 +380,7 @@ def cmd_mint(args):
     # Object type
     print()
     print("  [1/6] Object type")
-    print("    1 — Physical (artwork, merch, object)")
+    print("    1 — Physical (SPEC: artwork, photography, digital, collectible, document, object)")
     print("    2 — Digital  (image, video, 3D, audio)")
     choice      = prompt("Type", "1")
     is_physical = (choice == "1")
@@ -394,7 +394,10 @@ def cmd_mint(args):
     reg_month = now.month
 
     if is_physical:
-        obj_type = prompt("Type (artwork / merch / object)", "artwork")
+        obj_type = prompt(
+            "Category (artwork / photography / digital / collectible / document / object)",
+            "artwork",
+        )
         medium   = prompt_optional("Medium")
         edition_n = prompt_optional("Edition number (e.g. 1)")
         edition_t = prompt_optional("Edition total (e.g. 3)")

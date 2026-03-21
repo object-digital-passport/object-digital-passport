@@ -71,10 +71,16 @@
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 
+/** polygon-rpc.com often returns 401 for unauthenticated JSON-RPC; use public endpoints with CORS. */
+const POLYGON_RPC_FALLBACKS = [
+  "https://polygon-bor.publicnode.com",
+  "https://1rpc.io/matic",
+];
+
 const NET = {
   name:     "Polygon PoS",
   chainId:  137,
-  rpc:      "https://polygon-rpc.com",
+  rpc:      POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
   contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
 };
@@ -195,19 +201,31 @@ async function init() {
 async function connect() {
   const c = NET;
   setNet("connecting", `${c.name} — connecting...`);
-  try {
-    provider = new ethers.providers.JsonRpcProvider(c.rpc, { name: "polygon", chainId: c.chainId });
-    await provider.getBlockNumber();
-    if (!c.contract) {
-      setNet("warn", `${c.name} — contract address not set`);
+  let lastErr = null;
+  for (const rpcUrl of POLYGON_RPC_FALLBACKS) {
+    try {
+      provider = new ethers.providers.JsonRpcProvider(rpcUrl, { name: "polygon", chainId: c.chainId });
+      await provider.getBlockNumber();
+      if (!c.contract) {
+        setNet("warn", `${c.name} — contract address not set`);
+        return;
+      }
+      contract = new ethers.Contract(c.contract, ABI, provider);
+      setNet("on", `${c.name}`);
+      // #region agent log
+      fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"99fdf4"},body:JSON.stringify({sessionId:"99fdf4",location:"verify.html:connect",message:"rpc_ok",data:{rpcUrl},timestamp:Date.now(),hypothesisId:"A",runId:"post-fix"})}).catch(()=>{});
+      // #endregion
       return;
+    } catch (e) {
+      lastErr = e;
+      provider = null;
     }
-    contract = new ethers.Contract(c.contract, ABI, provider);
-    setNet("on", `${c.name}`);
-  } catch {
-    setNet("off", `${c.name} — offline`);
-    contract = null;
   }
+  // #region agent log
+  fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"99fdf4"},body:JSON.stringify({sessionId:"99fdf4",location:"verify.html:connect",message:"rpc_all_failed",data:{lastErr:String(lastErr&&lastErr.message||lastErr)},timestamp:Date.now(),hypothesisId:"A",runId:"post-fix"})}).catch(()=>{});
+  // #endregion
+  setNet("off", `${c.name} — offline`);
+  contract = null;
 }
 
 function setNet(state, label) {
@@ -239,7 +257,7 @@ async function verify() {
     return;
   }
   if (!contract) {
-    el.innerHTML = `<div class="err-box">Not connected. Check your internet connection.</div>`;
+    el.innerHTML = `<div class="err-box">Cannot load data from Polygon RPC (read-only). Check your network or try again later.</div>`;
     return;
   }
 
