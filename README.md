@@ -1,4 +1,4 @@
-# Object Digital Passport
+# Object Digital Passport v.0.1
 
 **An open standard for authenticating physical and digital objects via blockchain.**
 
