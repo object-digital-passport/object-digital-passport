@@ -4,391 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ODP — Register Creator ID</title>
+<link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Mono:wght@300;400;500&display=swap');
-
-:root {
-  --bg:      #0f0e0c;
-  --bg2:     #171612;
-  --bg3:     #1f1d18;
-  --bg4:     #272420;
-  --border:  #2e2b25;
-  --border2: #3d3930;
-  --text:    #e8e3d8;
-  --text2:   #8a8478;
-  --text3:   #524f48;
-  --accent:  #d4a853;
-  --accent2: #9a7a3a;
-  --green:   #5a9e72;
-  --green-bg:#0e1f14;
-  --red:     #9e5a5a;
-  --red-bg:  #1f0e0e;
-  --serif:   'Fraunces', Georgia, serif;
-  --mono:    'DM Mono', monospace;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 300;
-  line-height: 1.6;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.page {
-  width: 100%;
-  max-width: 560px;
-  padding: 0 24px 80px;
-}
-
-/* Header */
-header {
-  padding: 52px 0 40px;
-  text-align: center;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 48px;
-}
-
-h1 {
-  font-family: var(--serif);
-  font-size: 36px;
-  font-weight: 300;
-  font-style: italic;
-  letter-spacing: -0.01em;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-
-.sub {
-  font-size: 11px;
-  color: var(--text3);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-/* Nav */
-.nav {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-bottom: 48px;
-}
-
-.nav a {
-  font-size: 11px;
-  font-family: var(--mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text3);
-  text-decoration: none;
-  padding: 7px 14px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  transition: all 0.15s;
-}
-
-.nav a:hover, .nav a.active {
-  color: var(--accent);
-  border-color: var(--accent2);
-}
-
-/* Steps */
-.step-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
-  margin-bottom: 40px;
-}
-
-.si-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  color: var(--text3);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.si-num {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 1px solid var(--border2);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px;
-  background: var(--bg2);
-  transition: all 0.2s;
-}
-
-.si-item.active .si-num { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 500; }
-.si-item.active { color: var(--text2); }
-.si-item.done .si-num { background: var(--green-bg); border-color: var(--green); color: var(--green); }
-.si-item.done { color: var(--text2); }
-
-.si-line { width: 48px; height: 1px; background: var(--border); margin: 0 4px 18px; }
-
-/* Cards */
-.card {
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-  background: var(--bg2);
-  margin-bottom: 16px;
-  animation: up 0.25s ease;
-}
-
-@keyframes up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.card-head {
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--border);
-  font-family: var(--serif);
-  font-size: 17px;
-  font-style: italic;
-  font-weight: 300;
-  color: var(--text);
-}
-
-.card-body { padding: 20px; }
-
-/* Type selector */
-.type-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.type-opt {
-  padding: 16px 10px;
-  border: 1.5px solid var(--border);
-  border-radius: 3px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: var(--bg3);
-}
-
-.type-opt:hover { border-color: var(--border2); }
-.type-opt.sel   { border-color: var(--accent2); background: var(--bg4); }
-
-.type-letter {
-  font-family: var(--serif);
-  font-size: 30px;
-  font-style: italic;
-  color: var(--accent);
-  display: block;
-  line-height: 1;
-  margin-bottom: 8px;
-}
-
-.type-name { font-size: 12px; color: var(--text); margin-bottom: 3px; }
-.type-desc { font-size: 10px; color: var(--text3); line-height: 1.4; }
-
-/* Wallet connect */
-.wallet-options-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.wallet-opt {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  cursor: pointer;
-  transition: all 0.15s;
-  background: var(--bg3);
-  text-align: center;
-}
-
-.wallet-opt:hover { border-color: var(--border2); }
-.wallet-opt-icon  { font-size: 22px; margin-bottom: 8px; }
-.wallet-opt-name  { font-size: 12px; color: var(--text); margin-bottom: 3px; }
-.wallet-opt-desc  { font-size: 10px; color: var(--text3); line-height: 1.4; }
-
-/* Security checklist */
-.checklist { list-style: none; }
-
-.checklist li {
-  display: flex; align-items: flex-start; gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--text2);
-  line-height: 1.6;
-}
-
-.checklist li:last-child { border-bottom: none; }
-.checklist-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
-.checklist li strong { color: var(--text); display: block; margin-bottom: 2px; }
-
-.confirm-row {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 12px 14px;
-  background: var(--bg3);
-  border: 1px solid var(--border2);
-  border-radius: 3px;
-  cursor: pointer;
-  margin: 16px 0;
-}
-
-.confirm-row input[type="checkbox"] {
-  width: 15px; height: 15px;
-  accent-color: var(--accent);
-  flex-shrink: 0; margin-top: 2px; cursor: pointer;
-}
-
-.confirm-row label {
-  font-size: 12px; color: var(--text2);
-  cursor: pointer; line-height: 1.5;
-}
-
-/* Info boxes */
-.info  { padding: 13px 16px; border-radius: 3px; font-size: 12px; line-height: 1.6; margin-bottom: 14px; }
-.info.neutral { background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); }
-.info.warn    { background: #1a1508; border: 1px solid var(--accent2); color: var(--accent); }
-.info.success { background: var(--green-bg); border: 1px solid var(--green); color: var(--green); }
-.info.error   { background: var(--red-bg); border: 1px solid var(--red); color: var(--red); }
-
-/* Button */
-.btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 3px;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.15s;
-  border: none;
-  background: var(--accent);
-  color: var(--bg);
-}
-
-.btn:hover    { opacity: 0.85; }
-.btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-.btn-sec {
-  background: transparent;
-  color: var(--text2);
-  border: 1px solid var(--border2);
-  margin-top: 8px;
-}
-
-.btn-sec:hover { border-color: var(--text2); color: var(--text); }
-
-/* Result */
-.result-id {
-  font-family: var(--mono);
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: var(--accent);
-  text-align: center;
-  margin: 20px 0 8px;
-  display: block;
-}
-
-.result-full {
-  font-size: 11px;
-  color: var(--text3);
-  text-align: center;
-  font-family: var(--mono);
-  word-break: break-all;
-  margin-bottom: 24px;
-  line-height: 1.6;
-}
-
-.publish-list {
-  list-style: none;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-
-.publish-list li {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 12px;
-  color: var(--text2);
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  line-height: 1.5;
-}
-
-.publish-list li:last-child { border-bottom: none; }
-.publish-list li span { flex-shrink: 0; font-size: 15px; }
-
-/* Wallet status bar */
-.wallet-bar {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  background: var(--bg2);
-  margin-bottom: 24px;
-  font-size: 12px;
-  font-family: var(--mono);
-  color: var(--text2);
-}
-
-.w-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--text3);
-  flex-shrink: 0;
-}
-.w-dot.on  { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.w-dot.off { background: var(--red); }
-
-.w-addr { flex: 1; }
-.w-switch { color: var(--text3); cursor: pointer; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
-.w-switch:hover { color: var(--accent); }
-
-footer {
-  border-top: 1px solid var(--border);
-  margin-top: 48px;
-  padding-top: 20px;
-  display: flex; gap: 20px;
-  font-size: 11px; font-family: var(--mono); color: var(--text3);
-}
-footer a { color: var(--text3); text-decoration: none; }
-footer a:hover { color: var(--accent); }
-
-@media (max-width: 480px) {
-  .type-grid { grid-template-columns: 1fr; }
-  .wallet-options-grid { grid-template-columns: 1fr; }
-}
-</style>
 </head>
 
 <body>
 <div class="page">
 
-<header>
-  <h1>Creator ID</h1>
-  <p class="sub">Object Digital Passport · Registration</p>
+<header class="header-row">
+  <div class="header-left">
+    <h1>Creator ID</h1>
+    <p class="sub">Object Digital Passport · Registration</p>
+  </div>
+  <div class="net-pill" title="Polygon PoS mainnet">
+    <div class="net-dot" id="netDot"></div>
+    <span id="netLabel">…</span>
+  </div>
 </header>
 
 <div class="nav">
@@ -410,21 +41,13 @@ footer a:hover { color: var(--accent); }
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const CFG = {
-  amoy: {
-    name: "Polygon Amoy (testnet)",
-    chainId: 80002,
-    rpc: "https://rpc-amoy.polygon.technology",
-    explorer: "https://amoy.polygonscan.com",
-    contract: "",  // ← paste after deploy
-  },
-  polygon: {
-    name: "Polygon PoS",
-    chainId: 137,
-    rpc: "https://polygon-rpc.com",
-    explorer: "https://polygonscan.com",
-    contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
-  },
+/** Polygon PoS mainnet only */
+const NET = {
+  name: "Polygon PoS",
+  chainId: 137,
+  rpc: "https://polygon-rpc.com",
+  explorer: "https://polygonscan.com",
+  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
 };
 
 const ABI = [
@@ -432,10 +55,6 @@ const ABI = [
     name: "registerCreator", type: "function", stateMutability: "payable",
     inputs:  [{ name: "typePrefix", type: "bytes1" }],
     outputs: [{ name: "creatorId",  type: "string" }],
-  },
-  {
-    name: "REGISTER_FEE", type: "function", stateMutability: "view",
-    inputs: [], outputs: [{ name: "", type: "uint256" }],
   },
   {
     name: "getCreatorByWallet", type: "function", stateMutability: "view",
@@ -456,7 +75,6 @@ const ABI = [
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let netKey     = "polygon";
 let provider   = null;
 let signer     = null;
 let contract   = null;
@@ -518,13 +136,6 @@ function renderConnect() {
         </div>
 
         <div id="connectErr"></div>
-
-        <div style="text-align:center;margin-top:8px">
-          <select onchange="netKey=this.value" style="background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:3px;outline:none">
-            <option value="amoy">Polygon Amoy (testnet)</option>
-            <option value="polygon" selected>Polygon PoS (mainnet)</option>
-          </select>
-        </div>
       </div>
     </div>`;
 }
@@ -667,7 +278,7 @@ function renderForm() {
 // ── Already registered ────────────────────────────────────────────────────────
 
 function renderAlready() {
-  const net = CFG[netKey];
+  const net = NET;
   return `
     <div class="wallet-bar">
       <div class="w-dot on"></div>
@@ -758,6 +369,33 @@ function injectedEthereum() {
   return w;
 }
 
+/** Ask MetaMask to use Polygon (NET.chainId) before any contract calls. */
+async function ensureWalletChain(eth, cfg) {
+  const target = cfg.chainId;
+  const hex = await eth.request({ method: "eth_chainId" });
+  const cur = parseInt(hex, 16);
+  if (cur === target) return;
+  const chainIdHex = "0x" + target.toString(16);
+  try {
+    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: chainIdHex }] });
+  } catch (e) {
+    if (e.code === 4902) {
+      await eth.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: chainIdHex,
+          chainName: cfg.name,
+          nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+          rpcUrls: [cfg.rpc],
+          blockExplorerUrls: [cfg.explorer],
+        }],
+      });
+    } else {
+      throw e;
+    }
+  }
+}
+
 function noWalletHtml() {
   const fileProto = location.protocol === "file:";
   return `<div class="info error" style="line-height:1.6">
@@ -777,6 +415,7 @@ async function connectWallet() {
   }
   try {
     await eth.request({ method: "eth_requestAccounts" });
+    await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch(e) {
     errEl.innerHTML = `<div class="info error">${esc(e.message)}</div>`;
@@ -784,10 +423,10 @@ async function connectWallet() {
 }
 
 async function _finish(web3p) {
-  const net = CFG[netKey];
+  const net = NET;
   if (!net.contract) {
     document.getElementById("connectErr").innerHTML =
-      `<div class="info error">Contract address not set for ${net.name}. Edit CFG in source.</div>`;
+      `<div class="info error">Contract address not set for ${net.name}. Edit NET in source.</div>`;
     return;
   }
   provider = web3p;
@@ -821,7 +460,8 @@ async function doRegister() {
     const typeBytes = ethers.utils.hexlify(
       ethers.utils.toUtf8Bytes(selType)
     ); // e.g. "0x43" for "C"
-    const regFee = await contract.REGISTER_FEE();
+    // Must match REGISTER_FEE in contract (0.001 ether); no public getter on-chain
+    const regFee = ethers.utils.parseEther("0.001");
     const tx = await contract.registerCreator(typeBytes, { value: regFee });
     btn.textContent = "Confirming…";
     err.innerHTML = `<div class="info neutral" style="margin-bottom:10px">Transaction sent: ${tx.hash.slice(0,20)}…</div>`;
@@ -835,19 +475,39 @@ async function doRegister() {
   }
 }
 
+// ── Network pill (read-only RPC) ──────────────────────────────────────────────
+
+async function initNetPill() {
+  const dot = document.getElementById("netDot");
+  const label = document.getElementById("netLabel");
+  if (!dot || !label) return;
+  label.textContent = NET.name + " — …";
+  try {
+    const p = new ethers.providers.JsonRpcProvider(NET.rpc, { name: "polygon", chainId: NET.chainId });
+    await p.getBlockNumber();
+    dot.className = "net-dot on";
+    label.textContent = NET.name;
+  } catch {
+    dot.className = "net-dot off";
+    label.textContent = NET.name + " — offline";
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  initNetPill();
   // Auto-reconnect browser extension if already approved
   const eth = injectedEthereum();
   if (eth) {
     const accounts = await eth.request({ method: "eth_accounts" }).catch(() => []);
     if (accounts.length > 0) {
       try {
+        const net = NET;
+        await ensureWalletChain(eth, net);
         provider  = new ethers.providers.Web3Provider(eth);
         signer    = provider.getSigner();
         wallet    = await signer.getAddress();
-        const net = CFG[netKey];
         if (net.contract) {
           contract  = new ethers.Contract(net.contract, ABI, signer);
           const existing = await contract.getCreatorByWallet(wallet);

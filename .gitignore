@@ -21,3 +21,6 @@ __pycache__/
 
 # Generated
 passports/
+
+# Local HTTPS dev certs (openssl / mkcert)
+web/.certs/

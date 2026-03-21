@@ -9,7 +9,7 @@
   Object Digital Passport — Verifier
   Specification v0.1
 
-  Single HTML file. No build step. No server. Works offline.
+  Shared styles: odp.css (same dark theme as Creator / Passport)
 
   To use offline:
     1. Save ethers.js locally: https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js
@@ -18,475 +18,29 @@
   After deploying the contract, set CONTRACT_ADDRESS below.
 -->
 
+<link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Syne+Mono&display=swap');
-
-:root {
-  --bg:         #f5f2ed;
-  --bg2:        #ede9e2;
-  --bg3:        #e4dfd6;
-  --ink:        #1a1815;
-  --ink2:       #5a5550;
-  --ink3:       #9a9590;
-  --border:     #d4cfc8;
-  --border2:    #bfb9b0;
-  --accent:     #1a1815;
-  --green:      #2d6a4f;
-  --green-bg:   #eaf4ef;
-  --green-bd:   #b7ddc9;
-  --red:        #8b2020;
-  --red-bg:     #fdf0f0;
-  --red-bd:     #e8b4b4;
-  --amber:      #7a5c00;
-  --amber-bg:   #fdf8ed;
-  --amber-bd:   #e8d48a;
-  --gray-bg:    #f0ece6;
-  --mono:       'Syne Mono', monospace;
-  --sans:       'Syne', sans-serif;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-size: 14px;
-  line-height: 1.6;
-  min-height: 100vh;
-}
-
-/* ── Layout ── */
-.page {
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 0 24px 80px;
-}
-
-/* ── Header ── */
-header {
-  padding: 48px 0 40px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 40px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.header-left h1 {
-  font-size: 28px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1;
-  margin-bottom: 6px;
-}
-
-.header-left p {
-  font-size: 12px;
-  color: var(--ink3);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  font-family: var(--mono);
-}
-
-.net-pill {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: 100px;
-  font-size: 11px;
-  font-family: var(--mono);
-  color: var(--ink2);
-  cursor: pointer;
-  background: white;
-  transition: border-color 0.15s;
-  white-space: nowrap;
-}
-
-.net-pill:hover { border-color: var(--border2); }
-
-.net-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--ink3);
-  flex-shrink: 0;
-}
-.net-dot.on  { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.net-dot.off { background: var(--red); }
-
-/* ── Search ── */
-.search-wrap { margin-bottom: 32px; }
-
-.search-label {
-  font-size: 11px;
-  font-family: var(--mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink3);
-  margin-bottom: 10px;
-  display: block;
-}
-
-.search-row {
-  display: flex;
-  gap: 8px;
-}
-
-input[type="text"] {
-  flex: 1;
-  background: white;
-  border: 1.5px solid var(--border);
-  color: var(--ink);
-  font-family: var(--mono);
-  font-size: 15px;
-  padding: 13px 16px;
-  border-radius: 4px;
-  outline: none;
-  transition: border-color 0.15s;
-  letter-spacing: 0.03em;
-}
-
-input::placeholder { color: var(--ink3); font-size: 13px; }
-input:focus { border-color: var(--ink); }
-
-.btn {
-  background: var(--ink);
-  border: none;
-  color: white;
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 13px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: opacity 0.15s;
-  white-space: nowrap;
-}
-.btn:hover   { opacity: 0.8; }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.search-hint {
-  font-size: 12px;
-  color: var(--ink3);
-  margin-top: 9px;
-  font-family: var(--mono);
-}
-
-/* ── Loading ── */
-.loading {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 0;
-  color: var(--ink2);
-  font-family: var(--mono);
-  font-size: 12px;
-}
-
-.spin {
-  width: 18px; height: 18px;
-  border: 2px solid var(--border);
-  border-top-color: var(--ink);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Result card ── */
-.card {
-  border-radius: 6px;
-  overflow: hidden;
-  border: 1.5px solid var(--border);
-  animation: up 0.25s ease;
-  background: white;
-}
-
-@keyframes up {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* status bar */
-.status-bar {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 18px 24px;
-  border-bottom: 1.5px solid var(--border);
-}
-
-.status-bar.authentic  { background: var(--green-bg); border-bottom-color: var(--green-bd); }
-.status-bar.invalid    { background: var(--red-bg);   border-bottom-color: var(--red-bd); }
-.status-bar.tampered   { background: var(--amber-bg); border-bottom-color: var(--amber-bd); }
-.status-bar.unverif    { background: var(--gray-bg);  }
-
-.status-icon {
-  width: 34px; height: 34px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; flex-shrink: 0; font-weight: 700;
-}
-
-.authentic  .status-icon { background: var(--green-bd); color: var(--green); }
-.invalid    .status-icon { background: var(--red-bd);   color: var(--red); }
-.tampered   .status-icon { background: var(--amber-bd); color: var(--amber); }
-.unverif    .status-icon { background: var(--bg3);      color: var(--ink2); }
-
-.status-text { flex: 1; }
-.status-label {
-  font-size: 11px;
-  font-family: var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-.authentic .status-label  { color: var(--green); }
-.invalid   .status-label  { color: var(--red); }
-.tampered  .status-label  { color: var(--amber); }
-.unverif   .status-label  { color: var(--ink2); }
-
-.status-desc { font-size: 12px; color: var(--ink2); margin-top: 2px; }
-
-/* card body */
-.card-body { padding: 24px; }
-
-.obj-title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-
-.obj-creator {
-  font-size: 13px;
-  color: var(--ink2);
-  margin-bottom: 28px;
-  font-family: var(--mono);
-}
-
-/* fields grid */
-.fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 20px;
-}
-
-.field {
-  background: white;
-  padding: 12px 14px;
-}
-
-.field.full { grid-column: 1 / -1; }
-
-.fl {
-  font-size: 10px;
-  font-family: var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink3);
-  margin-bottom: 4px;
-}
-
-.fv {
-  font-size: 13px;
-  color: var(--ink);
-  word-break: break-all;
-}
-
-.fv.mono { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
-
-.human-id-val {
-  font-family: var(--mono);
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.creator-id-val {
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.type-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-family: var(--mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background: var(--bg2);
-  color: var(--ink2);
-}
-
-.type-badge.digital { background: #e8f0ff; color: #2040a0; }
-
-/* section titles */
-.section-title {
-  font-size: 10px;
-  font-family: var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink3);
-  margin: 20px 0 10px;
-}
-
-/* verification rows */
-.vrow {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 11px 14px;
-  border: 1px solid var(--border);
-  border-bottom: none;
-  background: white;
-  font-size: 12px;
-}
-
-.vrow:first-of-type { border-radius: 4px 4px 0 0; }
-.vrow:last-of-type  { border-bottom: 1px solid var(--border); border-radius: 0 0 4px 4px; }
-.vrow:only-of-type  { border-radius: 4px; border-bottom: 1px solid var(--border); }
-
-.vbadge {
-  font-size: 9px;
-  font-family: var(--mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 3px 7px;
-  border-radius: 3px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.vbadge.ok     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
-.vbadge.bad    { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
-.vbadge.warn   { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
-.vbadge.na     { background: var(--bg2);      color: var(--ink3);  border: 1px solid var(--border); }
-
-.vinfo { flex: 1; }
-.vinfo-label { font-size: 10px; font-family: var(--mono); color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
-.vinfo-val   { font-family: var(--mono); font-size: 11px; color: var(--ink2); word-break: break-all; }
-
-/* file drop */
-.drop-zone {
-  margin-top: 10px;
-  border: 1.5px dashed var(--border2);
-  border-radius: 4px;
-  padding: 18px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  background: var(--bg);
-}
-
-.drop-zone:hover { border-color: var(--ink); background: var(--bg2); }
-.drop-zone input { display: none; }
-
-.drop-zone p {
-  font-size: 12px;
-  color: var(--ink3);
-  font-family: var(--mono);
-  line-height: 1.6;
-}
-
-/* proofs */
-.proof-item {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  margin-bottom: 8px;
-  background: white;
-}
-
-.proof-id   { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
-.proof-who  { font-size: 13px; font-weight: 600; margin: 4px 0 2px; }
-.proof-date { font-size: 11px; font-family: var(--mono); color: var(--ink3); }
-
-/* links */
-.links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
-
-.ext-link {
-  font-size: 10px;
-  font-family: var(--mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink2);
-  text-decoration: none;
-  border: 1px solid var(--border);
-  padding: 6px 11px;
-  border-radius: 3px;
-  transition: all 0.15s;
-}
-
-.ext-link:hover { color: var(--ink); border-color: var(--ink); }
-
-/* error */
-.err-box {
-  padding: 14px 18px;
-  background: var(--red-bg);
-  border: 1px solid var(--red-bd);
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: var(--mono);
-  color: var(--red);
-  animation: up 0.2s ease;
-}
-
-/* footer */
-footer {
-  border-top: 1px solid var(--border);
-  margin-top: 60px;
-  padding-top: 20px;
-  display: flex;
-  gap: 20px;
-  font-size: 11px;
-  font-family: var(--mono);
-  color: var(--ink3);
-  letter-spacing: 0.06em;
-}
-
-footer a { color: var(--ink3); text-decoration: none; }
-footer a:hover { color: var(--ink); }
-
-@media (max-width: 500px) {
-  .fields { grid-template-columns: 1fr; }
-  .field.full { grid-column: 1; }
-  .search-row { flex-direction: column; }
-  header { flex-direction: column; align-items: flex-start; }
-}
-</style>
 </head>
 
 <body>
 <div class="page">
 
-<header>
+<header class="header-row">
   <div class="header-left">
-    <h1>ODP Verify</h1>
-    <p>Object Digital Passport · Spec v0.1</p>
+    <h1>Verify</h1>
+    <p class="sub">Object Digital Passport · Spec v0.1</p>
   </div>
-  <div class="net-pill" onclick="toggleNet()" title="Click to switch network">
+  <div class="net-pill" title="Polygon PoS mainnet">
     <div class="net-dot" id="netDot"></div>
     <span id="netLabel">Connecting...</span>
   </div>
 </header>
+
+<div class="nav">
+  <a href="creator.html">Creator ID</a>
+  <a href="passport.html">Passport</a>
+  <a href="verify.html" class="active">Verify</a>
+</div>
 
 <div class="search-wrap">
   <label class="search-label" for="idInput">Object ID or QR content</label>
@@ -517,21 +71,12 @@ footer a:hover { color: var(--ink); }
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const CFG = {
-  polygon: {
-    name:     "Polygon PoS",
-    chainId:  137,
-    rpc:      "https://polygon-rpc.com",
-    explorer: "https://polygonscan.com",
-    contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
-  },
-  amoy: {
-    name:     "Amoy Testnet",
-    chainId:  80002,
-    rpc:      "https://rpc-amoy.polygon.technology",
-    explorer: "https://amoy.polygonscan.com",
-    contract: "",   // ← paste testnet address after deploy
-  },
+const NET = {
+  name:     "Polygon PoS",
+  chainId:  137,
+  rpc:      "https://polygon-rpc.com",
+  explorer: "https://polygonscan.com",
+  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
 };
 
 const ABI = [
@@ -557,6 +102,39 @@ const ABI = [
       { name: "imageUrl",         type: "string"  },
       { name: "timestamp",        type: "uint256" },
     ]}],
+  },
+  {
+    name: "resolvePassport", type: "function", stateMutability: "view",
+    inputs: [{ name: "humanId", type: "string" }],
+    outputs: [
+      { name: "passport", type: "tuple", components: [
+        { name: "humanId",          type: "string"  },
+        { name: "contractVersion",  type: "uint8"   },
+        { name: "creator",          type: "address" },
+        { name: "creatorId",        type: "string"  },
+        { name: "year",             type: "uint32"  },
+        { name: "month",            type: "uint8"   },
+        { name: "objectType",       type: "string"  },
+        { name: "dataHash",         type: "bytes32" },
+        { name: "imageHash",        type: "bytes32" },
+        { name: "fileHash",         type: "bytes32" },
+        { name: "sealType",         type: "uint8"   },
+        { name: "sealHash",         type: "bytes32" },
+        { name: "nfcPublicKey",     type: "bytes"   },
+        { name: "nfcModel",         type: "string"  },
+        { name: "dataUrl",          type: "string"  },
+        { name: "imageUrl",         type: "string"  },
+        { name: "timestamp",        type: "uint256" },
+      ]},
+      { name: "creator", type: "tuple", components: [
+        { name: "creatorId",  type: "string"  },
+        { name: "wallet",     type: "address" },
+        { name: "typePrefix", type: "bytes1"  },
+        { name: "timestamp",  type: "uint256" },
+      ]},
+      { name: "proofCount", type: "uint256" },
+      { name: "version", type: "uint8" },
+    ],
   },
   {
     name: "exists", type: "function", stateMutability: "view",
@@ -597,7 +175,6 @@ const ZERO32 = "0x" + "0".repeat(64);
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let net      = "polygon";
 let provider = null;
 let contract = null;
 
@@ -616,10 +193,10 @@ async function init() {
 }
 
 async function connect() {
-  const c = CFG[net];
+  const c = NET;
   setNet("connecting", `${c.name} — connecting...`);
   try {
-    provider = new ethers.providers.JsonRpcProvider(c.rpc, { name: net, chainId: c.chainId });
+    provider = new ethers.providers.JsonRpcProvider(c.rpc, { name: "polygon", chainId: c.chainId });
     await provider.getBlockNumber();
     if (!c.contract) {
       setNet("warn", `${c.name} — contract address not set`);
@@ -631,12 +208,6 @@ async function connect() {
     setNet("off", `${c.name} — offline`);
     contract = null;
   }
-}
-
-function toggleNet() {
-  net = net === "polygon" ? "amoy" : "polygon";
-  document.getElementById("result").innerHTML = "";
-  connect();
 }
 
 function setNet(state, label) {
@@ -676,18 +247,23 @@ async function verify() {
   document.getElementById("verifyBtn").disabled = true;
 
   try {
-    const ex = await contract.exists(humanId);
-    if (!ex) { renderInvalid(humanId); return; }
-
-    // Fetch passport record
     setLoading(el, "Fetching passport record...");
-    const rec = await contract.getPassport(humanId);
+    let res;
+    try {
+      res = await contract.resolvePassport(humanId);
+    } catch (e) {
+      const m = String(e && (e.reason || e.message) || "");
+      if (m.includes("Passport not found")) {
+        renderInvalid(humanId);
+        return;
+      }
+      throw e;
+    }
+    const rec = res.passport;
 
-    // Fetch creator info
     let creator = null;
     try {
-      const raw = await contract.getCreator(rec.creatorId);
-      // typePrefix is bytes1 — decode hex to readable char ("C","B","P")
+      const raw = res.creator;
       const tp = raw.typePrefix;
       const typeChar = (typeof tp === "string" && tp.startsWith("0x"))
         ? String.fromCharCode(parseInt(tp.slice(2, 4), 16))
@@ -748,7 +324,7 @@ function renderInvalid(humanId) {
         </div>
       </div>
       <div class="card-body">
-        <p style="font-size:13px;color:var(--ink2)">
+        <p style="font-size:13px;color:var(--text2)">
           This ID does not exist in the registry.
           The object may not be registered, or the ID may be incorrect.
         </p>
@@ -757,7 +333,7 @@ function renderInvalid(humanId) {
 }
 
 function render(humanId, rec, creator, passport, proofs, dataStatus) {
-  const net_     = CFG[net];
+  const net_     = NET;
   const isDigital = rec.objectType === "digital";
   const hasImage  = rec.imageHash !== ZERO32;
   const hasFile   = rec.fileHash  !== ZERO32;
