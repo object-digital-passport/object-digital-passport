@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODP — Verify</title>
+
+<!--
+  Object Digital Passport — Verifier
+  Specification v0.1
+
+  Single HTML file. No build step. No server. Works offline.
+
+  To use offline:
+    1. Save ethers.js locally: https://cdn.ethers.io/lib/ethers-5.7.umd.min.js
+    2. Replace the CDN <script> below with: <script src="ethers.min.js"></script>
+
+  After deploying the contract, set CONTRACT_ADDRESS below.
+-->
+
+<script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=Syne+Mono&display=swap');
+
+:root {
+  --bg:         #f5f2ed;
+  --bg2:        #ede9e2;
+  --bg3:        #e4dfd6;
+  --ink:        #1a1815;
+  --ink2:       #5a5550;
+  --ink3:       #9a9590;
+  --border:     #d4cfc8;
+  --border2:    #bfb9b0;
+  --accent:     #1a1815;
+  --green:      #2d6a4f;
+  --green-bg:   #eaf4ef;
+  --green-bd:   #b7ddc9;
+  --red:        #8b2020;
+  --red-bg:     #fdf0f0;
+  --red-bd:     #e8b4b4;
+  --amber:      #7a5c00;
+  --amber-bg:   #fdf8ed;
+  --amber-bd:   #e8d48a;
+  --gray-bg:    #f0ece6;
+  --mono:       'Syne Mono', monospace;
+  --sans:       'Syne', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── Layout ── */
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+/* ── Header ── */
+header {
+  padding: 48px 0 40px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.header-left h1 {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.header-left p {
+  font-size: 12px;
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+
+.net-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--ink2);
+  cursor: pointer;
+  background: white;
+  transition: border-color 0.15s;
+  white-space: nowrap;
+}
+
+.net-pill:hover { border-color: var(--border2); }
+
+.net-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ink3);
+  flex-shrink: 0;
+}
+.net-dot.on  { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.net-dot.off { background: var(--red); }
+
+/* ── Search ── */
+.search-wrap { margin-bottom: 32px; }
+
+.search-label {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.search-row {
+  display: flex;
+  gap: 8px;
+}
+
+input[type="text"] {
+  flex: 1;
+  background: white;
+  border: 1.5px solid var(--border);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 15px;
+  padding: 13px 16px;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.15s;
+  letter-spacing: 0.03em;
+}
+
+input::placeholder { color: var(--ink3); font-size: 13px; }
+input:focus { border-color: var(--ink); }
+
+.btn {
+  background: var(--ink);
+  border: none;
+  color: white;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 13px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.btn:hover   { opacity: 0.8; }
+.btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.search-hint {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 9px;
+  font-family: var(--mono);
+}
+
+/* ── Loading ── */
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+  color: var(--ink2);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.spin {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Result card ── */
+.card {
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  animation: up 0.25s ease;
+  background: white;
+}
+
+@keyframes up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* status bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px;
+  border-bottom: 1.5px solid var(--border);
+}
+
+.status-bar.authentic  { background: var(--green-bg); border-bottom-color: var(--green-bd); }
+.status-bar.invalid    { background: var(--red-bg);   border-bottom-color: var(--red-bd); }
+.status-bar.tampered   { background: var(--amber-bg); border-bottom-color: var(--amber-bd); }
+.status-bar.unverif    { background: var(--gray-bg);  }
+
+.status-icon {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; flex-shrink: 0; font-weight: 700;
+}
+
+.authentic  .status-icon { background: var(--green-bd); color: var(--green); }
+.invalid    .status-icon { background: var(--red-bd);   color: var(--red); }
+.tampered   .status-icon { background: var(--amber-bd); color: var(--amber); }
+.unverif    .status-icon { background: var(--bg3);      color: var(--ink2); }
+
+.status-text { flex: 1; }
+.status-label {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.authentic .status-label  { color: var(--green); }
+.invalid   .status-label  { color: var(--red); }
+.tampered  .status-label  { color: var(--amber); }
+.unverif   .status-label  { color: var(--ink2); }
+
+.status-desc { font-size: 12px; color: var(--ink2); margin-top: 2px; }
+
+/* card body */
+.card-body { padding: 24px; }
+
+.obj-title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.obj-creator {
+  font-size: 13px;
+  color: var(--ink2);
+  margin-bottom: 28px;
+  font-family: var(--mono);
+}
+
+/* fields grid */
+.fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.field {
+  background: white;
+  padding: 12px 14px;
+}
+
+.field.full { grid-column: 1 / -1; }
+
+.fl {
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 4px;
+}
+
+.fv {
+  font-size: 13px;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.fv.mono { font-family: var(--mono); font-size: 11px; color: var(--ink2); }
+
+.human-id-val {
+  font-family: var(--mono);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.creator-id-val {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--bg2);
+  color: var(--ink2);
+}
+
+.type-badge.digital { background: #e8f0ff; color: #2040a0; }
+
+/* section titles */
+.section-title {
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin: 20px 0 10px;
+}
+
+/* verification rows */
+.vrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  background: white;
+  font-size: 12px;
+}
+
+.vrow:first-of-type { border-radius: 4px 4px 0 0; }
+.vrow:last-of-type  { border-bottom: 1px solid var(--border); border-radius: 0 0 4px 4px; }
+.vrow:only-of-type  { border-radius: 4px; border-bottom: 1px solid var(--border); }
+
+.vbadge {
+  font-size: 9px;
+  font-family: var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.vbadge.ok     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+.vbadge.bad    { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bd); }
+.vbadge.warn   { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bd); }
+.vbadge.na     { background: var(--bg2);      color: var(--ink3);  border: 1px solid var(--border); }
+
+.vinfo { flex: 1; }
+.vinfo-label { font-size: 10px; font-family: var(--mono); color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
+.vinfo-val   { font-family: var(--mono); font-size: 11px; color: var(--ink2); word-break: break-all; }
+
+/* file drop */
+.drop-zone {
+  margin-top: 10px;
+  border: 1.5px dashed var(--border2);
+  border-radius: 4px;
+  padding: 18px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--bg);
+}
+
+.drop-zone:hover { border-color: var(--ink); background: var(--bg2); }
+.drop-zone input { display: none; }
+
+.drop-zone p {
+  font-size: 12px;
+  color: var(--ink3);
+  font-family: var(--mono);
+  line-height: 1.6;
+}
+
+/* proofs */
+.proof-item {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background: white;
+}
+
+.proof-id   { font-family: var(--mono); font-size: 11px; color: var(--ink3); }
+.proof-who  { font-size: 13px; font-weight: 600; margin: 4px 0 2px; }
+.proof-date { font-size: 11px; font-family: var(--mono); color: var(--ink3); }
+
+/* links */
+.links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; }
+
+.ext-link {
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink2);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  padding: 6px 11px;
+  border-radius: 3px;
+  transition: all 0.15s;
+}
+
+.ext-link:hover { color: var(--ink); border-color: var(--ink); }
+
+/* error */
+.err-box {
+  padding: 14px 18px;
+  background: var(--red-bg);
+  border: 1px solid var(--red-bd);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--red);
+  animation: up 0.2s ease;
+}
+
+/* footer */
+footer {
+  border-top: 1px solid var(--border);
+  margin-top: 60px;
+  padding-top: 20px;
+  display: flex;
+  gap: 20px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--ink3);
+  letter-spacing: 0.06em;
+}
+
+footer a { color: var(--ink3); text-decoration: none; }
+footer a:hover { color: var(--ink); }
+
+@media (max-width: 500px) {
+  .fields { grid-template-columns: 1fr; }
+  .field.full { grid-column: 1; }
+  .search-row { flex-direction: column; }
+  header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+
+<body>
+<div class="page">
+
+<header>
+  <div class="header-left">
+    <h1>ODP Verify</h1>
+    <p>Object Digital Passport · Spec v0.1</p>
+  </div>
+  <div class="net-pill" onclick="toggleNet()" title="Click to switch network">
+    <div class="net-dot" id="netDot"></div>
+    <span id="netLabel">Connecting...</span>
+  </div>
+</header>
+
+<div class="search-wrap">
+  <label class="search-label" for="idInput">Object ID or QR content</label>
+  <div class="search-row">
+    <input
+      type="text"
+      id="idInput"
+      placeholder="ODP-2026-03-4829301  or  odp://ODP-2026-03-4829301"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+    />
+    <button class="btn" onclick="verify()" id="verifyBtn">Verify</button>
+  </div>
+  <p class="search-hint">Enter a Human ID, paste a QR URI, or scan with your camera.</p>
+</div>
+
+<div id="result"></div>
+
+<footer>
+  <a href="https://github.com/object-digital-passport" target="_blank">GitHub</a>
+  <span>MIT License</span>
+  <span>Spec v0.1</span>
+</footer>
+
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const CFG = {
+  polygon: {
+    name:     "Polygon PoS",
+    chainId:  137,
+    rpc:      "https://polygon-rpc.com",
+    explorer: "https://polygonscan.com",
+    contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
+  },
+  amoy: {
+    name:     "Amoy Testnet",
+    chainId:  80002,
+    rpc:      "https://rpc-amoy.polygon.technology",
+    explorer: "https://amoy.polygonscan.com",
+    contract: "",   // ← paste testnet address after deploy
+  },
+};
+
+const ABI = [
+  {
+    name: "getPassport", type: "function", stateMutability: "view",
+    inputs: [{ name: "humanId", type: "string" }],
+    outputs: [{ name: "", type: "tuple", components: [
+      { name: "humanId",          type: "string"  },
+      { name: "contractVersion",  type: "uint8"   },
+      { name: "creator",          type: "address" },
+      { name: "creatorId",        type: "string"  },
+      { name: "year",             type: "uint32"  },
+      { name: "month",            type: "uint8"   },
+      { name: "objectType",       type: "string"  },
+      { name: "dataHash",         type: "bytes32" },
+      { name: "imageHash",        type: "bytes32" },
+      { name: "fileHash",         type: "bytes32" },
+      { name: "sealType",         type: "uint8"   },
+      { name: "sealHash",         type: "bytes32" },
+      { name: "nfcPublicKey",     type: "bytes"   },
+      { name: "nfcModel",         type: "string"  },
+      { name: "dataUrl",          type: "string"  },
+      { name: "imageUrl",         type: "string"  },
+      { name: "timestamp",        type: "uint256" },
+    ]}],
+  },
+  {
+    name: "exists", type: "function", stateMutability: "view",
+    inputs:  [{ name: "humanId", type: "string" }],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "getCreator", type: "function", stateMutability: "view",
+    inputs: [{ name: "creatorId", type: "string" }],
+    outputs: [{ name: "", type: "tuple", components: [
+      { name: "creatorId",  type: "string"  },
+      { name: "wallet",     type: "address" },
+      { name: "typePrefix", type: "bytes1"  },
+      { name: "timestamp",  type: "uint256" },
+    ]}],
+  },
+  {
+    name: "getProofsForPassport", type: "function", stateMutability: "view",
+    inputs:  [{ name: "humanId",  type: "string" }],
+    outputs: [{ name: "", type: "string[]" }],
+  },
+  {
+    name: "getProof", type: "function", stateMutability: "view",
+    inputs: [{ name: "proofId", type: "string" }],
+    outputs: [{ name: "", type: "tuple", components: [
+      { name: "proofId",         type: "string"  },
+      { name: "contractVersion", type: "uint8"   },
+      { name: "prover",          type: "string"  },
+      { name: "humanId",         type: "string"  },
+      { name: "noteHash",        type: "bytes32" },
+      { name: "noteUrl",         type: "string"  },
+      { name: "timestamp",       type: "uint256" },
+    ]}],
+  },
+];
+
+const ZERO32 = "0x" + "0".repeat(64);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let net      = "polygon";
+let provider = null;
+let contract = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+async function init() {
+  await connect();
+
+  // Handle odp:// or ?id= in URL
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  if (id) {
+    document.getElementById("idInput").value = id;
+    await verify();
+  }
+}
+
+async function connect() {
+  const c = CFG[net];
+  setNet("connecting", `${c.name} — connecting...`);
+  try {
+    provider = new ethers.providers.JsonRpcProvider(c.rpc, { name: net, chainId: c.chainId });
+    await provider.getBlockNumber();
+    if (!c.contract) {
+      setNet("warn", `${c.name} — contract address not set`);
+      return;
+    }
+    contract = new ethers.Contract(c.contract, ABI, provider);
+    setNet("on", `${c.name}`);
+  } catch {
+    setNet("off", `${c.name} — offline`);
+    contract = null;
+  }
+}
+
+function toggleNet() {
+  net = net === "polygon" ? "amoy" : "polygon";
+  document.getElementById("result").innerHTML = "";
+  connect();
+}
+
+function setNet(state, label) {
+  const dot = document.getElementById("netDot");
+  dot.className = "net-dot " + (state === "on" ? "on" : state === "off" ? "off" : "");
+  document.getElementById("netLabel").textContent = label;
+}
+
+// ── Parse ─────────────────────────────────────────────────────────────────────
+
+function parseId(raw) {
+  raw = raw.trim();
+  if (raw.startsWith("odp://")) raw = raw.slice(5);
+  const m = raw.match(/ODP-\d{4}-\d{2}-\d{7}/i);
+  if (m) return m[0].toUpperCase();
+  if (/^ODP-\d{4}-\d{2}-\d{7}$/i.test(raw)) return raw.toUpperCase();
+  return null;
+}
+
+// ── Verify ────────────────────────────────────────────────────────────────────
+
+async function verify() {
+  const raw     = document.getElementById("idInput").value;
+  const humanId = parseId(raw);
+  const el      = document.getElementById("result");
+
+  if (!humanId) {
+    el.innerHTML = `<div class="err-box">Invalid format. Expected: ODP-2026-03-4829301</div>`;
+    return;
+  }
+  if (!contract) {
+    el.innerHTML = `<div class="err-box">Not connected. Check your internet connection.</div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="loading"><div class="spin"></div><span>Querying blockchain...</span></div>`;
+  document.getElementById("verifyBtn").disabled = true;
+
+  try {
+    const ex = await contract.exists(humanId);
+    if (!ex) { renderInvalid(humanId); return; }
+
+    // Fetch passport record
+    setLoading(el, "Fetching passport record...");
+    const rec = await contract.getPassport(humanId);
+
+    // Fetch creator info
+    let creator = null;
+    try {
+      const raw = await contract.getCreator(rec.creatorId);
+      // typePrefix is bytes1 — decode hex to readable char ("C","B","P")
+      const tp = raw.typePrefix;
+      const typeChar = (typeof tp === "string" && tp.startsWith("0x"))
+        ? String.fromCharCode(parseInt(tp.slice(2, 4), 16))
+        : (typeof tp === "string" ? tp : "?");
+      creator = { ...raw, typePrefix: typeChar };
+    } catch {}
+
+    // Fetch proofs
+    let proofIds = [];
+    let proofs   = [];
+    try {
+      proofIds = await contract.getProofsForPassport(humanId);
+      proofs = await Promise.all(
+        proofIds.map(id => contract.getProof(id).catch(() => null))
+      );
+      proofs = proofs.filter(Boolean);
+    } catch {}
+
+    // Fetch passport.json
+    setLoading(el, "Fetching passport data...");
+    let passport   = null;
+    let dataStatus = "unverifiable";
+
+    try {
+      const resp = await fetch(rec.dataUrl, { cache: "no-cache" });
+      if (resp.ok) {
+        const raw   = await resp.text();
+        const hash  = await sha256text(minify(raw));
+        const onchain = rec.dataHash.toLowerCase();
+        dataStatus  = hash === onchain ? "authentic" : "tampered";
+        passport    = JSON.parse(raw);
+      }
+    } catch {}
+
+    render(humanId, rec, creator, passport, proofs, dataStatus);
+
+  } catch (e) {
+    el.innerHTML = `<div class="err-box">Error: ${esc(e.message)}</div>`;
+  } finally {
+    document.getElementById("verifyBtn").disabled = false;
+  }
+}
+
+function setLoading(el, msg) {
+  el.innerHTML = `<div class="loading"><div class="spin"></div><span>${msg}</span></div>`;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderInvalid(humanId) {
+  document.getElementById("result").innerHTML = `
+    <div class="card">
+      <div class="status-bar invalid">
+        <div class="status-icon">✕</div>
+        <div class="status-text">
+          <div class="status-label">Not Registered</div>
+          <div class="status-desc">No record found for ${esc(humanId)}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--ink2)">
+          This ID does not exist in the registry.
+          The object may not be registered, or the ID may be incorrect.
+        </p>
+      </div>
+    </div>`;
+}
+
+function render(humanId, rec, creator, passport, proofs, dataStatus) {
+  const net_     = CFG[net];
+  const isDigital = rec.objectType === "digital";
+  const hasImage  = rec.imageHash !== ZERO32;
+  const hasFile   = rec.fileHash  !== ZERO32;
+  const hasNFC    = rec.sealType  === 1 || rec.sealType === 3;
+
+  const statusClass = { authentic: "authentic", tampered: "tampered", unverifiable: "unverif" }[dataStatus] || "unverif";
+  const statusIcon  = { authentic: "✓", tampered: "⚠", unverifiable: "?" }[dataStatus];
+  const statusLabel = { authentic: "Authentic", tampered: "Data Tampered", unverifiable: "Unverifiable" }[dataStatus];
+  const statusDesc  = {
+    authentic:    "Passport data matches on-chain hash",
+    tampered:     "Passport data was modified after registration",
+    unverifiable: "Record exists on-chain, but passport data is unreachable",
+  }[dataStatus];
+
+  const title   = passport?.title    || "—";
+  const cname   = passport?.creator?.name || (creator ? creator.creatorId : "—");
+  const objType = passport?.type     || rec.objectType;
+  const medium  = passport?.medium   || null;
+  const edition = passport?.edition  ? `${passport.edition.number} / ${passport.edition.total}` : null;
+  const materials = passport?.materials?.map(m => m.name || m).join(", ") || null;
+  const desc    = passport?.description || null;
+  const ts      = new Date(Number(rec.timestamp) * 1000);
+  const dateStr = ts.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" });
+
+  const short = a => a.slice(0, 6) + "…" + a.slice(-4);
+
+  document.getElementById("result").innerHTML = `
+    <div class="card">
+      <div class="status-bar ${statusClass}">
+        <div class="status-icon">${statusIcon}</div>
+        <div class="status-text">
+          <div class="status-label">${statusLabel}</div>
+          <div class="status-desc">${statusDesc}</div>
+        </div>
+      </div>
+
+      <div class="card-body">
+
+        <div class="obj-title">${esc(title)}</div>
+        <div class="obj-creator">${esc(cname)}</div>
+
+        <div class="fields">
+
+          <div class="field full">
+            <div class="fl">Human ID</div>
+            <div class="fv"><span class="human-id-val">${esc(humanId)}</span></div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Creator ID</div>
+            <div class="fv">
+              <span class="creator-id-val">${esc(rec.creatorId)}</span>
+              ${creator ? `<div style="font-size:11px;color:var(--ink3);font-family:var(--mono);margin-top:3px">${esc(creator.typePrefix)} · ${short(creator.wallet)}</div>` : ""}
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Registered</div>
+            <div class="fv">${dateStr}</div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Protocol Version</div>
+            <div class="fv">
+              <span class="type-badge">ODP v${rec.contractVersion || 0}</span>
+              ${(rec.contractVersion || 0) === 0 ? '<span style="font-size:10px;color:var(--ink3);margin-left:6px;font-family:var(--mono)">Legacy record</span>' : ''}
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="fl">Type</div>
+            <div class="fv">
+              <span class="type-badge ${isDigital ? 'digital' : ''}">${esc(objType)}</span>
+            </div>
+          </div>
+
+          ${edition ? `
+          <div class="field">
+            <div class="fl">Edition</div>
+            <div class="fv">${esc(edition)}</div>
+          </div>` : ""}
+
+          ${medium ? `
+          <div class="field ${edition ? "" : "full"}">
+            <div class="fl">Medium</div>
+            <div class="fv">${esc(medium)}</div>
+          </div>` : ""}
+
+          ${materials ? `
+          <div class="field full">
+            <div class="fl">Materials</div>
+            <div class="fv">${esc(materials)}</div>
+          </div>` : ""}
+
+          ${desc ? `
+          <div class="field full">
+            <div class="fl">Description</div>
+            <div class="fv">${esc(desc)}</div>
+          </div>` : ""}
+
+          ${isDigital && passport?.digital ? `
+          <div class="field">
+            <div class="fl">File type</div>
+            <div class="fv">${esc(passport.digital.subtype || "—")}${passport.digital.format ? ` · ${esc(passport.digital.format)}` : ""}</div>
+          </div>
+          <div class="field">
+            <div class="fl">File size</div>
+            <div class="fv">${passport.digital.fileSize ? fmtSize(passport.digital.fileSize) : "—"}</div>
+          </div>` : ""}
+
+          <div class="field full">
+            <div class="fl">Creator Wallet</div>
+            <div class="fv mono">${rec.creator}</div>
+          </div>
+
+        </div>
+
+        <!-- Hashes -->
+        <div class="section-title">Verification</div>
+
+        <div class="vrow">
+          <span class="vbadge ${dataStatus === 'authentic' ? 'ok' : dataStatus === 'tampered' ? 'bad' : 'na'}">
+            ${dataStatus === 'authentic' ? 'Verified' : dataStatus === 'tampered' ? 'Mismatch' : 'Unchecked'}
+          </span>
+          <div class="vinfo">
+            <div class="vinfo-label">Passport Data (SHA-256)</div>
+            <div class="vinfo-val">${rec.dataHash}</div>
+          </div>
+        </div>
+
+        ${isDigital && hasFile ? `
+        <div class="vrow">
+          <span class="vbadge na">Registered</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Original File (SHA-256)</div>
+            <div class="vinfo-val">${rec.fileHash}</div>
+          </div>
+        </div>` : ""}
+
+        ${!isDigital ? `
+        <div class="vrow">
+          <span class="vbadge na">${rec.sealType === 0 ? 'None' : rec.sealType === 1 ? 'NFC' : rec.sealType === 2 ? 'Numbered' : 'NFC + Numbered'}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Physical Seal</div>
+            <div class="vinfo-val">${rec.sealHash !== ZERO32 ? rec.sealHash : "No seal data"}</div>
+          </div>
+        </div>
+        ${rec.sealType === 2 ? `
+        <div class="vrow">
+          <span class="vbadge warn">⚠ Lower protection</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Numbered seal only</div>
+            <div class="vinfo-val">
+              This object uses a numbered sticker without a cryptographic NFC chip.
+              The seal number cannot be verified automatically — visual inspection required.
+              A determined attacker could copy the number onto a fake object.
+            </div>
+          </div>
+        </div>` : ""}
+        ${hasNFC ? `
+        <div class="vrow">
+          <span class="vbadge ok">NTAG424DNA_TT</span>
+          <div class="vinfo">
+            <div class="vinfo-label">NFC Chip — TagTamper</div>
+            <div class="vinfo-val">
+              Cryptographic seal. Permanently records if physically removed.
+              Use a PPP-compatible app to run NFC challenge-response verification.
+            </div>
+          </div>
+        </div>
+        <div class="vrow">
+          <span class="vbadge na">Public Key</span>
+          <div class="vinfo">
+            <div class="vinfo-label">NFC Chip Public Key</div>
+            <div class="vinfo-val">${bytesToHex(rec.nfcPublicKey).slice(0, 40)}…</div>
+          </div>
+        </div>` : ""}` : ""}
+
+        <div class="vrow">
+          <span class="vbadge na">${hasImage ? 'Registered' : 'None'}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Image (SHA-256)</div>
+            <div class="vinfo-val">${hasImage ? rec.imageHash : "No image registered"}</div>
+          </div>
+        </div>
+        ${hasImage && !rec.imageUrl ? `
+        <div class="vrow">
+          <span class="vbadge warn">No URL</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Image hash registered but no URL provided</div>
+            <div class="vinfo-val">
+              The image hash is on-chain but no download URL was specified.
+              You can verify the image manually by dropping the file below.
+            </div>
+          </div>
+        </div>` : ""}
+
+        <!-- File verification (digital) -->
+        ${isDigital && hasFile ? `
+        <div class="section-title">Verify Original File</div>
+        <div class="drop-zone" id="fileDrop" onclick="document.getElementById('fileInput').click()">
+          <input type="file" id="fileInput" onchange="verifyFile(event, '${rec.fileHash}')">
+          <p>Drop original file here or click to select<br>
+          <span style="opacity:0.6">SHA-256 computed locally — file is never uploaded</span></p>
+        </div>
+        <div id="fileResult"></div>` : ""}
+
+        <!-- Image verification -->
+        ${hasImage ? `
+        <div class="section-title">Verify Image</div>
+        <div class="drop-zone" id="imgDrop" onclick="document.getElementById('imgInput').click()">
+          <input type="file" id="imgInput" accept="image/*" onchange="verifyImage(event, '${rec.imageHash}')">
+          <p>Drop image file here or click to select<br>
+          <span style="opacity:0.6">Computed locally — not uploaded</span></p>
+        </div>
+        <div id="imgResult"></div>` : ""}
+
+        <!-- NFC hint -->
+        ${hasNFC ? `
+        <div class="section-title">NFC Verification</div>
+        <div class="vrow">
+          <span class="vbadge warn">Manual</span>
+          <div class="vinfo">
+            <div class="vinfo-label">NTAG 424 DNA</div>
+            <div class="vinfo-val">Use a ODP-compatible app to perform NFC challenge-response verification.</div>
+          </div>
+        </div>` : ""}
+
+        <!-- Seal number hint -->
+        ${!isDigital && (rec.sealType === 2 || rec.sealType === 3) && passport?.seal?.numbered ? `
+        <div class="section-title">Numbered Seal</div>
+        <div class="vrow">
+          <span class="vbadge warn">Visual</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Seal Number</div>
+            <div class="vinfo-val">${esc(passport.seal.numbered.number)} · ${esc(passport.seal.numbered.type)}</div>
+          </div>
+        </div>` : ""}
+
+        <!-- Proofs -->
+        ${proofs.length > 0 ? `
+        <div class="section-title">Proofs (${proofs.length})</div>
+        <div class="vrow" style="margin-bottom:8px">
+          <span class="vbadge warn">Verify manually</span>
+          <div class="vinfo">
+            <div class="vinfo-label">How to trust a Proof</div>
+            <div class="vinfo-val">
+              Anyone can register as a P-type institution — names are self-declared and unverified.
+              Only the Creator ID (P-NNN-NNN-NNN) is on-chain.
+              Find this exact ID published on the institution's official website to confirm identity.
+            </div>
+          </div>
+        </div>
+        ${proofs.slice(0, 3).map(p => `
+          <div class="proof-item">
+            <div class="proof-id" style="font-family:var(--mono);font-size:11px;color:var(--ink3)">${esc(p.proofId)}</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:600;margin:6px 0 4px;letter-spacing:0.04em">${esc(p.prover)}</div>
+            <div style="font-size:11px;color:var(--ink3);font-family:var(--mono)">${new Date(Number(p.timestamp) * 1000).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.6">
+              ↗ Find <strong style="font-family:var(--mono)">${esc(p.prover)}</strong> on the institution's official website to verify identity.
+              No name is shown here — names are self-declared.
+            </div>
+            ${p.noteUrl ? `<div style="margin-top:6px"><a class="ext-link" href="${esc(p.noteUrl)}" target="_blank">Document ↗</a></div>` : ""}
+          </div>`).join("")}
+        ${proofs.length > 3 ? `<div style="font-size:11px;color:var(--ink3);padding:8px 0;font-family:var(--mono)">
+          + ${proofs.length - 3} more proof${proofs.length - 3 > 1 ? 's' : ''} — each requires independent verification
+        </div>` : ""}` : ""}
+
+        <!-- Links -->
+        <div class="links">
+          <a class="ext-link" href="${net_.explorer}/address/${net_.contract}" target="_blank">Contract ↗</a>
+          <a class="ext-link" href="${esc(rec.dataUrl)}" target="_blank">Passport JSON ↗</a>
+          ${hasImage && rec.imageUrl ? `<a class="ext-link" href="${esc(rec.imageUrl)}" target="_blank">Image ↗</a>` : ""}
+          ${net_.explorer ? `<a class="ext-link" href="${net_.explorer}/address/${rec.creator}" target="_blank">Creator ↗</a>` : ""}
+        </div>
+
+      </div>
+    </div>`;
+}
+
+// ── File verification ─────────────────────────────────────────────────────────
+
+async function verifyFile(e, onchain) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const el = document.getElementById("fileResult");
+  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Computing SHA-256...</span></div>`;
+
+  const buf  = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  const hex  = "0x" + Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  const match = hex.toLowerCase() === onchain.toLowerCase();
+  document.getElementById("fileDrop").style.borderStyle = "solid";
+  el.innerHTML = `
+    <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+      <span class="vbadge ${match ? 'ok' : 'bad'}">${match ? 'Authentic' : 'Mismatch'}</span>
+      <div class="vinfo">
+        <div class="vinfo-label">${file.name}</div>
+        <div class="vinfo-val">${hex}</div>
+      </div>
+    </div>
+    ${!match ? `<div class="err-box" style="margin-top:8px;font-size:11px">
+      This file does not match the registered original.
+      The registered file hash: ${onchain}
+    </div>` : ""}`;
+}
+
+async function verifyImage(e, onchain) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const el = document.getElementById("imgResult");
+  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Computing SHA-256...</span></div>`;
+
+  const buf  = await file.arrayBuffer();
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  const hex  = "0x" + Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+  const match = hex.toLowerCase() === onchain.toLowerCase();
+  document.getElementById("imgDrop").style.borderStyle = "solid";
+  el.innerHTML = `
+    <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+      <span class="vbadge ${match ? 'ok' : 'bad'}">${match ? 'Authentic' : 'Replaced'}</span>
+      <div class="vinfo">
+        <div class="vinfo-label">${file.name}</div>
+        <div class="vinfo-val">${hex}</div>
+      </div>
+    </div>`;
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+
+async function sha256text(text) {
+  const buf  = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return "0x" + Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Canonical JSON per ODP spec:
+ *   1. Unicode NFC normalization on all strings
+ *   2. Keys sorted alphabetically at every nesting level
+ *   3. No whitespace
+ * Must match Python: unicodedata.normalize("NFC") + json.dumps(sort_keys=True)
+ */
+function normalizeNFC(obj) {
+  if (typeof obj === "string") return obj.normalize("NFC");
+  if (Array.isArray(obj))      return obj.map(normalizeNFC);
+  if (obj !== null && typeof obj === "object") {
+    return Object.fromEntries(Object.entries(obj).map(([k,v]) => [k, normalizeNFC(v)]));
+  }
+  return obj;
+}
+
+function sortKeysDeep(obj) {
+  if (Array.isArray(obj)) return obj.map(sortKeysDeep);
+  if (obj !== null && typeof obj === "object") {
+    return Object.keys(obj).sort().reduce((acc, k) => {
+      acc[k] = sortKeysDeep(obj[k]);
+      return acc;
+    }, {});
+  }
+  return obj;
+}
+
+function minify(str) {
+  const parsed = JSON.parse(str);
+  return JSON.stringify(sortKeysDeep(normalizeNFC(parsed)));
+}
+
+function esc(s) {
+  return String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+function bytesToHex(b) {
+  if (!b || b === "0x") return "0x";
+  if (typeof b === "string") return b;
+  return "0x" + Array.from(b).map(x => x.toString(16).padStart(2, "0")).join("");
+}
+
+function fmtSize(bytes) {
+  if (bytes < 1024)       return bytes + " B";
+  if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + " KB";
+  if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + " MB";
+  return (bytes / 1073741824).toFixed(2) + " GB";
+}
+
+// ── Enter key ─────────────────────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("idInput").addEventListener("keydown", e => {
+    if (e.key === "Enter") verify();
+  });
+  init();
+});
+</script>
+</body>
+</html>

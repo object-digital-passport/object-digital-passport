@@ -1,0 +1,20 @@
+# Never commit private keys
+.env
+deploy/.env
+
+# Node
+node_modules/
+deploy/node_modules/
+
+# Hardhat
+deploy/artifacts/
+deploy/cache/
+deploy/deployments/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Generated
+passports/

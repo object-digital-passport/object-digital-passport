@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ODP — Create Passport</title>
+<script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --bg:      #0f0e0c; --bg2: #171612; --bg3: #1f1d18; --bg4: #272420;
+  --border:  #2e2b25; --border2: #3d3930;
+  --text:    #e8e3d8; --text2: #8a8478; --text3: #524f48;
+  --accent:  #d4a853; --accent2: #9a7a3a;
+  --green:   #5a9e72; --green-bg: #0e1f14;
+  --red:     #9e5a5a; --red-bg: #1f0e0e;
+  --serif:   'Fraunces', Georgia, serif;
+  --mono:    'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: var(--mono); font-size: 13px; font-weight: 300; line-height: 1.6;
+  min-height: 100vh;
+}
+
+.page { max-width: 620px; margin: 0 auto; padding: 0 24px 80px; }
+
+header {
+  padding: 52px 0 40px; text-align: center;
+  border-bottom: 1px solid var(--border); margin-bottom: 40px;
+}
+
+h1 { font-family: var(--serif); font-size: 36px; font-weight: 300; font-style: italic; }
+.sub { font-size: 11px; color: var(--text3); letter-spacing: 0.14em; text-transform: uppercase; margin-top: 8px; }
+
+.nav { display: flex; gap: 8px; justify-content: center; margin-bottom: 40px; }
+.nav a {
+  font-size: 11px; font-family: var(--mono); letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--text3); text-decoration: none;
+  padding: 7px 14px; border: 1px solid var(--border); border-radius: 3px; transition: all 0.15s;
+}
+.nav a:hover, .nav a.active { color: var(--accent); border-color: var(--accent2); }
+
+/* Wallet bar */
+.wbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: 3px;
+  background: var(--bg2); margin-bottom: 24px; font-size: 12px; font-family: var(--mono); color: var(--text2);
+}
+.wdot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+.wdot.on { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.wbar-addr { flex: 1; }
+.wbar-id { color: var(--accent); font-weight: 500; }
+.wbar-dis { color: var(--text3); cursor: pointer; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; }
+.wbar-dis:hover { color: var(--accent); }
+
+/* Creator banner */
+.creator-banner {
+  padding: 14px 18px; border: 1px solid var(--border2); border-radius: 3px;
+  background: var(--bg2); margin-bottom: 28px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.cb-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
+.cb-val   { font-size: 15px; font-weight: 500; letter-spacing: 0.06em; color: var(--accent); }
+
+/* Type toggle */
+.type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 28px; }
+.tt-opt {
+  padding: 16px; border: 1.5px solid var(--border); border-radius: 3px;
+  cursor: pointer; background: var(--bg2); transition: all 0.15s; text-align: center;
+}
+.tt-opt:hover { border-color: var(--border2); }
+.tt-opt.sel   { border-color: var(--accent2); background: var(--bg3); }
+.tt-icon { font-size: 22px; margin-bottom: 8px; }
+.tt-name { font-size: 14px; color: var(--text); margin-bottom: 3px; font-family: var(--serif); font-style: italic; }
+.tt-desc { font-size: 11px; color: var(--text3); }
+
+/* Form */
+.section { margin-bottom: 28px; }
+.section-label {
+  font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+}
+
+.field { margin-bottom: 14px; }
+label { display: block; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+.req { color: var(--accent2); }
+
+input[type=text], input[type=number], input[type=url], select, textarea {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  color: var(--text); font-family: var(--mono); font-size: 13px; font-weight: 300;
+  padding: 11px 14px; border-radius: 3px; outline: none; transition: border-color 0.15s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--border2); }
+input::placeholder, textarea::placeholder { color: var(--text3); }
+textarea { resize: vertical; min-height: 72px; }
+select option { background: var(--bg2); }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+.fhint { font-size: 11px; color: var(--text3); margin-top: 5px; line-height: 1.5; }
+
+/* File drop */
+.fdrop {
+  border: 1px dashed var(--border2); border-radius: 3px; padding: 18px;
+  text-align: center; cursor: pointer; transition: all 0.15s; background: var(--bg2);
+}
+.fdrop:hover { border-color: var(--accent2); background: var(--bg3); }
+.fdrop input { display: none; }
+.fdrop-icon { font-size: 20px; margin-bottom: 7px; opacity: 0.5; }
+.fdrop-text { font-size: 12px; color: var(--text3); line-height: 1.6; }
+.fdrop.has-file { border-style: solid; border-color: var(--green); background: var(--green-bg); }
+.finfo { font-size: 11px; color: var(--green); margin-top: 8px; font-family: var(--mono); word-break: break-all; }
+
+/* Seal */
+.seal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+.seal-opt {
+  padding: 12px 8px; border: 1.5px solid var(--border); border-radius: 3px;
+  text-align: center; cursor: pointer; background: var(--bg2); transition: all 0.15s;
+  font-size: 11px; color: var(--text2);
+}
+.seal-opt:hover { border-color: var(--border2); }
+.seal-opt.sel   { border-color: var(--accent2); color: var(--accent); background: var(--bg3); }
+.seal-icon { font-size: 18px; display: block; margin-bottom: 6px; }
+
+/* Accordion */
+.acc { border: 1px solid var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 12px; }
+.acc-head {
+  padding: 11px 14px; background: var(--bg3); cursor: pointer;
+  display: flex; justify-content: space-between; font-size: 12px; color: var(--text2);
+  user-select: none; transition: background 0.15s;
+}
+.acc-head:hover { background: var(--bg4); }
+.acc-arr { font-size: 10px; transition: transform 0.2s; }
+.acc.open .acc-arr { transform: rotate(90deg); }
+.acc-body { display: none; padding: 14px; border-top: 1px solid var(--border); }
+.acc.open .acc-body { display: block; }
+
+/* Info */
+.info { padding: 12px 15px; border-radius: 3px; font-size: 12px; line-height: 1.6; margin-bottom: 12px; }
+.info.n { background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); }
+.info.w { background: #1a1508; border: 1px solid var(--accent2); color: var(--accent); }
+.info.s { background: var(--green-bg); border: 1px solid var(--green); color: var(--green); }
+.info.e { background: var(--red-bg); border: 1px solid var(--red); color: var(--red); }
+
+/* Buttons */
+.btn-row { display: flex; gap: 10px; margin-top: 28px; }
+.btn {
+  flex: 1; padding: 14px; border-radius: 3px; font-family: var(--mono);
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; border: none; background: var(--accent); color: var(--bg); transition: all 0.15s;
+}
+.btn:hover    { opacity: 0.85; }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border2); flex: 0; padding: 14px 20px; }
+.btn-ghost:hover { border-color: var(--text2); color: var(--text); }
+
+/* Success */
+.success { text-align: center; padding: 32px 0; animation: up 0.3s ease; }
+@keyframes up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.success-icon { font-size: 48px; margin-bottom: 16px; }
+.success-id { font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: 0.07em; color: var(--accent); display: block; margin: 16px 0 6px; }
+.success-title { font-family: var(--serif); font-size: 26px; font-style: italic; font-weight: 300; margin-bottom: 6px; }
+.success-sub { font-size: 12px; color: var(--text2); margin-bottom: 28px; }
+#qrWrap { display: inline-block; padding: 14px; background: white; border-radius: 4px; margin-bottom: 24px; }
+
+.next-steps { text-align: left; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 24px; }
+.ns-item {
+  display: flex; gap: 14px; padding: 14px 16px;
+  border-bottom: 1px solid var(--border); font-size: 12px; color: var(--text2); line-height: 1.5;
+}
+.ns-item:last-child { border-bottom: none; }
+.ns-num {
+  width: 22px; height: 22px; border-radius: 50%; background: var(--bg3);
+  border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: var(--text3); flex-shrink: 0; margin-top: 1px;
+}
+
+footer { border-top: 1px solid var(--border); margin-top: 48px; padding-top: 20px; display: flex; gap: 20px; font-size: 11px; font-family: var(--mono); color: var(--text3); }
+footer a { color: var(--text3); text-decoration: none; }
+footer a:hover { color: var(--accent); }
+
+@media (max-width: 520px) {
+  .row2, .row3 { grid-template-columns: 1fr; }
+  .seal-grid { grid-template-columns: 1fr; }
+  .type-toggle { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+
+<body>
+<div class="page">
+
+<header>
+  <h1>Create Passport</h1>
+  <p class="sub">Object Digital Passport · Specification v0.1</p>
+</header>
+
+<div class="nav">
+  <a href="creator.html">Creator ID</a>
+  <a href="passport.html" class="active">Passport</a>
+  <a href="verify.html">Verify</a>
+</div>
+
+<div id="app">
+  <div class="info n">Connecting wallet…</div>
+</div>
+
+<footer>
+  <a href="https://github.com/object-digital-passport" target="_blank">GitHub</a>
+  <span>ODP Spec v0.1</span>
+  <span>MIT License</span>
+</footer>
+
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const CFG = {
+  amoy: {
+    name: "Polygon Amoy (testnet)", chainId: 80002,
+    rpc: "https://rpc-amoy.polygon.technology",
+    explorer: "https://amoy.polygonscan.com",
+    contract: "",  // ← paste after deploy
+  },
+  polygon: {
+    name: "Polygon PoS", chainId: 137,
+    rpc: "https://polygon-rpc.com",
+    explorer: "https://polygonscan.com",
+    contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
+  },
+};
+
+const ABI = [
+  { name:"MINT_FEE",type:"function",stateMutability:"view",inputs:[],outputs:[{name:"",type:"uint256"}] },
+  { name:"REGISTER_FEE",type:"function",stateMutability:"view",inputs:[],outputs:[{name:"",type:"uint256"}] },
+  { name:"getCreatorByWallet",type:"function",stateMutability:"view",inputs:[{name:"wallet",type:"address"}],outputs:[{name:"",type:"string"}] },
+  { name:"mintPhysical",type:"function",stateMutability:"payable",inputs:[
+    {name:"year",type:"uint32"},{name:"month",type:"uint8"},
+    {name:"dataHash",type:"bytes32"},{name:"dataUrl",type:"string"},
+    {name:"imageHash",type:"bytes32"},{name:"imageUrl",type:"string"},
+    {name:"sealType",type:"uint8"},{name:"sealHash",type:"bytes32"},
+    {name:"nfcPublicKey",type:"bytes"},{name:"nfcModel",type:"string"}],
+    outputs:[{name:"humanId",type:"string"}] },
+  { name:"mintDigital",type:"function",stateMutability:"payable",inputs:[
+    {name:"year",type:"uint32"},{name:"month",type:"uint8"},
+    {name:"dataHash",type:"bytes32"},{name:"dataUrl",type:"string"},
+    {name:"imageHash",type:"bytes32"},{name:"imageUrl",type:"string"},
+    {name:"fileHash",type:"bytes32"}],outputs:[{name:"humanId",type:"string"}] },
+];
+
+const ZERO32 = "0x"+"0".repeat(64);
+let netKey="polygon", provider=null, signer=null, contract=null, wallet=null, creatorId=null;
+let objType="physical", sealType=2;
+/** Raw file SHA-256 as bytes32 (0x + 64 hex) — required for mintDigital; matches mint.py to_bytes32 */
+let fileHashBytes32=ZERO32, imageHash=ZERO32, imageUrl="", fileSize=0;
+
+function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
+
+// ── Connect ───────────────────────────────────────────────────────────────────
+
+async function connect() {
+  const app = document.getElementById("app");
+  app.innerHTML = renderConnectUI();
+}
+
+function renderConnectUI() {
+  return `
+    <div style="max-width:400px;margin:0 auto;text-align:center">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.7">
+        Connect your wallet to create a passport.<br>
+        You need a Creator ID first —
+        <a href="creator.html" style="color:var(--accent)">register here</a> if you don't have one.
+      </p>
+      <div style="max-width:320px;margin:0 auto 12px">
+        <div class="tt-opt" onclick="connectWallet()" style="padding:18px 12px">
+          <div class="tt-icon">🔗</div>
+          <div class="tt-name">Connect wallet</div>
+          <div class="tt-desc">Browser extension (MetaMask, Rabby, …)</div>
+        </div>
+      </div>
+      <select onchange="netKey=this.value" style="background:var(--bg3);border:1px solid var(--border);color:var(--text3);font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:3px;outline:none">
+        <option value="amoy">Polygon Amoy (testnet)</option>
+        <option value="polygon" selected>Polygon PoS (mainnet)</option>
+      </select>
+      <div id="connectErr" style="margin-top:12px"></div>
+    </div>`;
+}
+
+function injectedEthereum() {
+  const w = window.ethereum;
+  if (!w) return null;
+  if (w.providers && w.providers.length)
+    return w.providers.find((p) => p.isMetaMask) || w.providers[0];
+  return w;
+}
+
+function noWalletHtml() {
+  const fileProto = location.protocol === "file:";
+  return `<div class="info e" style="line-height:1.6;text-align:left">
+    No injected wallet (<code>window.ethereum</code>). Install
+    <a href="https://metamask.io" target="_blank" rel="noopener" style="color:var(--accent)">MetaMask</a>
+    or another extension, then reload.
+    ${fileProto ? `<br><br><strong>file://</strong> — many wallets do not work on local files. Run a static server in <code>web/</code> (e.g. <code>npx serve .</code>) or use HTTPS.` : `<br><br>Use <strong>https://</strong> or <strong>http://localhost</strong> if needed.`}
+  </div>`;
+}
+
+async function connectWallet() {
+  const eth = injectedEthereum();
+  const errEl = document.getElementById("connectErr");
+  if (!eth) {
+    errEl.innerHTML = noWalletHtml();
+    return;
+  }
+  try {
+    await eth.request({ method: "eth_requestAccounts" });
+    await _finish(new ethers.providers.Web3Provider(eth));
+  } catch(e) {
+    errEl.innerHTML = `<div class="info e">${esc(e.message)}</div>`;
+  }
+}
+
+async function _finish(p) {
+  const net = CFG[netKey];
+  if (!net.contract) {
+    document.getElementById("connectErr").innerHTML = `<div class="info e">Contract not configured for ${net.name}.</div>`;
+    return;
+  }
+  provider = p; signer = p.getSigner();
+  wallet   = await signer.getAddress();
+  contract = new ethers.Contract(net.contract, ABI, signer);
+  creatorId = await contract.getCreatorByWallet(wallet);
+  if (!creatorId) {
+    document.getElementById("app").innerHTML = `
+      <div class="info w" style="text-align:center">
+        No Creator ID found for this wallet.<br>
+        <a href="creator.html" style="color:var(--accent)">Register your Creator ID first →</a>
+      </div>`;
+    return;
+  }
+  renderForm();
+}
+
+// ── Form ──────────────────────────────────────────────────────────────────────
+
+function renderForm() {
+  const net = CFG[netKey];
+  document.getElementById("app").innerHTML = `
+
+    <div class="wbar">
+      <div class="wdot on"></div>
+      <div class="wbar-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
+      <div class="wbar-id">${esc(creatorId)}</div>
+      <div class="wbar-dis" onclick="wallet=null;connect()">Disconnect</div>
+    </div>
+
+    <!-- Object type -->
+    <div class="section">
+      <div class="section-label">Object type<span class="req">*</span></div>
+      <div class="type-toggle">
+        <div class="tt-opt sel" id="tt-physical" onclick="setType('physical')">
+          <div class="tt-icon">🎨</div>
+          <div class="tt-name">Physical</div>
+          <div class="tt-desc">Artwork, sculpture, merch, any physical object with a seal</div>
+        </div>
+        <div class="tt-opt" id="tt-digital" onclick="setType('digital')">
+          <div class="tt-icon">💾</div>
+          <div class="tt-name">Digital</div>
+          <div class="tt-desc">Image, video, 3D model, audio, document</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Basic info -->
+    <div class="section">
+      <div class="section-label">Basic info</div>
+      <div class="field"><label>Title<span class="req">*</span></label>
+        <input type="text" id="f_title" placeholder="My Work #1"></div>
+      <div class="field"><label>Your name<span class="req">*</span></label>
+        <input type="text" id="f_name" placeholder="Name as shown in passport"></div>
+      <div class="row2">
+        <div class="field"><label>Category<span class="req">*</span></label>
+          <select id="f_type"><option value="artwork">Artwork</option><option value="merch">Merch</option><option value="object">Object</option></select></div>
+        <div class="field"><label>Year<span class="req">*</span></label>
+          <input type="number" id="f_year" value="${new Date().getFullYear()}" min="2000" max="2100"></div>
+      </div>
+      <div id="physExtra">
+        <div class="row2">
+          <div class="field"><label>Edition №</label><input type="number" id="f_edn" placeholder="1" min="1"></div>
+          <div class="field"><label>Edition total</label><input type="number" id="f_edt" placeholder="3" min="1"></div>
+        </div>
+        <div class="field"><label>Medium</label><input type="text" id="f_medium" placeholder="Mixed media, Polaroid"></div>
+        <div class="field"><label>Materials</label>
+          <input type="text" id="f_mat" placeholder="Canvas, oil paint, wood (comma-separated)">
+        </div>
+      </div>
+      <div id="digitalExtra" style="display:none">
+        <div class="row2">
+          <div class="field"><label>Subtype<span class="req">*</span></label>
+            <select id="f_sub"><option value="image">Image</option><option value="video">Video</option><option value="3d">3D Model</option><option value="audio">Audio</option><option value="document">Document</option><option value="other">Other</option></select></div>
+          <div class="field"><label>Format</label><input type="text" id="f_fmt" placeholder="TIFF, ProRes, GLB…"></div>
+        </div>
+      </div>
+      <div class="field"><label>Description</label>
+        <textarea id="f_desc" placeholder="Optional description…"></textarea></div>
+    </div>
+
+    <!-- Passport URL -->
+    <div class="section">
+      <div class="section-label">Hosting</div>
+      <div class="field">
+        <label>Passport JSON URL<span class="req">*</span></label>
+        <input type="url" id="f_url" placeholder="https://yoursite.com/passport/001.json">
+        <p class="fhint">Where you will upload passport.json after minting. The verifier fetches it and checks the hash.</p>
+      </div>
+    </div>
+
+    <!-- Digital file -->
+    <div id="digitalFile" style="display:none">
+      <div class="section">
+        <div class="section-label">Original file<span class="req">*</span></div>
+        <div class="info w">⚠ Register BEFORE sharing the original. Publish only compressed or watermarked versions after.</div>
+        <div class="fdrop" id="fileDrop" onclick="document.getElementById('fileIn').click()">
+          <input type="file" id="fileIn" onchange="hashFile(event)">
+          <div class="fdrop-icon">📂</div>
+          <div class="fdrop-text">Drop original file or click to select<br><span style="font-size:11px;opacity:0.6">SHA-256 computed locally — never uploaded</span></div>
+        </div>
+        <div id="fileInfo"></div>
+      </div>
+    </div>
+
+    <!-- Preview image -->
+    <div class="section">
+      <div class="section-label">Preview image (optional)</div>
+      <div class="fdrop" id="imgDrop" onclick="document.getElementById('imgIn').click()">
+        <input type="file" id="imgIn" accept="image/*" onchange="hashImg(event)">
+        <div class="fdrop-icon">🖼</div>
+        <div class="fdrop-text">Drop image or click to select<br><span style="font-size:11px;opacity:0.6">Hash computed locally</span></div>
+      </div>
+      <div id="imgInfo"></div>
+      <div class="field" style="margin-top:10px">
+        <label>Image URL</label>
+        <input type="url" id="f_imgUrl" placeholder="https://yoursite.com/preview.jpg">
+      </div>
+    </div>
+
+    <!-- Physical seal -->
+    <div id="sealSection">
+      <div class="section">
+        <div class="section-label">Physical seal<span class="req">*</span></div>
+        <p class="fhint" style="margin-bottom:12px">A seal binds this passport to the specific physical object. At least one method required.</p>
+
+        <div class="seal-grid">
+          <div class="seal-opt" id="s1" onclick="setSeal(1)">
+            <span class="seal-icon">📡</span>NFC only<br><small style="color:var(--text3)">NTAG 424 DNA</small>
+          </div>
+          <div class="seal-opt sel" id="s2" onclick="setSeal(2)">
+            <span class="seal-icon">🔢</span>Numbered only<br><small style="color:var(--text3)">sticker, seal</small>
+          </div>
+          <div class="seal-opt" id="s3" onclick="setSeal(3)">
+            <span class="seal-icon">🔐</span>Both<br><small style="color:var(--text3)">NFC + numbered</small>
+          </div>
+        </div>
+
+        <div id="nfcFields" style="display:none">
+          <div class="acc open" id="nfcAcc">
+            <div class="acc-head" onclick="tog('nfcAcc')">NFC chip data (NTAG 424 DNA)<span class="acc-arr">▶</span></div>
+            <div class="acc-body">
+              <div class="row2">
+                <div class="field"><label>Chip UID<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="04a3f912cc8b4e"></div>
+                <div class="field"><label>Model<span class="req">*</span></label>
+                  <select id="f_nmod"><option value="NTAG424DNA_TT">NTAG 424 DNA TagTamper</option><option value="NTAG424DNA">NTAG 424 DNA</option></select></div>
+              </div>
+              <div class="field"><label>Public key<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="04b2e3f1a9c3d2…"></div>
+              <div class="row2">
+                <div class="field"><label>Installed<span class="req">*</span></label><input type="text" id="f_ndate" value="${new Date().toISOString().slice(0,10)}"></div>
+                <div class="field"><label>Notes</label><input type="text" id="f_nnotes" placeholder="Under varnish, corner"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="numFields">
+          <div class="acc open" id="numAcc">
+            <div class="acc-head" onclick="tog('numAcc')">Numbered seal data<span class="acc-arr">▶</span></div>
+            <div class="acc-body">
+              <div class="row2">
+                <div class="field"><label>Seal number<span class="req">*</span></label><input type="text" id="f_snum" placeholder="SL-00429831"></div>
+                <div class="field"><label>Seal type<span class="req">*</span></label><input type="text" id="f_stype" placeholder="holographic sticker"></div>
+              </div>
+              <div class="row3">
+                <div class="field"><label>Color</label><input type="text" id="f_scol" placeholder="silver"></div>
+                <div class="field"><label>Size</label><input type="text" id="f_ssz" placeholder="30x30mm"></div>
+                <div class="field"><label>Notes</label><input type="text" id="f_snotes" placeholder="Over signature"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="formErr"></div>
+
+    <!-- Submit -->
+    <div class="btn-row">
+      <button class="btn" onclick="submit()" id="submitBtn">Mint Passport — ~$0.01 POL</button>
+      <button class="btn btn-ghost" onclick="previewJson()">Preview JSON</button>
+    </div>
+    <div id="jsonPreview"></div>
+  `;
+}
+
+// ── Object type switch ────────────────────────────────────────────────────────
+
+function setType(t) {
+  objType = t;
+  document.getElementById("tt-physical").classList.toggle("sel", t==="physical");
+  document.getElementById("tt-digital").classList.toggle("sel",  t==="digital");
+  document.getElementById("physExtra").style.display    = t==="physical" ? "" : "none";
+  document.getElementById("digitalExtra").style.display = t==="digital"  ? "" : "none";
+  document.getElementById("sealSection").style.display  = t==="physical" ? "" : "none";
+  document.getElementById("digitalFile").style.display  = t==="digital"  ? "" : "none";
+  const cat = document.getElementById("f_type");
+  if (cat) cat.innerHTML = t==="physical"
+    ? `<option value="artwork">Artwork</option><option value="merch">Merch</option><option value="object">Object</option>`
+    : `<option value="digital">Digital</option>`;
+}
+
+// ── Seal switch ───────────────────────────────────────────────────────────────
+
+function setSeal(n) {
+  sealType = n;
+  [1,2,3].forEach(i => { const el=document.getElementById(`s${i}`); if(el) el.classList.toggle("sel",i===n); });
+  const nfc = document.getElementById("nfcFields");
+  const num = document.getElementById("numFields");
+  if (nfc) nfc.style.display = (n===1||n===3) ? "" : "none";
+  if (num) num.style.display = (n===2||n===3) ? "" : "none";
+}
+
+function tog(id) { document.getElementById(id).classList.toggle("open"); }
+
+// ── File hashing ──────────────────────────────────────────────────────────────
+
+async function hashFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  document.getElementById("fileInfo").innerHTML = `<div class="info n" style="margin-top:8px">Computing SHA-256…</div>`;
+  const buf = await f.arrayBuffer();
+  const h   = await crypto.subtle.digest("SHA-256", buf);
+  const hex = [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  fileHashBytes32 = "0x"+hex;
+  fileSize  = f.size;
+  document.getElementById("fileDrop").classList.add("has-file");
+  document.getElementById("fileInfo").innerHTML = `<div class="finfo">✓ ${esc(f.name)}<br>${fmtSz(f.size)}<br>${fileHashBytes32.slice(0,22)}…</div>`;
+}
+
+async function hashImg(e) {
+  const f = e.target.files[0]; if (!f) return;
+  document.getElementById("imgInfo").innerHTML = `<div class="info n" style="margin-top:8px">Computing SHA-256…</div>`;
+  const buf = await f.arrayBuffer();
+  const h   = await crypto.subtle.digest("SHA-256", buf);
+  imageHash = "0x"+[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  document.getElementById("imgDrop").classList.add("has-file");
+  document.getElementById("imgInfo").innerHTML = `<div class="finfo">✓ ${esc(f.name)}<br>${imageHash.slice(0,20)}…</div>`;
+}
+
+// ── Build passport JSON ───────────────────────────────────────────────────────
+
+function v(id) { const el=document.getElementById(id); return el?el.value.trim():""; }
+
+function buildPassport(humanId) {
+  const now = new Date();
+  const p = {
+    version:"0.1", humanId:humanId||null,
+    objectType: objType,
+    type: v("f_type"),
+    title: v("f_title"),
+    creator: { name:v("f_name"), wallet, creatorId },
+    year: parseInt(v("f_year")), month: now.getMonth()+1,
+    registeredAt: Math.floor(now.getTime()/1000),
+  };
+
+  if (objType==="physical") {
+    const med=v("f_medium"), mat=v("f_mat"), en=v("f_edn"), et=v("f_edt"), desc=v("f_desc");
+    if (med) p.medium = med;
+    if (mat) p.materials = mat.split(",").map(m=>({name:m.trim()})).filter(m=>m.name);
+    if (en&&et) p.edition = {number:parseInt(en),total:parseInt(et)};
+    if (desc) p.description = desc;
+
+    const seal = {};
+    if (sealType===1||sealType===3) {
+      seal.nfc = { uid:v("f_nuid"), publicKey:v("f_nkey"), model:v("f_nmod"), installedAt:v("f_ndate") };
+      const nn=v("f_nnotes"); if(nn) seal.nfc.notes=nn;
+    }
+    if (sealType===2||sealType===3) {
+      seal.numbered = { number:v("f_snum"), type:v("f_stype") };
+      const sc=v("f_scol"),ss=v("f_ssz"),sn=v("f_snotes");
+      if(sc) seal.numbered.color=sc; if(ss) seal.numbered.size=ss; if(sn) seal.numbered.notes=sn;
+    }
+    p.seal = seal;
+  } else {
+    const desc=v("f_desc"), fmt=v("f_fmt");
+    // Passport JSON: "sha256:hex" — matches mint.py; chain uses fileHashBytes32
+    const dig = { subtype:v("f_sub"), fileHash: "sha256:"+fileHashBytes32.slice(2) };
+    if (fmt) dig.format = fmt;
+    if (fileSize) dig.fileSize = fileSize;
+    p.digital = dig;
+    if (desc) p.description = desc;
+  }
+
+  imageUrl = v("f_imgUrl");
+  // JSON field matches mint.py: f"sha256:{hex}"; on-chain still uses 0x bytes32 (imageHash)
+  if (imageHash!==ZERO32) p.image = { url:imageUrl, hash: "sha256:"+imageHash.slice(2) };
+  p.custom = {};
+  return p;
+}
+
+function normalizeNFC(obj) {
+  // Unicode NFC normalization — must match Python unicodedata.normalize("NFC", s)
+  if (typeof obj === "string") return obj.normalize("NFC");
+  if (Array.isArray(obj))      return obj.map(normalizeNFC);
+  if (obj !== null && typeof obj === "object") {
+    return Object.fromEntries(Object.entries(obj).map(([k,v]) => [k, normalizeNFC(v)]));
+  }
+  return obj;
+}
+
+function sortKeysDeep(obj) {
+  if (Array.isArray(obj)) return obj.map(sortKeysDeep);
+  if (obj !== null && typeof obj === "object") {
+    return Object.keys(obj).sort().reduce((acc, k) => {
+      acc[k] = sortKeysDeep(obj[k]);
+      return acc;
+    }, {});
+  }
+  return obj;
+}
+
+async function sha256obj(o) {
+  // Canonical JSON per ODP spec: NFC normalize → sort keys → stringify
+  const canonical = JSON.stringify(sortKeysDeep(normalizeNFC(o)));
+  const buf = new TextEncoder().encode(canonical);
+  const h   = await crypto.subtle.digest("SHA-256", buf);
+  return "0x"+[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+
+// ── Validate ──────────────────────────────────────────────────────────────────
+
+function validate() {
+  if (!v("f_title"))   return "Title is required";
+  if (!v("f_name"))    return "Creator name is required";
+  if (!v("f_url"))     return "Passport JSON URL is required";
+  if (objType==="digital" && fileHashBytes32===ZERO32) return "Original file is required for digital objects";
+  if (objType==="physical") {
+    if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return "NFC chip UID and public key are required";
+    if ((sealType===2||sealType===3) && (!v("f_snum")||!v("f_stype"))) return "Seal number and type are required";
+  }
+  return null;
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+
+function previewJson() {
+  const el = document.getElementById("jsonPreview");
+  if (el.innerHTML) { el.innerHTML=""; return; }
+  const p = buildPassport("ODP-????-??-???????");
+  el.innerHTML = `<pre style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:14px;font-size:10px;color:var(--text2);overflow-x:auto;margin-top:12px;max-height:260px;overflow-y:auto;white-space:pre">${esc(JSON.stringify(p,null,2))}</pre>`;
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+
+async function submit() {
+  const errEl = document.getElementById("formErr");
+  errEl.innerHTML = "";
+  const err = validate();
+  if (err) { errEl.innerHTML=`<div class="info e" style="margin-top:12px">${esc(err)}</div>`; return; }
+
+  const passport  = buildPassport(null);
+  const dataHash_ = await sha256obj(passport);
+  const imgH_     = imageHash;
+  const imgU_     = imageUrl;
+  const now       = new Date();
+  const year      = parseInt(v("f_year"));
+  const month     = now.getMonth()+1;
+  const dataUrl_  = v("f_url");
+
+  let sealHash_ = ZERO32;
+  let nfcBytes  = new Uint8Array(0);
+
+  if (objType==="physical" && passport.seal) {
+    sealHash_ = await sha256obj(passport.seal);
+    if ((sealType===1||sealType===3) && v("f_nkey")) {
+      try { nfcBytes = ethers.utils.arrayify("0x"+v("f_nkey").replace(/^0x/,"")); } catch {}
+    }
+  }
+
+  document.getElementById("app").innerHTML = `
+    <div style="text-align:center;padding:48px 0">
+      <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
+      <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">Waiting for wallet…</div>
+      <div style="font-size:12px;color:var(--text2)">Please confirm the transaction in your wallet</div>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+
+  try {
+    let tx;
+    const mintFee = await contract.MINT_FEE();
+    if (objType==="physical") {
+      const nfcModelStr = (sealType===1||sealType===3) ? "NTAG424DNA_TT" : "";
+      tx = await contract.mintPhysical(
+        year,month,dataHash_,dataUrl_,imgH_,imgU_,
+        sealType,sealHash_,nfcBytes,nfcModelStr,
+        {value: mintFee}
+      );
+    } else {
+      tx = await contract.mintDigital(
+        year,month,dataHash_,dataUrl_,imgH_,imgU_,fileHashBytes32,
+        {value: mintFee}
+      );
+    }
+
+    document.getElementById("app").innerHTML = `
+      <div style="text-align:center;padding:48px 0">
+        <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
+        <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">Confirming…</div>
+        <div style="font-size:12px;color:var(--text2)">${tx.hash.slice(0,24)}…</div>
+      </div>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+
+    const receipt = await tx.wait();
+
+    // Parse humanId from event
+    let humanId = null;
+    const iface = new ethers.utils.Interface(ABI);
+    for (const log of receipt.logs) {
+      try {
+        const parsed = iface.parseLog(log);
+        if (parsed.name==="PassportMinted") { humanId=parsed.args.humanId; break; }
+      } catch {}
+    }
+
+    passport.humanId = humanId;
+    const finalJson = JSON.stringify(passport,null,0);
+    showSuccess(humanId, tx.hash, finalJson, passport.title);
+
+  } catch(e) {
+    document.getElementById("app").innerHTML = `<div class="info e">${esc(e.message)}</div>`;
+    setTimeout(renderForm, 3000);
+  }
+}
+
+// ── Success ───────────────────────────────────────────────────────────────────
+
+function showSuccess(humanId, txHash, json, title) {
+  const net = CFG[netKey];
+  document.getElementById("app").innerHTML = `
+    <div class="success">
+      <div class="success-icon">✓</div>
+      <div class="success-title">${esc(title)}</div>
+      <span class="success-id">${esc(humanId)}</span>
+      <p class="success-sub">Registered on ${esc(net.name)}</p>
+
+      <div id="qrWrap"></div>
+
+      <div class="next-steps">
+        <div class="ns-item"><div class="ns-num">1</div><div>Download and upload <strong>passport.json</strong> to your data URL. Without this, verification returns "Unverifiable".</div></div>
+        <div class="ns-item"><div class="ns-num">2</div><div>Print the QR code and attach to the object on a verification label. Include Human ID and Creator ID in text.</div></div>
+        <div class="ns-item"><div class="ns-num">3</div><div>Make sure your Creator ID <strong>${esc(creatorId)}</strong> is published on your website and social profiles.</div></div>
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn" onclick="dlJson('${esc(humanId)}',\`${esc(json)}\`)" style="flex:0;padding:13px 20px">Download passport.json</button>
+        <a href="${net.explorer}/tx/${txHash}" target="_blank"><button class="btn btn-ghost">Explorer ↗</button></a>
+        <a href="verify.html?id=${esc(humanId)}"><button class="btn btn-ghost">Verify ↗</button></a>
+        <button class="btn btn-ghost" onclick="renderForm()">New Passport</button>
+      </div>
+    </div>`;
+
+  try {
+    new QRCode(document.getElementById("qrWrap"), {
+      text: `odp://${humanId}`, width:160, height:160,
+      colorDark:"#000", colorLight:"#fff", correctLevel:QRCode.CorrectLevel.Q,
+    });
+  } catch {}
+}
+
+function dlJson(humanId, json) {
+  const a = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(new Blob([json],{type:"application/json"})),
+    download: `${humanId}.json`
+  });
+  a.click();
+}
+
+function fmtSz(b) {
+  if (b<1024) return b+" B";
+  if (b<1048576) return (b/1024).toFixed(1)+" KB";
+  if (b<1073741824) return (b/1048576).toFixed(1)+" MB";
+  return (b/1073741824).toFixed(2)+" GB";
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+document.addEventListener("DOMContentLoaded", async () => {
+  const eth = injectedEthereum();
+  if (eth) {
+    const acc = await eth.request({method:"eth_accounts"}).catch(()=>[]);
+    if (acc.length>0) {
+      try {
+        provider  = new ethers.providers.Web3Provider(eth);
+        signer    = provider.getSigner();
+        wallet    = await signer.getAddress();
+        const net = CFG[netKey];
+        if (net.contract) {
+          contract  = new ethers.Contract(net.contract, ABI, signer);
+          creatorId = await contract.getCreatorByWallet(wallet);
+          if (creatorId) { renderForm(); return; }
+        }
+      } catch(e) { console.warn("Auto-connect failed:", e); }
+    }
+  }
+  connect();
+});
+</script>
+</body>
+</html>
