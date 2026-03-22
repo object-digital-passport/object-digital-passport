@@ -29,6 +29,57 @@
     return generation >= 2;
   }
 
+  /**
+   * If `net.contract` is empty (stale cached HTML on first visit), try loading `registry-config.json`
+   * next to the page (same-origin, `cache: no-store`). CI writes this file with the deploy address.
+   */
+  function odpMergeRegistryConfigAsync(net) {
+    if (!net) return Promise.resolve();
+    var existing = String(net.contract || "").trim();
+    if (existing && /^0x[a-fA-F0-9]{40}$/i.test(existing)) return Promise.resolve();
+    if (typeof global.location === "undefined" || !global.location || !global.location.href) {
+      return Promise.resolve();
+    }
+    return new Promise(function (resolve) {
+      try {
+        var url = new URL("registry-config.json", global.location.href);
+        url.searchParams.set("_", String(Date.now()));
+        global
+          .fetch(url.toString(), { cache: "no-store" })
+          .then(function (r) {
+            if (!r.ok) return null;
+            return r.json();
+          })
+          .then(function (j) {
+            var c = j && j.contract != null ? String(j.contract).trim() : "";
+            if (c && /^0x[a-fA-F0-9]{40}$/i.test(c)) {
+              net.contract = c;
+              // #region agent log
+              fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+                body: JSON.stringify({
+                  sessionId: "7d72c7",
+                  hypothesisId: "H1",
+                  location: "odp-contract.js:odpMergeRegistryConfigAsync",
+                  message: "merged contract from registry-config.json",
+                  data: { contractLen: c.length },
+                  timestamp: Date.now(),
+                }),
+              }).catch(function () {});
+              // #endregion
+            }
+          })
+          .catch(function () {})
+          .finally(function () {
+            resolve();
+          });
+      } catch (e) {
+        resolve();
+      }
+    });
+  }
+
   /** If RPC probe fails, use net.contractGenerationFallback (number), else 2 (v0.2-shaped). */
   function odpResolveGeneration(probed, net) {
     if (probed !== null && probed !== undefined) return probed;
@@ -633,6 +684,7 @@
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
   global.odpSupportsExternalDocAttest = odpSupportsExternalDocAttest;
   global.odpResolveGeneration = odpResolveGeneration;
+  global.odpMergeRegistryConfigAsync = odpMergeRegistryConfigAsync;
   global.odpFormatStackLabel = odpFormatStackLabel;
   global.odpFormatStackBlockHtml = odpFormatStackBlockHtml;
   global.odpProbeContractGenerationCached = odpProbeContractGenerationCached;

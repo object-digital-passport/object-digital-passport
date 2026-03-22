@@ -36,11 +36,13 @@ jobs:
           mkdir -p _site/web
           cp -r web/. _site/web/
           if [ -n "$ODP_CONTRACT_ADDRESS" ]; then
-            echo "Injecting ODP_CONTRACT_ADDRESS into NET.contract (6 HTML files)"
+            echo "Injecting ODP_CONTRACT_ADDRESS into NET.contract (6 HTML files) + registry-config.json"
             for f in _site/creator.html _site/passport.html _site/verify.html _site/web/creator.html _site/web/passport.html _site/web/verify.html; do
               test -f "$f" || continue
               sed -i "s/contract: \"\",/contract: \"${ODP_CONTRACT_ADDRESS}\",/" "$f"
             done
+            printf '{"contract":"%s"}\n' "$ODP_CONTRACT_ADDRESS" > _site/registry-config.json
+            cp _site/registry-config.json _site/web/registry-config.json
           else
             echo "Secret ODP_CONTRACT_ADDRESS not set — NET.contract left empty (set repo secret for live demo)"
           fi

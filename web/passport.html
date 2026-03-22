@@ -269,6 +269,7 @@ async function connectWallet() {
     errEl.innerHTML = noWalletHtml();
     return;
   }
+  await odpMergeRegistryConfigAsync(NET);
   odpWalletConnectInFlight = true;
   if (btn) {
     btn.style.opacity = "0.65";
@@ -318,6 +319,7 @@ async function connectWallet() {
 }
 
 async function _finish(p) {
+  await odpMergeRegistryConfigAsync(NET);
   try { sessionStorage.removeItem(ODP_SKIP_WALLET_AUTOCONNECT); } catch {}
   const net = NET;
   // #region agent log
@@ -1550,6 +1552,7 @@ document.addEventListener("keydown", (e) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
   const skipAuto = (() => {

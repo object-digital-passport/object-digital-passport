@@ -230,6 +230,7 @@ async function init() {
 }
 
 async function connect() {
+  await odpMergeRegistryConfigAsync(NET);
   const c = NET;
   verifyContractError = null;
   setNet("connecting", `${c.name} — connecting...`);
@@ -1441,8 +1442,9 @@ async function proofEnsurePolygon() {
 }
 
 async function proofSignMessage() {
+  await odpMergeRegistryConfigAsync(NET);
   if (!NET.contract) {
-    alert("Set NET.contract in this page script first.");
+    alert("Set NET.contract in this page script first, or deploy registry-config.json with the address.");
     return;
   }
   const raw = document.getElementById("proofHumanIdSign").value.trim();
@@ -1513,6 +1515,7 @@ function extractChainIdFromProofMessage(msg) {
 }
 
 async function proofVerifyMessage() {
+  await odpMergeRegistryConfigAsync(NET);
   const resultEl = document.getElementById("proofVerifyResult");
   if (!resultEl) return;
   if (!provider || !NET.contract) {
