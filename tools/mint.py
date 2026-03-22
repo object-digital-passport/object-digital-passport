@@ -289,8 +289,8 @@ def cmd_register(args):
     print("    P — Proof Institution (museum, gallery, auction house)")
     print()
 
-    t = prompt("Type (C / B / P)", "C").strip().upper()
-    if t not in ("C", "B", "P"):
+    t = prompt("Type (C / B / P / M)", "C").strip().upper()
+    if t not in ("C", "B", "P", "M"):
         print("  Invalid type.")
         sys.exit(1)
 

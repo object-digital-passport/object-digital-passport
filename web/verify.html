@@ -26,7 +26,7 @@
 
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.2"></script>
+<script src="odp-contract.js?v=0.3"></script>
 <script src="odp-i18n.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 </head>
@@ -80,7 +80,7 @@
     </button>
     <button class="btn" onclick="verify()" id="verifyBtn" data-i18n="verify.search.verifyBtn">Verify</button>
   </div>
-  <p class="search-hint" data-i18n="verify.search.hint">Passport IDs start with ODP-. Creator IDs look like C-123-456-789 (also B- or P-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
+  <p class="search-hint" data-i18n="verify.search.hint">Passport IDs start with ODP-. Creator IDs look like C-123-456-789 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
 </div>
 
 <div id="result"></div>
@@ -355,7 +355,7 @@ function normalizeVerifyInput(raw) {
   return raw;
 }
 
-/** Passport Human ID or Creator ID (C-/B-/P-…), or null. */
+/** Passport Human ID or Creator ID (C-/B-/P-/M-…), or null. */
 function parseVerifyToken(raw) {
   raw = normalizeVerifyInput(raw);
   if (!raw) return null;
@@ -363,7 +363,7 @@ function parseVerifyToken(raw) {
   if (passportId) return { kind: "passport", id: passportId };
   let c = raw.trim();
   if (/^odpc:\/\//i.test(c)) c = c.slice(7);
-  const cm = c.match(/^([CBP])-(\d{3})-(\d{3})-(\d{3})$/i);
+  const cm = c.match(/^([CBPM])-(\d{3})-(\d{3})-(\d{3})$/i);
   if (cm) {
     const cid = `${cm[1].toUpperCase()}-${cm[2]}-${cm[3]}-${cm[4]}`;
     return { kind: "creator", id: cid };
@@ -635,7 +635,7 @@ function renderCreatorResult(creatorId, c, deploymentAddress) {
     String(deploymentAddress).toLowerCase() !== String(net_.contract || "").toLowerCase();
   const d = new Date(Number(c.timestamp) * 1000);
   const when = d.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
-  const typeLabel = { C: "Creator", B: "Brand", P: "Institution" }[c.typePrefix] || "Creator";
+  const typeLabel = { C: "Creator", B: "Brand", P: "Institution", M: "Museum" }[c.typePrefix] || "Creator";
   document.getElementById("result").innerHTML = `
     <div class="card">
       <div class="status-bar authentic">
@@ -1647,7 +1647,7 @@ async function verifyDocAttestation() {
   } else {
     const token = parseVerifyToken(raw);
     if (!token || token.kind !== "creator") {
-      out.innerHTML = `<div class="err-box">Use a Creator ID (C-/B-/P-…) or 0x address.</div>`;
+      out.innerHTML = `<div class="err-box">Use a Creator ID (C-/B-/P-/M-…) or 0x address.</div>`;
       return;
     }
     try {

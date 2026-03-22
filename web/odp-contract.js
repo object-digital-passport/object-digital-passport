@@ -6,7 +6,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.2";
+  var ODP_SITE_VERSION = "0.3";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -289,7 +289,7 @@
       generation === 0
         ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
         : generation >= 2
-          ? "ODP spec v0.2 (gas-only, optional dataUrl, PDF/doc hash anchor)"
+          ? "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
           : "unknown generation";
     var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
     var flagClass = "odp-stack-flag--" + trust.level;

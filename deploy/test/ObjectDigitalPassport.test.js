@@ -8,6 +8,7 @@ const { ethers } = require("hardhat");
 const TYPE_C = "0x43";
 const TYPE_B = "0x42";
 const TYPE_P = "0x50";
+const TYPE_M = "0x4d";
 
 function zeroHash() {
   return ethers.ZeroHash;
@@ -101,6 +102,46 @@ describe("ObjectDigitalPassport", function () {
         false
       );
       expect(await c.getRemainingMints(wP.address)).to.equal(max32);
+    });
+
+    it("M: getRemainingMints stays at uint32 max (unlimited)", async function () {
+      const c = await deployFixture();
+      const [_, __, ___, wM] = await ethers.getSigners();
+      await c.connect(wM).registerCreator(TYPE_M);
+      const max32 = 2n ** 32n - 1n;
+      expect(await c.getRemainingMints(wM.address)).to.equal(max32);
+      await c.connect(wM).mintDigital(
+        2026,
+        3,
+        nonZeroDataHash(31),
+        "",
+        zeroHash(),
+        "",
+        nonZeroFileHash(31),
+        false
+      );
+      expect(await c.getRemainingMints(wM.address)).to.equal(max32);
+    });
+
+    it("M: can submitProof like P", async function () {
+      const c = await deployFixture();
+      const [wC, wM] = await ethers.getSigners();
+      await c.connect(wC).registerCreator(TYPE_C);
+      const humanId = await mintDigitalAndId(c, wC, [
+        2026,
+        3,
+        nonZeroDataHash(41),
+        "",
+        zeroHash(),
+        "",
+        nonZeroFileHash(41),
+        false,
+      ]);
+      await c.connect(wM).registerCreator(TYPE_M);
+      const tx = await c.connect(wM).submitProof(humanId, zeroHash(), "", 2031, 6);
+      await tx.wait();
+      const ids = await c.getProofsForPassport(humanId);
+      expect(ids.length).to.equal(1);
     });
   });
 

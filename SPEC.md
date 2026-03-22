@@ -1,5 +1,5 @@
 # Object Digital Passport
-### Specification v0.2 — DRAFT
+### Specification v0.3 — DRAFT
 
 *Author: Andrei Chernikov*
 
@@ -28,12 +28,12 @@ This specification uses the following terms in a precise sense:
 
 | Term | Definition |
 |:--|:--|
-| **Mint**, **minting** | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Human ID**, records **hashes**, optional **URLs**, and seal metadata. **v0.2** charges **network gas only** (no separate **MINT_FEE**). Minting does **not** upload `passport.json` to the blockchain; the creator **may** host that file at `dataUrl` (see §8–§9). If `dataUrl` is empty, public web verification cannot fetch JSON — only a holder of the canonical **passport.json** can verify against `dataHash`. |
-| **Register (Creator ID)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **Creator ID** before any mint or proof. **v0.2**: gas only (no **REGISTER_FEE**). |
+| **Mint**, **minting** | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Human ID**, records **hashes**, optional **URLs**, and seal metadata. **v0.3** charges **network gas only** (no separate **MINT_FEE**). Minting does **not** upload `passport.json` to the blockchain; the creator **may** host that file at `dataUrl` (see §8–§9). If `dataUrl` is empty, public web verification cannot fetch JSON — only a holder of the canonical **passport.json** can verify against `dataHash`. |
+| **Register (Creator ID)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **Creator ID** before any mint or proof. **v0.3**: gas only (no **REGISTER_FEE**). |
 | **Passport** | The on-chain **Passport** record plus, when applicable, **passport.json** bytes matching `dataHash` (at `dataUrl` if set). |
 | **`passport.json`** | The normative off-chain JSON document (§9). |
-| **`dataUrl`** | Optional HTTPS URL where `passport.json` is served (§8–§9). May be empty on-chain in **v0.2**; if empty, verifiers relying on HTTP **cannot** obtain the file unless the user provides it. |
-| **Gas** | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution. **v0.2** has no additional burned protocol fee on register/mint (unlike **v0.1** deployments). |
+| **`dataUrl`** | Optional HTTPS URL where `passport.json` is served (§8–§9). May be empty on-chain in **v0.3**; if empty, verifiers relying on HTTP **cannot** obtain the file unless the user provides it. |
+| **Gas** | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution. **v0.3** has no additional burned protocol fee on register/mint (unlike **v0.1** deployments). |
 | **Verification** | The read-only process (§11) that retrieves on-chain data and, when `dataUrl` is set, `passport.json`, and checks consistency with `dataHash` and other fields. If `dataUrl` is empty, file-based verification still applies when the verifier has `passport.json`. |
 
 ---
@@ -115,9 +115,10 @@ T-NNN-NNN-NNN
 |--------|---------|-------------|
 | `C` | Creator | Individual artist, photographer, maker |
 | `B` | Brand | Company, studio, label |
-| `P` | Proof Institution | Museum, gallery, auction house, expert, certification body |
+| `P` | Proof Institution | Expert, auction house, certification body — attestations (`submitProof`) on any passport |
+| `M` | Museum | Registered museum or collection — **unlimited** passport mints for institutional holdings (e.g. works by deceased artists); may also `submitProof` like `P` |
 
-### Monthly mint caps (reference v0.2 contract)
+### Monthly mint caps (reference v0.3 contract)
 
 The reference `ObjectDigitalPassport` deployment limits **new passport mints** per wallet, per **calendar month** (anti-spam; gas only — no protocol fee). Caps depend on the registered **Creator type**:
 
@@ -126,8 +127,9 @@ The reference `ObjectDigitalPassport` deployment limits **new passport mints** p
 | `C` | 1,000 mints / month |
 | `B` | 100,000 mints / month |
 | `P` | No limit (`getRemainingMints` returns `2^32−1` in the reference implementation) |
+| `M` | No limit (same as `P`) |
 
-**Large inventories** (e.g. a museum digitizing millions of works) are expected to register as **`B`** (brand/organization), not **`C`** (individual creator). Very large throughput may use **multiple `B` wallets** under the same organization if policy allows. The **`P`** prefix is for **proof attestations** (`submitProof`), not primarily for bulk passport minting; institutions that mainly **mint** object passports should still use **`C`** or **`B`** as appropriate. Future spec revisions may define additional institutional tiers if needed.
+**Museums and large inventories** digitizing collection holdings should register as **`M`** (museum/collection) or **`B`** (broader organization), not **`C`**. The **`P`** prefix is for institutions whose **primary** role in the protocol is cross-cutting **proof** attestations; **`M`** signals custodial / collection issuance. Very large throughput may still use **multiple wallets** if policy allows.
 
 **Type prefixes are governed exclusively by this specification.**
 No individual, company, or implementation may introduce custom prefixes.
@@ -142,6 +144,7 @@ prefix is rejected at the contract level.
 C-482-930-174   ← individual creator
 B-029-384-751   ← brand or company
 P-001-293-847   ← proof institution
+M-204-839-112   ← museum or collection
 ```
 
 ### Generation algorithm
@@ -500,7 +503,7 @@ Using a different address means operating a separate, incompatible registry.
 
 #### Creator responsibility for `passport.json` after mint (normative)
 
-The protocol does **not** store the full passport JSON on-chain — only `dataHash` and related fields (see §8). The creator **must** retain the **canonical minified** `passport.json` octets. **v0.2** allows `dataUrl` to be empty at mint; if set, the creator **should** make those octets available at `dataUrl` for public web verification.
+The protocol does **not** store the full passport JSON on-chain — only `dataHash` and related fields (see §8). The creator **must** retain the **canonical minified** `passport.json` octets. **v0.3** allows `dataUrl` to be empty at mint; if set, the creator **should** make those octets available at `dataUrl` for public web verification.
 
 1. If `dataUrl` is **non-empty** but there is **no** HTTP **200** response whose body matches `dataHash` after canonicalization, verifiers **must** treat web-based verification as **failed** (e.g. **UNVERIFIABLE** / hash mismatch per §11 — exact state names are implementation-defined).
 2. If `dataUrl` is **empty**, HTTP fetch cannot apply; only parties with the **passport.json** file can verify against `dataHash` (implementation-defined UX SHOULD warn the creator at mint time).
@@ -871,7 +874,7 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**On-chain (reference contract, generation ≥ 2, spec v0.2):**
+**On-chain (reference contract, generation ≥ 2; `M` tier from generation ≥ 3 on reference bytecode):**
 
 - `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)`.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — returns `attested`, `creatorId`, timestamp, and `documentUri`.

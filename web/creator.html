@@ -11,7 +11,7 @@
 <title>ODP v0.2 — Register Creator ID</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.2"></script>
+<script src="odp-contract.js?v=0.3"></script>
 <script src="odp-i18n.js?v=4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -302,6 +302,11 @@ function renderForm() {
             <span class="type-letter">P</span>
             <div class="type-name">${esc(t("creator.type.P"))}</div>
             <div class="type-desc">${esc(t("creator.type.Pd"))}</div>
+          </div>
+          <div class="type-opt" id="opt-M" onclick="selType='M';updateTypeUI()">
+            <span class="type-letter">M</span>
+            <div class="type-name">${esc(t("creator.type.M"))}</div>
+            <div class="type-desc">${esc(t("creator.type.Md"))}</div>
           </div>
         </div>
 
@@ -653,12 +658,13 @@ function getTypeInfo() {
     C: t("creator.typeInfo.C"),
     B: t("creator.typeInfo.B"),
     P: t("creator.typeInfo.P"),
+    M: t("creator.typeInfo.M"),
   };
 }
 
 function updateTypeUI() {
   const TI = getTypeInfo();
-  ["C","B","P"].forEach(tn => {
+  ["C","B","P","M"].forEach(tn => {
     const el = document.getElementById(`opt-${tn}`);
     if (el) el.classList.toggle("sel", tn === selType);
   });

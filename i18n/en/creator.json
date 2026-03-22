@@ -1,9 +1,9 @@
 {
   "creator": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Register Creator ID",
+      "documentTitle": "ODP v0.3 — Register Creator ID",
       "h1": "Creator ID",
-      "sub": "Object Digital Passport · Specification v0.2"
+      "sub": "Object Digital Passport · Specification v0.3"
     },
     "steps": {
       "wallet": "Wallet",
@@ -43,13 +43,16 @@
       "Cd": "Individual artist, photographer, maker, craftsperson",
       "B": "Brand",
       "Bd": "Company, studio, label, collective",
-      "P": "Institution",
-      "Pd": "Museum, gallery, auction house, certification body"
+      "P": "Proof institution",
+      "Pd": "Expert body, auction house, certification — attestations on passports",
+      "M": "Museum",
+      "Md": "Collection or museum: unlimited passports for holdings (e.g. works by deceased artists)"
     },
     "typeInfo": {
       "C": "Individual creator — artist, photographer, maker, or craftsperson. Use this if you are registering as a person.",
       "B": "Brand or collective — company, studio, label, or group. Use this for organizations.",
-      "P": "Proof Institution — museum, gallery, auction house, or expert body. P-type accounts can attach attestations to any passport."
+      "P": "Proof institution — expert, auction, or certification body. P-type accounts can attach attestations to any passport.",
+      "M": "Museum or collection — mint passports for objects you hold in institutional custody (unlimited monthly mints). Typical for catalogued works where the museum is the on-chain issuer; can attach proofs like P."
     },
     "walletBar": {
       "disconnect": "Disconnect"

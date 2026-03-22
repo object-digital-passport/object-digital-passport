@@ -12,7 +12,7 @@
       "verifyBtn": "Verify",
       "scanTitle": "Scan QR code",
       "scanAria": "Scan QR code",
-      "hint": "Passport IDs start with ODP-. Creator IDs look like C-123-456-789 (also B- or P-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code."
+      "hint": "Passport IDs start with ODP-. Creator IDs look like C-123-456-789 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code."
     },
     "net": {
       "connecting": "Connecting...",

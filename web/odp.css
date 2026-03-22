@@ -292,9 +292,14 @@ h1 {
 /* Creator type grid */
 .type-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-bottom: 20px;
+}
+@media (min-width: 900px) {
+  .type-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .type-opt {

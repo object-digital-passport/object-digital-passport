@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
- * Specification v0.2
+ * Specification v0.3
  * License: MIT
  *
  * Deployed on: Polygon PoS (chain ID 137)
@@ -33,8 +33,8 @@ pragma solidity ^0.8.20;
  *     cryptographically secure but is acceptable here since IDs
  *     carry no financial value — only human-readability
  *   - NFC: only NTAG424DNA_TT accepted — standard chip can be reattached
- *   - Proof institutions are open registration — verifiers must warn
- *     users to confirm P-type IDs on official institution websites
+ *   - Proof institutions (P) and museums (M) are open registration — verifiers must warn
+ *     users to confirm P/M-type IDs on official institution websites
  *   - Creator is trusted to physically install the correct chip model
  *     The contract cannot verify hardware — only the declared model
  *   - Anti-spam: monthly mint-rate limit (no protocol fee — gas only)
@@ -77,16 +77,17 @@ contract ObjectDigitalPassport {
     bytes1 constant TYPE_C = "C";
     bytes1 constant TYPE_B = "B";
     bytes1 constant TYPE_P = "P";
+    bytes1 constant TYPE_M = "M";
 
     string constant OBJECT_PHYSICAL = "physical";
     string constant OBJECT_DIGITAL  = "digital";
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     uint8 public constant SPEC_MAJOR = 0;
-    uint8 public constant SPEC_MINOR = 2;
+    uint8 public constant SPEC_MINOR = 3;
 
     /// Packed byte stored in Passport.contractVersion: `SPEC_MAJOR * 16 + SPEC_MINOR` (each must stay < 16).
-    /// Spec line 0.2 → packed **2** (gas-only, optional dataUrl, folder-base mint, external doc attestation). Older registries may still hold mint-time byte `0` in rows; this reference UI targets v0.2+ contracts only.
+    /// Spec line 0.3 → packed **3** (v0.2 features + **M** museum prefix: unlimited mints like P, proofs by P or M). Older registries may hold lower packed bytes; UI targets non-legacy deployments.
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows Creator ID prefix.
@@ -98,7 +99,7 @@ contract ObjectDigitalPassport {
     struct CreatorRecord {
         string  creatorId;    // "C-482-930-174"
         address wallet;
-        bytes1  typePrefix;   // "C", "B", or "P" — stored as bytes1 for gas efficiency
+        bytes1  typePrefix;   // "C", "B", "P", or "M" — stored as bytes1 for gas efficiency
         uint256 timestamp;
     }
 
@@ -125,7 +126,7 @@ contract ObjectDigitalPassport {
     struct ProofRecord {
         string  proofId;         // "PRF-2031-03-7392018"
         uint8   contractVersion; // packed SPEC_MAJOR/SPEC_MINOR at submission
-        string  prover;          // Creator ID of P-type institution
+        string  prover;          // Creator ID of P- or M-type institution
         string  humanId;         // attested passport
         bytes32 noteHash;        // SHA-256 of attached document. bytes32(0) = none
         string  noteUrl;
@@ -258,9 +259,9 @@ contract ObjectDigitalPassport {
     // ─── Creator Registry ─────────────────────────────────────────────────────
 
     /**
-     * Register as a Creator (C), Brand (B), or Proof Institution (P).
+     * Register as a Creator (C), Brand (B), Proof Institution (P), or Museum (M).
      * One registration per wallet. Permanent.
-     * Type prefix must be "C", "B", or "P" — enforced by contract.
+     * Type prefix must be "C", "B", "P", or "M" — enforced by contract.
      * The 9-digit number is randomly generated — cannot be chosen.
      *
      * Cost: network gas only (no protocol fee).
@@ -701,7 +702,7 @@ contract ObjectDigitalPassport {
 
     /**
      * Submit a Proof attestation for a registered passport.
-     * Caller must be registered as type P (Proof Institution).
+     * Caller must be registered as type P (Proof Institution) or M (Museum).
      *
      * @param humanId   The passport being attested
      * @param noteHash  SHA-256 of attached document. bytes32(0) = none
@@ -726,10 +727,8 @@ contract ObjectDigitalPassport {
 
         string memory callerId = _walletToCreatorId[msg.sender];
         require(bytes(callerId).length > 0, "Not registered");
-        require(
-            _creators[callerId].typePrefix == TYPE_P,
-            "Only P-type institutions can submit proofs"
-        );
+        bytes1 tp = _creators[callerId].typePrefix;
+        require(tp == TYPE_P || tp == TYPE_M, "Only P- or M-type institutions can submit proofs");
 
         if (noteHash == bytes32(0)) {
             require(bytes(noteUrl).length == 0, "noteUrl requires noteHash");
@@ -788,16 +787,16 @@ contract ObjectDigitalPassport {
     }
 
     function _isValidType(bytes1 t) internal pure returns (bool) {
-        return t == TYPE_C || t == TYPE_B || t == TYPE_P;
+        return t == TYPE_C || t == TYPE_B || t == TYPE_P || t == TYPE_M;
     }
 
     /**
-     * Check monthly mint limit and increment counter (C/B only; P is unlimited).
+     * Check monthly mint limit and increment counter (C/B only; P and M are unlimited).
      * Resets on calendar month boundary (yearMonth key changes).
      */
     function _checkAndIncrementMintLimit(string memory creatorId) internal {
         bytes1 t = _creators[creatorId].typePrefix;
-        if (t == TYPE_P) {
+        if (t == TYPE_P || t == TYPE_M) {
             return;
         }
         uint32 limit = (t == TYPE_B) ? MONTHLY_LIMIT_B : MONTHLY_LIMIT_C;
@@ -822,7 +821,7 @@ contract ObjectDigitalPassport {
 
     /**
      * Get remaining mints for a wallet in the current calendar month.
-     * For P-type creators, returns `type(uint32).max` (unlimited).
+     * For P- and M-type creators, returns `type(uint32).max` (unlimited).
      */
     function getRemainingMints(address wallet) external view returns (uint32) {
         string memory cid = _walletToCreatorId[wallet];
@@ -830,7 +829,7 @@ contract ObjectDigitalPassport {
             return 0;
         }
         bytes1 t = _creators[cid].typePrefix;
-        if (t == TYPE_P) {
+        if (t == TYPE_P || t == TYPE_M) {
             return type(uint32).max;
         }
         uint32 limit = (t == TYPE_B) ? MONTHLY_LIMIT_B : MONTHLY_LIMIT_C;
