@@ -36,7 +36,7 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement by **[opening an issue](https://github.com/object-digital-passport/odp-v.0.1/issues)** in this repository (use a clear title, e.g. “Code of conduct concern”) or through GitHub’s tools as appropriate. All complaints will be reviewed and investigated promptly and fairly.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the community leaders responsible for enforcement by **[opening an issue](https://github.com/object-digital-passport/object-digital-passport/issues)** in this repository (use a clear title, e.g. “Code of conduct concern”) or through GitHub’s tools as appropriate. All complaints will be reviewed and investigated promptly and fairly.
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 

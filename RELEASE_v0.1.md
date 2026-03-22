@@ -6,10 +6,10 @@ First tagged release of the reference implementation: specification, Solidity co
 
 ## Live demo (GitHub Pages)
 
-- **Site:** https://object-digital-passport.github.io/odp-v.0.1/
-- **Verify** (read-only, no wallet): https://object-digital-passport.github.io/odp-v.0.1/verify.html  
-- **Creator ID:** https://object-digital-passport.github.io/odp-v.0.1/creator.html  
-- **Passport:** https://object-digital-passport.github.io/odp-v.0.1/passport.html  
+- **Site:** https://object-digital-passport.github.io/object-digital-passport/
+- **Verify** (read-only, no wallet): https://object-digital-passport.github.io/object-digital-passport/verify.html  
+- **Creator ID:** https://object-digital-passport.github.io/object-digital-passport/creator.html  
+- **Passport:** https://object-digital-passport.github.io/object-digital-passport/passport.html  
 
 ## Deployment
 
@@ -20,9 +20,9 @@ First tagged release of the reference implementation: specification, Solidity co
 
 ## Documentation
 
-- **Protocol (normative):** [`SPEC.md`](https://github.com/object-digital-passport/odp-v.0.1/blob/main/SPEC.md) · [`SPEC_RU.md`](https://github.com/object-digital-passport/odp-v.0.1/blob/main/SPEC_RU.md)  
-- **Security / threat model:** [`SECURITY.md`](https://github.com/object-digital-passport/odp-v.0.1/blob/main/SECURITY.md)  
-- **Overview:** [`README.md`](https://github.com/object-digital-passport/odp-v.0.1/blob/main/README.md)  
+- **Protocol (normative):** [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) · [`SPEC_RU.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC_RU.md)  
+- **Security / threat model:** [`SECURITY.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SECURITY.md)  
+- **Overview:** [`README.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md)  
 
 ## In this repository
 

@@ -2,5 +2,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Read SECURITY.md (vulnerabilities)
-    url: https://github.com/object-digital-passport/odp-v.0.1/blob/main/SECURITY.md
+    url: https://github.com/object-digital-passport/object-digital-passport/blob/main/SECURITY.md
     about: How to report security issues — avoid public issues for exploitable bugs.

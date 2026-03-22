@@ -1,11 +1,11 @@
 # Object Digital Passport · v0.1
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/odp-v.0.1?style=flat&logo=github)](https://github.com/object-digital-passport/odp-v.0.1/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
 
-**Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/odp-v.0.1/](https://object-digital-passport.github.io/odp-v.0.1/)** — [Verify](https://object-digital-passport.github.io/odp-v.0.1/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/odp-v.0.1/creator.html) · [Passport](https://object-digital-passport.github.io/odp-v.0.1/passport.html)
+**Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html) · [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
-*If links show **404**, GitHub Pages is not deployed yet. **(1)** Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**. **(2)** Add [`.github/workflows/pages.yml`](https://github.com/object-digital-passport/odp-v.0.1/blob/main/deploy/github-pages-workflow.yml) — same YAML as [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml) (use **Add file** on GitHub if `git push` is denied: PAT needs **`workflow`** scope for that path). **(3)** **Actions** → run **Deploy GitHub Pages**, wait for green, then reload the demo URL.*
+*If links show **404**, GitHub Pages is not deployed yet. **(1)** Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**. **(2)** Add [`.github/workflows/pages.yml`](https://github.com/object-digital-passport/object-digital-passport/blob/main/deploy/github-pages-workflow.yml) — same YAML as [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml) (use **Add file** on GitHub if `git push` is denied: PAT needs **`workflow`** scope for that path). **(3)** **Actions** → run **Deploy GitHub Pages**, wait for green, then reload the demo URL.*
 
 ---
 
@@ -14,7 +14,7 @@
 | | |
 |:--|:--|
 | **Version** | **v0.1** |
-| **Git tag** | [`v0.1`](https://github.com/object-digital-passport/odp-v.0.1/releases/tag/v0.1) |
+| **Git tag** | [`v0.1`](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.1) |
 | **Network** | Polygon PoS (chain ID 137) |
 | **Contract** | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
 
