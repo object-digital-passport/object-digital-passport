@@ -1,4 +1,4 @@
-# Object Digital Passport v.0.1
+# Object Digital Passport v0.1
 
 **Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/odp-v.0.1/](https://object-digital-passport.github.io/odp-v.0.1/)** — [Verify](https://object-digital-passport.github.io/odp-v.0.1/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/odp-v.0.1/creator.html) · [Passport](https://object-digital-passport.github.io/odp-v.0.1/passport.html)
 
