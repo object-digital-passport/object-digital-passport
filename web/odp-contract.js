@@ -34,7 +34,7 @@
   }
 
   /**
-   * Sync: URL `?contract=0x…` / `?odp_contract=0x…`, then sessionStorage from last successful connect (per chainId).
+   * Sync: URL `?contract=0x…` / `?odp_contract=0x…`, then sessionStorage, then localStorage (per chainId).
    */
   function odpApplyInlineRegistryOverrides(net) {
     if (!net) return;
@@ -53,24 +53,35 @@
         var s = global.sessionStorage.getItem(odpRegistrySessionKey(net.chainId));
         if (s && /^0x[a-fA-F0-9]{40}$/i.test(s.trim())) {
           net.contract = s.trim();
+          return;
+        }
+      }
+      if (global.localStorage) {
+        var ls = global.localStorage.getItem(odpRegistrySessionKey(net.chainId));
+        if (ls && /^0x[a-fA-F0-9]{40}$/i.test(ls.trim())) {
+          net.contract = ls.trim();
         }
       }
     } catch (e0) {}
   }
 
-  /** Remember registry address for this tab after a successful wallet session (local dev without editing HTML). */
+  /** Remember registry address after a successful wallet session (sessionStorage + localStorage for stale-cache first loads). */
   function odpPersistRegistryContractToSession(net) {
-    if (!net || !global.sessionStorage) return;
+    if (!net) return;
     var c = String(net.contract || "").trim();
     if (!c || !/^0x[a-fA-F0-9]{40}$/i.test(c)) return;
+    var k = odpRegistrySessionKey(net.chainId);
     try {
-      global.sessionStorage.setItem(odpRegistrySessionKey(net.chainId), c);
+      if (global.sessionStorage) global.sessionStorage.setItem(k, c);
     } catch (e1) {}
+    try {
+      if (global.localStorage) global.localStorage.setItem(k, c);
+    } catch (e2) {}
   }
 
   /**
-   * If `net.contract` is empty (stale cached HTML on first visit), try loading `registry-config.json`
-   * next to the page (same-origin, `cache: no-store`). CI writes this file with the deploy address.
+   * If `net.contract` is empty (stale cached HTML / JSON on first visit), load `registry-config.json`
+   * next to the page. First `no-store`, then `reload` if still empty (bypasses some CDN/browser caches).
    */
   function odpMergeRegistryConfigAsync(net) {
     odpApplyInlineRegistryOverrides(net);
@@ -80,73 +91,39 @@
     if (typeof global.location === "undefined" || !global.location || !global.location.href) {
       return Promise.resolve();
     }
-    return new Promise(function (resolve) {
-      try {
-        var url = new URL("registry-config.json", global.location.href);
-        url.searchParams.set("_", String(Date.now()));
-        global
-          .fetch(url.toString(), { cache: "no-store" })
-          .then(function (r) {
-            // #region agent log
-            fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-              body: JSON.stringify({
-                sessionId: "7d72c7",
-                hypothesisId: "H2",
-                location: "odp-contract.js:odpMergeRegistryConfigAsync:fetch",
-                message: "registry-config fetch result",
-                data: { ok: r.ok, status: r.status, urlLen: String(url.pathname || "").length },
-                timestamp: Date.now(),
-              }),
-            }).catch(function () {});
-            // #endregion
-            if (!r.ok) return null;
-            return r.json();
-          })
-          .then(function (j) {
-            var c = j && j.contract != null ? String(j.contract).trim() : "";
-            if (c && /^0x[a-fA-F0-9]{40}$/i.test(c)) {
-              net.contract = c;
-              // #region agent log
-              fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-                body: JSON.stringify({
-                  sessionId: "7d72c7",
-                  hypothesisId: "H1",
-                  location: "odp-contract.js:odpMergeRegistryConfigAsync",
-                  message: "merged contract from registry-config.json",
-                  data: { contractLen: c.length },
-                  timestamp: Date.now(),
-                }),
-              }).catch(function () {});
-              // #endregion
-            } else if (j) {
-              // #region agent log
-              fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-                body: JSON.stringify({
-                  sessionId: "7d72c7",
-                  hypothesisId: "H3",
-                  location: "odp-contract.js:odpMergeRegistryConfigAsync:emptyJson",
-                  message: "registry-config present but contract empty",
-                  data: { hasContractKey: j.contract != null },
-                  timestamp: Date.now(),
-                }),
-              }).catch(function () {});
-              // #endregion
-            }
-          })
-          .catch(function () {})
-          .finally(function () {
-            resolve();
-          });
-      } catch (e) {
-        resolve();
-      }
-    });
+
+    function fetchAndMerge(cacheMode) {
+      var url = new URL("registry-config.json", global.location.href);
+      url.searchParams.set("_", String(Date.now()) + "_" + Math.random().toString(16).slice(2));
+      return global
+        .fetch(url.toString(), {
+          cache: cacheMode || "no-store",
+          headers: { Pragma: "no-cache" },
+        })
+        .then(function (r) {
+          if (!r.ok) return null;
+          return r.json();
+        })
+        .then(function (j) {
+          var c = j && j.contract != null ? String(j.contract).trim() : "";
+          if (c && /^0x[a-fA-F0-9]{40}$/i.test(c)) {
+            net.contract = c;
+            try {
+              var k = odpRegistrySessionKey(net.chainId);
+              if (global.sessionStorage) global.sessionStorage.setItem(k, c);
+              if (global.localStorage) global.localStorage.setItem(k, c);
+            } catch (e2) {}
+          }
+        });
+    }
+
+    return fetchAndMerge("no-store")
+      .catch(function () {})
+      .then(function () {
+        var ex = String(net.contract || "").trim();
+        if (ex && /^0x[a-fA-F0-9]{40}$/i.test(ex)) return;
+        return fetchAndMerge("reload").catch(function () {});
+      });
   }
 
   /** If RPC probe fails, use net.contractGenerationFallback (number), else 2 (v0.2-shaped). */
