@@ -1,5 +1,11 @@
 # Object Digital Passport v.0.1
 
+**Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/odp-v.0.1/](https://object-digital-passport.github.io/odp-v.0.1/)** — [Verify](https://object-digital-passport.github.io/odp-v.0.1/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/odp-v.0.1/creator.html) · [Passport](https://object-digital-passport.github.io/odp-v.0.1/passport.html)
+
+*The links above work after GitHub Pages is enabled: copy [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml) → `.github/workflows/pages.yml`, push, then **Settings → Pages → Source: GitHub Actions**. (Pushing workflow files may require a token with the **workflow** scope.)*
+
+---
+
 **An open standard for authenticating physical and digital objects via blockchain.**
 
 No platform. No subscription. No central authority.
@@ -85,17 +91,9 @@ Anyone with a phone can scan the QR code and verify:
 
 Install [MetaMask](https://metamask.io). Create a wallet. Save your seed phrase.
 
-### 2. Get POL for gas
+### 2. POL for gas
 
-You need a small amount of POL (~$0.10 covers ~10 transactions).
-
-**Testnet (free):**
-Go to [faucet.polygon.technology](https://faucet.polygon.technology),
-paste your wallet address, receive free test POL.
-
-**Mainnet:**
-Buy POL on any exchange (Binance, Coinbase, Bybit) and send to your wallet address.
-No identity verification required for small amounts via P2P or crypto ATMs.
+Registering a Creator ID and minting passports **submit transactions on Polygon PoS**. Gas is paid in that chain’s native token (**POL**), so your wallet must have POL on **Polygon PoS** for those actions. Verifying on `verify.html` is read-only and does not need POL.
 
 ### 3. Deploy the contract (or use the official deployment)
 

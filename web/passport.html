@@ -455,19 +455,27 @@ function renderForm() {
     <!-- Passport URL -->
     <div class="section">
       <div class="section-label">Hosting</div>
-      <div class="field">
+      <div class="field" style="margin-bottom:12px">
+        <label class="fhint" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="f_use_folder" checked onchange="syncHostingInputs()">
+          <span>Use a folder on my site — after mint, the app registers <code>…/YourHumanID.json</code> automatically (one extra confirm in the wallet)</span>
+        </label>
+      </div>
+      <div id="hostingFolderRow" class="field">
         <div class="field-label-row">
-          <label for="f_url">Passport JSON URL<span class="req">*</span></label>
+          <label for="f_urlBase">HTTPS folder for passport files<span class="req">*</span></label>
+          <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How hosting works" aria-label="How hosting works">ⓘ</button>
+        </div>
+        <input type="url" id="f_urlBase" placeholder="https://art.com/passport">
+        <p class="fhint">No filename — just the folder. After mint you will upload <strong>one file</strong> named exactly <code>YourHumanID.json</code> (shown on the success screen). The on-chain URL will match that path.</p>
+      </div>
+      <div id="hostingFullRow" class="field" style="display:none">
+        <div class="field-label-row">
+          <label for="f_url">Full URL to passport.json<span class="req">*</span></label>
           <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How third-party JSON hosting works" aria-label="How third-party JSON hosting works">ⓘ</button>
         </div>
         <input type="url" id="f_url" placeholder="https://example.com/odp/passport-001.json">
-        <p class="fhint">
-          <strong>Final public HTTPS URL</strong> of the file that will contain the <strong>same</strong> canonical <code>passport.json</code>
-          whose SHA-256 is written on-chain as <code>dataHash</code>. The file does not need to exist yet — but the path must be the one you will use after mint.
-          The verifier downloads this URL, minifies JSON like the spec, hashes it, and compares to the chain.
-          <strong>Human ID</strong> is assigned randomly when you mint — you cannot know it in advance, so pick a stable path <em>without</em> the ID (e.g. <code>…/works/title/passport.json</code>).
-          If you want the ID in the path, mint with any valid URL first, upload the downloaded file, then use <strong>Update hosting URLs</strong> (gas only — no second mint fee).
-        </p>
+        <p class="fhint">Exact public HTTPS URL of the file after you upload it. Use this if you already know the full path (without using the folder option above).</p>
       </div>
     </div>
 
@@ -568,6 +576,9 @@ function renderForm() {
         <div class="card-head">Hosting <code>passport.json</code> on the web</div>
         <div class="card-body">
           <p class="fhint" style="margin-bottom:12px">
+            If you use <strong>folder hosting</strong> in the form, the app registers <code>your-folder/YourHumanID.json</code> for you after mint. Otherwise, paste the full file URL yourself.
+          </p>
+          <p class="fhint" style="margin-bottom:12px">
             The verifier loads your URL in the browser (same as opening the link). The response must be the <strong>raw JSON bytes</strong> of the passport — not an HTML page, not a login wall, not a pretty-printed GitHub file view.
           </p>
           <p class="fhint" style="margin-bottom:12px">
@@ -638,7 +649,16 @@ function renderForm() {
   queueMicrotask(() => {
     loadMyPassports();
     bindShareModalCloseHandlers();
+    syncHostingInputs();
   });
+}
+
+function syncHostingInputs() {
+  const folder = document.getElementById("f_use_folder")?.checked !== false;
+  const rowF = document.getElementById("hostingFolderRow");
+  const rowU = document.getElementById("hostingFullRow");
+  if (rowF) rowF.style.display = folder ? "" : "none";
+  if (rowU) rowU.style.display = folder ? "none" : "";
 }
 
 // ── Object type switch ────────────────────────────────────────────────────────
@@ -697,6 +717,27 @@ async function hashImg(e) {
 // ── Build passport JSON ───────────────────────────────────────────────────────
 
 function v(id) { const el=document.getElementById(id); return el?el.value.trim():""; }
+
+/** Normalize folder root: https, no trailing slash (for joining). */
+function normalizeBaseUrl(raw) {
+  let s = String(raw || "").trim();
+  if (!s) return "";
+  if (!/^https?:\/\//i.test(s)) s = "https://" + s;
+  try {
+    const u = new URL(s);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return "";
+    let out = u.origin + u.pathname;
+    out = out.replace(/\/+$/, "");
+    return out;
+  } catch {
+    return "";
+  }
+}
+
+/** Final on-chain passport.json URL when using folder hosting. */
+function joinPassportJsonUrl(baseNormalized, humanId) {
+  return `${baseNormalized}/${humanId}.json`;
+}
 
 function buildPassport(humanId) {
   const now = new Date();
@@ -783,7 +824,12 @@ async function sha256obj(o) {
 function validate() {
   if (!v("f_title"))   return "Title is required";
   if (!v("f_name"))    return "Creator name is required";
-  if (!v("f_url"))     return "Passport JSON URL is required";
+  const useFolder = document.getElementById("f_use_folder")?.checked !== false;
+  if (useFolder) {
+    if (!normalizeBaseUrl(v("f_urlBase"))) return "Enter a valid HTTPS folder URL (e.g. https://art.com/passport)";
+  } else if (!v("f_url")) {
+    return "Passport JSON URL is required";
+  }
   if (objType==="digital" && fileHashBytes32===ZERO32) return "Original file is required for digital objects";
   if (objType==="physical") {
     if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return "NFC chip UID and public key are required";
@@ -816,7 +862,11 @@ async function submit() {
   const now       = new Date();
   const year      = parseInt(v("f_year"));
   const month     = now.getMonth()+1;
-  const dataUrl_  = v("f_url");
+  const useFolder = document.getElementById("f_use_folder")?.checked !== false;
+  const baseNorm  = useFolder ? normalizeBaseUrl(v("f_urlBase")) : "";
+  const dataUrl_  = useFolder
+    ? `${baseNorm}/odp-mint-pending-${Date.now()}.json`
+    : v("f_url");
 
   let sealHash_ = ZERO32;
   let nfcBytes  = new Uint8Array(0);
@@ -873,10 +923,37 @@ async function submit() {
       } catch {}
     }
 
+    let registeredDataUrl = dataUrl_;
+    if (!humanId) throw new Error("Could not read Human ID from mint receipt.");
+
+    if (useFolder && baseNorm) {
+      registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
+      document.getElementById("app").innerHTML = `
+        <div style="text-align:center;padding:48px 0">
+          <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
+          <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">Registering file URL on-chain…</div>
+          <div style="font-size:12px;color:var(--text2)">Second wallet confirmation (gas only)</div>
+        </div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+      try {
+        const tx2 = await contract.updatePassportUrls(humanId, registeredDataUrl, imgU_, dataHash_);
+        await tx2.wait();
+      } catch (e2) {
+        const want = esc(registeredDataUrl);
+        document.getElementById("app").innerHTML = `<div class="info w" style="max-width:440px;margin:24px auto;line-height:1.6">
+          Mint succeeded, but updating the public file URL failed. Use <strong>URLs</strong> next to this passport in the list below and set the JSON URL to:<br><br>
+          <code style="font-size:11px;word-break:break-all">${want}</code><br><br>
+          ${esc(e2.message || String(e2))}
+        </div>
+        <div style="text-align:center;margin-top:16px"><button class="btn" onclick="renderForm()">Back to form</button></div>`;
+        return;
+      }
+    }
+
     // dataHash on-chain is sha256(buildPassport(null)). Download includes real humanId; verify.html maps matching humanId string → null for hash check.
     const passportOut = buildPassport(humanId);
     const finalJson = canonicalJsonString(passportOut);
-    showSuccess(humanId, tx.hash, finalJson, passport.title);
+    showSuccess(humanId, tx.hash, finalJson, passport.title, registeredDataUrl);
 
   } catch(e) {
     document.getElementById("app").innerHTML = `<div class="info e">${esc(e.message)}</div>`;
@@ -1052,9 +1129,12 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
   }
 }
 
-function showSuccess(humanId, txHash, json, title) {
+function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
   const net = NET;
   const rel = getVerifyRelativePath(humanId);
+  const uploadHint = dataUrlOnChain
+    ? `Upload the downloaded file <strong>unchanged</strong> to this exact HTTPS URL (same bytes → hash matches <code>dataHash</code>):<br><code style="font-size:11px;word-break:break-all">${esc(dataUrlOnChain)}</code>`
+    : `Upload the downloaded file <strong>unchanged</strong> to the URL you registered (same bytes → hash matches <code>dataHash</code>). The JSON includes your Human ID for readability; verification still compares to the hash from mint (verifier treats that ID like the pre-mint <code>null</code>).`;
 
   document.getElementById("app").innerHTML = `
     <div class="success">
@@ -1071,7 +1151,7 @@ function showSuccess(humanId, txHash, json, title) {
       </div>
 
       <div class="next-steps">
-        <div class="ns-item"><div class="ns-num">1</div><div>Upload the downloaded file <strong>unchanged</strong> to the URL you entered (same bytes → hash matches <code>dataHash</code>). The JSON includes your Human ID for readability; verification still compares to the hash from mint (verifier treats that ID like the pre-mint <code>null</code>).</div></div>
+        <div class="ns-item"><div class="ns-num">1</div><div>${uploadHint}</div></div>
         <div class="ns-item"><div class="ns-num">2</div><div>Use <strong>Share</strong>: QR encodes <code>odp://</code> + Human ID (SPEC).</div></div>
         <div class="ns-item"><div class="ns-num">3</div><div>Make sure your Creator ID <strong>${esc(creatorId)}</strong> is published on your website and social profiles.</div></div>
       </div>

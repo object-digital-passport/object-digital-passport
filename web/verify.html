@@ -692,6 +692,13 @@ function renderPassportJsonExtras(passport, isDigital) {
         <div class="fields">${rows.join("")}</div>`;
 }
 
+/** On-chain `contractVersion` is uint8 (0, 1, …). Generation 0 matches SPEC / README v0.1. */
+function formatOdpProtocolBadge(contractVersion) {
+  const v = Number(contractVersion);
+  if (v === 0 || Number.isNaN(v)) return "ODP v0.1";
+  return `ODP v${v}`;
+}
+
 function render(humanId, rec, creator, passport, proofs, dataStatus) {
   const net_     = NET;
   const isDigital = rec.objectType === "digital";
@@ -767,8 +774,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus) {
           <div class="field">
             <div class="fl">Protocol Version</div>
             <div class="fv">
-              <span class="type-badge">ODP v${rec.contractVersion || 0}</span>
-              ${(rec.contractVersion || 0) === 0 ? '<span style="font-size:10px;color:var(--ink3);margin-left:6px;font-family:var(--mono)">Legacy record</span>' : ''}
+              <span class="type-badge">${formatOdpProtocolBadge(rec.contractVersion)}</span>
             </div>
           </div>
 

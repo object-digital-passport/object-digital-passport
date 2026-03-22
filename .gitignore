@@ -1,3 +1,6 @@
+# Cursor / IDE
+.cursor/
+
 # macOS
 .DS_Store
 
