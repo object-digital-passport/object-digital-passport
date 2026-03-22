@@ -18,6 +18,9 @@ deploy/cache/
 deploy/deployments/
 artifacts/
 cache/
+typechain-types/
+coverage/
+coverage.json
 
 # Python
 __pycache__/
