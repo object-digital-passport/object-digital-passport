@@ -1,6 +1,4 @@
-# Copy to: .github/workflows/pages.yml
-# Then: Settings → Pages → Source: GitHub Actions
-# Requires push token with "workflow" scope when adding the workflow file.
+# Copy to .github/workflows/pages.yml in the repo (GitHub web UI if git rejects workflow paths).
 name: Deploy GitHub Pages
 
 on:

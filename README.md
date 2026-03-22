@@ -2,7 +2,7 @@
 
 **Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/odp-v.0.1/](https://object-digital-passport.github.io/odp-v.0.1/)** — [Verify](https://object-digital-passport.github.io/odp-v.0.1/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/odp-v.0.1/creator.html) · [Passport](https://object-digital-passport.github.io/odp-v.0.1/passport.html)
 
-*The links above work after GitHub Pages is enabled: copy [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml) → `.github/workflows/pages.yml`, push, then **Settings → Pages → Source: GitHub Actions**. (Pushing workflow files may require a token with the **workflow** scope.)*
+*If links show **404**, GitHub Pages is not deployed yet. **(1)** Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**. **(2)** Add [`.github/workflows/pages.yml`](https://github.com/object-digital-passport/odp-v.0.1/blob/main/deploy/github-pages-workflow.yml) — same YAML as [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml) (use **Add file** on GitHub if `git push` is denied: PAT needs **`workflow`** scope for that path). **(3)** **Actions** → run **Deploy GitHub Pages**, wait for green, then reload the demo URL.*
 
 ---
 
