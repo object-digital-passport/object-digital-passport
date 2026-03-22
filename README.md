@@ -1,4 +1,4 @@
-# Object Digital Passport · v0.1
+# Object Digital Passport · v0.2
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -9,14 +9,14 @@ Blockchain apps reuse words from NFTs and finance — here is what they mean **i
 
 | Term | Meaning here |
 |:--|:--|
-| **Mint / minting** | Sending a **transaction** that **creates** a new on-chain record. For a passport, **mint** means the smart contract **registers** your object: it assigns a **Human ID**, stores cryptographic **hashes**, and takes the **protocol fee**. It does **not** mean “print” or “issue a PDF” by itself — you still **download** and **host** `passport.json` separately. |
-| **Register (Creator ID)** | A **one-time** on-chain step: your wallet pays gas + fee and receives a permanent **Creator ID** (`C-…`, `B-…`, or `P-…`). You must do this **before** you can mint passports. |
-| **Passport** | The **whole record** for one object: the on-chain row **plus** the **passport.json** file at **`dataUrl`**. |
-| **`passport.json`** | The **off-chain JSON document** with title, seal, hashes, etc. Only a **hash** of it lives on-chain; **you** must keep the file and publish it at the URL you gave. |
-| **`dataUrl`** | The **HTTPS link** where `passport.json` is hosted. Verifiers fetch it and compare bytes to the on-chain hash. |
-| **Verify / verification** | **Read-only** check: load chain data + `passport.json`, recompute hashes — **no** wallet or fee. |
-| **Gas** | **POL** paid to the **Polygon network** for executing any transaction (varies with congestion). Separate from the **protocol fee** below. |
-| **Protocol fee** | A fixed **0.001 POL** per payable action (**register**, **mint**, **proof**), **burned** by the contract — not the same as gas. **URL-only updates** pay **gas** only. |
+| **Mint / minting** | Sending a **transaction** that **creates** a new on-chain record. For a passport, **mint** means the smart contract **registers** your object: it assigns a **Human ID** and stores cryptographic **hashes** (v0.2: **network gas only** — no separate protocol fee). You still **download** and may **host** `passport.json` separately. |
+| **Register (Creator ID)** | A **one-time** on-chain step: your wallet pays **gas** and receives a permanent **Creator ID** (`C-…`, `B-…`, or `P-…`). You must do this **before** you can mint passports. |
+| **Passport** | The **whole record** for one object: the on-chain row **plus** (when published) the **passport.json** file at **`dataUrl`**. |
+| **`passport.json`** | The **off-chain JSON document** with title, seal, hashes, etc. Only a **hash** of it lives on-chain; **you** must keep the file. If you register a **`dataUrl`**, publish the file there so verifiers can fetch it. |
+| **`dataUrl`** | Optional **HTTPS** link where `passport.json` is hosted. If empty on-chain, the public Verify page **cannot** fetch JSON — only someone with the **file** can check details and authenticity. |
+| **Verify / verification** | **Read-only** check: load chain data + (if available) `passport.json`, recompute hashes — **no** wallet or protocol fee. |
+| **Gas** | **POL** paid to the **Polygon network** for executing transactions (varies with congestion). **v0.2** has **no** extra burned protocol fee on register/mint. |
+| **Protocol fee** | **v0.1** deployments used a fixed **0.001 POL** burn on some actions. **v0.2** removes that — you pay **gas only** (POL). |
 | **Wallet** | An Ethereum-compatible app (e.g. **MetaMask**) that holds your keys and **signs** transactions. |
 
 Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 and §2 onward).
@@ -32,7 +32,7 @@ Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 an
 - **Human ID** (`ODP-YYYY-MM-NNNNNNN`) — a readable, unique handle for the object; minted by the contract, immutable.
 - **Creator ID** (`C-482-930-174`, etc.) — a permanent identity for the artist, brand, or institution; required before minting.
 - **On-chain record** — compact: hashes, creator binding, URLs, seal metadata. **No** large images or full JSON on-chain.
-- **Passport JSON** — the full document lives at **`dataUrl`** (HTTPS); the chain stores a hash so any change to the file is detected.
+- **Passport JSON** — the full document should live at **`dataUrl`** when you want public web verification (HTTPS); the chain stores a hash so any change to the file is detected. **`dataUrl` may be omitted** at mint (v0.2), but then only people with the **file** can verify.
 
 **Core principles** (from **`SPEC.md` §1**; normative wording there):
 
@@ -333,22 +333,25 @@ See `SPEC.md` section 13 for the full SDK interface specification.
 |:--|:--|
 | Network | Polygon PoS |
 | Chain ID | 137 |
-| Typical mint / register (gas + fee) | ~US$0.02 (varies) |
+| Typical mint / register (gas only, v0.2) | ~US$0.01 (varies) |
 | Testnet | Polygon Amoy (chain ID 80002) |
-| Contract (v0.1) | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
+| Contract (v0.1, legacy) | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) — **fee + old ABI**; use **v0.2** deploy for gas-only + optional `dataUrl`. |
+| Contract (v0.2) | Set in `web/*.html` `NET.contract` after deploy (see `deploy/scripts/deploy.js`). |
 
 ---
 
 ## Costs
 
-Each **payable** contract call (`registerCreator`, `mintPhysical`, `mintDigital`, `submitProof`) charges a fixed **0.001 POL** protocol fee (burned) **plus** Polygon **network gas** (also paid in POL). In typical conditions that is **roughly US$0.02 per transaction** — about **US$0.01 gas** and **US$0.01** for the protocol line item — but **actual cost varies** with POL price and congestion.
+**v0.2** (`CONTRACT_VERSION == 2`): **register**, **mint**, and **proof** transactions pay **Polygon network gas** (POL) only — **no** separate burned protocol fee.
 
-| Action | Typical cost |
+**v0.1** (legacy deployment `0x3800…`): **payable** actions also charged **0.001 POL** per register/mint (burned) **plus** gas.
+
+| Action | Typical cost (v0.2) |
 |--------|----------------|
-| Register Creator ID | ~US$0.02 (once) — gas + 0.001 POL fee |
-| Mint a passport | ~US$0.02 — gas + 0.001 POL fee |
-| Submit a proof | ~US$0.02 — gas + 0.001 POL fee |
-| Update passport URLs only (`updatePassportUrls`) | **Gas only** (no protocol fee) |
+| Register Creator ID | ~US$0.01 (once) — gas only |
+| Mint a passport | ~US$0.01 — gas only |
+| Submit a proof | ~US$0.01 — gas only |
+| Update passport URLs only (`updatePassportUrls`) | Gas only |
 | Verify an object | Free |
 | Read any data | Free |
 

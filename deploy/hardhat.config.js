@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
+const path = require("path");
 
 // Load from .env file — never commit private keys to git
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -11,6 +12,9 @@ if (!PRIVATE_KEY) {
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
+  paths: {
+    root: path.join(__dirname, ".."),
+  },
   solidity: {
     version: "0.8.20",
     settings: {

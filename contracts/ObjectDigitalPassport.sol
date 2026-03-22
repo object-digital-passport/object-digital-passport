@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
- * Specification v0.1
+ * Specification v0.2
  * License: MIT
  *
  * Deployed on: Polygon PoS (chain ID 137)
@@ -37,7 +37,7 @@ pragma solidity ^0.8.20;
  *     users to confirm P-type IDs on official institution websites
  *   - Creator is trusted to physically install the correct chip model
  *     The contract cannot verify hardware — only the declared model
- *   - Anti-spam: 0.001 POL fee per mint/register (burned to address(0))
+ *   - Anti-spam: monthly mint-rate limit (no protocol fee — gas only)
  *   - Rate limit: 1000 mints per wallet per calendar month
  *   - Passport namespace: 100M IDs per year+month (previously 10M)
  *   - P-type whitelist is intentionally off-chain — see external repos
@@ -84,12 +84,10 @@ contract ObjectDigitalPassport {
     // Protocol version — readable on-chain, stored in every Passport and ProofRecord.
     // When v1 is deployed, it will reference this contract as legacy via legacyContractsRoot.
     // Verifiers use this to display "Legacy (v0)" vs "Canonical (v1)".
-    uint8 public constant CONTRACT_VERSION = 0;
+    uint8 public constant CONTRACT_VERSION = 2;
 
-    // Anti-spam: fee per action (burned), rate limit per calendar month
-    uint256 constant MINT_FEE       = 0.001 ether;  // 0.001 POL, burned on mint
-    uint256 constant REGISTER_FEE   = 0.001 ether;  // 0.001 POL, burned on register
-    uint16  constant MONTHLY_LIMIT  = 1000;          // mints per wallet per calendar month
+    // Anti-spam: rate limit per calendar month (no protocol fee)
+    uint16 constant MONTHLY_LIMIT  = 1000;          // mints per wallet per calendar month
 
     // ─── Structs ──────────────────────────────────────────────────────────────
 
@@ -212,9 +210,6 @@ contract ObjectDigitalPassport {
 
     event ContractFrozen(uint256 timestamp);
 
-    // Emitted when fee is burned — provides on-chain transparency of fee activity
-    event FeeBurned(address indexed payer, uint256 amount, string action);
-
     // ─── Constructor ──────────────────────────────────────────────────────────
 
     constructor() {
@@ -244,21 +239,15 @@ contract ObjectDigitalPassport {
      * Type prefix must be "C", "B", or "P" — enforced by contract.
      * The 9-digit number is randomly generated — cannot be chosen.
      *
-     * Cost: REGISTER_FEE (0.001 POL) + gas. Fee is burned to address(0).
+     * Cost: network gas only (no protocol fee).
      */
     function registerCreator(bytes1 typePrefix)
         external
-        payable
         notFrozen
         returns (string memory creatorId)
     {
-        require(msg.value == REGISTER_FEE, "Fee required: 0.001 POL");
         require(_isValidType(typePrefix),                          "Invalid type prefix");
         require(bytes(_walletToCreatorId[msg.sender]).length == 0, "Already registered");
-        // Burn fee — send to zero address (call is safer than transfer)
-        (bool burned, ) = address(0).call{value: msg.value}("");
-        require(burned, "Burn failed");
-        emit FeeBurned(msg.sender, msg.value, "registerCreator");
 
         uint32 number = _generateCreatorNumber();
         creatorId     = _buildCreatorId(typePrefix, number);
@@ -301,7 +290,7 @@ contract ObjectDigitalPassport {
      * @param year          Any year > 0 (e.g. 1823 for historical art)
      * @param month         1–12
      * @param dataHash      SHA-256 of minified passport.json
-     * @param dataUrl       Public URL of passport.json (max 512 chars)
+     * @param dataUrl       Public URL of passport.json (max 512 chars). May be "" — verifiers cannot fetch JSON without a URL.
      * @param imageHash     SHA-256 of image. bytes32(0) = no image
      * @param imageUrl      Image URL hint. "" = no image
      * @param sealType      1 = NFC only, 2 = numbered only, 3 = both
@@ -326,7 +315,6 @@ contract ObjectDigitalPassport {
         require(year > 0, "Invalid year");
         require(month >= 1 && month <= 12, "Invalid month");
         require(dataHash != bytes32(0), "dataHash required");
-        require(bytes(dataUrl).length > 0, "dataUrl required");
         require(bytes(dataUrl).length <= 512, "dataUrl too long");
         require(bytes(imageUrl).length <= 512, "imageUrl too long");
         require(sealType >= 1 && sealType <= 3, "Invalid sealType");
@@ -347,6 +335,42 @@ contract ObjectDigitalPassport {
         }
     }
 
+    /// @dev Strip trailing `/` so folder base joins as `base/HumanID.json` without `//`.
+    function _stripTrailingSlash(string calldata s) internal pure returns (string memory) {
+        bytes memory b = bytes(s);
+        uint256 end = b.length;
+        while (end > 0 && b[end - 1] == 0x2f) {
+            unchecked {
+                end--;
+            }
+        }
+        if (end == b.length) {
+            return string(abi.encodePacked(s));
+        }
+        bytes memory out = new bytes(end);
+        for (uint256 i = 0; i < end; i++) {
+            out[i] = b[i];
+        }
+        return string(out);
+    }
+
+    /// @param dataUrl When `dataUrlIsFolderBase` is true, this is the HTTPS folder root only (no filename); the stored URL becomes `folderBase + "/" + humanId + ".json"` after `humanId` is known.
+    function _resolveMintDataUrl(
+        string calldata dataUrl,
+        bool dataUrlIsFolderBase,
+        string memory humanId
+    ) internal pure returns (string memory) {
+        if (bytes(dataUrl).length == 0) {
+            require(!dataUrlIsFolderBase, "Folder base requires non-empty base URL");
+            return "";
+        }
+        if (!dataUrlIsFolderBase) {
+            return string(abi.encodePacked(dataUrl));
+        }
+        string memory base = _stripTrailingSlash(dataUrl);
+        return string(abi.encodePacked(base, "/", humanId, ".json"));
+    }
+
     function mintPhysical(
         uint32  year,
         uint8   month,
@@ -357,9 +381,10 @@ contract ObjectDigitalPassport {
         uint8   sealType,
         bytes32 sealHash,
         bytes   calldata nfcPublicKey,
-        string  calldata nfcModel
-    ) external payable notFrozen returns (string memory humanId) {
-        string memory creatorId = _payMintFee("mintPhysical");
+        string  calldata nfcModel,
+        bool dataUrlIsFolderBase
+    ) external notFrozen returns (string memory humanId) {
+        string memory creatorId = _beginMint();
 
         _validatePhysical(
             year,
@@ -376,6 +401,9 @@ contract ObjectDigitalPassport {
 
         humanId = _generatePassportId(year, month);
 
+        string memory resolvedDataUrl = _resolveMintDataUrl(dataUrl, dataUrlIsFolderBase, humanId);
+        require(bytes(resolvedDataUrl).length <= 512, "Resolved dataUrl too long");
+
         _passports[humanId] = Passport({
             humanId:         humanId,
             contractVersion: CONTRACT_VERSION,
@@ -391,7 +419,7 @@ contract ObjectDigitalPassport {
             sealHash:     sealHash,
             nfcPublicKey: nfcPublicKey,
             nfcModel:     nfcModel,
-            dataUrl:      dataUrl,
+            dataUrl:      resolvedDataUrl,
             imageUrl:     imageUrl,
             timestamp:    block.timestamp
         });
@@ -414,10 +442,11 @@ contract ObjectDigitalPassport {
      * @param year          Any year > 0 (e.g. 1823 for historical art)
      * @param month         1–12
      * @param dataHash      SHA-256 of minified passport.json
-     * @param dataUrl       Public URL of passport.json (max 512 chars)
+     * @param dataUrl       Public URL of passport.json (max 512 chars). May be "" — verifiers cannot fetch JSON without a URL.
      * @param imageHash     SHA-256 of preview image. bytes32(0) = none
      * @param imageUrl      Preview image URL hint. "" = none
      * @param fileHash      SHA-256 of the original digital file. Required.
+     * @param dataUrlIsFolderBase If true, `dataUrl` is folder root only; stored URL is `folderBase/humanId.json`.
      */
     function mintDigital(
         uint32  year,
@@ -426,14 +455,14 @@ contract ObjectDigitalPassport {
         string  calldata dataUrl,
         bytes32 imageHash,
         string  calldata imageUrl,
-        bytes32 fileHash
-    ) external payable notFrozen returns (string memory humanId) {
-        string memory creatorId = _payMintFee("mintDigital");
+        bytes32 fileHash,
+        bool dataUrlIsFolderBase
+    ) external notFrozen returns (string memory humanId) {
+        string memory creatorId = _beginMint();
 
         require(year > 0,       "Invalid year");
         require(month >= 1   && month <= 12,   "Invalid month");
         require(dataHash != bytes32(0),         "dataHash required");
-        require(bytes(dataUrl).length > 0,      "dataUrl required");
         require(bytes(dataUrl).length <= 512,   "dataUrl too long");
         require(bytes(imageUrl).length <= 512,  "imageUrl too long");
         require(fileHash != bytes32(0),         "fileHash required for digital objects");
@@ -443,6 +472,9 @@ contract ObjectDigitalPassport {
         }
 
         humanId = _generatePassportId(year, month);
+
+        string memory resolvedDataUrl = _resolveMintDataUrl(dataUrl, dataUrlIsFolderBase, humanId);
+        require(bytes(resolvedDataUrl).length <= 512, "Resolved dataUrl too long");
 
         _passports[humanId] = Passport({
             humanId:         humanId,
@@ -459,7 +491,7 @@ contract ObjectDigitalPassport {
             sealHash:     bytes32(0),
             nfcPublicKey: "",
             nfcModel:     "",
-            dataUrl:      dataUrl,
+            dataUrl:      resolvedDataUrl,
             imageUrl:     imageUrl,
             timestamp:    block.timestamp
         });
@@ -503,7 +535,6 @@ contract ObjectDigitalPassport {
         require(p.creator != address(0),              "Passport not found");
         require(p.creator == msg.sender,              "Not creator");
         require(p.dataHash == confirmedDataHash,      "Hash mismatch - wrong content or wrong passport");
-        require(bytes(newDataUrl).length > 0,         "dataUrl required");
         require(bytes(newDataUrl).length <= 512,      "dataUrl too long");
         require(bytes(newImageUrl).length <= 512,     "imageUrl too long");
 
@@ -672,14 +703,10 @@ contract ObjectDigitalPassport {
             "Creator ID required - call registerCreator first");
     }
 
-    /** Burn MINT_FEE, enforce registration and monthly limit. Keeps mint* stack shallow. */
-    function _payMintFee(string memory actionLabel) internal returns (string memory creatorId) {
-        require(msg.value == MINT_FEE, "Fee required: 0.001 POL");
+    /** Enforce registration and monthly limit (no protocol fee). */
+    function _beginMint() internal returns (string memory creatorId) {
         creatorId = _requireRegistered();
         _checkAndIncrementMintLimit();
-        (bool burned, ) = address(0).call{value: msg.value}("");
-        require(burned, "Burn failed");
-        emit FeeBurned(msg.sender, msg.value, actionLabel);
     }
 
     function _isValidType(bytes1 t) internal pure returns (bool) {

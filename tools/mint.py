@@ -2,7 +2,7 @@
 """
 Object Digital Passport — Mint CLI
 Author: Andrei Chernikov
-Specification v0.1
+Specification v0.2
 
 Usage:
     python mint.py                  # interactive mint
@@ -61,20 +61,11 @@ NETWORKS = {
 }
 
 CONTRACT_ABI = [
-    # Protocol constants — needed to read fees before calling payable functions
-    {
-        "name": "REGISTER_FEE", "type": "function", "stateMutability": "view",
-        "inputs": [], "outputs": [{"name": "", "type": "uint256"}],
-    },
-    {
-        "name": "MINT_FEE", "type": "function", "stateMutability": "view",
-        "inputs": [], "outputs": [{"name": "", "type": "uint256"}],
-    },
     # Creator Registry
     {
         "name": "registerCreator",
         "type": "function",
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
         "inputs":  [{"name": "typePrefix", "type": "bytes1"}],
         "outputs": [{"name": "creatorId",  "type": "string"}],
     },
@@ -104,7 +95,7 @@ CONTRACT_ABI = [
     {
         "name": "mintPhysical",
         "type": "function",
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
         "inputs": [
             {"name": "year",         "type": "uint32"},
             {"name": "month",        "type": "uint8"},
@@ -124,7 +115,7 @@ CONTRACT_ABI = [
     {
         "name": "mintDigital",
         "type": "function",
-        "stateMutability": "payable",
+        "stateMutability": "nonpayable",
         "inputs": [
             {"name": "year",      "type": "uint32"},
             {"name": "month",     "type": "uint8"},
@@ -307,13 +298,11 @@ def cmd_register(args):
     print(f"  Registering as type {t}...")
     # bytes1 encoding: "C"→b"C", "B"→b"B", "P"→b"P"
     type_bytes = t.encode('ascii')
-    register_fee = contract.functions.REGISTER_FEE().call()
-    print(f"  Fee: {w3.from_wei(register_fee, 'ether')} POL (burned)")
+    print("  v0.2: gas only (no protocol fee)")
     tx_hash = send_tx(
         w3, account,
         contract.functions.registerCreator(type_bytes),
         net,
-        value=register_fee
     )
 
     creator_id = contract.functions.getCreatorByWallet(account.address).call()
@@ -410,7 +399,9 @@ def cmd_mint(args):
         subtype  = prompt("Subtype (image / video / 3d / audio / document / other)", "image")
         fmt      = prompt_optional("Format (e.g. TIFF, ProRes, GLB)")
 
-    data_url = prompt("URL where passport.json will be hosted")
+    data_url = (prompt_optional("URL where passport.json will be hosted (HTTPS, or empty for no public URL)") or "").strip()
+    if not data_url:
+        print("  ⚠  Empty dataUrl: the Verify page cannot fetch JSON; only passport.json holders can verify.")
 
     # Image (preview)
     print()
@@ -499,7 +490,7 @@ def cmd_mint(args):
 
     creator_rec = contract.functions.getCreator(creator_id).call()
     passport = {
-        "version":    "0.1",
+        "version":    "0.2",
         "humanId":    None,  # filled after mint
         "objectType": "physical" if is_physical else "digital",
         "type":       obj_type,
@@ -576,9 +567,7 @@ def cmd_mint(args):
 
     # Send transaction
     print()
-    print("  Minting...")
-
-    mint_fee = contract.functions.MINT_FEE().call()
+    print("  Minting (gas only, no protocol fee)...")
 
     if is_physical:
         fn = contract.functions.mintPhysical(
@@ -606,7 +595,7 @@ def cmd_mint(args):
             False,           # dataUrlIsFolderBase
         )
 
-    tx_hash = send_tx(w3, account, fn, net, value=mint_fee)
+    tx_hash = send_tx(w3, account, fn, net)
 
     # Read back
     # We need to get the humanId from the event or by scanning creator's passports

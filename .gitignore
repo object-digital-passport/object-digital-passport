@@ -16,6 +16,8 @@ deploy/node_modules/
 deploy/artifacts/
 deploy/cache/
 deploy/deployments/
+artifacts/
+cache/
 
 # Python
 __pycache__/

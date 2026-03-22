@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<title>ODP v0.1 — Create Passport</title>
+<title>ODP v0.2 — Create Passport</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -20,7 +20,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1>Create Passport</h1>
-    <p class="sub">Object Digital Passport · Specification v0.1</p>
+    <p class="sub">Object Digital Passport · Specification v0.2</p>
   </div>
   <div class="net-pill" title="Polygon PoS mainnet">
     <div class="net-dot" id="netDot"></div>
@@ -41,7 +41,7 @@
 <footer>
   <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
-  <span>v0.1</span>
+  <span>v0.2</span>
   <span>MIT License</span>
   <span>Andrei Chernikov</span>
 </footer>
@@ -60,12 +60,12 @@ const NET = {
   name: "Polygon PoS", chainId: 137,
   rpc: POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
-  /**
-   * `true` if the deployed contract includes `dataUrlIsFolderBase` on mint* (folder → `base/HumanID.json` in one tx).
-   * The public Polygon deployment at `0x3800…` predates this — keep `false` until you redeploy from this repo and paste the new address.
-   */
-  supportsFolderBaseMint: false,
+  /** Paste the v0.2 deployment address after `npx hardhat run …` (see deploy/scripts/deploy.js). */
+  contract: "",
+  /** v0.2+: `mint*` includes `dataUrlIsFolderBase` (folder → `base/HumanID.json` in one tx). */
+  supportsFolderBaseMint: true,
+  /** v0.2+: `dataUrl` may be empty at mint (gas only; no protocol fee). */
+  supportsOptionalDataUrl: true,
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
@@ -117,8 +117,8 @@ const ABI = (() => {
       {name:"nfcPublicKey",type:"bytes"},{name:"nfcModel",type:"string"},{name:"dataUrl",type:"string"},{name:"imageUrl",type:"string"},{name:"timestamp",type:"uint256"}
     ]}] },
     "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)",
-    { name:"mintPhysical",type:"function",stateMutability:"payable",inputs:mintPhysicalInputs,outputs:[{name:"humanId",type:"string"}] },
-    { name:"mintDigital",type:"function",stateMutability:"payable",inputs:mintDigitalInputs,outputs:[{name:"humanId",type:"string"}] },
+    { name:"mintPhysical",type:"function",stateMutability:"nonpayable",inputs:mintPhysicalInputs,outputs:[{name:"humanId",type:"string"}] },
+    { name:"mintDigital",type:"function",stateMutability:"nonpayable",inputs:mintDigitalInputs,outputs:[{name:"humanId",type:"string"}] },
     { name:"updatePassportUrls",type:"function",stateMutability:"nonpayable",inputs:[
       {name:"humanId",type:"string"},{name:"newDataUrl",type:"string"},{name:"newImageUrl",type:"string"},
       {name:"confirmedDataHash",type:"bytes32"}],outputs:[] },
@@ -419,10 +419,6 @@ async function submitPassportUrls() {
   const newData = document.getElementById("urlEditDataUrl").value.trim();
   const newImg = document.getElementById("urlEditImageUrl").value.trim();
   const confirmed = document.getElementById("urlEditDataHash").value;
-  if (!newData) {
-    errEl.innerHTML = '<div class="info e">Passport JSON URL is required</div>';
-    return;
-  }
   if (newData.length > 512 || newImg.length > 512) {
     errEl.innerHTML = '<div class="info e">Each URL must be at most 512 characters</div>';
     return;
@@ -523,7 +519,13 @@ function renderForm() {
     <!-- Passport URL -->
     <div class="section">
       <div class="section-label">Hosting</div>
-      <div class="field" style="margin-bottom:12px">
+      <div id="skipPublicUrlRow" class="field" style="margin-bottom:12px;${net.supportsOptionalDataUrl ? "" : "display:none"}">
+        <label class="fhint" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="f_skip_public_url" onchange="syncHostingInputs()">
+          <span><strong>No public JSON URL</strong> — mint with an empty on-chain <code>dataUrl</code>. The public Verify page cannot fetch your passport from the web; <strong>only</strong> someone with your canonical <code>passport.json</code> file can check details and authenticity. You can add a URL later via <strong>Update hosting URLs</strong>.</span>
+        </label>
+      </div>
+      <div id="hostingModeRow" class="field" style="margin-bottom:12px">
         <label class="fhint" style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <input type="checkbox" id="f_use_folder" checked onchange="syncHostingInputs()">
           <span>Use a folder on my site — after mint, the app registers <code>…/YourHumanID.json</code> automatically (one extra confirm in the wallet)</span>
@@ -635,7 +637,7 @@ function renderForm() {
     <!-- Submit -->
     <div class="btn-row">
       <p class="fhint" style="width:100%;margin:0 0 12px;line-height:1.65">
-        Payable mint: <strong>0.001 POL</strong> protocol fee + Polygon <strong>gas</strong> — typically <strong>~US$0.02 total</strong> in calm conditions (varies with POL price and congestion).
+        v0.2 minting: <strong>Polygon network gas</strong> (POL) only — no separate protocol fee. Typical cost is on the order of <strong>~US$0.01</strong> in calm conditions (varies with POL price and congestion).
       </p>
       <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn">Mint Passport</button>
       <button type="button" class="btn btn-ghost" onclick="previewJson()">Preview JSON</button>
@@ -646,15 +648,25 @@ function renderForm() {
       <div class="modal-panel card" onclick="event.stopPropagation()">
         <div class="card-head">Your passport file — confirm before minting</div>
         <div class="card-body">
-          <p class="fhint" style="margin:0 0 12px;line-height:1.65">
-            The chain stores only a <strong>hash</strong> of your passport — <strong>not</strong> the full JSON. <strong>You</strong> must keep the canonical <code>passport.json</code> and host it at the <code>dataUrl</code> you register. If the file is missing or bytes differ from the hash, verification cannot succeed (see <strong>SPEC.md</strong> §9–§11).
-          </p>
-          <p class="fhint" style="margin:0 0 12px;line-height:1.65">
-            After mint, use <strong>Download</strong>, <strong>Share JSON file</strong>, or <strong>Copy JSON</strong> on the success screen, then upload the file to your HTTPS URL unchanged. You can <strong>update the URL later</strong> on-chain (gas only) via <strong>Update hosting URLs</strong>.
-          </p>
+          <div id="preMintWithUrlBlock">
+            <p class="fhint" style="margin:0 0 12px;line-height:1.65">
+              The chain stores only a <strong>hash</strong> of your passport — <strong>not</strong> the full JSON. <strong>You</strong> must keep the canonical <code>passport.json</code> and host it at the <code>dataUrl</code> you register. If the file is missing or bytes differ from the hash, verification cannot succeed (see <strong>SPEC.md</strong> §9–§11).
+            </p>
+            <p class="fhint" style="margin:0 0 12px;line-height:1.65">
+              After mint, use <strong>Download</strong>, <strong>Share JSON file</strong>, or <strong>Copy JSON</strong> on the success screen, then upload the file to your HTTPS URL unchanged. You can <strong>update the URL later</strong> on-chain (gas only) via <strong>Update hosting URLs</strong>.
+            </p>
+          </div>
+          <div id="preMintSkipUrlBlock" style="display:none">
+            <p class="fhint" style="margin:0 0 12px;line-height:1.65">
+              You are minting <strong>without</strong> a public JSON URL (empty on-chain <code>dataUrl</code>). The Verify page will <strong>not</strong> be able to load or compare your passport from the network — the record is useless for public online checks until you add a URL later.
+            </p>
+            <p class="fhint" style="margin:0 0 12px;line-height:1.65">
+              <strong>Only</strong> someone who holds the canonical <code>passport.json</code> file can check details and authenticity (hash vs <code>dataHash</code>). Keep that file safe and share it deliberately.
+            </p>
+          </div>
           <label class="fhint" style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:14px 0">
             <input type="checkbox" id="preMintAck" style="margin-top:3px;flex-shrink:0">
-            <span>I understand: storing and hosting <code>passport.json</code> is my responsibility. Without that file at the registered URL, others cannot verify this passport.</span>
+            <span id="preMintAckText">I understand: storing and hosting <code>passport.json</code> is my responsibility. Without that file at the registered URL, others cannot verify this passport.</span>
           </label>
           <p id="preMintAckErr" class="info e" style="display:none;margin-top:8px"></p>
           <div class="btn-row" style="margin-top:18px">
@@ -704,13 +716,13 @@ function renderForm() {
           <p class="fhint" style="margin-bottom:14px">
             Change where <code>passport.json</code> and the optional image are hosted. Only the creator wallet can submit.
             <code>dataHash</code> on-chain stays the same — the file at the new URL must still match that hash.
-            <strong>No ODP mint fee</strong> for this action — you only pay Polygon <strong>network gas</strong> (POL) in your wallet.
+            You only pay Polygon <strong>network gas</strong> (POL) in your wallet.
           </p>
           <input type="hidden" id="urlEditHid">
           <input type="hidden" id="urlEditDataHash">
           <div class="field">
             <div class="field-label-row">
-              <label for="urlEditDataUrl">Passport JSON URL<span class="req">*</span></label>
+              <label for="urlEditDataUrl">Passport JSON URL (optional — leave empty to clear public URL)</label>
               <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How third-party JSON hosting works" aria-label="How third-party JSON hosting works">ⓘ</button>
             </div>
             <input type="url" id="urlEditDataUrl" placeholder="https://…/passport.json" autocomplete="off"></div>
@@ -748,9 +760,19 @@ function renderForm() {
 }
 
 function syncHostingInputs() {
-  const folder = document.getElementById("f_use_folder")?.checked !== false;
+  const skip =
+    NET.supportsOptionalDataUrl && document.getElementById("f_skip_public_url")?.checked === true;
+  const rowMode = document.getElementById("hostingModeRow");
   const rowF = document.getElementById("hostingFolderRow");
   const rowU = document.getElementById("hostingFullRow");
+  if (skip) {
+    if (rowMode) rowMode.style.display = "none";
+    if (rowF) rowF.style.display = "none";
+    if (rowU) rowU.style.display = "none";
+    return;
+  }
+  if (rowMode) rowMode.style.display = "";
+  const folder = document.getElementById("f_use_folder")?.checked !== false;
   if (rowF) rowF.style.display = folder ? "" : "none";
   if (rowU) rowU.style.display = folder ? "none" : "";
 }
@@ -836,7 +858,7 @@ function joinPassportJsonUrl(baseNormalized, humanId) {
 function buildPassport(humanId) {
   const now = new Date();
   const p = {
-    version:"0.1", humanId:humanId||null,
+    version:"0.2", humanId:humanId||null,
     objectType: objType,
     type: v("f_type"),
     title: v("f_title"),
@@ -918,11 +940,15 @@ async function sha256obj(o) {
 function validate() {
   if (!v("f_title"))   return "Title is required";
   if (!v("f_name"))    return "Creator name is required";
-  const useFolder = document.getElementById("f_use_folder")?.checked !== false;
-  if (useFolder) {
-    if (!normalizeBaseUrl(v("f_urlBase"))) return "Enter a valid HTTPS folder URL (e.g. https://art.com/passport)";
-  } else if (!v("f_url")) {
-    return "Passport JSON URL is required";
+  const skip =
+    NET.supportsOptionalDataUrl && document.getElementById("f_skip_public_url")?.checked === true;
+  if (!skip) {
+    const useFolder = document.getElementById("f_use_folder")?.checked !== false;
+    if (useFolder) {
+      if (!normalizeBaseUrl(v("f_urlBase"))) return "Enter a valid HTTPS folder URL (e.g. https://art.com/passport)";
+    } else if (!v("f_url")) {
+      return "Passport JSON URL is required";
+    }
   }
   if (objType==="digital" && fileHashBytes32===ZERO32) return "Original file is required for digital objects";
   if (objType==="physical") {
@@ -939,6 +965,20 @@ function openPreMintModal() {
   if (err) {
     errEl.innerHTML = `<div class="info e" style="margin-top:12px">${esc(err)}</div>`;
     return;
+  }
+  const skip =
+    NET.supportsOptionalDataUrl && document.getElementById("f_skip_public_url")?.checked === true;
+  const blkUrl = document.getElementById("preMintWithUrlBlock");
+  const blkSkip = document.getElementById("preMintSkipUrlBlock");
+  const ackText = document.getElementById("preMintAckText");
+  if (blkUrl && blkSkip) {
+    blkUrl.style.display = skip ? "none" : "";
+    blkSkip.style.display = skip ? "" : "none";
+  }
+  if (ackText) {
+    ackText.textContent = skip
+      ? "I understand: without a public JSON URL, the Verify page cannot load my file from the web; only people with the canonical passport.json can check details and authenticity against the on-chain hash."
+      : "I understand: storing and hosting passport.json is my responsibility. Without that file at the registered URL, others cannot verify this passport.";
   }
   const ack = document.getElementById("preMintAck");
   const preErr = document.getElementById("preMintAckErr");
@@ -1011,11 +1051,16 @@ async function executeMint() {
   const now       = new Date();
   const year      = parseInt(v("f_year"));
   const month     = now.getMonth()+1;
+  const skip =
+    NET.supportsOptionalDataUrl && document.getElementById("f_skip_public_url")?.checked === true;
   const useFolder = document.getElementById("f_use_folder")?.checked !== false;
   const baseNorm  = useFolder ? normalizeBaseUrl(v("f_urlBase")) : "";
   let dataUrlForMint;
   let dataUrlIsFolderBase = false;
-  if (NET.supportsFolderBaseMint) {
+  if (skip) {
+    dataUrlForMint = "";
+    dataUrlIsFolderBase = false;
+  } else if (NET.supportsFolderBaseMint) {
     if (useFolder) {
       dataUrlForMint = baseNorm;
       dataUrlIsFolderBase = true;
@@ -1048,31 +1093,26 @@ async function executeMint() {
 
   try {
     let tx;
-    const mintFee = ethers.utils.parseEther("0.001"); // matches MINT_FEE in contract
     if (objType==="physical") {
       const nfcModelStr = (sealType===1||sealType===3) ? "NTAG424DNA_TT" : "";
       if (NET.supportsFolderBaseMint) {
         tx = await contract.mintPhysical(
           year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-          sealType,sealHash_,nfcBytes,nfcModelStr,dataUrlIsFolderBase,
-          {value: mintFee}
+          sealType,sealHash_,nfcBytes,nfcModelStr,dataUrlIsFolderBase
         );
       } else {
         tx = await contract.mintPhysical(
           year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-          sealType,sealHash_,nfcBytes,nfcModelStr,
-          {value: mintFee}
+          sealType,sealHash_,nfcBytes,nfcModelStr
         );
       }
     } else if (NET.supportsFolderBaseMint) {
       tx = await contract.mintDigital(
-        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,fileHashBytes32,dataUrlIsFolderBase,
-        {value: mintFee}
+        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,fileHashBytes32,dataUrlIsFolderBase
       );
     } else {
       tx = await contract.mintDigital(
-        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,fileHashBytes32,
-        {value: mintFee}
+        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,fileHashBytes32
       );
     }
 
@@ -1101,7 +1141,7 @@ async function executeMint() {
 
     if (NET.supportsFolderBaseMint && dataUrlIsFolderBase) {
       registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
-    } else if (!NET.supportsFolderBaseMint && useFolder && baseNorm) {
+    } else if (!skip && !NET.supportsFolderBaseMint && useFolder && baseNorm) {
       registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
       document.getElementById("app").innerHTML = `
         <div style="text-align:center;padding:48px 0">
@@ -1306,9 +1346,10 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
 function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
   const net = NET;
   const rel = getVerifyRelativePath(humanId);
-  const uploadHint = dataUrlOnChain
+  const hasPublicUrl = dataUrlOnChain && String(dataUrlOnChain).trim().length > 0;
+  const uploadHint = hasPublicUrl
     ? `Upload the downloaded file <strong>unchanged</strong> to this exact HTTPS URL (same bytes → hash matches <code>dataHash</code>):<br><code style="font-size:11px;word-break:break-all">${esc(dataUrlOnChain)}</code>`
-    : `Upload the downloaded file <strong>unchanged</strong> to the URL you registered (same bytes → hash matches <code>dataHash</code>). The JSON includes your Human ID for readability; verification still compares to the hash from mint (verifier treats that ID like the pre-mint <code>null</code>).`;
+    : `No public JSON URL is registered on-chain. Share the downloaded <code>passport.json</code> only with people who must verify — only that file can be checked against <code>dataHash</code>. You can add a URL later via <strong>Update hosting URLs</strong>.`;
 
   document.getElementById("app").innerHTML = `
     <div class="success">

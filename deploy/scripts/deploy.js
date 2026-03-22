@@ -38,25 +38,18 @@ async function main() {
 
   const address = await contract.getAddress();
   console.log(`  ✅ Deployed: ${address}`);
+  const deployedVersion = await contract.CONTRACT_VERSION();
 
   // ── Smoke test (testnet only) ──────────────────────────────────────────────
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
-    // Read constants from contract
-    const REGISTER_FEE = await contract.REGISTER_FEE();
-    const MINT_FEE     = await contract.MINT_FEE();
-    const VERSION      = await contract.CONTRACT_VERSION();
-
-    console.log(`  CONTRACT_VERSION: ${VERSION}`);
-    console.log(`  REGISTER_FEE:     ${ethers.formatEther(REGISTER_FEE)} POL`);
-    console.log(`  MINT_FEE:         ${ethers.formatEther(MINT_FEE)} POL`);
+    console.log(`  CONTRACT_VERSION: ${deployedVersion} (v0.2 = gas only, optional dataUrl)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering Creator ID (type C)...");
     const regTx = await contract.registerCreator(
-      ethers.hexlify(ethers.toUtf8Bytes("C")), // bytes1 "C"
-      { value: REGISTER_FEE }
+      ethers.hexlify(ethers.toUtf8Bytes("C")) // bytes1 "C"
     );
     const regReceipt = await regTx.wait();
     const creatorId = await contract.getCreatorByWallet(deployer.address);
@@ -77,8 +70,7 @@ async function main() {
       fakeImageHash,                      // imageHash (bytes32)
       "https://example.com/preview.jpg",  // imageUrl
       fakeFileHash,                       // fileHash (bytes32) — required for digital
-      false,                              // dataUrlIsFolderBase — full URL, not folder root
-      { value: MINT_FEE }
+      false                               // dataUrlIsFolderBase — full URL, not folder root
     );
     const mintReceipt = await mintTx.wait();
 
@@ -121,7 +113,7 @@ async function main() {
     network:          networkName,
     chainId:          Number(network.chainId),
     contractAddress:  address,
-    contractVersion:  0,
+    contractVersion:  Number(deployedVersion),
     deployedBy:       deployer.address,
     deployedAt:       new Date().toISOString(),
     txHash:           contract.deploymentTransaction()?.hash || null,

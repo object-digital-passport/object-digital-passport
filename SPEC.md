@@ -1,5 +1,5 @@
 # Object Digital Passport
-### Specification v0.1 — DRAFT
+### Specification v0.2 — DRAFT
 
 *Author: Andrei Chernikov*
 
@@ -28,13 +28,13 @@ This specification uses the following terms in a precise sense:
 
 | Term | Definition |
 |:--|:--|
-| **Mint**, **minting** | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Human ID**, records **hashes**, **URLs**, seal metadata, and collects **MINT_FEE**. Minting does **not** upload `passport.json` to the blockchain; the creator must **host** that file at `dataUrl` (see §8–§9). |
-| **Register (Creator ID)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **Creator ID** before any mint or proof. |
-| **Passport** | The combination of (1) the on-chain **Passport** record and (2) the **passport.json** resource at `dataHash`-matching bytes at `dataUrl`. |
+| **Mint**, **minting** | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Human ID**, records **hashes**, optional **URLs**, and seal metadata. **v0.2** charges **network gas only** (no separate **MINT_FEE**). Minting does **not** upload `passport.json` to the blockchain; the creator **may** host that file at `dataUrl` (see §8–§9). If `dataUrl` is empty, public web verification cannot fetch JSON — only a holder of the canonical **passport.json** can verify against `dataHash`. |
+| **Register (Creator ID)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **Creator ID** before any mint or proof. **v0.2**: gas only (no **REGISTER_FEE**). |
+| **Passport** | The on-chain **Passport** record plus, when applicable, **passport.json** bytes matching `dataHash` (at `dataUrl` if set). |
 | **`passport.json`** | The normative off-chain JSON document (§9). |
-| **`dataUrl`** | The HTTPS URL where `passport.json` is served (§8–§9). |
-| **Gas** | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution; not the same as **MINT_FEE** / **REGISTER_FEE**. |
-| **Verification** | The read-only process (§11) that retrieves on-chain data and `passport.json` and checks consistency with `dataHash` and other fields. |
+| **`dataUrl`** | Optional HTTPS URL where `passport.json` is served (§8–§9). May be empty on-chain in **v0.2**; if empty, verifiers relying on HTTP **cannot** obtain the file unless the user provides it. |
+| **Gas** | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution. **v0.2** has no additional burned protocol fee on register/mint (unlike **v0.1** deployments). |
+| **Verification** | The read-only process (§11) that retrieves on-chain data and, when `dataUrl` is set, `passport.json`, and checks consistency with `dataHash` and other fields. If `dataUrl` is empty, file-based verification still applies when the verifier has `passport.json`. |
 
 ---
 
