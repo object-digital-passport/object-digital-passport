@@ -1,4 +1,6 @@
-# ODP Security Model
+# ODP Security Model · v0.1
+
+*Author: Andrei Chernikov*
 
 Object Digital Passport is a **registry of claims**, not a guarantee of physical authenticity.
 This document describes the threat model, known limitations, and recommendations.

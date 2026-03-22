@@ -1,7 +1,8 @@
 {
   "name": "object-digital-passport",
   "version": "0.1.0",
-  "description": "Object Digital Passport — smart contract deployment",
+  "author": "Andrei Chernikov",
+  "description": "Object Digital Passport v0.1 — smart contract deployment",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

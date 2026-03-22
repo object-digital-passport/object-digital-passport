@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 /**
  * Object Digital Passport — Smart Contract
+ * @author Andrei Chernikov
  * Specification v0.1
  * License: MIT
  *

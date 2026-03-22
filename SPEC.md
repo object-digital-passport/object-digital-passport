@@ -1,6 +1,8 @@
 # Object Digital Passport
 ### Specification v0.1 — DRAFT
 
+*Author: Andrei Chernikov*
+
 > An open standard for physical and digital object authentication
 > via blockchain and human-readable identifiers.
 
@@ -923,7 +925,7 @@ computeImageHash(imageBytes) → bytes32
 
 ## 14. Versioning
 
-- This document is version `0.1`
+- This specification is **v0.1** (draft); `passport.json` uses `"version": "0.1"` for this release
 - Breaking changes increment the minor version: `0.2`, `0.3`, ...
 - Stable release will be `1.0`
 - All `passport.json` files include a `version` field for forward compatibility

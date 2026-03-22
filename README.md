@@ -1,8 +1,24 @@
-# Object Digital Passport v0.1
+# Object Digital Passport · v0.1
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/odp-v.0.1?style=flat&logo=github)](https://github.com/object-digital-passport/odp-v.0.1/stargazers)
 
 **Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/odp-v.0.1/](https://object-digital-passport.github.io/odp-v.0.1/)** — [Verify](https://object-digital-passport.github.io/odp-v.0.1/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/odp-v.0.1/creator.html) · [Passport](https://object-digital-passport.github.io/odp-v.0.1/passport.html)
 
 *If links show **404**, GitHub Pages is not deployed yet. **(1)** Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**. **(2)** Add [`.github/workflows/pages.yml`](https://github.com/object-digital-passport/odp-v.0.1/blob/main/deploy/github-pages-workflow.yml) — same YAML as [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml) (use **Add file** on GitHub if `git push` is denied: PAT needs **`workflow`** scope for that path). **(3)** **Actions** → run **Deploy GitHub Pages**, wait for green, then reload the demo URL.*
+
+---
+
+## Current release
+
+| | |
+|:--|:--|
+| **Version** | **v0.1** |
+| **Git tag** | [`v0.1`](https://github.com/object-digital-passport/odp-v.0.1/releases/tag/v0.1) |
+| **Network** | Polygon PoS (chain ID 137) |
+| **Contract** | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
+
+When you publish a release on GitHub, create tag **`v0.1`** on the commit that matches this deployment so the tag link above resolves.
 
 ---
 
@@ -15,7 +31,7 @@ Anyone can implement it. Anyone can verify it. Forever.
 
 ## This repository
 
-What you see here is **one example** of how the protocol can be built: a reference web stack, a Solidity contract, and helper tooling. It is meant to demonstrate the ideas end-to-end — not to be the only “official” product. **The full normative specification** (ID formats, hashes, verification rules, and what any compatible implementation must do) lives in **[`SPEC.md`](SPEC.md)**. Threat model and security notes: **[`SECURITY.md`](SECURITY.md)**. Use those documents as the source of truth; this README is an overview.
+What you see here is **one example** of how the protocol can be built: a reference web stack, a Solidity contract, and helper tooling — **authored by Andrei Chernikov** as the initial reference implementation. It is meant to demonstrate the ideas end-to-end — not to be the only “official” product. **The full normative specification** (ID formats, hashes, verification rules, and what any compatible implementation must do) lives in **[`SPEC.md`](SPEC.md)**. Threat model and security notes: **[`SECURITY.md`](SECURITY.md)**. Use those documents as the source of truth; this README is an overview.
 
 ---
 
@@ -64,6 +80,18 @@ Anyone with a phone can scan the QR code and verify:
 /
 ├── SPEC.md                    ← Protocol specification (English)
 ├── SPEC_RU.md                 ← Specification in Russian
+├── LICENSE                    ← MIT (copyright: Andrei Chernikov)
+├── CONTRIBUTING.md            ← How to contribute; labels & PR flow
+├── CODE_OF_CONDUCT.md         ← Contributor Covenant
+├── docs/
+│   └── VERSIONING_AND_RELEASES.md  ← Tags, main, freezing v0.1, hotfixes
+├── .github/
+│   ├── ISSUE_TEMPLATE/        ← Bug, feature, spec discussion (+ config contact links)
+│   ├── pull_request_template.md
+│   ├── BRANCH_PROTECTION.md   ← Optional GitHub branch protection (enable later in Settings)
+│   └── profile/
+│       ├── README.md          ← Org landing page (copy to org repo `object-digital-passport/.github`)
+│       └── PUBLISH.md         ← How to publish that README on GitHub
 │
 ├── contracts/
 │   └── ObjectDigitalPassport.sol   ← Solidity smart contract
@@ -346,15 +374,29 @@ Until v1.0, breaking changes to the draft spec (0.x) are expected. Implementatio
 
 This is a draft specification (v0.1). Feedback is the goal.
 
+- **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — fork/PR flow, labels, scope
+- **[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)** — Contributor Covenant (community expectations)
+- **[`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)** — tags vs `main`, freezing a version line (e.g. v0.1), hotfix tags
+- **[`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md)** — optional GitHub branch rules (enable on GitHub when you are ready; not required for day-to-day work)
+- **[`.github/profile/README.md`](.github/profile/README.md)** — text for the **organization** homepage; publish via a separate org repo **`.github`** — see **[`.github/profile/PUBLISH.md`](.github/profile/PUBLISH.md)**
+
+Quick pointers:
+
 - Open an issue to discuss changes to the spec
 - Pull requests welcome for contract, tooling, and documentation
 - To propose a new Creator ID type prefix, open a spec discussion first
 
 ---
 
+## Author
+
+**Object Digital Passport** (reference implementation, specification, contract, and web UI) was created by **Andrei Chernikov**.
+
+---
+
 ## License
 
-MIT — use freely, build on it, fork it.
+[MIT](LICENSE) — use freely, build on it, fork it.
 
 ---
 

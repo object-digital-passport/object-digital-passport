@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Object Digital Passport — Mint CLI
+Author: Andrei Chernikov
 Specification v0.1
 
 Usage:

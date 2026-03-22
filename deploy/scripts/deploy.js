@@ -1,5 +1,6 @@
 /**
  * Object Digital Passport — Deploy Script
+ * Author: Andrei Chernikov
  * Hardhat + ethers.js
  *
  * Usage:

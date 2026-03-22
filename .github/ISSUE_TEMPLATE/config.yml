@@ -1,0 +1,6 @@
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+blank_issues_enabled: true
+contact_links:
+  - name: Read SECURITY.md (vulnerabilities)
+    url: https://github.com/object-digital-passport/odp-v.0.1/blob/main/SECURITY.md
+    about: How to report security issues — avoid public issues for exploitable bugs.
