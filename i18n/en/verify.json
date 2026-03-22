@@ -60,7 +60,7 @@
     },
     "doc": {
       "sectionTitle": "Anchored document (PDF) — check hash",
-      "lead": "If a creator recorded a file hash on a generation 3+ contract, drop the same file here. The page hashes it locally and checks the registry — no upload.",
+      "lead": "If a creator recorded a file hash on a v0.2 contract (generation ≥ 2), drop the same file here. The page hashes it locally and checks the registry — no upload.",
       "idLabel": "Creator ID (C-…) or wallet 0x…",
       "idPlaceholder": "C-482-930-174 or 0x…",
       "fileLabel": "File",

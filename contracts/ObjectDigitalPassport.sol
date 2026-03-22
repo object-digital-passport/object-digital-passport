@@ -83,10 +83,10 @@ contract ObjectDigitalPassport {
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     uint8 public constant SPEC_MAJOR = 0;
-    uint8 public constant SPEC_MINOR = 3;
+    uint8 public constant SPEC_MINOR = 2;
 
     /// Packed byte stored in Passport.contractVersion: `SPEC_MAJOR * 16 + SPEC_MINOR` (each must stay < 16).
-    /// Example line: 0.3 → packed 3 (+ external doc attestation). Older registries may still hold mint-time byte `0` in rows; this reference UI targets v0.2+ contracts only.
+    /// Spec line 0.2 → packed **2** (gas-only, optional dataUrl, folder-base mint, external doc attestation). Older registries may still hold mint-time byte `0` in rows; this reference UI targets v0.2+ contracts only.
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows Creator ID prefix.

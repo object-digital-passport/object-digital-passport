@@ -871,7 +871,7 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**On-chain (reference contract, generation ≥ 3):**
+**On-chain (reference contract, generation ≥ 2, spec v0.2):**
 
 - `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)`.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — returns `attested`, `creatorId`, timestamp, and `documentUri`.

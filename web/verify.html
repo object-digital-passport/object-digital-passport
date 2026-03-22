@@ -26,7 +26,7 @@
 
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.2.1"></script>
+<script src="odp-contract.js?v=0.2"></script>
 <script src="odp-i18n.js?v=4"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 </head>
@@ -147,7 +147,7 @@
 <section class="card odp-doc-card" id="docVerifySection" style="margin-top:20px" hidden>
   <div class="section-title" data-i18n="verify.doc.sectionTitle">Anchored document (PDF) — check hash</div>
   <p class="fhint" style="margin:0 0 14px;max-width:48rem;line-height:1.55" data-i18n="verify.doc.lead">
-    If a creator recorded a file hash on a generation 3+ contract, drop the same file here. The page hashes it locally and checks the registry — no upload.
+    If a creator recorded a file hash on a v0.2 contract (generation ≥ 2), drop the same file here. The page hashes it locally and checks the registry — no upload.
   </p>
   <label class="search-label" for="docVerifyId" data-i18n="verify.doc.idLabel">Creator ID (C-…) or wallet 0x…</label>
   <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.idPlaceholder" placeholder="C-482-930-174 or 0x…" autocomplete="off" spellcheck="false">
@@ -1691,7 +1691,7 @@ async function verifyDocAttestation() {
   } catch (e) {
     const m = String(e && (e.reason || e.message) || e);
     if (m.includes("CALL_EXCEPTION") || m.includes("missing revert")) {
-      out.innerHTML = `<div class="err-box">This contract may not support document attestation (needs deployment gen 3+).</div>`;
+      out.innerHTML = `<div class="err-box">This contract may not support document attestation (needs deployment gen 2+ / spec v0.2).</div>`;
       return;
     }
     out.innerHTML = `<div class="err-box">${esc(m)}</div>`;

@@ -47,7 +47,7 @@ async function main() {
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
-    console.log(`  Packed byte: ${deployedVersion} (≥3 = + external document hash anchor; 2 = gas only, optional dataUrl)`);
+    console.log(`  Packed byte: ${deployedVersion} (v0.2 = 2: gas only, optional dataUrl, external document hash anchor)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering Creator ID (type C)...");

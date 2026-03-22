@@ -6,7 +6,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.2.1";
+  var ODP_SITE_VERSION = "0.2";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -242,18 +242,16 @@
   function odpFormatStackLabel(generation) {
     var g = generation;
     var spec =
-      g >= 3
-        ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
-        : g >= 2
-          ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
-          : g === 0
-            ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
-            : "unknown generation";
+      g >= 2
+        ? "ODP spec v0.2 (gas-only, optional dataUrl, PDF/doc hash anchor)"
+        : g === 0
+          ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
+          : "unknown generation";
     return "Site " + ODP_SITE_VERSION + " · on-chain generation " + g + " — " + spec;
   }
 
   function odpSupportsExternalDocAttest(generation) {
-    return generation >= 3;
+    return generation >= 2;
   }
 
   /** Long disclosure copy (also in `odp-site-trust-disclosure.html` for the modal). */
@@ -290,11 +288,9 @@
     var spec =
       generation === 0
         ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
-        : generation >= 3
-          ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
-          : generation >= 2
-            ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
-            : "unknown generation";
+        : generation >= 2
+          ? "ODP spec v0.2 (gas-only, optional dataUrl, PDF/doc hash anchor)"
+          : "unknown generation";
     var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
     var flagClass = "odp-stack-flag--" + trust.level;
     return (
@@ -633,7 +629,7 @@
         ],
       },
     ];
-    if (generation >= 3) {
+    if (generation >= 2) {
       abi.push(
         {
           name: "attestExternalDocument",

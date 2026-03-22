@@ -14,7 +14,7 @@ If you’re new here: **start with v0.2** in this repo and in [`README.md`](READ
 
 ## What changed in the contract (technical)
 
-- **`CONTRACT_VERSION`** is a packed byte (e.g. **3** for spec line **0.3** on current reference bytecode); **`SPEC_MAJOR`** / **`SPEC_MINOR`** mirror that line on-chain.
+- **`CONTRACT_VERSION`** is a packed byte (**2** for spec line **0.2** on current reference bytecode: `SPEC_MAJOR=0`, `SPEC_MINOR=2`); **`SPEC_MAJOR`** / **`SPEC_MINOR`** mirror that line on-chain.
 - **No protocol fee** — register and mint are **nonpayable**; you only pay **Polygon gas (POL)**.
 - **`dataUrl` is optional** at mint. If you leave it empty, the public Verify page can’t fetch your JSON from the web; only someone with the real **`passport.json`** file can check it against the on-chain hash.
 - **`updatePassportUrls`** — you can set, change, or clear the public URL (within length limits), still matching the same `dataHash`.
