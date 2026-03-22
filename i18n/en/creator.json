@@ -1,0 +1,111 @@
+{
+  "creator": {
+    "meta": {
+      "documentTitle": "ODP v0.2 — Register Creator ID",
+      "h1": "Creator ID",
+      "sub": "Object Digital Passport · Specification v0.2"
+    },
+    "steps": {
+      "wallet": "Wallet",
+      "security": "Security",
+      "register": "Register"
+    },
+    "connect": {
+      "cardTitle": "Connect your wallet",
+      "lead": "Your wallet address becomes your identity in ODP. The Creator ID is permanently linked to your wallet. Make sure you have a backup of your key before proceeding.",
+      "btnName": "Connect wallet",
+      "btnDesc": "Browser extension — MetaMask, Rabby, Brave Wallet, etc."
+    },
+    "security": {
+      "cardTitle": "Before you register",
+      "intro": "Your Creator ID is tied to this wallet permanently. If you lose access to the wallet, the ID cannot be transferred or recovered. Read the following carefully.",
+      "li1t": "Seed phrase wallets — back up before anything else",
+      "li1": "Write the 12–24 words on paper. Verify word order when prompted. Store offline. Keep a second copy in a different location. Never store digitally — no photos, no cloud, no messaging apps.",
+      "li2t": "Seed-less hardware wallets — get a backup device now",
+      "li2": "The key lives only in the hardware chip. There is no seed phrase. Losing all copies of the device means permanent loss of access. Always have at least one backup device before registering.",
+      "li3t": "Never share your key or seed phrase with anyone",
+      "li3": "No legitimate service or support team will ever ask for it. Ransomware and phishing specifically target seed phrases.",
+      "li4t": "If you lose wallet access — your passports are safe",
+      "li4": "All passports you minted remain valid and verifiable forever. You only lose the ability to mint new passports under that identity.",
+      "checkbox": "I have backed up my key and understand the risks. My seed phrase is on paper / I have a backup hardware device.",
+      "continueBtn": "Continue to Registration"
+    },
+    "register": {
+      "cardTitle": "Choose your type",
+      "warn": "⚠ Your type prefix cannot be changed after registration. One Creator ID per wallet. Permanent.",
+      "btn": "Register — Polygon gas only (~US$0.01 typ.)",
+      "waiting": "Waiting for wallet…",
+      "confirming": "Confirming…",
+      "txPrefix": "Transaction sent:"
+    },
+    "type": {
+      "C": "Creator",
+      "Cd": "Individual artist, photographer, maker, craftsperson",
+      "B": "Brand",
+      "Bd": "Company, studio, label, collective",
+      "P": "Institution",
+      "Pd": "Museum, gallery, auction house, certification body"
+    },
+    "typeInfo": {
+      "C": "Individual creator — artist, photographer, maker, or craftsperson. Use this if you are registering as a person.",
+      "B": "Brand or collective — company, studio, label, or group. Use this for organizations.",
+      "P": "Proof Institution — museum, gallery, auction house, or expert body. P-type accounts can attach attestations to any passport."
+    },
+    "walletBar": {
+      "disconnect": "Disconnect"
+    },
+    "errors": {
+      "connectInProgress": "Connection already in progress. Approve or reject the request in your wallet extension (icon in the toolbar), then try again.",
+      "walletPending": "A wallet request is already open. Use the wallet extension icon in your browser toolbar to approve or cancel — do not click Connect again until that finishes."
+    },
+    "noWallet": {
+      "line1": "No injected wallet (window.ethereum). On desktop, install",
+      "metaMask": "MetaMask",
+      "line2": "or another extension, then reload this page.",
+      "mmOpen": "Open in MetaMask app",
+      "mmHint": "iPhone / Safari: there is no extension — MetaMask runs as an app with a built-in browser. This link opens the same page there so Connect works.",
+      "fileProto": "Opening as file:// — many wallets do not inject on local files. Serve the web/ folder over http://localhost (any static server) or upload to HTTPS.",
+      "httpsHint": "Use https:// or http://localhost if the wallet still does not appear."
+    },
+    "already": {
+      "cardTitle": "Your Creator ID",
+      "publish": "Publish this everywhere",
+      "shareCaption": "Open Share for a QR, the link, PNG download, or send via your device.",
+      "pl1": "On your official website — prominently, not hidden in menus",
+      "pl2": "In all your social media profiles and bios",
+      "pl3": "On physical objects, packaging, and certificates you issue",
+      "pl4": "In press releases and official communications",
+      "btnPassport": "Create a Passport →",
+      "btnVerify": "Verify Creator ID ↗",
+      "btnExplorer": "View on Explorer ↗",
+      "short": "Short:",
+      "full": "Full:"
+    },
+    "share": {
+      "title": "Share Creator ID",
+      "shareBtn": "Share",
+      "closeAria": "Close",
+      "dl": "Download QR (PNG)",
+      "copy": "Copy text",
+      "native": "Share via device"
+    },
+    "alerts": {
+      "copied": "Copied to clipboard.",
+      "linkCopied": "Link copied to clipboard."
+    },
+    "qrFail": "QR library did not load (network / CDN blocked).",
+    "docAttest": {
+      "cardTitle": "Anchor a document (PDF, etc.) on-chain",
+      "body": "Upload the file (e.g. contract PDF). The page computes SHA-256 locally and sends only the hash in a transaction — gas only. Counterparties can hash their copy and check it matches this Creator ID on Verify. This is not a qualified e-signature; it records that this wallet anchored this hash at a time.",
+      "uriLabel": "Optional public URL to the same file (HTTPS)",
+      "btn": "Record hash on-chain",
+      "chooseFile": "Choose a file first.",
+      "computingHash": "Computing hash…",
+      "urlTooLong": "URL is too long (max 512).",
+      "confirmWallet": "Confirm in your wallet…",
+      "sent": "Sent…",
+      "recorded": "Recorded on-chain. Hash"
+    },
+    "multiAccount": "Multiple accounts connected"
+  }
+}

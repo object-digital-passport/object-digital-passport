@@ -6,7 +6,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.2.0";
+  var ODP_SITE_VERSION = "0.2.1";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -256,22 +256,8 @@
     return generation >= 3;
   }
 
-  /**
-   * Full stack panel: on-chain generation, read/migration policy, SemVer trust colors (0.x red; stable from 1.0; yellow for older majors when latest is N≥2).
-   * Safe HTML (static copy + escaped dynamic parts).
-   */
-  function odpFormatStackBlockHtml(generation) {
-    var g = generation == null ? "?" : String(generation);
-    var spec =
-      generation === 0
-        ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
-        : generation >= 3
-          ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
-          : generation >= 2
-            ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
-            : "unknown generation";
-    var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
-    var flagClass = "odp-stack-flag--" + trust.level;
+  /** Long disclosure copy (also in `odp-site-trust-disclosure.html` for the modal). */
+  function odpStackDisclosureParagraphsHtml() {
     var L = ODP_LATEST_STABLE_MAJOR;
     var noteSemver;
     if (L <= 1) {
@@ -291,9 +277,28 @@
     var noteRead =
       "The read ABI decodes prior <strong>contractVersion</strong> values on-chain. " +
       "The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries).";
-
     return (
-      '<div class="odp-stack-block">' +
+      '<p class="odp-stack-note">' + noteRead + "</p>" + '<p class="odp-stack-note">' + noteSemver + "</p>"
+    );
+  }
+
+  /**
+   * Compact stack line (header + under-step strips): flag + meta + Details link. Long text only in modal / `odp-site-trust-disclosure.html`.
+   */
+  function odpFormatStackSummaryHtml(generation) {
+    var g = generation == null ? "?" : String(generation);
+    var spec =
+      generation === 0
+        ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
+        : generation >= 3
+          ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
+          : generation >= 2
+            ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
+            : "unknown generation";
+    var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
+    var flagClass = "odp-stack-flag--" + trust.level;
+    return (
+      '<div class="odp-stack-block odp-stack-block--compact">' +
       '<div class="odp-stack-row">' +
       '<span class="odp-stack-flag ' +
       flagClass +
@@ -308,15 +313,104 @@
       odpEscHtml(g) +
       "</strong> — " +
       odpEscHtml(spec) +
-      "</span></div>" +
-      '<p class="odp-stack-note">' +
-      noteRead +
-      "</p>" +
-      '<p class="odp-stack-note">' +
-      noteSemver +
-      "</p>" +
-      "</div>"
+      "</span>" +
+      '<button type="button" class="odp-stack-details-btn">Details</button>' +
+      "</div></div>"
     );
+  }
+
+  /** Back-compat: same as summary (no long paragraphs). */
+  function odpFormatStackBlockHtml(generation) {
+    return odpFormatStackSummaryHtml(generation);
+  }
+
+  function odpCloseSiteTrustModal() {
+    var el = global.document && global.document.getElementById("odpSiteTrustModalBackdrop");
+    if (!el) return;
+    el.hidden = true;
+    el.setAttribute("aria-hidden", "true");
+    try {
+      global.sessionStorage.setItem("odp_site_trust_disclosure_ok", "1");
+    } catch (e0) {}
+  }
+
+  function odpOpenSiteTrustModal() {
+    var doc = global.document;
+    if (!doc || !doc.body) return;
+    var backdrop = doc.getElementById("odpSiteTrustModalBackdrop");
+    if (!backdrop) {
+      backdrop = doc.createElement("div");
+      backdrop.id = "odpSiteTrustModalBackdrop";
+      backdrop.className = "odp-modal-backdrop";
+      backdrop.setAttribute("role", "presentation");
+      backdrop.innerHTML =
+        '<div class="odp-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="odpSiteTrustModalTitle">' +
+        '<h3 id="odpSiteTrustModalTitle" class="odp-modal-title">Site release &amp; trust</h3>' +
+        '<div id="odpSiteTrustModalBody" class="odp-modal-body"></div>' +
+        '<div class="odp-modal-actions"><button type="button" class="btn" id="odpSiteTrustModalOk">Got it</button></div></div>';
+      doc.body.appendChild(backdrop);
+      doc.getElementById("odpSiteTrustModalOk").onclick = function () {
+        odpCloseSiteTrustModal();
+      };
+      backdrop.addEventListener("click", function (ev) {
+        if (ev.target === backdrop) odpCloseSiteTrustModal();
+      });
+    }
+    var body = doc.getElementById("odpSiteTrustModalBody");
+    function fillBody(html) {
+      body.innerHTML = html;
+    }
+    function fillFallback() {
+      fillBody(odpStackDisclosureParagraphsHtml());
+    }
+    if (typeof global.location !== "undefined" && global.location && global.location.href) {
+      var url = new URL("odp-site-trust-disclosure.html", global.location.href);
+      url.searchParams.set("_", String(Date.now()));
+      global
+        .fetch(url.toString(), { cache: "no-store" })
+        .then(function (r) {
+          return r.ok ? r.text() : Promise.reject();
+        })
+        .then(function (html) {
+          var m = html.match(/<div[^>]*class="[^"]*odp-site-trust-disclosure[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+          if (m && m[1]) fillBody(m[1].trim());
+          else fillFallback();
+        })
+        .catch(fillFallback);
+    } else {
+      fillFallback();
+    }
+    backdrop.hidden = false;
+    backdrop.setAttribute("aria-hidden", "false");
+  }
+
+  function odpMaybeAutoShowSiteTrustModal() {
+    var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
+    if (trust.level !== "red") return;
+    try {
+      if (global.sessionStorage && global.sessionStorage.getItem("odp_site_trust_disclosure_ok") === "1") return;
+    } catch (e1) {}
+    odpOpenSiteTrustModal();
+  }
+
+  if (typeof global.document !== "undefined" && global.document.addEventListener) {
+    global.document.addEventListener(
+      "click",
+      function (ev) {
+        var t = ev.target;
+        if (!t || !t.closest) return;
+        if (t.closest(".odp-stack-details-btn")) {
+          ev.preventDefault();
+          odpOpenSiteTrustModal();
+        }
+      },
+      true
+    );
+    global.document.addEventListener("DOMContentLoaded", function () {
+      setTimeout(function () {
+        odpMaybeAutoShowSiteTrustModal();
+      }, 0);
+    });
   }
 
   async function odpRequireSingleEthereumAccount(eth) {
@@ -753,7 +847,11 @@
   global.odpApplyInlineRegistryOverrides = odpApplyInlineRegistryOverrides;
   global.odpPersistRegistryContractToSession = odpPersistRegistryContractToSession;
   global.odpFormatStackLabel = odpFormatStackLabel;
+  global.odpFormatStackSummaryHtml = odpFormatStackSummaryHtml;
   global.odpFormatStackBlockHtml = odpFormatStackBlockHtml;
+  global.odpOpenSiteTrustModal = odpOpenSiteTrustModal;
+  global.odpMaybeAutoShowSiteTrustModal = odpMaybeAutoShowSiteTrustModal;
+  global.odpStackDisclosureParagraphsHtml = odpStackDisclosureParagraphsHtml;
   global.odpProbeContractGenerationCached = odpProbeContractGenerationCached;
   global.odpBuildPassportAbi = odpBuildPassportAbi;
   global.odpBuildCreatorAbi = odpBuildCreatorAbi;

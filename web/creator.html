@@ -11,7 +11,8 @@
 <title>ODP v0.2 — Register Creator ID</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js"></script>
+<script src="odp-contract.js?v=0.2.1"></script>
+<script src="odp-i18n.js?v=2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
@@ -20,20 +21,23 @@
 
 <header class="header-row">
   <div class="header-left">
-    <h1>Creator ID</h1>
-    <p class="sub">Object Digital Passport · Specification v0.2</p>
-    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5"></div>
+    <h1 data-i18n="creator.meta.h1">Creator ID</h1>
+    <p class="sub" data-i18n="creator.meta.sub">Object Digital Passport · Specification v0.2</p>
+    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
-  <div class="net-pill" title="Polygon PoS mainnet">
-    <div class="net-dot" id="netDot"></div>
-    <span id="netLabel">…</span>
+  <div class="header-toolbar">
+    <div id="odpLangSwitch"></div>
+    <div class="net-pill" data-i18n-title="netTitle" title="Polygon PoS mainnet">
+      <div class="net-dot" id="netDot"></div>
+      <span id="netLabel">…</span>
+    </div>
   </div>
 </header>
 
 <div class="nav">
-  <a href="creator.html" class="active">Creator ID</a>
-  <a href="passport.html">Passport</a>
-  <a href="verify.html">Verify</a>
+  <a href="creator.html" class="active" data-i18n="nav.creator">Creator ID</a>
+  <a href="passport.html" data-i18n="nav.passport">Passport</a>
+  <a href="verify.html" data-i18n="nav.verify">Verify</a>
 </div>
 
 
@@ -43,14 +47,18 @@
   <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
   <span id="footerSiteVer"></span>
-  <span>MIT License</span>
-  <span>Andrei Chernikov</span>
+  <span data-i18n="footer.license">MIT License</span>
+  <span data-i18n="footer.author">Andrei Chernikov</span>
 </footer>
 
 </div>
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
+
+function t(key) {
+  return typeof window.odpT === "function" ? window.odpT(key) : key;
+}
 
 /** Polygon PoS mainnet only */
 const POLYGON_RPC_FALLBACKS = [
@@ -63,8 +71,7 @@ const NET = {
   chainId: 137,
   rpc: POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  /** Temporary default: public Polygon v0.1 registry (CONTRACT_VERSION byte 0). Creator/Passport reject legacy — swap to v0.2+ or override via ?contract= / ODP_CONTRACT_ADDRESS. */
-  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
+  contract: "",
   contractGenerationFallback: null,
 };
 
@@ -137,6 +144,11 @@ function esc(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
+function creatorStackStripHtml() {
+  if (typeof odpFormatStackSummaryHtml !== "function" || odpContractGeneration == null) return "";
+  return '<div class="odp-stack-under-steps">' + odpFormatStackSummaryHtml(odpContractGeneration) + "</div>";
+}
+
 // ── Step 1: Connect wallet ────────────────────────────────────────────────────
 
 function renderConnect() {
@@ -149,28 +161,28 @@ function renderConnect() {
   walletConnectErrorNeutral = false;
   return `
     <div class="step-indicator">
-      <div class="si-item active"><div class="si-num">1</div><span>Wallet</span></div>
+      <div class="si-item active"><div class="si-num">1</div><span>${esc(t("creator.steps.wallet"))}</span></div>
       <div class="si-line"></div>
-      <div class="si-item"><div class="si-num">2</div><span>Security</span></div>
+      <div class="si-item"><div class="si-num">2</div><span>${esc(t("creator.steps.security"))}</span></div>
       <div class="si-line"></div>
-      <div class="si-item"><div class="si-num">3</div><span>Register</span></div>
+      <div class="si-item"><div class="si-num">3</div><span>${esc(t("creator.steps.register"))}</span></div>
     </div>
 
+    ${creatorStackStripHtml()}
+
     <div class="card">
-      <div class="card-head">Connect your wallet</div>
+      <div class="card-head">${esc(t("creator.connect.cardTitle"))}</div>
       <div class="card-body">
         ${errBanner}
         <p class="info neutral">
-          Your wallet address becomes your identity in ODP.
-          The Creator ID is permanently linked to your wallet.
-          Make sure you have a backup of your key before proceeding.
+          ${esc(t("creator.connect.lead"))}
         </p>
 
         <div class="wallet-options-grid" style="grid-template-columns:1fr;max-width:420px;margin:0 auto">
           <div class="wallet-opt" id="odpConnectWalletBtn" onclick="connectWallet()">
             <div class="wallet-opt-icon">🔗</div>
-            <div class="wallet-opt-name">Connect wallet</div>
-            <div class="wallet-opt-desc">Browser extension — MetaMask, Rabby, Brave Wallet, etc.</div>
+            <div class="wallet-opt-name">${esc(t("creator.connect.btnName"))}</div>
+            <div class="wallet-opt-desc">${esc(t("creator.connect.btnDesc"))}</div>
           </div>
         </div>
 
@@ -184,61 +196,55 @@ function renderConnect() {
 function renderSecurity() {
   return `
     <div class="step-indicator">
-      <div class="si-item done"><div class="si-num">✓</div><span>Wallet</span></div>
+      <div class="si-item done"><div class="si-num">✓</div><span>${esc(t("creator.steps.wallet"))}</span></div>
       <div class="si-line"></div>
-      <div class="si-item active"><div class="si-num">2</div><span>Security</span></div>
+      <div class="si-item active"><div class="si-num">2</div><span>${esc(t("creator.steps.security"))}</span></div>
       <div class="si-line"></div>
-      <div class="si-item"><div class="si-num">3</div><span>Register</span></div>
+      <div class="si-item"><div class="si-num">3</div><span>${esc(t("creator.steps.register"))}</span></div>
     </div>
+
+    ${creatorStackStripHtml()}
 
     <div class="wallet-bar">
       <div class="w-dot on"></div>
       <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <div class="w-switch" onclick="disconnect()">Disconnect</div>
+      <div class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</div>
     </div>
 
     <div class="card">
-      <div class="card-head">Before you register</div>
+      <div class="card-head">${esc(t("creator.security.cardTitle"))}</div>
       <div class="card-body">
         <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.7">
-          Your Creator ID is tied to this wallet permanently.
-          If you lose access to the wallet, the ID cannot be transferred or recovered.
-          Read the following carefully.
+          ${esc(t("creator.security.intro"))}
         </p>
 
         <ul class="checklist">
           <li>
             <span class="checklist-icon">📝</span>
             <div>
-              <strong>Seed phrase wallets — back up before anything else</strong>
-              Write the 12–24 words on paper. Verify word order when prompted.
-              Store offline. Keep a second copy in a different location.
-              Never store digitally — no photos, no cloud, no messaging apps.
+              <strong>${esc(t("creator.security.li1t"))}</strong>
+              ${esc(t("creator.security.li1"))}
             </div>
           </li>
           <li>
             <span class="checklist-icon">💳</span>
             <div>
-              <strong>Seed-less hardware wallets — get a backup device now</strong>
-              The key lives only in the hardware chip. There is no seed phrase.
-              Losing all copies of the device means permanent loss of access.
-              Always have at least one backup device before registering.
+              <strong>${esc(t("creator.security.li2t"))}</strong>
+              ${esc(t("creator.security.li2"))}
             </div>
           </li>
           <li>
             <span class="checklist-icon">🔒</span>
             <div>
-              <strong>Never share your key or seed phrase with anyone</strong>
-              No legitimate service or support team will ever ask for it.
-              Ransomware and phishing specifically target seed phrases.
+              <strong>${esc(t("creator.security.li3t"))}</strong>
+              ${esc(t("creator.security.li3"))}
             </div>
           </li>
           <li>
             <span class="checklist-icon">ℹ️</span>
             <div>
-              <strong>If you lose wallet access — your passports are safe</strong>
-              All passports you minted remain valid and verifiable forever.
-              You only lose the ability to mint new passports under that identity.
+              <strong>${esc(t("creator.security.li4t"))}</strong>
+              ${esc(t("creator.security.li4"))}
             </div>
           </li>
         </ul>
@@ -246,13 +252,12 @@ function renderSecurity() {
         <div class="confirm-row" onclick="toggleSec()">
           <input type="checkbox" id="secCheck">
           <label for="secCheck">
-            I have backed up my key and understand the risks.
-            My seed phrase is on paper / I have a backup hardware device.
+            ${esc(t("creator.security.checkbox"))}
           </label>
         </div>
 
         <button class="btn" id="secBtn" onclick="showRegister()" disabled>
-          Continue to Registration
+          ${esc(t("creator.security.continueBtn"))}
         </button>
       </div>
     </div>`;
@@ -263,46 +268,47 @@ function renderSecurity() {
 function renderForm() {
   return `
     <div class="step-indicator">
-      <div class="si-item done"><div class="si-num">✓</div><span>Wallet</span></div>
+      <div class="si-item done"><div class="si-num">✓</div><span>${esc(t("creator.steps.wallet"))}</span></div>
       <div class="si-line"></div>
-      <div class="si-item done"><div class="si-num">✓</div><span>Security</span></div>
+      <div class="si-item done"><div class="si-num">✓</div><span>${esc(t("creator.steps.security"))}</span></div>
       <div class="si-line"></div>
-      <div class="si-item active"><div class="si-num">3</div><span>Register</span></div>
+      <div class="si-item active"><div class="si-num">3</div><span>${esc(t("creator.steps.register"))}</span></div>
     </div>
+
+    ${creatorStackStripHtml()}
 
     <div class="wallet-bar">
       <div class="w-dot on"></div>
       <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <div class="w-switch" onclick="disconnect()">Disconnect</div>
+      <div class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</div>
     </div>
 
     <div class="card">
-      <div class="card-head">Choose your type</div>
+      <div class="card-head">${esc(t("creator.register.cardTitle"))}</div>
       <div class="card-body">
 
         <div class="type-grid">
           <div class="type-opt sel" id="opt-C" onclick="selType='C';updateTypeUI()">
             <span class="type-letter">C</span>
-            <div class="type-name">Creator</div>
-            <div class="type-desc">Individual artist, photographer, maker, craftsperson</div>
+            <div class="type-name">${esc(t("creator.type.C"))}</div>
+            <div class="type-desc">${esc(t("creator.type.Cd"))}</div>
           </div>
           <div class="type-opt" id="opt-B" onclick="selType='B';updateTypeUI()">
             <span class="type-letter">B</span>
-            <div class="type-name">Brand</div>
-            <div class="type-desc">Company, studio, label, collective</div>
+            <div class="type-name">${esc(t("creator.type.B"))}</div>
+            <div class="type-desc">${esc(t("creator.type.Bd"))}</div>
           </div>
           <div class="type-opt" id="opt-P" onclick="selType='P';updateTypeUI()">
             <span class="type-letter">P</span>
-            <div class="type-name">Institution</div>
-            <div class="type-desc">Museum, gallery, auction house, certification body</div>
+            <div class="type-name">${esc(t("creator.type.P"))}</div>
+            <div class="type-desc">${esc(t("creator.type.Pd"))}</div>
           </div>
         </div>
 
         <div id="typeInfo" class="info neutral" style="margin-bottom:16px"></div>
 
         <div class="info warn" style="margin-bottom:16px">
-          ⚠ Your type prefix cannot be changed after registration.
-          One Creator ID per wallet. Permanent.
+          ${esc(t("creator.register.warn"))}
         </div>
 
         <div id="regErr"></div>
@@ -369,11 +375,11 @@ async function shareOdpVerify({ title, text, url, fullText }) {
   }
   try {
     await navigator.clipboard.writeText(body);
-    alert("Copied to clipboard.");
+    alert(t("creator.alerts.copied"));
   } catch {
     try {
       await navigator.clipboard.writeText(url);
-      alert("Link copied to clipboard.");
+      alert(t("creator.alerts.linkCopied"));
     } catch {
       prompt("Copy:", body);
     }
@@ -385,7 +391,7 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
   if (!el) return;
   el.innerHTML = "";
   if (typeof QRCode === "undefined") {
-    el.innerHTML = `<div class="qr-fail">QR library did not load (network / CDN blocked).<br><a href="${esc(fallbackUrl)}">${esc(fallbackUrl)}</a></div>`;
+    el.innerHTML = `<div class="qr-fail">${esc(t("creator.qrFail"))}<br><a href="${esc(fallbackUrl)}">${esc(fallbackUrl)}</a></div>`;
     return;
   }
   const w = 168;
@@ -520,10 +526,10 @@ async function attestPdfDocument() {
   if (!contract || !fileEl || !out) return;
   const f = fileEl.files && fileEl.files[0];
   if (!f) {
-    out.innerHTML = `<div class="info warn">Choose a file first.</div>`;
+    out.innerHTML = `<div class="info warn">${esc(t("creator.docAttest.chooseFile"))}</div>`;
     return;
   }
-  out.innerHTML = `<div class="info neutral">Computing hash…</div>`;
+  out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.computingHash"))}</div>`;
   let hash;
   try {
     hash = await sha256FileToBytes32Hex(f);
@@ -533,15 +539,15 @@ async function attestPdfDocument() {
   }
   const uri = uriEl && uriEl.value ? String(uriEl.value).trim() : "";
   if (uri.length > 512) {
-    out.innerHTML = `<div class="info error">URL is too long (max 512).</div>`;
+    out.innerHTML = `<div class="info error">${esc(t("creator.docAttest.urlTooLong"))}</div>`;
     return;
   }
-  out.innerHTML = `<div class="info neutral">Confirm in your wallet…</div>`;
+  out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.confirmWallet"))}</div>`;
   try {
     const tx = await contract.attestExternalDocument(hash, uri);
-    out.innerHTML = `<div class="info neutral">Sent… ${esc(tx.hash)}</div>`;
+    out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.sent"))} ${esc(tx.hash)}</div>`;
     await tx.wait();
-    out.innerHTML = `<div class="info neutral">Recorded on-chain. Hash <code class="mono">${esc(
+    out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.recorded"))} <code class="mono">${esc(
       hash
     )}</code></div>`;
   } catch (e) {
@@ -559,11 +565,13 @@ function renderAlready() {
     <div class="wallet-bar">
       <div class="w-dot on"></div>
       <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <div class="w-switch" onclick="disconnect()">Disconnect</div>
+      <div class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</div>
     </div>
 
+    ${creatorStackStripHtml()}
+
     <div class="card">
-      <div class="card-head">Your Creator ID</div>
+      <div class="card-head">${esc(t("creator.already.cardTitle"))}</div>
       <div class="card-body">
         <span class="result-id">${esc(creatorId)}</span>
         <div class="result-full">
@@ -571,49 +579,49 @@ function renderAlready() {
         </div>
 
         <div style="font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">
-          Publish this everywhere
+          ${esc(t("creator.already.publish"))}
         </div>
 
         <ul class="publish-list">
-          <li><span>🌐</span>On your official website — prominently, not hidden in menus</li>
-          <li><span>📱</span>In all your social media profiles and bios</li>
-          <li><span>🏷</span>On physical objects, packaging, and certificates you issue</li>
-          <li><span>📋</span>In press releases and official communications</li>
+          <li><span>🌐</span>${esc(t("creator.already.pl1"))}</li>
+          <li><span>📱</span>${esc(t("creator.already.pl2"))}</li>
+          <li><span>🏷</span>${esc(t("creator.already.pl3"))}</li>
+          <li><span>📋</span>${esc(t("creator.already.pl4"))}</li>
         </ul>
 
         <div class="info neutral" style="margin-bottom:16px;font-size:11px">
-          Short:&nbsp; <strong style="color:var(--text)">${esc(creatorId)}</strong><br>
-          Full:&nbsp;&nbsp; <strong style="color:var(--text)">${esc(creatorId)} / ${wallet}</strong>
+          ${esc(t("creator.already.short"))}&nbsp; <strong style="color:var(--text)">${esc(creatorId)}</strong><br>
+          ${esc(t("creator.already.full"))}&nbsp;&nbsp; <strong style="color:var(--text)">${esc(creatorId)} / ${wallet}</strong>
         </div>
 
         <div class="qr-share-block" style="margin-top:4px">
-          <p class="qr-share-caption">Open <strong>Share</strong> for a QR, the link, PNG download, or send via your device.</p>
+          <p class="qr-share-caption">${esc(t("creator.already.shareCaption"))}</p>
           <div class="qr-share-actions">
-            <button type="button" class="btn btn-sec" id="shareCreatorBtn">Share</button>
+            <button type="button" class="btn btn-sec" id="shareCreatorBtn">${esc(t("creator.share.shareBtn"))}</button>
           </div>
         </div>
 
         <div id="shareModal" class="share-modal" hidden aria-hidden="true">
           <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
           <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
-            <button type="button" class="share-modal-x" id="shareModalClose" aria-label="Close">×</button>
-            <h3 id="shareModalTitle" class="share-modal-title">Share Creator ID</h3>
+            <button type="button" class="share-modal-x" id="shareModalClose" aria-label="${esc(t("creator.share.closeAria"))}">×</button>
+            <h3 id="shareModalTitle" class="share-modal-title">${esc(t("creator.share.title"))}</h3>
             <div id="shareModalQr"></div>
             <div id="shareModalUrl" class="share-modal-url"></div>
             <div class="share-modal-actions">
-              <button type="button" class="btn" id="shareModalDl">Download QR (PNG)</button>
-              <button type="button" class="btn btn-sec" id="shareModalCopy">Copy text</button>
-              <button type="button" class="btn btn-sec" id="shareModalNative">Share via device</button>
+              <button type="button" class="btn" id="shareModalDl">${esc(t("creator.share.dl"))}</button>
+              <button type="button" class="btn btn-sec" id="shareModalCopy">${esc(t("creator.share.copy"))}</button>
+              <button type="button" class="btn btn-sec" id="shareModalNative">${esc(t("creator.share.native"))}</button>
             </div>
           </div>
         </div>
 
         <a href="passport.html">
-          <button class="btn">Create a Passport →</button>
+          <button class="btn">${esc(t("creator.already.btnPassport"))}</button>
         </a>
-        <a href="${esc(rel)}"><button class="btn btn-sec">Verify Creator ID ↗</button></a>
+        <a href="${esc(rel)}"><button class="btn btn-sec">${esc(t("creator.already.btnVerify"))}</button></a>
         <a href="${net.explorer}/address/${wallet}" target="_blank">
-          <button class="btn btn-sec">View on Explorer ↗</button>
+          <button class="btn btn-sec">${esc(t("creator.already.btnExplorer"))}</button>
         </a>
       </div>
     </div>
@@ -621,18 +629,16 @@ function renderAlready() {
       typeof odpSupportsExternalDocAttest === "function" && odpSupportsExternalDocAttest(odpContractGeneration)
         ? `
     <div class="card" style="margin-top:20px">
-      <div class="card-head">Anchor a document (PDF, etc.) on-chain</div>
+      <div class="card-head">${esc(t("creator.docAttest.cardTitle"))}</div>
       <div class="card-body">
         <p style="font-size:12px;color:var(--text2);margin:0 0 12px;line-height:1.6">
-          Upload the file (e.g. contract PDF). The page computes <strong>SHA-256</strong> locally and sends only the hash in a transaction — gas only.
-          Counterparties can hash their copy and check it matches this Creator ID on Verify.
-          This is <strong>not</strong> a qualified e-signature; it records that <strong>this wallet</strong> anchored <strong>this hash</strong> at a time.
+          ${esc(t("creator.docAttest.body"))}
         </p>
         <input type="file" id="docAttestFile" style="margin-bottom:10px;font-size:12px" />
         <div id="docAttestHash" class="mono" style="font-size:11px;word-break:break-all;margin-bottom:10px;color:var(--ink3)"></div>
-        <label class="search-label" for="docAttestUri">Optional public URL to the same file (HTTPS)</label>
+        <label class="search-label" for="docAttestUri">${esc(t("creator.docAttest.uriLabel"))}</label>
         <input type="text" id="docAttestUri" placeholder="https://…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" />
-        <button type="button" class="btn" id="docAttestBtn">Record hash on-chain</button>
+        <button type="button" class="btn" id="docAttestBtn">${esc(t("creator.docAttest.btn"))}</button>
         <div id="docAttestResult" style="margin-top:12px;font-size:12px"></div>
       </div>
     </div>`
@@ -642,19 +648,22 @@ function renderAlready() {
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
 
-const TYPE_INFO = {
-  C: "Individual creator — artist, photographer, maker, or craftsperson. Use this if you are registering as a person.",
-  B: "Brand or collective — company, studio, label, or group. Use this for organizations.",
-  P: "Proof Institution — museum, gallery, auction house, or expert body. P-type accounts can attach attestations to any passport.",
-};
+function getTypeInfo() {
+  return {
+    C: t("creator.typeInfo.C"),
+    B: t("creator.typeInfo.B"),
+    P: t("creator.typeInfo.P"),
+  };
+}
 
 function updateTypeUI() {
-  ["C","B","P"].forEach(t => {
-    const el = document.getElementById(`opt-${t}`);
-    if (el) el.classList.toggle("sel", t === selType);
+  const TI = getTypeInfo();
+  ["C","B","P"].forEach(tn => {
+    const el = document.getElementById(`opt-${tn}`);
+    if (el) el.classList.toggle("sel", tn === selType);
   });
   const info = document.getElementById("typeInfo");
-  if (info) info.textContent = TYPE_INFO[selType] || "";
+  if (info) info.textContent = TI[selType] || "";
 }
 
 function toggleSec() {
@@ -680,16 +689,11 @@ async function disconnect() {
   wallet = null; provider = null; signer = null; contract = null; creatorId = null;
   odpContractGeneration = null;
   ABI = null;
-  const sl = document.getElementById("odpStackLabel");
-  if (sl) {
-    sl.innerHTML = "";
-    sl.style.display = "none";
-  }
   render();
 }
 
 function registerButtonLabel() {
-  return "Register — Polygon gas only (~US$0.01 typ.)";
+  return t("creator.register.btn");
 }
 
 // ── Wallet connection ─────────────────────────────────────────────────────────
@@ -759,16 +763,16 @@ function noWalletHtml() {
   const mobileHint =
     !fileProto && mmApp
       ? `<div style="margin:14px 0 10px">
-          <a class="btn" href="${esc(mmApp)}" rel="noopener" style="display:inline-block;text-decoration:none">Open in MetaMask app</a>
-          <p class="fhint" style="margin:10px 0 0;font-size:11px">iPhone / Safari: there is no extension — MetaMask runs as an app with a built-in browser. This link opens the same page there so Connect works.</p>
+          <a class="btn" href="${esc(mmApp)}" rel="noopener" style="display:inline-block;text-decoration:none">${esc(t("creator.noWallet.mmOpen"))}</a>
+          <p class="fhint" style="margin:10px 0 0;font-size:11px">${esc(t("creator.noWallet.mmHint"))}</p>
         </div>`
       : "";
   return `<div class="info error" style="line-height:1.6">
-    No injected wallet (<code>window.ethereum</code>). On desktop, install
-    <a href="https://metamask.io" target="_blank" rel="noopener" style="color:var(--accent)">MetaMask</a>
-    or another extension, then reload this page.
+    ${esc(t("creator.noWallet.line1"))}
+    <a href="https://metamask.io" target="_blank" rel="noopener" style="color:var(--accent)">${esc(t("creator.noWallet.metaMask"))}</a>
+    ${esc(t("creator.noWallet.line2"))}
     ${mobileHint}
-    ${fileProto ? `<br><br><strong>Opening as <code>file://</code></strong> — many wallets do not inject on local files. Serve the <code>web/</code> folder over <code>http://localhost</code> (any static server) or upload to HTTPS.` : !mmApp ? `<br><br>Use <strong>https://</strong> or <strong>http://localhost</strong> if the wallet still does not appear.` : ""}
+    ${fileProto ? `<br><br>${esc(t("creator.noWallet.fileProto"))}` : !mmApp ? `<br><br>${esc(t("creator.noWallet.httpsHint"))}` : ""}
   </div>`;
 }
 
@@ -779,7 +783,7 @@ async function connectWallet() {
   if (odpWalletConnectInFlight) {
     if (errEl)
       errEl.innerHTML =
-        `<div class="info error">Connection already in progress. Approve or reject the request in your wallet extension (icon in the toolbar), then try again.</div>`;
+        `<div class="info error">${esc(t("creator.errors.connectInProgress"))}</div>`;
     return;
   }
   if (!eth) {
@@ -808,7 +812,7 @@ async function connectWallet() {
     const msg = String((e && e.message) || e);
     if (/already pending|request of type.*pending/i.test(msg)) {
       errEl.innerHTML =
-        `<div class="info error">A wallet request is already open. Use the <strong>wallet extension icon</strong> in your browser toolbar to approve or cancel — do not click Connect again until that finishes.</div>`;
+        `<div class="info error">${esc(t("creator.errors.walletPending"))}</div>`;
     } else {
       errEl.innerHTML = `<div class="info error">${esc(msg)}</div>`;
     }
@@ -858,11 +862,6 @@ async function _finish(web3p) {
   ABI = fin.abi;
   contract = fin.contract;
   if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(net);
-  const sl = document.getElementById("odpStackLabel");
-  if (sl) {
-    sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
-    sl.style.display = "";
-  }
 
   // Check existing
   const existing = await contract.getCreatorByWallet(wallet);
@@ -882,7 +881,7 @@ async function doRegister() {
   const btn = document.getElementById("regBtn");
   const err = document.getElementById("regErr");
   btn.disabled = true;
-  btn.textContent = "Waiting for wallet…";
+  btn.textContent = t("creator.register.waiting");
   err.innerHTML = "";
 
   try {
@@ -891,8 +890,8 @@ async function doRegister() {
       ethers.utils.toUtf8Bytes(selType)
     ); // e.g. "0x43" for "C"
     const tx = await contract.registerCreator(typeBytes);
-    btn.textContent = "Confirming…";
-    err.innerHTML = `<div class="info neutral" style="margin-bottom:10px">Transaction sent: ${tx.hash.slice(0,20)}…</div>`;
+    btn.textContent = t("creator.register.confirming");
+    err.innerHTML = `<div class="info neutral" style="margin-bottom:10px">${esc(t("creator.register.txPrefix"))} ${tx.hash.slice(0,20)}…</div>`;
     await tx.wait();
     creatorId = await contract.getCreatorByWallet(wallet);
     render();
@@ -932,6 +931,7 @@ document.addEventListener("keydown", (e) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await odpInitI18n({ page: "creator", pageTitleKey: "creator.meta.documentTitle" });
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
@@ -945,7 +945,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     odpInstallSingleAccountGuard(eth, {
       onMultiple: async function () {
         var r = await odpRequireSingleEthereumAccount(eth);
-        walletConnectError = r.message || "Multiple accounts connected.";
+        walletConnectError = r.message || t("creator.multiAccount");
         await disconnect();
       },
       onEmpty: async function () {
@@ -989,11 +989,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               odpContractGeneration = fin.generation;
               ABI = fin.abi;
               contract = fin.contract;
-              const sl = document.getElementById("odpStackLabel");
-              if (sl) {
-                sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
-                sl.style.display = "";
-              }
               const existing = await contract.getCreatorByWallet(wallet);
               if (existing) creatorId = existing;
               secOk = true;

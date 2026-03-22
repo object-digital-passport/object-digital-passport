@@ -26,7 +26,8 @@
 
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js"></script>
+<script src="odp-contract.js?v=0.2.1"></script>
+<script src="odp-i18n.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 </head>
 
@@ -35,37 +36,41 @@
 
 <header class="header-row">
   <div class="header-left">
-    <h1>Verify</h1>
-    <p class="sub">Object Digital Passport · Specification v0.2</p>
+    <h1 data-i18n="verify.meta.h1">Verify</h1>
+    <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.2</p>
     <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:42rem;line-height:1.5"></div>
-    <p class="fhint" style="margin-top:6px;max-width:42rem">Check that a passport or creator ID is registered.</p>
+    <p class="fhint" style="margin-top:6px;max-width:42rem" data-i18n="verify.meta.hint">Check that a passport or creator ID is registered.</p>
   </div>
-  <div class="net-pill" title="Polygon PoS mainnet">
-    <div class="net-dot" id="netDot"></div>
-    <span id="netLabel">Connecting...</span>
+  <div class="header-toolbar">
+    <div id="odpLangSwitch"></div>
+    <div class="net-pill" data-i18n-title="netTitle" title="Polygon PoS mainnet">
+      <div class="net-dot" id="netDot"></div>
+      <span id="netLabel" data-i18n="verify.net.connecting">Connecting...</span>
+    </div>
   </div>
 </header>
 
 <div class="nav">
-  <a href="creator.html">Creator ID</a>
-  <a href="passport.html">Passport</a>
-  <a href="verify.html" class="active">Verify</a>
+  <a href="creator.html" data-i18n="nav.creator">Creator ID</a>
+  <a href="passport.html" data-i18n="nav.passport">Passport</a>
+  <a href="verify.html" class="active" data-i18n="nav.verify">Verify</a>
 </div>
 
 
 <div class="odp-verify-primary">
 <div class="search-wrap">
-  <label class="search-label" for="idInput">Paste an ID or link, or scan a QR code</label>
+  <label class="search-label" for="idInput" data-i18n="verify.search.label">Paste an ID or link, or scan a QR code</label>
   <div class="search-row">
     <input
       type="text"
       id="idInput"
+      data-i18n-placeholder="verify.search.placeholder"
       placeholder="Example: ODP-2026-03-1234567"
       autocomplete="off"
       autocorrect="off"
       spellcheck="false"
     />
-    <button type="button" class="btn btn-qr-scan" id="qrScanBtn" onclick="openQrScanner()" title="Scan QR code" aria-label="Scan QR code">
+    <button type="button" class="btn btn-qr-scan" id="qrScanBtn" onclick="openQrScanner()" data-i18n-title="verify.search.scanTitle" data-i18n-aria="verify.search.scanAria" title="Scan QR code" aria-label="Scan QR code">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect width="5" height="5" x="3" y="3" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
         <rect width="5" height="5" x="16" y="3" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -73,9 +78,9 @@
         <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-4"/>
       </svg>
     </button>
-    <button class="btn" onclick="verify()" id="verifyBtn">Verify</button>
+    <button class="btn" onclick="verify()" id="verifyBtn" data-i18n="verify.search.verifyBtn">Verify</button>
   </div>
-  <p class="search-hint">Passport IDs start with <strong>ODP-</strong>. Creator IDs look like <strong>C-123-456-789</strong> (also B- or P-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
+  <p class="search-hint" data-i18n="verify.search.hint">Passport IDs start with ODP-. Creator IDs look like C-123-456-789 (also B- or P-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
 </div>
 
 <div id="result"></div>
@@ -84,85 +89,83 @@
 <hr class="odp-verify-signature-divider" />
 
 <section class="card odp-proof-card" id="creatorProofSection" aria-labelledby="creatorProofHeading">
-  <h2 class="section-title" id="creatorProofHeading">Creator wallet proof (EIP-191)</h2>
-  <p class="fhint odp-proof-lead">
-    Separate tool from <strong>registry verify</strong> above: prove control of the <strong>creator wallet</strong> for a passport — <strong>no gas</strong>.
-    The recovered signer must match <code class="mono">passport.creator</code> on-chain. This is <strong>key control</strong>, not legal authorship.
+  <h2 class="section-title" id="creatorProofHeading" data-i18n="verify.proof.sectionTitle">Creator wallet proof (EIP-191)</h2>
+  <p class="fhint odp-proof-lead" data-i18n="verify.proof.lead">
+    Separate tool from registry verify above: prove control of the creator wallet for a passport — no gas. The recovered signer must match passport.creator on-chain. This is key control, not legal authorship.
   </p>
 
-  <div class="odp-proof-tablist" role="tablist" aria-label="Creator proof steps">
-    <button type="button" class="odp-proof-tab is-active" role="tab" id="proofTabSign" aria-selected="true" aria-controls="proofPanelSign" onclick="proofSetTab('sign')">Creator: sign</button>
-    <button type="button" class="odp-proof-tab" role="tab" id="proofTabVerify" aria-selected="false" aria-controls="proofPanelVerify" onclick="proofSetTab('verify')">Anyone: verify</button>
+  <div class="odp-proof-tablist" role="tablist" data-i18n-aria="verify.proof.tablistAria" aria-label="Creator proof steps">
+    <button type="button" class="odp-proof-tab is-active" role="tab" id="proofTabSign" aria-selected="true" aria-controls="proofPanelSign" onclick="proofSetTab('sign')" data-i18n="verify.proof.tabSign">Creator: sign</button>
+    <button type="button" class="odp-proof-tab" role="tab" id="proofTabVerify" aria-selected="false" aria-controls="proofPanelVerify" onclick="proofSetTab('verify')" data-i18n="verify.proof.tabVerify">Anyone: verify</button>
   </div>
 
   <div id="proofPanelSign" class="odp-proof-panel" role="tabpanel" aria-labelledby="proofTabSign">
-    <p class="fhint odp-proof-panel-hint">Connect the <strong>creator</strong> wallet, enter the passport Human ID, then sign. Copy the message + signature or the JSON bundle for the verifier.</p>
+    <p class="fhint odp-proof-panel-hint" data-i18n="verify.proof.panelSignHint">Connect the creator wallet, enter the passport Human ID, then sign. Copy the message + signature or the JSON bundle for the verifier.</p>
     <div class="odp-proof-stack">
       <div>
-        <label class="search-label" for="proofHumanIdSign">Human ID</label>
-        <input type="text" id="proofHumanIdSign" class="odp-proof-input" placeholder="ODP-2026-03-1234567" autocomplete="off" spellcheck="false">
+        <label class="search-label" for="proofHumanIdSign" data-i18n="verify.proof.humanId">Human ID</label>
+        <input type="text" id="proofHumanIdSign" class="odp-proof-input" data-i18n-placeholder="verify.proof.humanIdPlaceholder" placeholder="ODP-2026-03-1234567" autocomplete="off" spellcheck="false">
       </div>
       <div class="odp-proof-actions">
-        <button type="button" class="btn btn-ghost" id="proofConnectBtn" onclick="proofConnectWallet()">Connect wallet</button>
-        <button type="button" class="btn" id="proofSignBtn" onclick="proofSignMessage()">Sign message</button>
+        <button type="button" class="btn btn-ghost" id="proofConnectBtn" onclick="proofConnectWallet()" data-i18n="verify.proof.connectWallet">Connect wallet</button>
+        <button type="button" class="btn" id="proofSignBtn" onclick="proofSignMessage()" data-i18n="verify.proof.signMessage">Sign message</button>
       </div>
       <p id="proofWalletLabel" class="odp-proof-wallet-label"></p>
       <div>
-        <label class="search-label" for="proofMessageOut">Signed text (send to verifier)</label>
+        <label class="search-label" for="proofMessageOut" data-i18n="verify.proof.signedText">Signed text (send to verifier)</label>
         <textarea id="proofMessageOut" class="odp-proof-textarea odp-proof-textarea--readonly" readonly rows="8" spellcheck="false"></textarea>
       </div>
       <div>
-        <label class="search-label" for="proofSigOut">Signature</label>
+        <label class="search-label" for="proofSigOut" data-i18n="verify.proof.signature">Signature</label>
         <textarea id="proofSigOut" class="odp-proof-textarea odp-proof-textarea--readonly" readonly rows="3" spellcheck="false"></textarea>
       </div>
-      <button type="button" class="btn btn-ghost odp-proof-copy-btn" onclick="proofCopyBundle()">Copy JSON bundle</button>
+      <button type="button" class="btn btn-ghost odp-proof-copy-btn" onclick="proofCopyBundle()" data-i18n="verify.proof.copyBundle">Copy JSON bundle</button>
     </div>
   </div>
 
   <div id="proofPanelVerify" class="odp-proof-panel" role="tabpanel" aria-labelledby="proofTabVerify" hidden>
-    <p class="fhint odp-proof-panel-hint">Paste the <strong>exact message</strong> and <strong>signature</strong> from the creator. The page checks EIP-191 recovery against the passport’s on-chain creator (needs RPC + <code class="mono">NET.contract</code>).</p>
+    <p class="fhint odp-proof-panel-hint" data-i18n="verify.proof.panelVerifyHint">Paste the exact message and signature from the creator. The page checks EIP-191 recovery against the passport’s on-chain creator (needs RPC + NET.contract).</p>
     <div class="odp-proof-stack">
       <div>
-        <label class="search-label" for="proofHumanIdVerifier">Human ID <span class="odp-proof-optional">(optional if the message includes <code class="mono">humanId:</code>)</span></label>
+        <label class="search-label" for="proofHumanIdVerifier"><span data-i18n="verify.proof.humanId">Human ID</span> <span class="odp-proof-optional" data-i18n="verify.proof.optionalHumanIdSuffix">(optional if the message includes humanId:)</span></label>
         <input type="text" id="proofHumanIdVerifier" class="odp-proof-input" placeholder="ODP-…" autocomplete="off" spellcheck="false">
       </div>
       <div>
-        <label class="search-label" for="proofMsgIn">Message</label>
+        <label class="search-label" for="proofMsgIn" data-i18n="verify.proof.labelMessage">Message</label>
         <textarea id="proofMsgIn" class="odp-proof-textarea" rows="8" spellcheck="false"></textarea>
       </div>
       <div>
-        <label class="search-label" for="proofSigIn">Signature <span class="odp-proof-optional">(0x…)</span></label>
+        <label class="search-label" for="proofSigIn"><span data-i18n="verify.proof.signature">Signature</span> <span class="odp-proof-optional">(0x…)</span></label>
         <textarea id="proofSigIn" class="odp-proof-textarea" rows="3" spellcheck="false"></textarea>
       </div>
-      <button type="button" class="btn" onclick="proofVerifyMessage()">Verify signature</button>
+      <button type="button" class="btn" onclick="proofVerifyMessage()" data-i18n="verify.proof.verifySignatureBtn">Verify signature</button>
       <div id="proofVerifyResult" class="odp-proof-verify-result"></div>
     </div>
   </div>
 </section>
 
 <section class="card odp-doc-card" id="docVerifySection" style="margin-top:20px" hidden>
-  <div class="section-title">Anchored document (PDF) — check hash</div>
-  <p class="fhint" style="margin:0 0 14px;max-width:48rem;line-height:1.55">
-    If a creator recorded a file hash on a <strong>generation 3+</strong> contract, drop the same file here.
-    The page hashes it locally and checks the registry — <strong>no upload</strong>.
+  <div class="section-title" data-i18n="verify.doc.sectionTitle">Anchored document (PDF) — check hash</div>
+  <p class="fhint" style="margin:0 0 14px;max-width:48rem;line-height:1.55" data-i18n="verify.doc.lead">
+    If a creator recorded a file hash on a generation 3+ contract, drop the same file here. The page hashes it locally and checks the registry — no upload.
   </p>
-  <label class="search-label" for="docVerifyId">Creator ID (C-…) or wallet 0x…</label>
-  <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" placeholder="C-482-930-174 or 0x…" autocomplete="off" spellcheck="false">
-  <label class="search-label" for="docVerifyFile">File</label>
+  <label class="search-label" for="docVerifyId" data-i18n="verify.doc.idLabel">Creator ID (C-…) or wallet 0x…</label>
+  <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.idPlaceholder" placeholder="C-482-930-174 or 0x…" autocomplete="off" spellcheck="false">
+  <label class="search-label" for="docVerifyFile" data-i18n="verify.doc.fileLabel">File</label>
   <input type="file" id="docVerifyFile" style="margin-bottom:12px;font-size:12px">
-  <button type="button" class="btn" id="docVerifyBtn" onclick="verifyDocAttestation()">Check on-chain</button>
+  <button type="button" class="btn" id="docVerifyBtn" onclick="verifyDocAttestation()" data-i18n="verify.doc.checkBtn">Check on-chain</button>
   <div id="docVerifyResult" style="margin-top:14px"></div>
 </section>
 
 <div id="qrScanOverlay" class="qr-scan-overlay" hidden>
   <div class="qr-scan-panel">
-    <p class="qr-scan-title">Scan QR</p>
-    <p class="qr-scan-hint">Point the camera at the QR code on the label or screen.</p>
+    <p class="qr-scan-title" data-i18n="verify.qr.title">Scan QR</p>
+    <p class="qr-scan-hint" data-i18n="verify.qr.hint">Point the camera at the QR code on the label or screen.</p>
     <div class="qr-scan-video-wrap">
       <video id="qrVideo" playsinline muted autoplay></video>
       <canvas id="qrCanvas" hidden></canvas>
     </div>
-    <button type="button" class="btn btn-ghost qr-scan-cancel" id="qrScanCancel" onclick="closeQrScanner()">Cancel</button>
+    <button type="button" class="btn btn-ghost qr-scan-cancel" id="qrScanCancel" onclick="closeQrScanner()" data-i18n="verify.qr.cancel">Cancel</button>
   </div>
 </div>
 
@@ -170,14 +173,18 @@
   <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
   <span id="footerSiteVer"></span>
-  <span>MIT License</span>
-  <span>Andrei Chernikov</span>
+  <span data-i18n="footer.license">MIT License</span>
+  <span data-i18n="footer.author">Andrei Chernikov</span>
 </footer>
 
 </div>
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
+
+function t(key) {
+  return typeof window.odpT === "function" ? window.odpT(key) : key;
+}
 
 /** polygon-rpc.com often returns 401 for unauthenticated JSON-RPC; use public endpoints with CORS. */
 const POLYGON_RPC_FALLBACKS = [
@@ -190,8 +197,7 @@ const NET = {
   chainId:  137,
   rpc:      POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  /** Temporary default: public Polygon v0.1 registry (historical). Override via ?contract= / registry-config merge when using v0.2+. */
-  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
+  contract: "",
   contractGenerationFallback: null,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
   previousContracts: [],
@@ -213,6 +219,7 @@ let contract = null;
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function init() {
+  await odpInitI18n({ page: "verify", pageTitleKey: "verify.meta.documentTitle" });
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
   await connect();
@@ -234,7 +241,7 @@ async function connect() {
   await odpMergeRegistryConfigAsync(NET);
   const c = NET;
   verifyContractError = null;
-  setNet("connecting", `${c.name} — connecting...`);
+  setNet("connecting", `${c.name} — ${t("verify.net.suffixConnecting")}`);
   let lastErr = null;
   const lbl = document.getElementById("odpStackLabel");
   for (const rpcUrl of POLYGON_RPC_FALLBACKS) {
@@ -242,7 +249,7 @@ async function connect() {
       provider = new ethers.providers.JsonRpcProvider(rpcUrl, { name: "polygon", chainId: c.chainId });
       await provider.getBlockNumber();
       if (!c.contract) {
-        setNet("warn", `${c.name} — contract address not set`);
+        setNet("warn", `${c.name} — ${t("verify.net.contractMissing")}`);
         if (lbl) {
           lbl.style.display = "none";
           lbl.innerHTML = "";
@@ -264,7 +271,7 @@ async function connect() {
         }
         const docSec = document.getElementById("docVerifySection");
         if (docSec) docSec.hidden = true;
-        setNet("warn", `${c.name} — legacy contract not supported`);
+        setNet("warn", `${c.name} — ${t("verify.net.legacyNotSupported")}`);
         return;
       }
       contract = new ethers.Contract(c.contract, ABI, provider);
@@ -278,7 +285,7 @@ async function connect() {
           odpContractGeneration == null ||
           (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration));
       }
-      setNet("on", `${c.name} · gen ${odpContractGeneration}`);
+      setNet("on", `${c.name}${t("verify.net.genLabel")}${odpContractGeneration}`);
       if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(c);
       return;
     } catch (e) {
@@ -286,7 +293,7 @@ async function connect() {
       provider = null;
     }
   }
-  setNet("off", `${c.name} — offline`);
+  setNet("off", `${c.name} — ${t("verify.net.offline")}`);
   contract = null;
   odpContractGeneration = null;
   const docSec = document.getElementById("docVerifySection");
@@ -465,18 +472,18 @@ async function verify() {
   const token = parseVerifyToken(raw);
 
   if (!token) {
-    el.innerHTML = `<div class="err-box">That doesn’t look like a passport ID, creator ID, or a link from this site. Passport IDs start with ODP-. Creator IDs look like C-123-456-789.</div>`;
+    el.innerHTML = `<div class="err-box">${esc(t("verify.result.badToken"))}</div>`;
     return;
   }
   if (!contract) {
     const msg = verifyContractError
       ? verifyContractError
-      : "Can’t load registration data right now. Check your internet connection and try again.";
+      : t("verify.result.loadFail");
     el.innerHTML = `<div class="err-box">${esc(msg)}</div>`;
     return;
   }
 
-  el.innerHTML = `<div class="loading"><div class="spin"></div><span>Checking registration…</span></div>`;
+  el.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.result.checking"))}</span></div>`;
   document.getElementById("verifyBtn").disabled = true;
 
   try {
@@ -486,7 +493,7 @@ async function verify() {
     }
 
     const humanId = token.id;
-    setLoading(el, "Fetching passport record...");
+    setLoading(el, t("verify.loading.fetchPassport"));
     let res = null;
     let readContract = null;
     for (const c of verifyReadContractsOrdered()) {
@@ -529,7 +536,7 @@ async function verify() {
       proofs = proofs.filter(Boolean);
     } catch {}
 
-    setLoading(el, "Fetching passport data...");
+    setLoading(el, t("verify.loading.fetchData"));
     let passport   = null;
     let dataStatus = "unverifiable";
 
@@ -552,14 +559,14 @@ async function verify() {
     render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOn);
 
   } catch (e) {
-    el.innerHTML = `<div class="err-box">Error: ${esc(e.message)}</div>`;
+    el.innerHTML = `<div class="err-box">${esc(t("verify.result.errorPrefix"))} ${esc(e.message)}</div>`;
   } finally {
     document.getElementById("verifyBtn").disabled = false;
   }
 }
 
 async function verifyCreatorRecord(creatorId, el) {
-  setLoading(el, "Fetching creator record...");
+  setLoading(el, t("verify.loading.fetchCreator"));
   for (const c of verifyReadContractsOrdered()) {
     try {
       const raw = await c.getCreator(creatorId);
@@ -571,7 +578,7 @@ async function verifyCreatorRecord(creatorId, el) {
       if (m.includes("Creator not found")) {
         continue;
       }
-      el.innerHTML = `<div class="err-box">Error: ${esc(e.message)}</div>`;
+      el.innerHTML = `<div class="err-box">${esc(t("verify.result.errorPrefix"))} ${esc(e.message)}</div>`;
       return;
     }
   }
@@ -590,14 +597,13 @@ function renderInvalid(humanId) {
       <div class="status-bar invalid">
         <div class="status-icon">✕</div>
         <div class="status-text">
-          <div class="status-label">Not Registered</div>
-          <div class="status-desc">No record found for ${esc(humanId)}</div>
+          <div class="status-label">${esc(t("verify.result.notRegisteredLabel"))}</div>
+          <div class="status-desc">${esc(t("verify.result.notRegisteredDesc").replace("{id}", humanId))}</div>
         </div>
       </div>
       <div class="card-body">
         <p style="font-size:13px;color:var(--text2)">
-          This ID does not exist in the registry.
-          The object may not be registered, or the ID may be incorrect.
+          ${esc(t("verify.result.notRegisteredBody"))}
         </p>
       </div>
     </div>`;
@@ -609,13 +615,13 @@ function renderCreatorNotFound(creatorId) {
       <div class="status-bar invalid">
         <div class="status-icon">✕</div>
         <div class="status-text">
-          <div class="status-label">Creator Not Found</div>
-          <div class="status-desc">No creator record for ${esc(creatorId)}</div>
+          <div class="status-label">${esc(t("verify.result.creatorNotFoundLabel"))}</div>
+          <div class="status-desc">${esc(t("verify.result.creatorNotFoundDesc").replace("{id}", creatorId))}</div>
         </div>
       </div>
       <div class="card-body">
         <p style="font-size:13px;color:var(--text2)">
-          This Creator ID does not exist in the registry, or the ID may be incorrect.
+          ${esc(t("verify.result.creatorNotFoundBody"))}
         </p>
       </div>
     </div>`;
@@ -1694,7 +1700,7 @@ async function verifyDocAttestation() {
 
 // ── Enter key ─────────────────────────────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("idInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") verify();
   });
@@ -1704,7 +1710,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (o && !o.hidden) closeQrScanner();
     }
   });
-  init();
+  await init();
 });
 </script>
 </body>

@@ -1,0 +1,20 @@
+{
+  "lang": {
+    "switchLabel": "Language"
+  },
+  "nav": {
+    "creator": "Creator ID",
+    "passport": "Passport",
+    "verify": "Verify"
+  },
+  "footer": {
+    "license": "MIT License",
+    "author": "Andrei Chernikov"
+  },
+  "netTitle": "Polygon PoS mainnet",
+  "registry": {
+    "hintLocal": "Set NET.contract, add registry-config.json, or open once with ?contract=0x… (40 hex chars).",
+    "hintProduction": "Set repository secret or variable ODP_CONTRACT_ADDRESS under Settings → Secrets and variables → Actions, then redeploy. Or open this page once with ?contract=0x… in the URL.",
+    "readmeLink": "See README"
+  }
+}

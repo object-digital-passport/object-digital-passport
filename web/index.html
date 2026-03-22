@@ -7,37 +7,49 @@
 <meta name="color-scheme" content="dark">
 <title>ODP v0.1 — Web demo</title>
 <link rel="stylesheet" href="odp.css">
+<script src="odp-i18n.js?v=2"></script>
 </head>
 <body>
 <div class="page">
   <header class="header-row">
     <div class="header-left">
-      <h1>Object Digital Passport</h1>
-      <p class="sub">Reference web UI (v0.1) · same files as in the repo</p>
+      <h1 data-i18n="index.meta.h1">Object Digital Passport</h1>
+      <p class="sub" data-i18n="index.meta.sub">Reference web UI (v0.1) · same files as in the repo</p>
+    </div>
+    <div class="header-toolbar">
+      <div id="odpLangSwitch"></div>
     </div>
   </header>
   <div class="nav">
-    <a href="https://object-digital-passport.github.io/object-digital-passport/creator.html">Creator ID</a>
-    <a href="https://object-digital-passport.github.io/object-digital-passport/passport.html">Passport</a>
-    <a href="https://object-digital-passport.github.io/object-digital-passport/verify.html">Verify</a>
+    <a href="https://object-digital-passport.github.io/object-digital-passport/creator.html" data-i18n="nav.creator">Creator ID</a>
+    <a href="https://object-digital-passport.github.io/object-digital-passport/passport.html" data-i18n="nav.passport">Passport</a>
+    <a href="https://object-digital-passport.github.io/object-digital-passport/verify.html" data-i18n="nav.verify">Verify</a>
   </div>
   <div class="card" style="margin-top:24px">
-    <div class="card-head">Open a page</div>
+    <div class="card-head" data-i18n="index.cardTitle">Open a page</div>
     <div class="card-body">
-      <p class="fhint" style="margin-bottom:16px">These are static pages; connect a wallet where needed. Polygon PoS RPC is required for chain reads.</p>
+      <p class="fhint" style="margin-bottom:16px" data-i18n="index.lead">These are static pages; connect a wallet where needed. Polygon PoS RPC is required for chain reads.</p>
       <div style="display:flex;flex-direction:column;gap:10px">
-        <a href="https://object-digital-passport.github.io/object-digital-passport/verify.html"><button class="btn" style="width:100%">Verify — no wallet</button></a>
-        <a href="https://object-digital-passport.github.io/object-digital-passport/creator.html"><button class="btn btn-sec" style="width:100%">Register Creator ID</button></a>
-        <a href="https://object-digital-passport.github.io/object-digital-passport/passport.html"><button class="btn btn-sec" style="width:100%">Mint a passport</button></a>
+        <a href="https://object-digital-passport.github.io/object-digital-passport/verify.html"><button class="btn" style="width:100%" data-i18n="index.btnVerify">Verify — no wallet</button></a>
+        <a href="https://object-digital-passport.github.io/object-digital-passport/creator.html"><button class="btn btn-sec" style="width:100%" data-i18n="index.btnCreator">Register Creator ID</button></a>
+        <a href="https://object-digital-passport.github.io/object-digital-passport/passport.html"><button class="btn btn-sec" style="width:100%" data-i18n="index.btnPassport">Mint a passport</button></a>
       </div>
     </div>
   </div>
   <p style="margin-top:24px;font-size:12px;color:var(--text3)">
-    <a href="https://github.com/object-digital-passport/object-digital-passport" style="color:var(--accent)">Source on GitHub</a>
-    · <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" style="color:var(--accent)">README</a>
+    <a href="https://github.com/object-digital-passport/object-digital-passport" style="color:var(--accent)" data-i18n="index.source">Source on GitHub</a>
+    · <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" style="color:var(--accent)" data-i18n="index.readme">README</a>
     · <span style="color:var(--text3)">v0.1</span>
-    · <span style="color:var(--text3)">Andrei Chernikov</span>
+    · <span style="color:var(--text3)" data-i18n="footer.author">Andrei Chernikov</span>
   </p>
 </div>
+<script>
+function t(key) {
+  return typeof window.odpT === "function" ? window.odpT(key) : key;
+}
+document.addEventListener("DOMContentLoaded", async function () {
+  await odpInitI18n({ page: "index", pageTitleKey: "index.meta.documentTitle" });
+});
+</script>
 </body>
 </html>

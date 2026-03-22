@@ -11,7 +11,8 @@
 <title>ODP v0.2 — Create Passport</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js"></script>
+<script src="odp-contract.js?v=0.2.1"></script>
+<script src="odp-i18n.js?v=2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
@@ -20,39 +21,46 @@
 
 <header class="header-row">
   <div class="header-left">
-    <h1>Create Passport</h1>
-    <p class="sub">Object Digital Passport · Specification v0.2</p>
-    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5"></div>
+    <h1 data-i18n="passport.meta.h1">Create Passport</h1>
+    <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.2</p>
+    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
-  <div class="net-pill" title="Polygon PoS mainnet">
-    <div class="net-dot" id="netDot"></div>
-    <span id="netLabel">…</span>
+  <div class="header-toolbar">
+    <div id="odpLangSwitch"></div>
+    <div class="net-pill" data-i18n-title="netTitle" title="Polygon PoS mainnet">
+      <div class="net-dot" id="netDot"></div>
+      <span id="netLabel">…</span>
+    </div>
   </div>
 </header>
 
 <div class="nav">
-  <a href="creator.html">Creator ID</a>
-  <a href="passport.html" class="active">Passport</a>
-  <a href="verify.html">Verify</a>
+  <a href="creator.html" data-i18n="nav.creator">Creator ID</a>
+  <a href="passport.html" class="active" data-i18n="nav.passport">Passport</a>
+  <a href="verify.html" data-i18n="nav.verify">Verify</a>
 </div>
 
 
 <div id="app">
-  <div class="info n">Connecting wallet…</div>
+  <div class="info n" data-i18n="passport.appLoading">Connecting wallet…</div>
 </div>
 
 <footer>
   <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
   <span id="footerSiteVer"></span>
-  <span>MIT License</span>
-  <span>Andrei Chernikov</span>
+  <span data-i18n="footer.license">MIT License</span>
+  <span data-i18n="footer.author">Andrei Chernikov</span>
 </footer>
 
 </div>
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
+
+function t(key) {
+  return typeof window.odpT === "function" ? window.odpT(key) : key;
+}
 
 const POLYGON_RPC_FALLBACKS = [
   "https://polygon-bor.publicnode.com",
@@ -63,8 +71,8 @@ const NET = {
   name: "Polygon PoS", chainId: 137,
   rpc: POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  /** Temporary default: public Polygon v0.1 registry (byte 0). This UI targets v0.2+ — legacy is rejected on connect unless you override ?contract= / ODP_CONTRACT_ADDRESS. */
-  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
+  /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
+  contract: "",
   /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
   contractGenerationFallback: null,
 };
@@ -112,6 +120,11 @@ let walletConnectErrorNeutral = false;
 
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
 
+function passportStackStripHtml() {
+  if (typeof odpFormatStackSummaryHtml !== "function" || odpContractGeneration == null) return "";
+  return '<div class="odp-passport-stack-strip">' + odpFormatStackSummaryHtml(odpContractGeneration) + "</div>";
+}
+
 /** v0.2+ mints: gas only (no protocol fee). */
 function mintTxOpts() {
   return {};
@@ -134,11 +147,6 @@ async function disconnectWallet() {
   provider = null; signer = null; contract = null; wallet = null; creatorId = null;
   odpContractGeneration = null;
   ABI = null;
-  const sl = document.getElementById("odpStackLabel");
-  if (sl) {
-    sl.innerHTML = "";
-    sl.style.display = "none";
-  }
   connect();
 }
 
@@ -154,15 +162,15 @@ function renderConnectUI() {
     <div style="max-width:400px;margin:0 auto;text-align:center">
       ${errBanner}
       <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.7">
-        Connect your wallet to create a passport.<br>
-        You need a Creator ID first —
-        <a href="creator.html" style="color:var(--accent)">register here</a> if you don't have one.
+        ${esc(t("passport.connect.lead1"))}<br>
+        ${esc(t("passport.connect.lead2"))}
+        <a href="creator.html" style="color:var(--accent)">${esc(t("passport.connect.registerHere"))}</a> ${esc(t("passport.connect.lead3"))}
       </p>
       <div style="max-width:320px;margin:0 auto 12px">
         <div class="tt-opt" id="odpConnectWalletBtn" onclick="connectWallet()" style="padding:18px 12px">
           <div class="tt-icon">🔗</div>
-          <div class="tt-name">Connect wallet</div>
-          <div class="tt-desc">Browser extension (MetaMask, Rabby, …)</div>
+          <div class="tt-name">${esc(t("passport.connect.btnName"))}</div>
+          <div class="tt-desc">${esc(t("passport.connect.btnDesc"))}</div>
         </div>
       </div>
       <div id="connectErr" style="margin-top:12px"></div>
@@ -233,16 +241,16 @@ function noWalletHtml() {
   const mobileHint =
     !fileProto && mmApp
       ? `<div style="margin:14px 0 10px">
-          <a class="btn" href="${esc(mmApp)}" rel="noopener" style="display:inline-block;text-decoration:none">Open in MetaMask app</a>
-          <p class="fhint" style="margin:10px 0 0;font-size:11px">iPhone / Safari: there is no extension — MetaMask runs as an app with a built-in browser. This link opens the same page there so Connect works.</p>
+          <a class="btn" href="${esc(mmApp)}" rel="noopener" style="display:inline-block;text-decoration:none">${esc(t("passport.noWallet.mmOpen"))}</a>
+          <p class="fhint" style="margin:10px 0 0;font-size:11px">${esc(t("passport.noWallet.mmHint"))}</p>
         </div>`
       : "";
   return `<div class="info e" style="line-height:1.6;text-align:left">
-    No injected wallet (<code>window.ethereum</code>). On desktop, install
-    <a href="https://metamask.io" target="_blank" rel="noopener" style="color:var(--accent)">MetaMask</a>
-    or another extension, then reload.
+    ${esc(t("passport.noWallet.line1"))}
+    <a href="https://metamask.io" target="_blank" rel="noopener" style="color:var(--accent)">${esc(t("passport.noWallet.metaMask"))}</a>
+    ${esc(t("passport.noWallet.line2"))}
     ${mobileHint}
-    ${fileProto ? `<br><br><strong>file://</strong> — many wallets do not work on local files. Run a static server in <code>web/</code> (e.g. <code>npx serve .</code>) or use HTTPS.` : !mmApp ? `<br><br>Use <strong>https://</strong> or <strong>http://localhost</strong> if needed.` : ""}
+    ${fileProto ? `<br><br>${esc(t("passport.noWallet.fileProto"))}` : !mmApp ? `<br><br>${esc(t("passport.noWallet.httpsHint"))}` : ""}
   </div>`;
 }
 
@@ -253,7 +261,7 @@ async function connectWallet() {
   if (odpWalletConnectInFlight) {
     if (errEl)
       errEl.innerHTML =
-        `<div class="info e">Connection already in progress. Approve or reject the request in your wallet extension, then try again.</div>`;
+        `<div class="info e">${esc(t("passport.errors.connectInProgress"))}</div>`;
     return;
   }
   if (!eth) {
@@ -282,7 +290,7 @@ async function connectWallet() {
     const msg = String((e && e.message) || e);
     if (/already pending|request of type.*pending/i.test(msg)) {
       errEl.innerHTML =
-        `<div class="info e">A wallet request is already open. Use the <strong>wallet extension icon</strong> in the toolbar to approve or cancel — do not click Connect again until that finishes.</div>`;
+        `<div class="info e">${esc(t("passport.errors.walletPending"))}</div>`;
     } else {
       errEl.innerHTML = `<div class="info e">${esc(msg)}</div>`;
     }
@@ -324,17 +332,12 @@ async function _finish(p) {
   ABI = fin.abi;
   contract = fin.contract;
   if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(net);
-  const sl = document.getElementById("odpStackLabel");
-  if (sl) {
-    sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
-    sl.style.display = "";
-  }
   creatorId = await contract.getCreatorByWallet(wallet);
   if (!creatorId) {
     document.getElementById("app").innerHTML = `
       <div class="info w" style="text-align:center">
-        No Creator ID found for this wallet.<br>
-        <a href="creator.html" style="color:var(--accent)">Register your Creator ID first →</a>
+        ${esc(t("passport.noCreator.title"))}<br>
+        <a href="creator.html" style="color:var(--accent)">${esc(t("passport.noCreator.link"))}</a>
       </div>`;
     return;
   }
@@ -347,11 +350,11 @@ async function _finish(p) {
 async function loadMyPassports() {
   const el = document.getElementById("myPassportsList");
   if (!el || !contract || !wallet) return;
-  el.innerHTML = '<div class="pl-loading">Loading…</div>';
+  el.innerHTML = `<div class="pl-loading">${esc(t("passport.list.loading"))}</div>`;
   try {
     const ids = await contract.getPassportsByCreator(wallet);
     if (!ids || ids.length === 0) {
-      el.innerHTML = '<p class="pl-empty">No passports minted from this wallet yet.</p>';
+      el.innerHTML = `<p class="pl-empty">${esc(t("passport.list.empty"))}</p>`;
       return;
     }
     const rows = await Promise.all(ids.map(async (hid) => {
@@ -374,9 +377,9 @@ async function loadMyPassports() {
               <div class="pl-meta">${esc(r.objectType)} · ${esc(r.dateStr)}</div>
             </div>
             <div class="pl-actions">
-              <a href="${vbase}${encodeURIComponent(r.hid)}">Verify</a>
-              <button type="button" class="pl-url-btn" onclick='openPassportShareModal(${JSON.stringify(r.hid)})'>Share</button>
-              <button type="button" class="pl-url-btn" onclick='openPassportUrlEditor(${JSON.stringify(r.hid)})'>URLs</button>
+              <a href="${vbase}${encodeURIComponent(r.hid)}">${esc(t("passport.list.verifyLink"))}</a>
+              <button type="button" class="pl-url-btn" onclick='openPassportShareModal(${JSON.stringify(r.hid)})'>${esc(t("passport.list.share"))}</button>
+              <button type="button" class="pl-url-btn" onclick='openPassportUrlEditor(${JSON.stringify(r.hid)})'>${esc(t("passport.list.urls"))}</button>
             </div>
           </div>`).join("")}
       </div>`;
@@ -441,14 +444,14 @@ async function submitPassportUrls() {
   const newImg = document.getElementById("urlEditImageUrl").value.trim();
   const confirmed = document.getElementById("urlEditDataHash").value;
   if (newData.length > 512 || newImg.length > 512) {
-    errEl.innerHTML = '<div class="info e">Each URL must be at most 512 characters</div>';
+    errEl.innerHTML = `<div class="info e">${esc(t("passport.form.urlEdit.urlTooLong"))}</div>`;
     return;
   }
   const btn = document.getElementById("urlEditSubmit");
   btn.disabled = true;
   try {
     const tx = await contract.updatePassportUrls(humanId, newData, newImg, confirmed);
-    errEl.innerHTML = '<div class="info n">Confirm in wallet…</div>';
+    errEl.innerHTML = `<div class="info n">${esc(t("passport.form.urlEdit.confirmWallet"))}</div>`;
     await tx.wait();
     closeUrlModal();
     await loadMyPassports();
@@ -461,6 +464,30 @@ async function submitPassportUrls() {
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 
+function htmlCategoryOptionsPhysical() {
+  return [
+    ["artwork", "passport.form.catArtwork"],
+    ["photography", "passport.form.catPhotography"],
+    ["digital", "passport.form.catDigitalCarrier"],
+    ["collectible", "passport.form.catCollectible"],
+    ["document", "passport.form.catDocument"],
+    ["object", "passport.form.catObject"],
+  ].map(([v, k]) => `<option value="${v}">${esc(t(k))}</option>`).join("");
+}
+function htmlCategoryOptionsDigital() {
+  return `<option value="digital">${esc(t("passport.form.catDigitalOnly"))}</option>`;
+}
+function htmlSubtypeOptions() {
+  return [
+    ["image", "passport.form.subImage"],
+    ["video", "passport.form.subVideo"],
+    ["3d", "passport.form.sub3d"],
+    ["audio", "passport.form.subAudio"],
+    ["document", "passport.form.subDocument"],
+    ["other", "passport.form.subOther"],
+  ].map(([v, k]) => `<option value="${v}">${esc(t(k))}</option>`).join("");
+}
+
 function renderForm() {
   const net = NET;
   document.getElementById("app").innerHTML = `
@@ -469,116 +496,111 @@ function renderForm() {
       <div class="wdot on"></div>
       <div class="wbar-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
       <div class="wbar-id">${esc(creatorId)}</div>
-      <div class="wbar-dis" onclick="disconnectWallet()">Disconnect</div>
+      <div class="wbar-dis" onclick="disconnectWallet()">${esc(t("passport.walletBar.disconnect"))}</div>
     </div>
 
+    ${passportStackStripHtml()}
+
     <div class="card passport-list-card">
-      <div class="card-head">Your passports</div>
+      <div class="card-head">${esc(t("passport.form.yourPassports"))}</div>
       <div class="card-body" style="padding-top:12px">
-        <div id="myPassportsList" class="pl-loading">Loading…</div>
+        <div id="myPassportsList" class="pl-loading">${esc(t("passport.list.loading"))}</div>
       </div>
     </div>
 
     <!-- Object type -->
     <div class="section">
-      <div class="section-label">Object type<span class="req">*</span></div>
+      <div class="section-label">${esc(t("passport.form.objectType"))}<span class="req">*</span></div>
       <div class="type-toggle">
         <div class="tt-opt sel" id="tt-physical" onclick="setType('physical')">
           <div class="tt-icon">🎨</div>
-          <div class="tt-name">Physical</div>
-          <div class="tt-desc">Artwork, photography, documents, collectibles — any physical object with a seal</div>
+          <div class="tt-name">${esc(t("passport.form.physicalName"))}</div>
+          <div class="tt-desc">${esc(t("passport.form.physicalDesc"))}</div>
         </div>
         <div class="tt-opt" id="tt-digital" onclick="setType('digital')">
           <div class="tt-icon">💾</div>
-          <div class="tt-name">Digital</div>
-          <div class="tt-desc">Image, video, 3D model, audio, document</div>
+          <div class="tt-name">${esc(t("passport.form.digitalName"))}</div>
+          <div class="tt-desc">${esc(t("passport.form.digitalDesc"))}</div>
         </div>
       </div>
     </div>
 
     <!-- Basic info -->
     <div class="section">
-      <div class="section-label">Basic info</div>
-      <div class="field"><label>Title<span class="req">*</span></label>
-        <input type="text" id="f_title" placeholder="My Work #1"></div>
-      <div class="field"><label>Your name<span class="req">*</span></label>
-        <input type="text" id="f_name" placeholder="Name as shown in passport"></div>
+      <div class="section-label">${esc(t("passport.form.basicInfo"))}</div>
+      <div class="field"><label>${esc(t("passport.form.labelTitle"))}<span class="req">*</span></label>
+        <input type="text" id="f_title" placeholder="${esc(t("passport.form.phTitle"))}"></div>
+      <div class="field"><label>${esc(t("passport.form.labelYourName"))}<span class="req">*</span></label>
+        <input type="text" id="f_name" placeholder="${esc(t("passport.form.phName"))}"></div>
       <div class="row2">
-        <div class="field"><label>Category<span class="req">*</span></label>
-          <select id="f_type">
-            <option value="artwork">Artwork</option>
-            <option value="photography">Photography</option>
-            <option value="digital">Digital (physical carrier)</option>
-            <option value="collectible">Collectible</option>
-            <option value="document">Document</option>
-            <option value="object">Object</option>
-          </select></div>
-        <div class="field"><label>Year<span class="req">*</span></label>
+        <div class="field"><label>${esc(t("passport.form.labelCategory"))}<span class="req">*</span></label>
+          <select id="f_type">${htmlCategoryOptionsPhysical()}</select></div>
+        <div class="field"><label>${esc(t("passport.form.labelYear"))}<span class="req">*</span></label>
           <input type="number" id="f_year" value="${new Date().getFullYear()}" min="2000" max="2100"></div>
       </div>
       <div id="physExtra">
         <div class="row2">
-          <div class="field"><label>Edition №</label><input type="number" id="f_edn" placeholder="1" min="1"></div>
-          <div class="field"><label>Edition total</label><input type="number" id="f_edt" placeholder="3" min="1"></div>
+          <div class="field"><label>${esc(t("passport.form.labelEditionNum"))}</label><input type="number" id="f_edn" placeholder="${esc(t("passport.form.phEdition"))}" min="1"></div>
+          <div class="field"><label>${esc(t("passport.form.labelEditionTotal"))}</label><input type="number" id="f_edt" placeholder="${esc(t("passport.form.phEditionTotal"))}" min="1"></div>
         </div>
-        <div class="field"><label>Medium</label><input type="text" id="f_medium" placeholder="Mixed media, Polaroid"></div>
-        <div class="field"><label>Materials</label>
-          <input type="text" id="f_mat" placeholder="Canvas, oil paint, wood (comma-separated)">
+        <div class="field"><label>${esc(t("passport.form.labelMedium"))}</label><input type="text" id="f_medium" placeholder="${esc(t("passport.form.phMedium"))}"></div>
+        <div class="field"><label>${esc(t("passport.form.labelMaterials"))}</label>
+          <input type="text" id="f_mat" placeholder="${esc(t("passport.form.phMaterials"))}">
         </div>
       </div>
       <div id="digitalExtra" style="display:none">
         <div class="row2">
-          <div class="field"><label>Subtype<span class="req">*</span></label>
-            <select id="f_sub"><option value="image">Image</option><option value="video">Video</option><option value="3d">3D Model</option><option value="audio">Audio</option><option value="document">Document</option><option value="other">Other</option></select></div>
-          <div class="field"><label>Format</label><input type="text" id="f_fmt" placeholder="TIFF, ProRes, GLB…"></div>
+          <div class="field"><label>${esc(t("passport.form.labelSubtype"))}<span class="req">*</span></label>
+            <select id="f_sub">${htmlSubtypeOptions()}</select></div>
+          <div class="field"><label>${esc(t("passport.form.labelFormat"))}</label><input type="text" id="f_fmt" placeholder="${esc(t("passport.form.phFormat"))}"></div>
         </div>
       </div>
-      <div class="field"><label>Description</label>
-        <textarea id="f_desc" placeholder="Optional description…"></textarea></div>
+      <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
+        <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
     </div>
 
     <!-- Passport URL -->
     <div class="section">
-      <div class="section-label">Hosting</div>
+      <div class="section-label">${esc(t("passport.form.hosting"))}</div>
       <div id="skipPublicUrlRow" class="field" style="margin-bottom:12px;${odpSupportsOptionalDataUrl(odpContractGeneration) ? "" : "display:none"}">
         <label class="fhint" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
           <input type="checkbox" id="f_skip_public_url" onchange="syncHostingInputs()">
-          <span><strong>No public JSON URL</strong> — mint with an empty on-chain <code>dataUrl</code>. The public Verify page cannot fetch your passport from the web; <strong>only</strong> someone with your canonical <code>passport.json</code> file can check details and authenticity. You can add a URL later via <strong>Update hosting URLs</strong>.</span>
+          <span>${esc(t("passport.form.skipPublicUrl"))}</span>
         </label>
       </div>
       <div id="hostingModeRow" class="field" style="margin-bottom:12px">
         <label class="fhint" style="display:flex;align-items:center;gap:10px;cursor:pointer">
           <input type="checkbox" id="f_use_folder" checked onchange="syncHostingInputs()">
-          <span>Use a folder on my site — after mint, the app registers <code>…/YourHumanID.json</code> automatically (one extra confirm in the wallet)</span>
+          <span>${esc(t("passport.form.useFolder"))}</span>
         </label>
       </div>
       <div id="hostingFolderRow" class="field">
         <div class="field-label-row">
-          <label for="f_urlBase">HTTPS folder for passport files<span class="req">*</span></label>
-          <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How hosting works" aria-label="How hosting works">ⓘ</button>
+          <label for="f_urlBase">${esc(t("passport.form.folderUrlLabel"))}<span class="req">*</span></label>
+          <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="${esc(t("passport.form.hostingInfoTitle"))}" aria-label="${esc(t("passport.form.hostingInfoTitle"))}">ⓘ</button>
         </div>
-        <input type="url" id="f_urlBase" placeholder="https://art.com/passport">
-        <p class="fhint">No filename — just the folder. After mint, upload <strong>one file</strong> named <code>ODP-YYYY-MM-NNNNNNN.json</code> (your real Human ID from the success screen, same casing). The on-chain <code>dataUrl</code> will be <code>your-folder/ODP-….json</code>.</p>
+        <input type="url" id="f_urlBase" placeholder="${esc(t("passport.form.folderUrlPh"))}">
+        <p class="fhint">${esc(t("passport.form.folderHint"))}</p>
       </div>
       <div id="hostingFullRow" class="field" style="display:none">
         <div class="field-label-row">
-          <label for="f_url">Full URL to passport.json<span class="req">*</span></label>
-          <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How third-party JSON hosting works" aria-label="How third-party JSON hosting works">ⓘ</button>
+          <label for="f_url">${esc(t("passport.form.fullUrlLabel"))}<span class="req">*</span></label>
+          <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="${esc(t("passport.form.hostingInfoTitleFull"))}" aria-label="${esc(t("passport.form.hostingInfoTitleFull"))}">ⓘ</button>
         </div>
-        <input type="url" id="f_url" placeholder="https://example.com/odp/passport-001.json">
-        <p class="fhint">Exact public HTTPS URL of the file after you upload it. Use this if you already know the full path (without using the folder option above).</p>
+        <input type="url" id="f_url" placeholder="${esc(t("passport.form.fullUrlPh"))}">
+        <p class="fhint">${esc(t("passport.form.fullUrlHint"))}</p>
       </div>
     </div>
 
     <!-- Digital file -->
     <div id="digitalFile" style="display:none">
       <div class="section">
-        <div class="section-label">Original file<span class="req">*</span></div>
-        <div class="info w">⚠ Register BEFORE sharing the original. Publish only compressed or watermarked versions after.</div>
+        <div class="section-label">${esc(t("passport.form.digitalFile"))}<span class="req">*</span></div>
+        <div class="info w">${esc(t("passport.form.digitalWarn"))}</div>
         <div class="fdrop" id="fileDrop" onclick="document.getElementById('fileIn').click()">
           <input type="file" id="fileIn" onchange="hashFile(event)">
           <div class="fdrop-icon">📂</div>
-          <div class="fdrop-text">Drop original file or click to select<br><span style="font-size:11px;opacity:0.6">SHA-256 computed locally — never uploaded</span></div>
+          <div class="fdrop-text">${esc(t("passport.form.fdropFileLine1"))}<br><span style="font-size:11px;opacity:0.6">${esc(t("passport.form.fdropFileLine2"))}</span></div>
         </div>
         <div id="fileInfo"></div>
       </div>
@@ -586,48 +608,48 @@ function renderForm() {
 
     <!-- Preview image -->
     <div class="section">
-      <div class="section-label">Preview image (optional)</div>
+      <div class="section-label">${esc(t("passport.form.previewImage"))}</div>
       <div class="fdrop" id="imgDrop" onclick="document.getElementById('imgIn').click()">
         <input type="file" id="imgIn" accept="image/*" onchange="hashImg(event)">
         <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">Drop image or click to select<br><span style="font-size:11px;opacity:0.6">Hash computed locally</span></div>
+        <div class="fdrop-text">${esc(t("passport.form.fdropImgLine1"))}<br><span style="font-size:11px;opacity:0.6">${esc(t("passport.form.fdropImgLine2"))}</span></div>
       </div>
       <div id="imgInfo"></div>
       <div class="field" style="margin-top:10px">
-        <label>Image URL</label>
-        <input type="url" id="f_imgUrl" placeholder="https://yoursite.com/preview.jpg">
+        <label>${esc(t("passport.form.labelImageUrl"))}</label>
+        <input type="url" id="f_imgUrl" placeholder="${esc(t("passport.form.phImageUrl"))}">
       </div>
     </div>
 
     <!-- Physical seal -->
     <div id="sealSection">
       <div class="section">
-        <div class="section-label">Physical seal<span class="req">*</span></div>
-        <p class="fhint" style="margin-bottom:12px">A seal binds this passport to the specific physical object. At least one method required.</p>
+        <div class="section-label">${esc(t("passport.form.physicalSeal"))}<span class="req">*</span></div>
+        <p class="fhint" style="margin-bottom:12px">${esc(t("passport.form.sealLead"))}</p>
 
         <div class="seal-grid">
           <div class="seal-opt" id="s1" onclick="setSeal(1)">
-            <span class="seal-icon">📡</span>NFC only<br><small style="color:var(--text3)">TagTamper chip</small>
+            <span class="seal-icon">📡</span>${esc(t("passport.form.sealNfc"))}<br><small style="color:var(--text3)">${esc(t("passport.form.sealNfcSmall"))}</small>
           </div>
           <div class="seal-opt sel" id="s2" onclick="setSeal(2)">
-            <span class="seal-icon">🔢</span>Numbered only<br><small style="color:var(--text3)">sticker, seal</small>
+            <span class="seal-icon">🔢</span>${esc(t("passport.form.sealNum"))}<br><small style="color:var(--text3)">${esc(t("passport.form.sealNumSmall"))}</small>
           </div>
           <div class="seal-opt" id="s3" onclick="setSeal(3)">
-            <span class="seal-icon">🔐</span>Both<br><small style="color:var(--text3)">TagTamper + numbered</small>
+            <span class="seal-icon">🔐</span>${esc(t("passport.form.sealBoth"))}<br><small style="color:var(--text3)">${esc(t("passport.form.sealBothSmall"))}</small>
           </div>
         </div>
 
         <div id="nfcFields" style="display:none">
           <div class="acc open" id="nfcAcc">
-            <div class="acc-head" onclick="tog('nfcAcc')">NFC chip (TagTamper only)<span class="acc-arr">▶</span></div>
+            <div class="acc-head" onclick="tog('nfcAcc')">${esc(t("passport.form.nfcAccTitle"))}<span class="acc-arr">▶</span></div>
             <div class="acc-body">
-              <p class="fhint" style="margin:0 0 12px">Protocol + contract: <strong>NTAG424DNA_TT</strong> (NXP NTAG 424 DNA TagTamper) only. Non–TagTamper chips cannot be minted.</p>
+              <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.nfcLead"))}</p>
               <input type="hidden" id="f_nmod" value="NTAG424DNA_TT">
-              <div class="field"><label>Chip UID<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="04a3f912cc8b4e"></div>
-              <div class="field"><label>Public key<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="04b2e3f1a9c3d2…"></div>
+              <div class="field"><label>${esc(t("passport.form.labelChipUid"))}<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="${esc(t("passport.form.phChipUid"))}"></div>
+              <div class="field"><label>${esc(t("passport.form.labelPubKey"))}<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="${esc(t("passport.form.phPubKey"))}"></div>
               <div class="row2">
-                <div class="field"><label>Installed<span class="req">*</span></label><input type="text" id="f_ndate" value="${new Date().toISOString().slice(0,10)}"></div>
-                <div class="field"><label>Notes</label><input type="text" id="f_nnotes" placeholder="Under varnish, corner"></div>
+                <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label><input type="text" id="f_ndate" value="${new Date().toISOString().slice(0,10)}"></div>
+                <div class="field"><label>${esc(t("passport.form.labelNfcNotes"))}</label><input type="text" id="f_nnotes" placeholder="${esc(t("passport.form.phNfcNotes"))}"></div>
               </div>
             </div>
           </div>
@@ -635,16 +657,16 @@ function renderForm() {
 
         <div id="numFields">
           <div class="acc open" id="numAcc">
-            <div class="acc-head" onclick="tog('numAcc')">Numbered seal data<span class="acc-arr">▶</span></div>
+            <div class="acc-head" onclick="tog('numAcc')">${esc(t("passport.form.numAccTitle"))}<span class="acc-arr">▶</span></div>
             <div class="acc-body">
               <div class="row2">
-                <div class="field"><label>Seal number<span class="req">*</span></label><input type="text" id="f_snum" placeholder="SL-00429831"></div>
-                <div class="field"><label>Seal type<span class="req">*</span></label><input type="text" id="f_stype" placeholder="holographic sticker"></div>
+                <div class="field"><label>${esc(t("passport.form.labelSealNum"))}<span class="req">*</span></label><input type="text" id="f_snum" placeholder="${esc(t("passport.form.phSealNum"))}"></div>
+                <div class="field"><label>${esc(t("passport.form.labelSealType"))}<span class="req">*</span></label><input type="text" id="f_stype" placeholder="${esc(t("passport.form.phSealType"))}"></div>
               </div>
               <div class="row3">
-                <div class="field"><label>Color</label><input type="text" id="f_scol" placeholder="silver"></div>
-                <div class="field"><label>Size</label><input type="text" id="f_ssz" placeholder="30x30mm"></div>
-                <div class="field"><label>Notes</label><input type="text" id="f_snotes" placeholder="Over signature"></div>
+                <div class="field"><label>${esc(t("passport.form.labelColor"))}</label><input type="text" id="f_scol" placeholder="${esc(t("passport.form.phColor"))}"></div>
+                <div class="field"><label>${esc(t("passport.form.labelSize"))}</label><input type="text" id="f_ssz" placeholder="${esc(t("passport.form.phSize"))}"></div>
+                <div class="field"><label>${esc(t("passport.form.labelSealNotes"))}</label><input type="text" id="f_snotes" placeholder="${esc(t("passport.form.phSealNotes"))}"></div>
               </div>
             </div>
           </div>
@@ -658,41 +680,41 @@ function renderForm() {
     <!-- Submit -->
     <div class="btn-row">
       <p class="fhint" style="width:100%;margin:0 0 12px;line-height:1.65">
-        This deployment (on-chain gen <strong>${odpContractGeneration}</strong>): <strong>Polygon gas</strong> (POL) only — no separate protocol fee. Typical ~US$0.01 (varies).
+        ${esc(t("passport.form.feeLine").replace("{gen}", String(odpContractGeneration)))}
       </p>
-      <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn">Mint Passport</button>
-      <button type="button" class="btn btn-ghost" onclick="previewJson()">Preview JSON</button>
+      <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn">${esc(t("passport.form.btnMint"))}</button>
+      <button type="button" class="btn btn-ghost" onclick="previewJson()">${esc(t("passport.form.btnPreviewJson"))}</button>
     </div>
     <div id="jsonPreview"></div>
 
     <div id="preMintModal" class="modal-backdrop" onclick="if(event.target===this)closePreMintModal()">
       <div class="modal-panel card" onclick="event.stopPropagation()">
-        <div class="card-head">Your passport file — confirm before minting</div>
+        <div class="card-head">${esc(t("passport.form.preModalTitle"))}</div>
         <div class="card-body">
           <div id="preMintWithUrlBlock">
             <p class="fhint" style="margin:0 0 12px;line-height:1.65">
-              The chain stores only a <strong>hash</strong> of your passport — <strong>not</strong> the full JSON. <strong>You</strong> must keep the canonical <code>passport.json</code> and host it at the <code>dataUrl</code> you register. If the file is missing or bytes differ from the hash, verification cannot succeed (see <strong>SPEC.md</strong> §9–§11).
+              ${esc(t("passport.form.preWithUrlP1"))}
             </p>
             <p class="fhint" style="margin:0 0 12px;line-height:1.65">
-              After mint, use <strong>Download</strong>, <strong>Share JSON file</strong>, or <strong>Copy JSON</strong> on the success screen, then upload the file to your HTTPS URL unchanged. You can <strong>update the URL later</strong> on-chain (gas only) via <strong>Update hosting URLs</strong>.
+              ${esc(t("passport.form.preWithUrlP2"))}
             </p>
           </div>
           <div id="preMintSkipUrlBlock" style="display:none">
             <p class="fhint" style="margin:0 0 12px;line-height:1.65">
-              You are minting <strong>without</strong> a public JSON URL (empty on-chain <code>dataUrl</code>). The Verify page will <strong>not</strong> be able to load or compare your passport from the network — the record is useless for public online checks until you add a URL later.
+              ${esc(t("passport.form.preSkipUrlP1"))}
             </p>
             <p class="fhint" style="margin:0 0 12px;line-height:1.65">
-              <strong>Only</strong> someone who holds the canonical <code>passport.json</code> file can check details and authenticity (hash vs <code>dataHash</code>). Keep that file safe and share it deliberately.
+              ${esc(t("passport.form.preSkipUrlP2"))}
             </p>
           </div>
           <label class="fhint" style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:14px 0">
             <input type="checkbox" id="preMintAck" style="margin-top:3px;flex-shrink:0">
-            <span id="preMintAckText">I understand: storing and hosting <code>passport.json</code> is my responsibility. Without that file at the registered URL, others cannot verify this passport.</span>
+            <span id="preMintAckText">${esc(t("passport.form.preAckWithUrl"))}</span>
           </label>
           <p id="preMintAckErr" class="info e" style="display:none;margin-top:8px"></p>
           <div class="btn-row" style="margin-top:18px">
-            <button type="button" class="btn" onclick="confirmPreMintAndMint()">Continue — open wallet</button>
-            <button type="button" class="btn btn-ghost" onclick="closePreMintModal()">Cancel</button>
+            <button type="button" class="btn" onclick="confirmPreMintAndMint()">${esc(t("passport.form.preContinue"))}</button>
+            <button type="button" class="btn btn-ghost" onclick="closePreMintModal()">${esc(t("passport.form.preCancel"))}</button>
           </div>
         </div>
       </div>
@@ -700,31 +722,31 @@ function renderForm() {
 
     <div id="hostingJsonInfoModal" class="modal-backdrop" onclick="if(event.target===this)closeHostingJsonInfo()">
       <div class="modal-panel card" onclick="event.stopPropagation()">
-        <div class="card-head">Hosting <code>passport.json</code> on the web</div>
+        <div class="card-head">${esc(t("passport.form.hostingModalHead"))}</div>
         <div class="card-body">
           <p class="fhint" style="margin-bottom:12px">
-            If you use <strong>folder hosting</strong> in the form, the app registers <code>your-folder/YourHumanID.json</code> for you after mint. Otherwise, paste the full file URL yourself.
+            ${esc(t("passport.form.hostingModalP1"))}
           </p>
           <p class="fhint" style="margin-bottom:12px">
-            The verifier loads your URL in the browser (same as opening the link). The response must be the <strong>raw JSON bytes</strong> of the passport — not an HTML page, not a login wall, not a pretty-printed GitHub file view.
+            ${esc(t("passport.form.hostingModalP2"))}
           </p>
           <p class="fhint" style="margin-bottom:12px">
-            <strong>HTTPS</strong> is required. Use a <strong>direct</strong> file URL that returns status <code>200</code> with the file body (e.g. <code>application/json</code> or plain text).
+            ${esc(t("passport.form.hostingModalP3"))}
           </p>
           <p class="fhint" style="margin-bottom:12px">
-            <strong>GitHub:</strong> use the <strong>Raw</strong> URL (<code>raw.githubusercontent.com/…</code> or Raw button), not the repository HTML page. After pushing, wait until the raw link shows your file.
+            ${esc(t("passport.form.hostingModalP4"))}
           </p>
           <p class="fhint" style="margin-bottom:12px">
-            <strong>Your site / CDN:</strong> upload the downloaded file unchanged to any static host (object storage, Netlify, Vercel, nginx, …). The path in the URL must match where you actually put the file.
+            ${esc(t("passport.form.hostingModalP5"))}
           </p>
           <p class="fhint" style="margin-bottom:12px">
-            <strong>CORS:</strong> verification runs in the browser; the host must allow cross-origin <code>GET</code> from the verifier page (many public static hosts and GitHub Raw do; a misconfigured private server may block the request).
+            ${esc(t("passport.form.hostingModalP6"))}
           </p>
           <p class="fhint" style="margin-bottom:0">
-            <strong>Bytes = truth:</strong> any change to whitespace or characters changes the SHA-256. Upload the exact file from the mint success screen unless you use tooling that reproduces the same canonical minified JSON.
+            ${esc(t("passport.form.hostingModalP7"))}
           </p>
           <div class="btn-row" style="margin-top:20px">
-            <button type="button" class="btn" onclick="closeHostingJsonInfo()">Close</button>
+            <button type="button" class="btn" onclick="closeHostingJsonInfo()">${esc(t("passport.form.hostingModalClose"))}</button>
           </div>
         </div>
       </div>
@@ -732,27 +754,25 @@ function renderForm() {
 
     <div id="urlModal" class="modal-backdrop" onclick="if(event.target===this)closeUrlModal()">
       <div class="modal-panel card" onclick="event.stopPropagation()">
-        <div class="card-head">Update hosting URLs</div>
+        <div class="card-head">${esc(t("passport.form.urlModalTitle"))}</div>
         <div class="card-body">
           <p class="fhint" style="margin-bottom:14px">
-            Change where <code>passport.json</code> and the optional image are hosted. Only the creator wallet can submit.
-            <code>dataHash</code> on-chain stays the same — the file at the new URL must still match that hash.
-            You only pay Polygon <strong>network gas</strong> (POL) in your wallet.
+            ${esc(t("passport.form.urlModalLead"))}
           </p>
           <input type="hidden" id="urlEditHid">
           <input type="hidden" id="urlEditDataHash">
           <div class="field">
             <div class="field-label-row">
-              <label for="urlEditDataUrl">Passport JSON URL (optional — leave empty to clear public URL)</label>
-              <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How third-party JSON hosting works" aria-label="How third-party JSON hosting works">ⓘ</button>
+              <label for="urlEditDataUrl">${esc(t("passport.form.urlDataUrlLabel"))}</label>
+              <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="${esc(t("passport.form.hostingInfoTitleFull"))}" aria-label="${esc(t("passport.form.hostingInfoTitleFull"))}">ⓘ</button>
             </div>
-            <input type="url" id="urlEditDataUrl" placeholder="https://…/passport.json" autocomplete="off"></div>
-          <div class="field"><label>Image URL (optional)</label>
-            <input type="url" id="urlEditImageUrl" placeholder="Leave empty to clear" autocomplete="off"></div>
+            <input type="url" id="urlEditDataUrl" placeholder="${esc(t("passport.form.phHttps"))}" autocomplete="off"></div>
+          <div class="field"><label>${esc(t("passport.form.urlImageLabel"))}</label>
+            <input type="url" id="urlEditImageUrl" placeholder="${esc(t("passport.form.phClearUrl"))}" autocomplete="off"></div>
           <div id="urlEditErr"></div>
           <div class="btn-row" style="margin-top:16px">
-            <button type="button" class="btn" id="urlEditSubmit" onclick="submitPassportUrls()">Update on-chain — gas only (POL)</button>
-            <button type="button" class="btn btn-ghost" onclick="closeUrlModal()">Cancel</button>
+            <button type="button" class="btn" id="urlEditSubmit" onclick="submitPassportUrls()">${esc(t("passport.form.urlSubmit"))}</button>
+            <button type="button" class="btn btn-ghost" onclick="closeUrlModal()">${esc(t("passport.form.urlCancel"))}</button>
           </div>
         </div>
       </div>
@@ -761,14 +781,14 @@ function renderForm() {
     <div id="shareModal" class="share-modal" hidden aria-hidden="true">
       <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
       <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
-        <button type="button" class="share-modal-x" id="shareModalClose" aria-label="Close">×</button>
-        <h3 id="shareModalTitle" class="share-modal-title">Share verification</h3>
+        <button type="button" class="share-modal-x" id="shareModalClose" aria-label="${esc(t("passport.form.shareCloseAria"))}">×</button>
+        <h3 id="shareModalTitle" class="share-modal-title">${esc(t("passport.form.shareVerifyTitle"))}</h3>
         <div id="shareModalQr"></div>
         <div id="shareModalUrl" class="share-modal-url"></div>
         <div class="share-modal-actions">
-          <button type="button" class="btn" id="shareModalDl">Download QR (PNG)</button>
-          <button type="button" class="btn btn-sec" id="shareModalCopy">Copy text</button>
-          <button type="button" class="btn btn-sec" id="shareModalNative">Share via device</button>
+          <button type="button" class="btn" id="shareModalDl">${esc(t("passport.form.shareDl"))}</button>
+          <button type="button" class="btn btn-sec" id="shareModalCopy">${esc(t("passport.form.shareCopy"))}</button>
+          <button type="button" class="btn btn-sec" id="shareModalNative">${esc(t("passport.form.shareNative"))}</button>
         </div>
       </div>
     </div>
@@ -800,18 +820,16 @@ function syncHostingInputs() {
 
 // ── Object type switch ────────────────────────────────────────────────────────
 
-function setType(t) {
-  objType = t;
-  document.getElementById("tt-physical").classList.toggle("sel", t==="physical");
-  document.getElementById("tt-digital").classList.toggle("sel",  t==="digital");
-  document.getElementById("physExtra").style.display    = t==="physical" ? "" : "none";
-  document.getElementById("digitalExtra").style.display = t==="digital"  ? "" : "none";
-  document.getElementById("sealSection").style.display  = t==="physical" ? "" : "none";
-  document.getElementById("digitalFile").style.display  = t==="digital"  ? "" : "none";
+function setType(ty) {
+  objType = ty;
+  document.getElementById("tt-physical").classList.toggle("sel", ty==="physical");
+  document.getElementById("tt-digital").classList.toggle("sel",  ty==="digital");
+  document.getElementById("physExtra").style.display    = ty==="physical" ? "" : "none";
+  document.getElementById("digitalExtra").style.display = ty==="digital"  ? "" : "none";
+  document.getElementById("sealSection").style.display  = ty==="physical" ? "" : "none";
+  document.getElementById("digitalFile").style.display  = ty==="digital"  ? "" : "none";
   const cat = document.getElementById("f_type");
-  if (cat) cat.innerHTML = t==="physical"
-    ? `<option value="artwork">Artwork</option><option value="photography">Photography</option><option value="digital">Digital (physical carrier)</option><option value="collectible">Collectible</option><option value="document">Document</option><option value="object">Object</option>`
-    : `<option value="digital">Digital</option>`;
+  if (cat) cat.innerHTML = ty === "physical" ? htmlCategoryOptionsPhysical() : htmlCategoryOptionsDigital();
 }
 
 // ── Seal switch ───────────────────────────────────────────────────────────────
@@ -831,7 +849,7 @@ function tog(id) { document.getElementById(id).classList.toggle("open"); }
 
 async function hashFile(e) {
   const f = e.target.files[0]; if (!f) return;
-  document.getElementById("fileInfo").innerHTML = `<div class="info n" style="margin-top:8px">Computing SHA-256…</div>`;
+  document.getElementById("fileInfo").innerHTML = `<div class="info n" style="margin-top:8px">${esc(t("passport.form.file.computingSha"))}</div>`;
   const buf = await f.arrayBuffer();
   const h   = await crypto.subtle.digest("SHA-256", buf);
   const hex = [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -843,7 +861,7 @@ async function hashFile(e) {
 
 async function hashImg(e) {
   const f = e.target.files[0]; if (!f) return;
-  document.getElementById("imgInfo").innerHTML = `<div class="info n" style="margin-top:8px">Computing SHA-256…</div>`;
+  document.getElementById("imgInfo").innerHTML = `<div class="info n" style="margin-top:8px">${esc(t("passport.form.file.computingSha"))}</div>`;
   const buf = await f.arrayBuffer();
   const h   = await crypto.subtle.digest("SHA-256", buf);
   imageHash = "0x"+[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -959,22 +977,22 @@ async function sha256obj(o) {
 // ── Validate ──────────────────────────────────────────────────────────────────
 
 function validate() {
-  if (!v("f_title"))   return "Title is required";
-  if (!v("f_name"))    return "Creator name is required";
+  if (!v("f_title"))   return t("passport.form.validateTitle");
+  if (!v("f_name"))    return t("passport.form.validateName");
   const skip =
     odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
   if (!skip) {
     const useFolder = document.getElementById("f_use_folder")?.checked !== false;
     if (useFolder) {
-      if (!normalizeBaseUrl(v("f_urlBase"))) return "Enter a valid HTTPS folder URL (e.g. https://art.com/passport)";
+      if (!normalizeBaseUrl(v("f_urlBase"))) return t("passport.form.validateFolderUrl");
     } else if (!v("f_url")) {
-      return "Passport JSON URL is required";
+      return t("passport.form.validateJsonUrl");
     }
   }
-  if (objType==="digital" && fileHashBytes32===ZERO32) return "Original file is required for digital objects";
+  if (objType==="digital" && fileHashBytes32===ZERO32) return t("passport.form.validateDigitalFile");
   if (objType==="physical") {
-    if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return "NFC chip UID and public key are required";
-    if ((sealType===2||sealType===3) && (!v("f_snum")||!v("f_stype"))) return "Seal number and type are required";
+    if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return t("passport.form.validateNfc");
+    if ((sealType===2||sealType===3) && (!v("f_snum")||!v("f_stype"))) return t("passport.form.validateSeal");
   }
   return null;
 }
@@ -998,8 +1016,8 @@ function openPreMintModal() {
   }
   if (ackText) {
     ackText.textContent = skip
-      ? "I understand: without a public JSON URL, the Verify page cannot load my file from the web; only people with the canonical passport.json can check details and authenticity against the on-chain hash."
-      : "I understand: storing and hosting passport.json is my responsibility. Without that file at the registered URL, others cannot verify this passport.";
+      ? t("passport.form.preAckSkipUrl")
+      : t("passport.form.preAckWithUrl");
   }
   const ack = document.getElementById("preMintAck");
   const preErr = document.getElementById("preMintAckErr");
@@ -1023,7 +1041,7 @@ function confirmPreMintAndMint() {
   if (!cb || !cb.checked) {
     if (preErr) {
       preErr.style.display = "block";
-      preErr.textContent = "Check the box to confirm you understand, then continue.";
+      preErr.textContent = t("passport.form.preAckErr");
     }
     return;
   }
@@ -1107,8 +1125,8 @@ async function executeMint() {
   document.getElementById("app").innerHTML = `
     <div style="text-align:center;padding:48px 0">
       <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
-      <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">Waiting for wallet…</div>
-      <div style="font-size:12px;color:var(--text2)">Please confirm the transaction in your wallet</div>
+      <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">${esc(t("passport.form.mintWaiting"))}</div>
+      <div style="font-size:12px;color:var(--text2)">${esc(t("passport.form.mintConfirmWallet"))}</div>
     </div>
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
 
@@ -1144,7 +1162,7 @@ async function executeMint() {
     document.getElementById("app").innerHTML = `
       <div style="text-align:center;padding:48px 0">
         <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
-        <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">Confirming…</div>
+        <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">${esc(t("passport.form.mintConfirming"))}</div>
         <div style="font-size:12px;color:var(--text2)">${tx.hash.slice(0,24)}…</div>
       </div>
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
@@ -1162,7 +1180,7 @@ async function executeMint() {
     }
 
     let registeredDataUrl = dataUrlForMint;
-    if (!humanId) throw new Error("Could not read Human ID from mint receipt.");
+    if (!humanId) throw new Error(t("passport.form.mintReadHumanId"));
 
     if (odpSupportsFolderBaseMint(odpContractGeneration) && dataUrlIsFolderBase) {
       registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
@@ -1171,8 +1189,8 @@ async function executeMint() {
       document.getElementById("app").innerHTML = `
         <div style="text-align:center;padding:48px 0">
           <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
-          <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">Registering file URL on-chain…</div>
-          <div style="font-size:12px;color:var(--text2)">Second wallet confirmation (gas only)</div>
+          <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">${esc(t("passport.form.mintRegisteringUrl"))}</div>
+          <div style="font-size:12px;color:var(--text2)">${esc(t("passport.form.mintSecondConfirm"))}</div>
         </div>
         <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
       try {
@@ -1180,11 +1198,11 @@ async function executeMint() {
       } catch (e2) {
         const want = esc(registeredDataUrl);
         document.getElementById("app").innerHTML = `<div class="info w" style="max-width:440px;margin:24px auto;line-height:1.6">
-          Mint succeeded, but updating the public file URL failed. Use <strong>URLs</strong> next to this passport in the list below and set the JSON URL to:<br><br>
+          ${esc(t("passport.form.mintUrlFail"))}<br><br>
           <code style="font-size:11px;word-break:break-all">${want}</code><br><br>
           ${esc(e2.message || String(e2))}
         </div>
-        <div style="text-align:center;margin-top:16px"><button class="btn" onclick="renderForm()">Back to form</button></div>`;
+        <div style="text-align:center;margin-top:16px"><button class="btn" onclick="renderForm()">${esc(t("passport.form.mintBackForm"))}</button></div>`;
         return;
       }
     }
@@ -1261,7 +1279,7 @@ function fillPassportShareModal(humanId) {
     copyB.onclick = () => {
       navigator.clipboard
         .writeText(sharePayload)
-        .then(() => alert("Copied to clipboard."))
+        .then(() => alert(t("passport.form.alerts.copied")))
         .catch(() => prompt("Copy:", sharePayload));
     };
   }
@@ -1294,11 +1312,11 @@ async function shareOdpVerify({ title, text, url, fullText }) {
   }
   try {
     await navigator.clipboard.writeText(body);
-    alert("Copied to clipboard.");
+    alert(t("passport.form.alerts.copied"));
   } catch {
     try {
       await navigator.clipboard.writeText(url);
-      alert("Link copied to clipboard.");
+      alert(t("passport.form.alerts.linkCopied"));
     } catch {
       prompt("Copy:", body);
     }
@@ -1310,7 +1328,7 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
   if (!el) return;
   el.innerHTML = "";
   if (typeof QRCode === "undefined") {
-    el.innerHTML = `<div class="qr-fail">QR library did not load (network / CDN blocked).<br><a href="${esc(fallbackUrl)}">${esc(fallbackUrl)}</a></div>`;
+    el.innerHTML = `<div class="qr-fail">${esc(t("passport.form.qrFail"))}<br><a href="${esc(fallbackUrl)}">${esc(fallbackUrl)}</a></div>`;
     return;
   }
   const w = 168;
@@ -1359,7 +1377,7 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
         try {
           make(fallbackUrl, false, specShort !== null ? specShort : undefined);
         } catch (e2) {
-          el.innerHTML = `<div class="qr-fail">Could not generate QR. <a href="${esc(fallbackUrl)}">Open verify link</a><br><span style="font-size:10px;color:var(--text3)">${esc(
+          el.innerHTML = `<div class="qr-fail">${esc(t("passport.form.qrGenFail"))} <a href="${esc(fallbackUrl)}">${esc(t("passport.form.qrOpenVerify"))}</a><br><span style="font-size:10px;color:var(--text3)">${esc(
             String((e2 && e2.message) || (e1 && e1.message) || "unknown")
           )}</span></div>`;
         }
@@ -1373,54 +1391,55 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
   const rel = getVerifyRelativePath(humanId);
   const hasPublicUrl = dataUrlOnChain && String(dataUrlOnChain).trim().length > 0;
   const uploadHint = hasPublicUrl
-    ? `Upload the downloaded file <strong>unchanged</strong> to this exact HTTPS URL (same bytes → hash matches <code>dataHash</code>):<br><code style="font-size:11px;word-break:break-all">${esc(dataUrlOnChain)}</code>`
-    : `No public JSON URL is registered on-chain. Share the downloaded <code>passport.json</code> only with people who must verify — only that file can be checked against <code>dataHash</code>. You can add a URL later via <strong>Update hosting URLs</strong>.`;
+    ? `${esc(t("passport.form.successUploadWithUrl"))}<br><code style="font-size:11px;word-break:break-all">${esc(dataUrlOnChain)}</code>`
+    : esc(t("passport.form.successNoPublicUrl"));
+  const step3 = esc(t("passport.form.successStep3").replace("{creatorId}", creatorId));
 
   document.getElementById("app").innerHTML = `
     <div class="success">
       <div class="success-icon">✓</div>
       <div class="success-title">${esc(title)}</div>
       <span class="success-id">${esc(humanId)}</span>
-      <p class="success-sub">Registered on ${esc(net.name)}</p>
+      <p class="success-sub">${esc(t("passport.form.successRegisteredOn").replace("{net}", net.name))}</p>
 
       <div class="qr-share-block">
-        <p class="qr-share-caption">Open <strong>Share</strong> to get a QR, the link, download the image, or send via your device.</p>
+        <p class="qr-share-caption">${esc(t("passport.form.successShareCaption"))}</p>
         <div class="qr-share-actions">
-          <button type="button" class="btn btn-sec" id="sharePassportBtn">Share</button>
+          <button type="button" class="btn btn-sec" id="sharePassportBtn">${esc(t("passport.form.successShareBtn"))}</button>
         </div>
       </div>
 
       <div class="next-steps">
         <div class="ns-item"><div class="ns-num">1</div><div>${uploadHint}</div></div>
-        <div class="ns-item"><div class="ns-num">2</div><div>Use <strong>Share</strong>: QR encodes <code>odp://</code> + Human ID (SPEC).</div></div>
-        <div class="ns-item"><div class="ns-num">3</div><div>Make sure your Creator ID <strong>${esc(creatorId)}</strong> is published on your website and social profiles.</div></div>
+        <div class="ns-item"><div class="ns-num">2</div><div>${esc(t("passport.form.successStep2"))}</div></div>
+        <div class="ns-item"><div class="ns-num">3</div><div>${step3}</div></div>
       </div>
 
       <div class="info n" style="max-width:480px;margin:0 auto 16px;text-align:left;line-height:1.65;font-size:12px">
-        <strong>iPhone / MetaMask in-app browser:</strong> a plain download may not appear in Files. Use <strong>Share JSON file</strong> (Save to Files / iCloud) or <strong>Copy JSON</strong>, then upload the file to your host unchanged.
+        ${esc(t("passport.form.successIphoneHint"))}
       </div>
 
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
-        <button type="button" class="btn" id="successDlJsonBtn" style="flex:0;padding:13px 20px">Download JSON</button>
-        <button type="button" class="btn btn-sec" id="successShareJsonBtn" style="flex:0;padding:13px 20px">Share JSON file</button>
-        <button type="button" class="btn btn-sec" id="successCopyJsonBtn" style="flex:0;padding:13px 20px">Copy JSON</button>
-        <a href="${net.explorer}/tx/${txHash}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn btn-ghost">Explorer ↗</button></a>
-        <a href="${esc(rel)}"><button type="button" class="btn btn-ghost">Verify ↗</button></a>
-        <button type="button" class="btn btn-ghost" onclick="renderForm()">New Passport</button>
+        <button type="button" class="btn" id="successDlJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDlJson"))}</button>
+        <button type="button" class="btn btn-sec" id="successShareJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successShareJson"))}</button>
+        <button type="button" class="btn btn-sec" id="successCopyJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successCopyJson"))}</button>
+        <a href="${net.explorer}/tx/${txHash}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn btn-ghost">${esc(t("passport.form.successExplorer"))}</button></a>
+        <a href="${esc(rel)}"><button type="button" class="btn btn-ghost">${esc(t("passport.form.successVerify"))}</button></a>
+        <button type="button" class="btn btn-ghost" onclick="renderForm()">${esc(t("passport.form.successNewPassport"))}</button>
       </div>
     </div>
 
     <div id="shareModal" class="share-modal" hidden aria-hidden="true">
       <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
       <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
-        <button type="button" class="share-modal-x" id="shareModalClose" aria-label="Close">×</button>
-        <h3 id="shareModalTitle" class="share-modal-title">Share verification</h3>
+        <button type="button" class="share-modal-x" id="shareModalClose" aria-label="${esc(t("passport.form.shareCloseAria"))}">×</button>
+        <h3 id="shareModalTitle" class="share-modal-title">${esc(t("passport.form.shareVerifyTitle"))}</h3>
         <div id="shareModalQr"></div>
         <div id="shareModalUrl" class="share-modal-url"></div>
         <div class="share-modal-actions">
-          <button type="button" class="btn" id="shareModalDl">Download QR (PNG)</button>
-          <button type="button" class="btn btn-sec" id="shareModalCopy">Copy text</button>
-          <button type="button" class="btn btn-sec" id="shareModalNative">Share via device</button>
+          <button type="button" class="btn" id="shareModalDl">${esc(t("passport.form.shareDl"))}</button>
+          <button type="button" class="btn btn-sec" id="shareModalCopy">${esc(t("passport.form.shareCopy"))}</button>
+          <button type="button" class="btn btn-sec" id="shareModalNative">${esc(t("passport.form.shareNative"))}</button>
         </div>
       </div>
     </div>`;
@@ -1494,11 +1513,11 @@ async function sharePassportJsonFile(humanId, json) {
 async function copyPassportJsonText(json, btnEl) {
   try {
     await navigator.clipboard.writeText(json);
-    const t = btnEl.textContent;
-    btnEl.textContent = "Copied!";
-    setTimeout(() => { btnEl.textContent = t; }, 2000);
+    const prev = btnEl.textContent;
+    btnEl.textContent = t("passport.form.alerts.copiedBtn");
+    setTimeout(() => { btnEl.textContent = prev; }, 2000);
   } catch (e) {
-    alert("Copy failed: " + (e.message || String(e)));
+    alert(t("passport.form.alerts.copyFailed") + (e.message || String(e)));
   }
 }
 
@@ -1518,6 +1537,7 @@ document.addEventListener("keydown", (e) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await odpInitI18n({ page: "passport", pageTitleKey: "passport.meta.documentTitle" });
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
@@ -1529,7 +1549,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     odpInstallSingleAccountGuard(eth, {
       onMultiple: async function () {
         var r = await odpRequireSingleEthereumAccount(eth);
-        walletConnectError = r.message || "Multiple accounts connected.";
+        walletConnectError = r.message || t("passport.multiAccount");
         await disconnectWallet();
       },
       onEmpty: async function () {
@@ -1574,11 +1594,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               odpContractGeneration = fin.generation;
               ABI = fin.abi;
               contract = fin.contract;
-              const sl = document.getElementById("odpStackLabel");
-              if (sl) {
-                sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
-                sl.style.display = "";
-              }
               creatorId = await contract.getCreatorByWallet(wallet);
               if (creatorId) {
                 renderForm();
@@ -1587,8 +1602,8 @@ document.addEventListener("DOMContentLoaded", async () => {
               }
               document.getElementById("app").innerHTML = `
       <div class="info w" style="text-align:center">
-        No Creator ID found for this wallet.<br>
-        <a href="creator.html" style="color:var(--accent)">Register your Creator ID first →</a>
+        ${esc(t("passport.noCreator.title"))}<br>
+        <a href="creator.html" style="color:var(--accent)">${esc(t("passport.noCreator.link"))}</a>
       </div>`;
               initNetPill();
               return;

@@ -1,0 +1,20 @@
+{
+  "lang": {
+    "switchLabel": "Язык"
+  },
+  "nav": {
+    "creator": "Creator ID",
+    "passport": "Паспорт",
+    "verify": "Проверка"
+  },
+  "footer": {
+    "license": "Лицензия MIT",
+    "author": "Андрей Черников"
+  },
+  "netTitle": "Polygon PoS (основная сеть)",
+  "registry": {
+    "hintLocal": "Укажите NET.contract, добавьте registry-config.json или откройте страницу один раз с ?contract=0x… (40 hex-символов).",
+    "hintProduction": "Задайте секрет или переменную ODP_CONTRACT_ADDRESS в Settings → Secrets and variables → Actions, затем выполните деплой. Или один раз откройте страницу с ?contract=0x… в URL.",
+    "readmeLink": "README"
+  }
+}

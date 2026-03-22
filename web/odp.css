@@ -79,6 +79,56 @@ header.header-row {
 
 .header-left { flex: 1; min-width: 0; }
 
+.header-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.odp-lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.odp-lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  background: var(--bg2);
+  color: var(--text2);
+  font-size: 10px;
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.odp-lang-btn:hover {
+  color: var(--text);
+  border-color: var(--text3);
+}
+
+.odp-lang-btn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.odp-lang-emoji {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.odp-lang-abbr {
+  font-weight: 600;
+}
+
 header:not(.header-row) {
   text-align: center;
 }
@@ -1416,6 +1466,7 @@ a, button, .btn, label[for], select {
     min-height: 48px;
   }
   header.header-row { flex-direction: column; align-items: flex-start; }
+  .header-toolbar { width: 100%; justify-content: flex-end; flex-wrap: wrap; }
   .pl-row {
     grid-template-columns: 1fr;
     gap: 8px;
@@ -1504,6 +1555,88 @@ a, button, .btn, label[for], select {
   margin: 8px 0 0;
   padding-top: 8px;
   border-top: 1px solid var(--border);
+}
+.odp-stack-block--compact {
+  padding: 8px 10px;
+}
+.odp-stack-block--compact .odp-stack-row {
+  margin-bottom: 0;
+  align-items: center;
+}
+.odp-stack-details-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: var(--panel);
+  color: var(--accent);
+  cursor: pointer;
+}
+.odp-stack-details-btn:hover {
+  border-color: var(--accent);
+  opacity: 0.95;
+}
+.odp-stack-under-steps {
+  margin: 0 0 14px;
+  max-width: 40rem;
+}
+.odp-passport-stack-strip {
+  margin: 0 0 16px;
+  max-width: 42rem;
+}
+
+/* First-visit site trust modal (0.x red-flag disclosure) */
+.odp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  background: rgba(10, 9, 8, 0.72);
+  backdrop-filter: blur(4px);
+}
+.odp-modal-backdrop[hidden] {
+  display: none !important;
+}
+.odp-modal-dialog {
+  width: 100%;
+  max-width: 26rem;
+  max-height: min(85vh, 32rem);
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+  padding: 18px 18px 16px;
+}
+.odp-modal-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.odp-modal-body {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text2);
+}
+.odp-modal-body .odp-stack-note:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.odp-modal-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 .odp-prior-deploy-note {
   font-size: 11px;
