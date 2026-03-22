@@ -347,6 +347,14 @@ def cmd_check(args):
         print(f"  Registered:  {registered.strftime('%Y-%m-%d %H:%M UTC')}")
     print()
 
+# ─── Passport JSON helpers ───────────────────────────────────────────────────
+
+def issuer_role_from_creator_id(cid: str) -> str:
+    """Maps Creator ID prefix (C/B/P/M) to canonical issuerRole in passport.json."""
+    p = (cid or "").strip()[:1].upper()
+    return {"C": "individual", "B": "brand", "P": "proof_institution", "M": "museum"}.get(p, "individual")
+
+
 # ─── Mint ─────────────────────────────────────────────────────────────────────
 
 def cmd_mint(args):
@@ -495,6 +503,7 @@ def cmd_mint(args):
         "objectType": "physical" if is_physical else "digital",
         "type":       obj_type,
         "title":      title,
+        "issuerRole": issuer_role_from_creator_id(creator_id),
         "creator": {
             "name":      prompt("Creator name (for passport)"),
             "wallet":    account.address,
@@ -530,7 +539,20 @@ def cmd_mint(args):
             "hash": f"sha256:{image_hash_bytes.hex()}"
         }
 
-    passport["custom"] = {}
+    print()
+    print("  Optional additional metadata (key=value per line, empty line to finish)")
+    extra_meta = {}
+    while True:
+        line = (prompt_optional("  key=value") or "").strip()
+        if not line:
+            break
+        if "=" in line:
+            k, _, rest = line.partition("=")
+            k, v = k.strip(), rest.strip()
+            if k:
+                extra_meta[k] = v
+    if extra_meta:
+        passport["additionalMetadata"] = extra_meta
 
     # Compute hashes
     data_hash_bytes = sha256_json(passport)

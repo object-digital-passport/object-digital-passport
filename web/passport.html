@@ -11,8 +11,8 @@
 <title>ODP v0.2 — Create Passport</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3"></script>
-<script src="odp-i18n.js?v=4"></script>
+<script src="odp-contract.js?v=0.2"></script>
+<script src="odp-i18n.js?v=5"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
@@ -117,7 +117,6 @@ let fileHashBytes32=ZERO32, imageHash=ZERO32, imageUrl="", fileSize=0;
 let walletConnectError = null;
 /** When true, `walletConnectError` is trusted HTML (neutral hint, not escaped). */
 let walletConnectErrorNeutral = false;
-
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
 
 function passportStackStripHtml() {
@@ -477,6 +476,66 @@ function htmlCategoryOptionsPhysical() {
 function htmlCategoryOptionsDigital() {
   return `<option value="digital">${esc(t("passport.form.catDigitalOnly"))}</option>`;
 }
+function htmlIssuerRoleOptions() {
+  return [
+    ["individual", "passport.form.issuerRoleIndividual"],
+    ["brand", "passport.form.issuerRoleBrand"],
+    ["proof_institution", "passport.form.issuerRoleProof"],
+    ["museum", "passport.form.issuerRoleMuseum"],
+  ]
+    .map(([val, key]) => `<option value="${val}">${esc(t(key))}</option>`)
+    .join("");
+}
+
+function defaultIssuerRoleFromCreatorId(cid) {
+  const p = String(cid || "")
+    .trim()
+    .charAt(0)
+    .toUpperCase();
+  if (p === "B") return "brand";
+  if (p === "P") return "proof_institution";
+  if (p === "M") return "museum";
+  return "individual";
+}
+
+function addExtraMetaRow() {
+  const container = document.getElementById("extraMetaRows");
+  if (!container) return;
+  if (container.querySelectorAll("[data-extra-meta-row]").length >= 12) return;
+  const row = document.createElement("div");
+  row.setAttribute("data-extra-meta-row", "1");
+  row.className = "row2";
+  row.style.marginBottom = "8px";
+  row.innerHTML =
+    `<div class="field"><label>${esc(t("passport.form.extraMetaKey"))}</label><input type="text" class="f-extra-k" placeholder="${esc(
+      t("passport.form.extraMetaKeyPh")
+    )}" autocomplete="off"></div>` +
+    `<div class="field"><label>${esc(t("passport.form.extraMetaValue"))}</label><input type="text" class="f-extra-v" placeholder="${esc(
+      t("passport.form.extraMetaValuePh")
+    )}" autocomplete="off"></div>`;
+  container.appendChild(row);
+}
+
+function seedExtraMetaRows() {
+  const c = document.getElementById("extraMetaRows");
+  if (!c || c.querySelector("[data-extra-meta-row]")) return;
+  addExtraMetaRow();
+  addExtraMetaRow();
+  addExtraMetaRow();
+}
+
+function parseAdditionalMetadata() {
+  const out = {};
+  document.querySelectorAll("[data-extra-meta-row]").forEach(function (row) {
+    const kEl = row.querySelector(".f-extra-k");
+    const vEl = row.querySelector(".f-extra-v");
+    const k = kEl ? kEl.value.trim() : "";
+    const v = vEl ? vEl.value.trim() : "";
+    if (k) out[k] = v;
+  });
+  return Object.keys(out).length ? out : null;
+}
+
 function htmlSubtypeOptions() {
   return [
     ["image", "passport.form.subImage"],
@@ -557,6 +616,20 @@ function renderForm() {
       </div>
       <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
         <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
+    </div>
+
+    <!-- Issuer role & extra metadata (SPEC v0.2) -->
+    <div class="section">
+      <div class="section-label">${esc(t("passport.form.issuerRoleSection"))}</div>
+      <div class="field">
+        <label>${esc(t("passport.form.labelIssuerRole"))}<span class="req">*</span></label>
+        <select id="f_issuer_role">${htmlIssuerRoleOptions()}</select>
+        <p class="fhint" style="margin-top:8px">${esc(t("passport.form.issuerRoleHint"))}</p>
+      </div>
+      <div class="section-label" style="margin-top:18px">${esc(t("passport.form.extraMetaSection"))}</div>
+      <p class="fhint">${esc(t("passport.form.extraMetaHint"))}</p>
+      <div id="extraMetaRows"></div>
+      <button type="button" class="btn btn-ghost" style="margin-top:10px" onclick="addExtraMetaRow()">${esc(t("passport.form.extraMetaAdd"))}</button>
     </div>
 
     <!-- Passport URL -->
@@ -797,6 +870,9 @@ function renderForm() {
     loadMyPassports();
     bindShareModalCloseHandlers();
     syncHostingInputs();
+    const sel = document.getElementById("f_issuer_role");
+    if (sel) sel.value = defaultIssuerRoleFromCreatorId(creatorId);
+    seedExtraMetaRows();
   });
 }
 
@@ -896,11 +972,14 @@ function joinPassportJsonUrl(baseNormalized, humanId) {
 
 function buildPassport(humanId) {
   const now = new Date();
+  const roleEl = document.getElementById("f_issuer_role");
+  const issuerRole = roleEl && roleEl.value ? roleEl.value : defaultIssuerRoleFromCreatorId(creatorId);
   const p = {
     version:"0.2", humanId:humanId||null,
     objectType: objType,
     type: v("f_type"),
     title: v("f_title"),
+    issuerRole: issuerRole,
     creator: { name:v("f_name"), wallet, creatorId },
     year: parseInt(v("f_year")), month: now.getMonth()+1,
     registeredAt: Math.floor(now.getTime()/1000),
@@ -937,7 +1016,8 @@ function buildPassport(humanId) {
   imageUrl = v("f_imgUrl");
   // JSON field matches mint.py: f"sha256:{hex}"; on-chain still uses 0x bytes32 (imageHash)
   if (imageHash!==ZERO32) p.image = { url:imageUrl, hash: "sha256:"+imageHash.slice(2) };
-  p.custom = {};
+  const am = parseAdditionalMetadata();
+  if (am) p.additionalMetadata = am;
   return p;
 }
 

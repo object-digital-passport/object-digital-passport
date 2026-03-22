@@ -4,14 +4,14 @@ pragma solidity ^0.8.20;
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
- * Specification v0.3
+ * Specification v0.2
  * License: MIT
  *
  * Deployed on: Polygon PoS (chain ID 137)
  * Testnet:     Polygon Amoy (chain ID 80002)
  *
  * Three registries in one contract:
- *   1. Creator Registry  — C / B / P identifiers
+ *   1. Creator Registry  — C / B / P / M identifiers
  *   2. Passport Registry — physical and digital object records
  *   3. Proof Registry    — institution attestations
  *
@@ -38,7 +38,7 @@ pragma solidity ^0.8.20;
  *   - Creator is trusted to physically install the correct chip model
  *     The contract cannot verify hardware — only the declared model
  *   - Anti-spam: monthly mint-rate limit (no protocol fee — gas only)
- *   - Rate limit (per wallet, per calendar month): C = 1000, B = 100_000, P = unlimited
+ *   - Rate limit (per wallet, per calendar month): C = 1000, B = 100_000, P/M = unlimited
  *   - Passport namespace: 100M IDs per year+month (previously 10M)
  *   - P-type whitelist is intentionally off-chain — see external repos
  *
@@ -84,10 +84,10 @@ contract ObjectDigitalPassport {
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     uint8 public constant SPEC_MAJOR = 0;
-    uint8 public constant SPEC_MINOR = 3;
+    uint8 public constant SPEC_MINOR = 2;
 
     /// Packed byte stored in Passport.contractVersion: `SPEC_MAJOR * 16 + SPEC_MINOR` (each must stay < 16).
-    /// Spec line 0.3 → packed **3** (v0.2 features + **M** museum prefix: unlimited mints like P, proofs by P or M). Older registries may hold lower packed bytes; UI targets non-legacy deployments.
+    /// Spec line **0.2** → packed **2** (gas-only, optional dataUrl, external docs, **M** museum prefix, unlimited P/M mints, proofs by P/M).
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows Creator ID prefix.

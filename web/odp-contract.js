@@ -6,7 +6,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.3";
+  var ODP_SITE_VERSION = "0.2";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },

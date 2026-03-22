@@ -33,8 +33,8 @@ The **Creator** and **Passport** pages use **`window.ethereum`** ([**EIP-1193**]
 |:--|:--|
 | **Site / static release** | **`0.X.Y`** (see `ODP_SITE_VERSION` in [`web/odp-contract.js`](web/odp-contract.js)). Bump **Y** when you change only documentation, HTML/CSS, or tooling **without** a new contract deployment. |
 | **Contract / protocol generation** | **`0.X`** in spec labels and git tags when bytecode or on-chain rules change (e.g. v0.1 → v0.2). The reference contract exposes **`SPEC_MAJOR`** / **`SPEC_MINOR`** (readable spec line) and a packed **`CONTRACT_VERSION`** byte for the UI. |
-| **On-chain `CONTRACT_VERSION`** | **Not** marketing semver. The reference UI reads it to pick ABIs: **≥2** = gas-only, optional `dataUrl`, folder-base mint, **external document hash** (`attestExternalDocument`). **≥3** (current reference bytecode) adds **`M` (museum)** prefix + unlimited mints for **M**/`P`, **proofs** via **`submitProof`** from **P or M**. **`CONTRACT_VERSION == 0`** (historical v0.1 fee-era deploys) is **rejected**. See [`web/odp-contract.js`](web/odp-contract.js). |
-| **Packed byte** | **`SPEC_MAJOR`/`SPEC_MINOR`** each &lt; 16. Example: **0.3** → `SPEC_MINOR=3` → **`CONTRACT_VERSION = 3`**. Older deployments may still report **2** (no `M` prefix). |
+| **On-chain `CONTRACT_VERSION`** | **Not** marketing semver. The reference UI reads it to pick ABIs: **≥2** = spec **v0.2** (gas-only, optional `dataUrl`, folder-base mint, **external document hash**, **`M` (museum)** prefix, unlimited **P/M** mints, **`submitProof`** from **P or M**). **`CONTRACT_VERSION == 0`** (historical v0.1 fee-era deploys) is **rejected**. See [`web/odp-contract.js`](web/odp-contract.js). |
+| **Packed byte** | **`SPEC_MAJOR`/`SPEC_MINOR`** each &lt; 16. **Spec 0.2** → `SPEC_MINOR=2` → **`CONTRACT_VERSION = 2`**. |
 | **Older mainnet deploy** | The first public Polygon contract used on-chain byte **0** (fee-era). This repo’s **current HTML does not support that address** as `NET.contract`; use a **v0.2+** deployment. Historical discussion: **`SECURITY.md`**, **`SPEC.md`**. |
 
 ### Stack label & trust (always on in the web UI)
