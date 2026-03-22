@@ -9,7 +9,7 @@ Anyone can implement it. Anyone can verify it. Forever.
 
 ## This repository
 
-What you see here is **one example** of how the protocol can be built: a reference web stack, a Solidity contract, and helper tooling. It is meant to demonstrate the ideas end-to-end — not to be the only “official” product. **The full normative specification** (ID formats, hashes, verification rules, and what any compatible implementation must do) lives in **[`SPEC.md`](SPEC.md)**; the Russian edition is **[`SPEC_RU.md`](SPEC_RU.md)**. Threat model and security notes: **[`SECURITY.md`](SECURITY.md)**. Use those documents as the source of truth; this README is an overview.
+What you see here is **one example** of how the protocol can be built: a reference web stack, a Solidity contract, and helper tooling. It is meant to demonstrate the ideas end-to-end — not to be the only “official” product. **The full normative specification** (ID formats, hashes, verification rules, and what any compatible implementation must do) lives in **[`SPEC.md`](SPEC.md)**. Threat model and security notes: **[`SECURITY.md`](SECURITY.md)**. Use those documents as the source of truth; this README is an overview.
 
 ---
 
