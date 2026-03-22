@@ -167,12 +167,28 @@
     return global
       .fetch(new URL("en/common.json", base).toString(), { cache: "no-store" })
       .then(function (r) {
+        // #region agent log
+        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+          body: JSON.stringify({
+            sessionId: "7d72c7",
+            hypothesisId: "H1",
+            location: "odp-i18n.js:fetchCommon",
+            message: "en/common.json response",
+            data: { url: r.url, ok: r.ok, status: r.status, base: String(base) },
+            timestamp: Date.now(),
+          }),
+        }).catch(function () {});
+        // #endregion
+        if (!r.ok) throw new Error("i18n fetch failed: " + r.status);
         return r.json();
       })
       .then(function (enCommon) {
         return global
           .fetch(new URL("en/" + page + ".json", base).toString(), { cache: "no-store" })
           .then(function (r) {
+            if (!r.ok) throw new Error("i18n page fetch failed: " + r.status);
             return r.json();
           })
           .then(function (enPage) {
@@ -187,12 +203,14 @@
         return global
           .fetch(new URL("ru/common.json", base).toString(), { cache: "no-store" })
           .then(function (r) {
+            if (!r.ok) throw new Error("ru common fetch failed: " + r.status);
             return r.json();
           })
           .then(function (ruCommon) {
             return global
               .fetch(new URL("ru/" + page + ".json", base).toString(), { cache: "no-store" })
               .then(function (r) {
+                if (!r.ok) throw new Error("ru page fetch failed: " + r.status);
                 return r.json();
               })
               .then(function (ruPage) {
@@ -224,12 +242,33 @@
         odpRenderLangSwitch("odpLangSwitch");
         odpApplyDataI18n(global.document.body);
       })
-      .catch(function () {
-        _merged = {};
+      .catch(function (err) {
+        // #region agent log
+        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+          body: JSON.stringify({
+            sessionId: "7d72c7",
+            hypothesisId: "H3",
+            location: "odp-i18n.js:catch",
+            message: "odpInitI18n failed",
+            data: { err: String(err && err.message ? err.message : err) },
+            timestamp: Date.now(),
+          }),
+        }).catch(function () {});
+        console.warn("[ODP i18n] init failed — language switch uses fallback labels", err);
+        // #endregion
+        _merged = { lang: { switchLabel: "Language" } };
         global.odpT = t;
         global.odpGetLocale = function () {
           return _locale;
         };
+        global.odpApplyDataI18n = odpApplyDataI18n;
+        global.odpRenderLangSwitch = odpRenderLangSwitch;
+        global.odpSetLocale = odpSetLocale;
+        try {
+          odpRenderLangSwitch("odpLangSwitch");
+        } catch (eSw) {}
       });
   }
 
