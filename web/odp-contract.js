@@ -48,7 +48,7 @@
       );
     }
     return (
-      '<div class="info neutral" style="line-height:1.55">Set Actions secret or variable <code>ODP_CONTRACT_ADDRESS</code>, or append <code>?contract=0x…</code> once. <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a></div>'
+      '<div class="info neutral" style="line-height:1.55">Set repository <strong>secret</strong> or <strong>variable</strong> <code>ODP_CONTRACT_ADDRESS</code> under <strong>Settings → Secrets and variables → Actions</strong>, then redeploy. Or open this page once with <code>?contract=0x…</code> in the URL. <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">See README</a>.</div>'
     );
   }
 
