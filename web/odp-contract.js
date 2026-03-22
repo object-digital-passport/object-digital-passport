@@ -6,7 +6,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.2.1";
+  var ODP_SITE_VERSION = "0.2.2";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -350,6 +350,30 @@
     ];
   }
 
+  /** HTML for the legacy-contract banner (generation 0). Escaping not needed — static copy. */
+  function odpLegacyContractBannerInnerHtml() {
+    return (
+      '<div class="odp-legacy-banner-inner">' +
+      '<span class="odp-legacy-badge">Legacy contract</span>' +
+      '<p class="odp-legacy-banner-lead">This address is an <strong>older deployment</strong> (on-chain generation <strong>0</strong>, v0.1-era: burned protocol fee on register/mint, older mint signatures).</p>' +
+      '<p class="odp-legacy-banner-lead">The site remains <strong>backward compatible</strong>, but you should treat this registry as <strong>not equivalent</strong> to the current <strong>v0.2</strong> contract. <strong>Security and trust properties may be weaker than on the latest deployment</strong> — review <code>README.md</code> and <code>SECURITY.md</code>, and prefer a <strong>v0.2</strong> deployment for new high-assurance records when possible.</p>' +
+      "</div>"
+    );
+  }
+
+  /** Show warning banner when `generation === 0`; hide otherwise (including null / unknown). */
+  function odpLegacyBannerUpdate(elId, generation) {
+    var el = document.getElementById(elId || "odpLegacyBanner");
+    if (!el) return;
+    if (generation === 0) {
+      el.hidden = false;
+      el.innerHTML = odpLegacyContractBannerInnerHtml();
+    } else {
+      el.hidden = true;
+      el.innerHTML = "";
+    }
+  }
+
   async function odpFinalizeWalletContract(net, signer, rpcFallbacks, kind) {
     var probed = await odpProbeContractGenerationCached(net.contract, net.chainId, rpcFallbacks, global.ethers);
     var gen = odpResolveGeneration(probed, net);
@@ -383,4 +407,6 @@
   global.odpBuildCreatorAbi = odpBuildCreatorAbi;
   global.odpBuildVerifyReadAbi = odpBuildVerifyReadAbi;
   global.odpFinalizeWalletContract = odpFinalizeWalletContract;
+  global.odpLegacyContractBannerInnerHtml = odpLegacyContractBannerInnerHtml;
+  global.odpLegacyBannerUpdate = odpLegacyBannerUpdate;
 })(typeof window !== "undefined" ? window : globalThis);

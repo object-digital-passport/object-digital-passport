@@ -36,6 +36,8 @@
   <a href="verify.html">Verify</a>
 </div>
 
+<div id="odpLegacyBanner" class="odp-legacy-banner" hidden role="alert"></div>
+
 <div id="app">
   <div class="info n">Connecting wallet…</div>
 </div>
@@ -147,6 +149,7 @@ async function disconnectWallet() {
     sl.textContent = "";
     sl.style.display = "none";
   }
+  odpLegacyBannerUpdate("odpLegacyBanner", null);
   connect();
 }
 
@@ -313,6 +316,7 @@ async function _finish(p) {
     sl.textContent = odpFormatStackLabel(odpContractGeneration);
     sl.style.display = "";
   }
+  odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
   creatorId = await contract.getCreatorByWallet(wallet);
   if (!creatorId) {
     document.getElementById("app").innerHTML = `
@@ -1529,6 +1533,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             sl.textContent = odpFormatStackLabel(odpContractGeneration);
             sl.style.display = "";
           }
+          odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
           creatorId = await contract.getCreatorByWallet(wallet);
           if (creatorId) { renderForm(); initNetPill(); return; }
         }

@@ -36,6 +36,8 @@
   <a href="verify.html">Verify</a>
 </div>
 
+<div id="odpLegacyBanner" class="odp-legacy-banner" hidden role="alert"></div>
+
 <div id="app"></div>
 
 <footer>
@@ -595,6 +597,7 @@ async function disconnect() {
     sl.textContent = "";
     sl.style.display = "none";
   }
+  odpLegacyBannerUpdate("odpLegacyBanner", null);
   render();
 }
 
@@ -752,6 +755,7 @@ async function _finish(web3p) {
     sl.textContent = odpFormatStackLabel(odpContractGeneration);
     sl.style.display = "";
   }
+  odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
 
   // Check existing
   const existing = await contract.getCreatorByWallet(wallet);
@@ -865,6 +869,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             sl.textContent = odpFormatStackLabel(odpContractGeneration);
             sl.style.display = "";
           }
+          odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
           const existing = await contract.getCreatorByWallet(wallet);
           if (existing) creatorId = existing;
           secOk = true;

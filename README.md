@@ -28,6 +28,7 @@ Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 an
 | **Site / static release** | **`0.X.Y`** (see `ODP_SITE_VERSION` in [`web/odp-contract.js`](web/odp-contract.js)). Bump **Y** when you change only documentation, HTML/CSS, or tooling **without** a new contract deployment. |
 | **Contract / protocol generation** | **`0.X`** in spec labels and git tags when bytecode or on-chain rules change (e.g. v0.1 → v0.2). Each deployment exposes `CONTRACT_VERSION` (uint8) on-chain. |
 | **On-chain `CONTRACT_VERSION`** | **Not** the same as marketing semver. The reference UI reads it to pick ABIs: **0** = legacy Polygon deploy (fee + older `mint` signatures), **≥2** = v0.2 rules (gas-only, optional `dataUrl`, folder-base mint). See [`web/odp-contract.js`](web/odp-contract.js). |
+| **Backward compatibility** | The static UI talks to **any** deployed contract it can probe. **Legacy (generation 0)** stays usable, but the UI shows a **prominent warning**: older economics and bytecode are **not** the same as **v0.2**. **Assurance and security may be lower than on the current deployment** — read **`SECURITY.md`**, consider migrating new work to **v0.2**, and do not assume identical threat model. |
 
 ---
 

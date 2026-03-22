@@ -62,6 +62,34 @@ body {
   padding: env(safe-area-inset-top, 0px) max(24px, env(safe-area-inset-right, 0px)) max(80px, calc(80px + env(safe-area-inset-bottom, 0px))) max(24px, env(safe-area-inset-left, 0px));
 }
 
+/* Legacy contract (generation 0) — high-visibility warning */
+.odp-legacy-banner {
+  margin: 0 0 24px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--amber-bd);
+  background: var(--amber-bg);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.odp-legacy-banner-inner { max-width: 100%; }
+.odp-legacy-badge {
+  display: inline-block;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  margin-bottom: 10px;
+}
+.odp-legacy-banner-lead {
+  margin: 0 0 10px;
+  color: var(--text2);
+}
+.odp-legacy-banner-lead:last-child { margin-bottom: 0; }
+.odp-legacy-banner-lead strong { color: var(--text); font-weight: 500; }
+
 /* ── Header (verify-style row + unified typography) ── */
 header {
   padding: 48px 0 32px;

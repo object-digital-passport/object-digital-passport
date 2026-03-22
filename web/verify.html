@@ -52,6 +52,8 @@
   <a href="verify.html" class="active">Verify</a>
 </div>
 
+<div id="odpLegacyBanner" class="odp-legacy-banner" hidden role="alert"></div>
+
 <div class="search-wrap">
   <label class="search-label" for="idInput">Paste an ID or link, or scan a QR code</label>
   <div class="search-row">
@@ -161,6 +163,7 @@ async function connect() {
           lbl.textContent = "";
         }
         odpContractGeneration = null;
+        odpLegacyBannerUpdate("odpLegacyBanner", null);
         return;
       }
       const probed = await odpProbeContractGenerationCached(c.contract, c.chainId, POLYGON_RPC_FALLBACKS, ethers);
@@ -170,6 +173,7 @@ async function connect() {
         lbl.textContent = odpFormatStackLabel(odpContractGeneration);
         lbl.style.display = "";
       }
+      odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
       setNet("on", `${c.name} · gen ${odpContractGeneration}`);
       return;
     } catch (e) {
@@ -180,6 +184,7 @@ async function connect() {
   setNet("off", `${c.name} — offline`);
   contract = null;
   odpContractGeneration = null;
+  odpLegacyBannerUpdate("odpLegacyBanner", null);
   if (lbl) {
     lbl.style.display = "none";
     lbl.textContent = "";
