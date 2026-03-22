@@ -176,13 +176,29 @@ async function revokeSiteWalletPermission(eth) {
   }
 }
 
-/** Opens this page inside the MetaMask mobile app (in-app browser provides window.ethereum). */
+/** MetaMask mobile: `metamask.app.link/dapp/{host…}` with `https://` stripped (same as metamask-deeplinks generator; do not encode the full URL). */
 function openInMetaMaskAppUrl() {
   try {
     const u = new URL(location.href);
     if (u.protocol !== "https:" && u.protocol !== "http:") return "";
-    const target = u.toString();
-    return "https://metamask.app.link/dapp/" + encodeURIComponent(target);
+    const rest = u.href.replace(/^https?:\/\//i, "");
+    const out = "https://metamask.app.link/dapp/" + rest;
+    // #region agent log
+    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
+      body: JSON.stringify({
+        sessionId: "99fdf4",
+        location: "passport.html:openInMetaMaskAppUrl",
+        message: "mm deeplink built",
+        data: { fmt: "strip-protocol", restLen: rest.length, host: u.hostname },
+        timestamp: Date.now(),
+        runId: "post-fix",
+        hypothesisId: "H2",
+      }),
+    }).catch(() => {});
+    // #endregion
+    return out;
   } catch {
     return "";
   }
