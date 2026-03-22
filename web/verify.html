@@ -686,8 +686,19 @@ function renderPassportJsonExtras(passport, isDigital) {
     rows.push(
       `<div class="field full"><div class="fl">registeredAt (JSON)</div><div class="fv">${esc(
         d.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" })
-      )}</div></div>`
+      )} <span style="opacity:0.75">(UTC instant)</span></div></div>`
     );
+  }
+  if (p.registration && typeof p.registration === "object") {
+    const r = p.registration;
+    if (r.localIso8601)
+      rows.push(
+        `<div class="field full"><div class="fl">registration.localIso8601</div><div class="fv mono">${esc(String(r.localIso8601))}</div></div>`
+      );
+    if (r.ianaTimeZone)
+      rows.push(
+        `<div class="field full"><div class="fl">registration.ianaTimeZone</div><div class="fv">${esc(String(r.ianaTimeZone))}</div></div>`
+      );
   }
   if (p.creator && p.creator.wallet) {
     rows.push(

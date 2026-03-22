@@ -970,10 +970,41 @@ function joinPassportJsonUrl(baseNormalized, humanId) {
   return `${baseNormalized}/${humanId}.json`;
 }
 
+/**
+ * Wall-clock instant at mint (second precision) + IANA zone; `registeredAt` stays Unix UTC seconds.
+ */
+function buildRegistrationClock(now) {
+  const registeredAt = Math.floor(now.getTime() / 1000);
+  const pad = function (n) {
+    return String(n).padStart(2, "0");
+  };
+  const y = now.getFullYear();
+  const mo = pad(now.getMonth() + 1);
+  const da = pad(now.getDate());
+  const h = pad(now.getHours());
+  const mi = pad(now.getMinutes());
+  const s = pad(now.getSeconds());
+  const offMin = -now.getTimezoneOffset();
+  const sign = offMin >= 0 ? "+" : "-";
+  const a = Math.abs(offMin);
+  const oh = pad(Math.floor(a / 60));
+  const om = pad(a % 60);
+  const localIso8601 = y + "-" + mo + "-" + da + "T" + h + ":" + mi + ":" + s + sign + oh + ":" + om;
+  let ianaTimeZone = "UTC";
+  try {
+    ianaTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch (e0) {}
+  return {
+    registeredAt: registeredAt,
+    registration: { localIso8601: localIso8601, ianaTimeZone: ianaTimeZone },
+  };
+}
+
 function buildPassport(humanId) {
   const now = new Date();
   const roleEl = document.getElementById("f_issuer_role");
   const issuerRole = roleEl && roleEl.value ? roleEl.value : defaultIssuerRoleFromCreatorId(creatorId);
+  const clock = buildRegistrationClock(now);
   const p = {
     version:"0.2", humanId:humanId||null,
     objectType: objType,
@@ -982,7 +1013,8 @@ function buildPassport(humanId) {
     issuerRole: issuerRole,
     creator: { name:v("f_name"), wallet, creatorId },
     year: parseInt(v("f_year")), month: now.getMonth()+1,
-    registeredAt: Math.floor(now.getTime()/1000),
+    registeredAt: clock.registeredAt,
+    registration: clock.registration,
   };
 
   if (objType==="physical") {

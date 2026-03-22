@@ -355,6 +355,18 @@ def issuer_role_from_creator_id(cid: str) -> str:
     return {"C": "individual", "B": "brand", "P": "proof_institution", "M": "museum"}.get(p, "individual")
 
 
+def registration_clock_block(utc_now: datetime):
+    """Unix UTC instant + local wall time (second precision) with offset and IANA zone."""
+    unix = int(utc_now.timestamp())
+    local = utc_now.astimezone()
+    local_iso = local.isoformat(timespec="seconds")
+    iana = "UTC"
+    tz = local.tzinfo
+    if tz is not None and hasattr(tz, "key"):
+        iana = tz.key
+    return unix, {"localIso8601": local_iso, "ianaTimeZone": iana}
+
+
 # ─── Mint ─────────────────────────────────────────────────────────────────────
 
 def cmd_mint(args):
@@ -496,7 +508,7 @@ def cmd_mint(args):
     print()
     print("  [5/6] Building passport...")
 
-    creator_rec = contract.functions.getCreator(creator_id).call()
+    reg_unix, reg_clock = registration_clock_block(now)
     passport = {
         "version":    "0.2",
         "humanId":    None,  # filled after mint
@@ -511,7 +523,8 @@ def cmd_mint(args):
         },
         "year":         reg_year,
         "month":        reg_month,
-        "registeredAt": int(now.timestamp()),
+        "registeredAt": reg_unix,
+        "registration": reg_clock,
     }
 
     if is_physical:

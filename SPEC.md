@@ -519,6 +519,17 @@ The protocol does **not** store the full passport JSON on-chain — only `dataHa
 
 These fields are part of the hashed `passport.json`; changing them changes `dataHash`.
 
+### Registration instant and local clock (normative, v0.2)
+
+| Field | Required | Type | Description |
+|-------|----------|------|-------------|
+| `registeredAt` | yes | `number` (integer) | **Unix time in seconds** (UTC instant) at registration — same instant as the on-chain `timestamp` intent. |
+| `registration` | yes | `object` | Wall-clock view of **the same instant** with timezone context. |
+| `registration.localIso8601` | yes | `string` | ISO 8601 **date-time with numeric offset**, **second** precision (e.g. `2026-03-22T21:45:30+03:00`). No sub-second fractional digits in the reference UI. |
+| `registration.ianaTimeZone` | yes | `string` | [IANA time zone name](https://www.iana.org/time-zones) for the environment where the passport JSON was built (e.g. `Europe/Moscow`, `America/New_York`). Use `UTC` if unknown. |
+
+Implementations MUST use the **same** UTC instant for `registeredAt` and for the instant encoded in `registration.localIso8601` (only the representation differs).
+
 ### Minimal valid passport — physical object
 
 ```json
@@ -537,6 +548,10 @@ These fields are part of the hashed `passport.json`; changing them changes `data
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
+  "registration": {
+    "localIso8601": "2026-03-22T18:30:45+00:00",
+    "ianaTimeZone": "UTC"
+  },
   "seal": {
     "nfc": {
       "uid": "04a3f912cc8b4e",
@@ -566,6 +581,10 @@ These fields are part of the hashed `passport.json`; changing them changes `data
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
+  "registration": {
+    "localIso8601": "2026-03-22T18:30:45+00:00",
+    "ianaTimeZone": "UTC"
+  },
   "digital": {
     "subtype": "image",
     "format": "TIFF",
@@ -594,6 +613,10 @@ These fields are part of the hashed `passport.json`; changing them changes `data
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
+  "registration": {
+    "localIso8601": "2026-03-22T21:30:45+03:00",
+    "ianaTimeZone": "Europe/Moscow"
+  },
   "medium": "mixed media, Polaroid",
   "materials": [
     { "name": "canvas", "notes": "linen, primed" },
@@ -662,6 +685,10 @@ These fields are part of the hashed `passport.json`; changing them changes `data
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
+  "registration": {
+    "localIso8601": "2026-03-22T16:30:45-05:00",
+    "ianaTimeZone": "America/New_York"
+  },
   "description": "...",
   "digital": {
     "subtype": "image",
