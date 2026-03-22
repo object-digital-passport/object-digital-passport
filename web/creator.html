@@ -103,6 +103,8 @@ let odpWalletConnectInFlight = false;
 let secOk      = false;
 /** One-shot banner on connect screen (e.g. multi-account rejection). */
 let walletConnectError = null;
+/** When true, `walletConnectError` is trusted HTML (neutral hint, not escaped). */
+let walletConnectErrorNeutral = false;
 
 /** User chose Disconnect — skip eth_accounts auto-reconnect until explicit Connect (same tab). */
 const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
@@ -138,9 +140,12 @@ function esc(s) {
 
 function renderConnect() {
   const errBanner = walletConnectError
-    ? `<div class="info error" style="margin-bottom:14px;line-height:1.55">${esc(walletConnectError)}</div>`
+    ? walletConnectErrorNeutral
+      ? walletConnectError
+      : `<div class="info error" style="margin-bottom:14px;line-height:1.55">${esc(walletConnectError)}</div>`
     : "";
   walletConnectError = null;
+  walletConnectErrorNeutral = false;
   return `
     <div class="step-indicator">
       <div class="si-item active"><div class="si-num">1</div><span>Wallet</span></div>
@@ -770,20 +775,6 @@ async function connectWallet() {
   const eth = injectedEthereum();
   const errEl = document.getElementById("connectErr");
   const btn = document.getElementById("odpConnectWalletBtn");
-  // #region agent log
-  fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-    body: JSON.stringify({
-      sessionId: "7d72c7",
-      hypothesisId: "H3",
-      location: "creator.html:connectWallet:entry",
-      message: "connect click",
-      data: { inFlight: odpWalletConnectInFlight, hasEth: !!eth, contractLen: String(NET.contract || "").trim().length },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
   if (odpWalletConnectInFlight) {
     if (errEl)
       errEl.innerHTML =
@@ -814,20 +805,6 @@ async function connectWallet() {
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch (e) {
     const msg = String((e && e.message) || e);
-    // #region agent log
-    fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-      body: JSON.stringify({
-        sessionId: "7d72c7",
-        hypothesisId: "H2",
-        location: "creator.html:connectWallet:catch",
-        message: "connect error",
-        data: { errMsg: msg.slice(0, 200) },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     if (/already pending|request of type.*pending/i.test(msg)) {
       errEl.innerHTML =
         `<div class="info error">A wallet request is already open. Use the <strong>wallet extension icon</strong> in your browser toolbar to approve or cancel — do not click Connect again until that finishes.</div>`;
@@ -854,28 +831,10 @@ async function _finish(web3p) {
     return;
   }
   const net = NET;
-  // #region agent log
-  fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-    body: JSON.stringify({
-      sessionId: "7d72c7",
-      hypothesisId: "H1",
-      location: "creator.html:_finish:contractCheck",
-      message: "before finalize",
-      data: { hasContract: !!(net.contract && String(net.contract).trim()), contractLen: String(net.contract || "").trim().length },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-  if (!net.contract) {
-    const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
-    document.getElementById("connectErr").innerHTML =
-      `<div class="info error">Contract address not set for ${net.name}. ` +
-      (isLocal
-        ? `Local: set <code>NET.contract</code> in this file, or <code>{"contract":"0x…"}</code> in <code>registry-config.json</code> next to these HTML files, or open once with <code>?contract=0x…</code> (40 hex chars).`
-        : `Set <code>NET.contract</code> in source, add GitHub secret <code>ODP_CONTRACT_ADDRESS</code>, or rely on deployed <code>registry-config.json</code> (see README).`) +
-      `</div>`;
+  const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
+  if (!odpHasValidRegistryAddress(net)) {
+    const ce = document.getElementById("connectErr");
+    if (ce) ce.innerHTML = odpRegistryMisconfiguredBannerHtml(isLocal);
     return;
   }
   provider = web3p;
@@ -1001,11 +960,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         odpWalletConnectInFlight = true;
         try {
           const net = NET;
-          await ensureWalletChain(eth, net);
-          provider  = new ethers.providers.Web3Provider(eth);
-          signer    = provider.getSigner();
-          wallet    = await signer.getAddress();
-          if (net.contract) {
+          const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
+          await odpMergeRegistryConfigAsync(NET);
+          if (!odpHasValidRegistryAddress(NET)) {
+            provider = null;
+            signer = null;
+            contract = null;
+            wallet = null;
+            odpContractGeneration = null;
+            ABI = null;
+            walletConnectError = odpRegistryMisconfiguredBannerHtml(isLocal);
+            walletConnectErrorNeutral = true;
+          } else {
+            await ensureWalletChain(eth, net);
+            provider = new ethers.providers.Web3Provider(eth);
+            signer = provider.getSigner();
+            wallet = await signer.getAddress();
             const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "creator");
             if (fin.legacyUnsupported) {
               provider = null;
@@ -1027,9 +997,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (existing) creatorId = existing;
               secOk = true;
             }
-          } else {
-            walletConnectError =
-              "No registry contract is configured for this site build (NET.contract empty). For GitHub Pages set repository secret ODP_CONTRACT_ADDRESS; for local dev paste your deploy address into the HTML source.";
           }
         } catch {}
         finally {

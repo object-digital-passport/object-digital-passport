@@ -33,6 +33,25 @@
     return "odp_registry_contract_" + String(chainId != null ? chainId : 137);
   }
 
+  /** True if `net.contract` looks like a 20-byte hex address (EIP-55 not required). */
+  function odpHasValidRegistryAddress(net) {
+    if (!net) return false;
+    var c = String(net.contract || "").trim();
+    return /^0x[a-fA-F0-9]{40}$/i.test(c);
+  }
+
+  /** Short neutral banner HTML when the site build has no registry address (GitHub Pages / local). */
+  function odpRegistryMisconfiguredBannerHtml(isLocal) {
+    if (isLocal) {
+      return (
+        '<div class="info neutral" style="line-height:1.55">Set <code>NET.contract</code>, add <code>registry-config.json</code>, or open once with <code>?contract=0x…</code> (40 hex chars).</div>'
+      );
+    }
+    return (
+      '<div class="info neutral" style="line-height:1.55">Set Actions secret or variable <code>ODP_CONTRACT_ADDRESS</code>, or append <code>?contract=0x…</code> once. <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a></div>'
+    );
+  }
+
   /**
    * Sync: URL `?contract=0x…` / `?odp_contract=0x…`, then sessionStorage, then localStorage (per chainId).
    */
@@ -86,8 +105,7 @@
   function odpMergeRegistryConfigAsync(net) {
     odpApplyInlineRegistryOverrides(net);
     if (!net) return Promise.resolve();
-    var existing = String(net.contract || "").trim();
-    if (existing && /^0x[a-fA-F0-9]{40}$/i.test(existing)) return Promise.resolve();
+    if (odpHasValidRegistryAddress(net)) return Promise.resolve();
     if (typeof global.location === "undefined" || !global.location || !global.location.href) {
       return Promise.resolve();
     }
@@ -106,7 +124,7 @@
         })
         .then(function (j) {
           var c = j && j.contract != null ? String(j.contract).trim() : "";
-          if (c && /^0x[a-fA-F0-9]{40}$/i.test(c)) {
+          if (odpHasValidRegistryAddress({ contract: c, chainId: net.chainId })) {
             net.contract = c;
             try {
               var k = odpRegistrySessionKey(net.chainId);
@@ -120,8 +138,7 @@
     return fetchAndMerge("no-store")
       .catch(function () {})
       .then(function () {
-        var ex = String(net.contract || "").trim();
-        if (ex && /^0x[a-fA-F0-9]{40}$/i.test(ex)) return;
+        if (odpHasValidRegistryAddress(net)) return;
         return fetchAndMerge("reload").catch(function () {});
       });
   }
@@ -731,6 +748,8 @@
   global.odpSupportsExternalDocAttest = odpSupportsExternalDocAttest;
   global.odpResolveGeneration = odpResolveGeneration;
   global.odpMergeRegistryConfigAsync = odpMergeRegistryConfigAsync;
+  global.odpHasValidRegistryAddress = odpHasValidRegistryAddress;
+  global.odpRegistryMisconfiguredBannerHtml = odpRegistryMisconfiguredBannerHtml;
   global.odpApplyInlineRegistryOverrides = odpApplyInlineRegistryOverrides;
   global.odpPersistRegistryContractToSession = odpPersistRegistryContractToSession;
   global.odpFormatStackLabel = odpFormatStackLabel;

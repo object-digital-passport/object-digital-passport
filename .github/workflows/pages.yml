@@ -29,7 +29,8 @@ jobs:
       # Also mirror under /web/ so /web/verify.html works (same relative assets; avoids 404 for repo-style URLs).
       - name: Stage site
         env:
-          ODP_CONTRACT_ADDRESS: ${{ secrets.ODP_CONTRACT_ADDRESS }}
+          # Repository secret (preferred) or repo/org Variable — public address is fine in Variables.
+          ODP_CONTRACT_ADDRESS: ${{ secrets.ODP_CONTRACT_ADDRESS || vars.ODP_CONTRACT_ADDRESS }}
         run: |
           mkdir -p _site
           cp -r web/. _site/
@@ -44,7 +45,7 @@ jobs:
             printf '{"contract":"%s"}\n' "$ODP_CONTRACT_ADDRESS" > _site/registry-config.json
             cp _site/registry-config.json _site/web/registry-config.json
           else
-            echo "Secret ODP_CONTRACT_ADDRESS not set — NET.contract left empty (set repo secret for live demo)"
+            echo "ODP_CONTRACT_ADDRESS empty — set Actions secret or repo Variable ODP_CONTRACT_ADDRESS, then redeploy"
           fi
       - uses: actions/upload-pages-artifact@v3
         with:
