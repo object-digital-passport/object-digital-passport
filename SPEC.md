@@ -22,6 +22,20 @@ any centralized platform, subscription, or third-party dependency.
 - **Free to read** — verification never costs anything
 - **Minimal on-chain** — no images or large data stored on blockchain
 
+### 1.1 Terminology
+
+This specification uses the following terms in a precise sense:
+
+| Term | Definition |
+|:--|:--|
+| **Mint**, **minting** | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Human ID**, records **hashes**, **URLs**, seal metadata, and collects **MINT_FEE**. Minting does **not** upload `passport.json` to the blockchain; the creator must **host** that file at `dataUrl` (see §8–§9). |
+| **Register (Creator ID)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **Creator ID** before any mint or proof. |
+| **Passport** | The combination of (1) the on-chain **Passport** record and (2) the **passport.json** resource at `dataHash`-matching bytes at `dataUrl`. |
+| **`passport.json`** | The normative off-chain JSON document (§9). |
+| **`dataUrl`** | The HTTPS URL where `passport.json` is served (§8–§9). |
+| **Gas** | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution; not the same as **MINT_FEE** / **REGISTER_FEE**. |
+| **Verification** | The read-only process (§11) that retrieves on-chain data and `passport.json` and checks consistency with `dataHash` and other fields. |
+
 ---
 
 ## 2. Human ID
@@ -465,12 +479,20 @@ Using a different address means operating a separate, incompatible registry.
 
 ### Hosting `dataUrl` (third-party sites)
 
-`dataUrl` may point to any public HTTPS host (object storage, CDN, static site, Git forge, etc.). Implementations that fetch the file MUST satisfy:
+`dataUrl` may point to any public HTTPS host (object storage, CDN, static site, Git forge, etc.). The last path segment SHOULD be `<humanId>.json` using the **exact** Human ID string from the contract (e.g. `ODP-2026-03-4829301.json` — same casing as on-chain). Implementations that fetch the file MUST satisfy:
 
 1. **HTTPS** — The URL uses TLS; the server returns HTTP **200** with a response body that is **only** the passport JSON octets (not an HTML page, login prompt, or repository browser UI).
 2. **Raw file on Git forges** — For GitHub, GitLab, and similar hosts, use the **raw** file URL (e.g. `raw.githubusercontent.com/.../passport.json`), not the HTML blob page.
 3. **CORS (browser verifiers)** — Web-based verifiers run `fetch()` from their origin; the host SHOULD allow cross-origin **GET** for `dataUrl` so the browser can read the body (many static hosts and GitHub Raw do; a misconfigured private server may block verification).
 4. **Integrity** — After canonicalization, the content MUST match `dataHash` on chain (see §10). Any byte change (including whitespace) changes the hash.
+
+#### Creator responsibility for `passport.json` after mint (normative)
+
+The protocol does **not** store the full passport JSON on-chain — only `dataHash` and related fields (see §8). The creator **must** retain the **canonical minified** `passport.json` octets and make them available at `dataUrl`.
+
+1. **Without** an HTTP **200** response at `dataUrl` whose body matches `dataHash` after canonicalization, verifiers **must** treat verification as **failed** (e.g. **UNVERIFIABLE** / hash mismatch per §11 — exact state names are implementation-defined, but the record cannot be fully authenticated).
+2. The creator **may** update `dataUrl` later via on-chain URL update (e.g. `updatePassportUrls` in the reference contract) **without** reminting, as long as the hosted file still matches `dataHash`.
+3. **Reference and compatible UIs** SHOULD require **explicit user acknowledgement** immediately before submitting a mint transaction: that persisting and hosting `passport.json` is the creator’s responsibility; that verification depends on that file being reachable at the registered URL with unchanged bytes; and that the user should download or copy the file before closing the success screen when the implementation provides that action.
 
 ### Minimal valid passport — physical object
 

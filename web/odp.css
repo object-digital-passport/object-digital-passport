@@ -737,6 +737,7 @@ select option { background: var(--bg2); }
 .modal-backdrop.open { display: flex; }
 /* Stack above Update URLs modal when opened from it */
 #hostingJsonInfoModal { z-index: 210; }
+#preMintModal { z-index: 220; }
 .modal-panel {
   width: 100%;
   max-width: 520px;

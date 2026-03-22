@@ -61,6 +61,11 @@ const NET = {
   rpc: POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
   contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
+  /**
+   * `true` if the deployed contract includes `dataUrlIsFolderBase` on mint* (folder → `base/HumanID.json` in one tx).
+   * The public Polygon deployment at `0x3800…` predates this — keep `false` until you redeploy from this repo and paste the new address.
+   */
+  supportsFolderBaseMint: false,
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
@@ -84,33 +89,41 @@ function getVerifyAbsoluteUrl(id) {
   return new URL(rel, window.location.href).href;
 }
 
-const ABI = [
-  { name:"getCreatorByWallet",type:"function",stateMutability:"view",inputs:[{name:"wallet",type:"address"}],outputs:[{name:"",type:"string"}] },
-  { name:"getPassportsByCreator",type:"function",stateMutability:"view",inputs:[{name:"creator",type:"address"}],outputs:[{name:"",type:"string[]"}] },
-  { name:"getPassport",type:"function",stateMutability:"view",inputs:[{name:"humanId",type:"string"}],outputs:[{name:"",type:"tuple",components:[
-    {name:"humanId",type:"string"},{name:"contractVersion",type:"uint8"},{name:"creator",type:"address"},{name:"creatorId",type:"string"},
-    {name:"year",type:"uint32"},{name:"month",type:"uint8"},{name:"objectType",type:"string"},{name:"dataHash",type:"bytes32"},
-    {name:"imageHash",type:"bytes32"},{name:"fileHash",type:"bytes32"},{name:"sealType",type:"uint8"},{name:"sealHash",type:"bytes32"},
-    {name:"nfcPublicKey",type:"bytes"},{name:"nfcModel",type:"string"},{name:"dataUrl",type:"string"},{name:"imageUrl",type:"string"},{name:"timestamp",type:"uint256"}
-  ]}] },
-  // Must match contract event — needed for receipt log decoding (humanId after mint)
-  "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)",
-  { name:"mintPhysical",type:"function",stateMutability:"payable",inputs:[
+const ABI = (() => {
+  const mintPhysicalInputs = [
     {name:"year",type:"uint32"},{name:"month",type:"uint8"},
     {name:"dataHash",type:"bytes32"},{name:"dataUrl",type:"string"},
     {name:"imageHash",type:"bytes32"},{name:"imageUrl",type:"string"},
     {name:"sealType",type:"uint8"},{name:"sealHash",type:"bytes32"},
-    {name:"nfcPublicKey",type:"bytes"},{name:"nfcModel",type:"string"}],
-    outputs:[{name:"humanId",type:"string"}] },
-  { name:"mintDigital",type:"function",stateMutability:"payable",inputs:[
+    {name:"nfcPublicKey",type:"bytes"},{name:"nfcModel",type:"string"},
+  ];
+  const mintDigitalInputs = [
     {name:"year",type:"uint32"},{name:"month",type:"uint8"},
     {name:"dataHash",type:"bytes32"},{name:"dataUrl",type:"string"},
     {name:"imageHash",type:"bytes32"},{name:"imageUrl",type:"string"},
-    {name:"fileHash",type:"bytes32"}],outputs:[{name:"humanId",type:"string"}] },
-  { name:"updatePassportUrls",type:"function",stateMutability:"nonpayable",inputs:[
-    {name:"humanId",type:"string"},{name:"newDataUrl",type:"string"},{name:"newImageUrl",type:"string"},
-    {name:"confirmedDataHash",type:"bytes32"}],outputs:[] },
-];
+    {name:"fileHash",type:"bytes32"},
+  ];
+  if (NET.supportsFolderBaseMint) {
+    mintPhysicalInputs.push({name:"dataUrlIsFolderBase",type:"bool"});
+    mintDigitalInputs.push({name:"dataUrlIsFolderBase",type:"bool"});
+  }
+  return [
+    { name:"getCreatorByWallet",type:"function",stateMutability:"view",inputs:[{name:"wallet",type:"address"}],outputs:[{name:"",type:"string"}] },
+    { name:"getPassportsByCreator",type:"function",stateMutability:"view",inputs:[{name:"creator",type:"address"}],outputs:[{name:"",type:"string[]"}] },
+    { name:"getPassport",type:"function",stateMutability:"view",inputs:[{name:"humanId",type:"string"}],outputs:[{name:"",type:"tuple",components:[
+      {name:"humanId",type:"string"},{name:"contractVersion",type:"uint8"},{name:"creator",type:"address"},{name:"creatorId",type:"string"},
+      {name:"year",type:"uint32"},{name:"month",type:"uint8"},{name:"objectType",type:"string"},{name:"dataHash",type:"bytes32"},
+      {name:"imageHash",type:"bytes32"},{name:"fileHash",type:"bytes32"},{name:"sealType",type:"uint8"},{name:"sealHash",type:"bytes32"},
+      {name:"nfcPublicKey",type:"bytes"},{name:"nfcModel",type:"string"},{name:"dataUrl",type:"string"},{name:"imageUrl",type:"string"},{name:"timestamp",type:"uint256"}
+    ]}] },
+    "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)",
+    { name:"mintPhysical",type:"function",stateMutability:"payable",inputs:mintPhysicalInputs,outputs:[{name:"humanId",type:"string"}] },
+    { name:"mintDigital",type:"function",stateMutability:"payable",inputs:mintDigitalInputs,outputs:[{name:"humanId",type:"string"}] },
+    { name:"updatePassportUrls",type:"function",stateMutability:"nonpayable",inputs:[
+      {name:"humanId",type:"string"},{name:"newDataUrl",type:"string"},{name:"newImageUrl",type:"string"},
+      {name:"confirmedDataHash",type:"bytes32"}],outputs:[] },
+  ];
+})();
 
 const ZERO32 = "0x"+"0".repeat(64);
 /** User chose Disconnect — skip eth_accounts auto-reconnect until explicit Connect (same tab). */
@@ -274,9 +287,10 @@ async function connectWallet() {
     return;
   }
   try {
-    const preAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
+    // Polygon first, then accounts — so MetaMask scopes the connection to this chain
+    // (requesting accounts before switch often shows permission for multiple networks).
+    await ensureWalletChain(eth, NET);
     await eth.request({ method: "eth_requestAccounts" });
-    const postAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
     await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch(e) {
@@ -521,7 +535,7 @@ function renderForm() {
           <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How hosting works" aria-label="How hosting works">ⓘ</button>
         </div>
         <input type="url" id="f_urlBase" placeholder="https://art.com/passport">
-        <p class="fhint">No filename — just the folder. After mint you will upload <strong>one file</strong> named exactly <code>YourHumanID.json</code> (shown on the success screen). The on-chain URL will match that path.</p>
+        <p class="fhint">No filename — just the folder. After mint, upload <strong>one file</strong> named <code>ODP-YYYY-MM-NNNNNNN.json</code> (your real Human ID from the success screen, same casing). The on-chain <code>dataUrl</code> will be <code>your-folder/ODP-….json</code>.</p>
       </div>
       <div id="hostingFullRow" class="field" style="display:none">
         <div class="field-label-row">
@@ -620,10 +634,36 @@ function renderForm() {
 
     <!-- Submit -->
     <div class="btn-row">
-      <button class="btn" onclick="submit()" id="submitBtn">Mint Passport — ~$0.01 POL</button>
-      <button class="btn btn-ghost" onclick="previewJson()">Preview JSON</button>
+      <p class="fhint" style="width:100%;margin:0 0 12px;line-height:1.65">
+        Payable mint: <strong>0.001 POL</strong> protocol fee + Polygon <strong>gas</strong> — typically <strong>~US$0.02 total</strong> in calm conditions (varies with POL price and congestion).
+      </p>
+      <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn">Mint Passport</button>
+      <button type="button" class="btn btn-ghost" onclick="previewJson()">Preview JSON</button>
     </div>
     <div id="jsonPreview"></div>
+
+    <div id="preMintModal" class="modal-backdrop" onclick="if(event.target===this)closePreMintModal()">
+      <div class="modal-panel card" onclick="event.stopPropagation()">
+        <div class="card-head">Your passport file — confirm before minting</div>
+        <div class="card-body">
+          <p class="fhint" style="margin:0 0 12px;line-height:1.65">
+            The chain stores only a <strong>hash</strong> of your passport — <strong>not</strong> the full JSON. <strong>You</strong> must keep the canonical <code>passport.json</code> and host it at the <code>dataUrl</code> you register. If the file is missing or bytes differ from the hash, verification cannot succeed (see <strong>SPEC.md</strong> §9–§11).
+          </p>
+          <p class="fhint" style="margin:0 0 12px;line-height:1.65">
+            After mint, use <strong>Download</strong>, <strong>Share JSON file</strong>, or <strong>Copy JSON</strong> on the success screen, then upload the file to your HTTPS URL unchanged. You can <strong>update the URL later</strong> on-chain (gas only) via <strong>Update hosting URLs</strong>.
+          </p>
+          <label class="fhint" style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin:14px 0">
+            <input type="checkbox" id="preMintAck" style="margin-top:3px;flex-shrink:0">
+            <span>I understand: storing and hosting <code>passport.json</code> is my responsibility. Without that file at the registered URL, others cannot verify this passport.</span>
+          </label>
+          <p id="preMintAckErr" class="info e" style="display:none;margin-top:8px"></p>
+          <div class="btn-row" style="margin-top:18px">
+            <button type="button" class="btn" onclick="confirmPreMintAndMint()">Continue — open wallet</button>
+            <button type="button" class="btn btn-ghost" onclick="closePreMintModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div id="hostingJsonInfoModal" class="modal-backdrop" onclick="if(event.target===this)closeHostingJsonInfo()">
       <div class="modal-panel card" onclick="event.stopPropagation()">
@@ -892,6 +932,44 @@ function validate() {
   return null;
 }
 
+function openPreMintModal() {
+  const errEl = document.getElementById("formErr");
+  errEl.innerHTML = "";
+  const err = validate();
+  if (err) {
+    errEl.innerHTML = `<div class="info e" style="margin-top:12px">${esc(err)}</div>`;
+    return;
+  }
+  const ack = document.getElementById("preMintAck");
+  const preErr = document.getElementById("preMintAckErr");
+  if (ack) ack.checked = false;
+  if (preErr) {
+    preErr.style.display = "none";
+    preErr.textContent = "";
+  }
+  const m = document.getElementById("preMintModal");
+  if (m) m.classList.add("open");
+}
+
+function closePreMintModal() {
+  const m = document.getElementById("preMintModal");
+  if (m) m.classList.remove("open");
+}
+
+function confirmPreMintAndMint() {
+  const cb = document.getElementById("preMintAck");
+  const preErr = document.getElementById("preMintAckErr");
+  if (!cb || !cb.checked) {
+    if (preErr) {
+      preErr.style.display = "block";
+      preErr.textContent = "Check the box to confirm you understand, then continue.";
+    }
+    return;
+  }
+  closePreMintModal();
+  executeMint();
+}
+
 // ── Preview ───────────────────────────────────────────────────────────────────
 
 function previewJson() {
@@ -903,7 +981,24 @@ function previewJson() {
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 
-async function submit() {
+/** Legacy deployments: second tx to fix `dataUrl` after Human ID is known; retry without artificial delay. */
+async function updatePassportUrlsWithRetry(humanId, registeredDataUrl, imgU_, dataHash_) {
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const tx2 = await contract.updatePassportUrls(humanId, registeredDataUrl, imgU_, dataHash_);
+      await tx2.wait();
+      const p = await contract.getPassport(humanId);
+      if (p.dataUrl === registeredDataUrl) return;
+      lastErr = new Error("On-chain dataUrl mismatch after updatePassportUrls");
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
+async function executeMint() {
   const errEl = document.getElementById("formErr");
   errEl.innerHTML = "";
   const err = validate();
@@ -918,9 +1013,20 @@ async function submit() {
   const month     = now.getMonth()+1;
   const useFolder = document.getElementById("f_use_folder")?.checked !== false;
   const baseNorm  = useFolder ? normalizeBaseUrl(v("f_urlBase")) : "";
-  const dataUrl_  = useFolder
-    ? `${baseNorm}/odp-mint-pending-${Date.now()}.json`
-    : v("f_url");
+  let dataUrlForMint;
+  let dataUrlIsFolderBase = false;
+  if (NET.supportsFolderBaseMint) {
+    if (useFolder) {
+      dataUrlForMint = baseNorm;
+      dataUrlIsFolderBase = true;
+    } else {
+      dataUrlForMint = v("f_url");
+    }
+  } else {
+    dataUrlForMint = useFolder
+      ? `${baseNorm}/odp-mint-pending-${Date.now()}.json`
+      : v("f_url");
+  }
 
   let sealHash_ = ZERO32;
   let nfcBytes  = new Uint8Array(0);
@@ -945,14 +1051,27 @@ async function submit() {
     const mintFee = ethers.utils.parseEther("0.001"); // matches MINT_FEE in contract
     if (objType==="physical") {
       const nfcModelStr = (sealType===1||sealType===3) ? "NTAG424DNA_TT" : "";
-      tx = await contract.mintPhysical(
-        year,month,dataHash_,dataUrl_,imgH_,imgU_,
-        sealType,sealHash_,nfcBytes,nfcModelStr,
+      if (NET.supportsFolderBaseMint) {
+        tx = await contract.mintPhysical(
+          year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
+          sealType,sealHash_,nfcBytes,nfcModelStr,dataUrlIsFolderBase,
+          {value: mintFee}
+        );
+      } else {
+        tx = await contract.mintPhysical(
+          year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
+          sealType,sealHash_,nfcBytes,nfcModelStr,
+          {value: mintFee}
+        );
+      }
+    } else if (NET.supportsFolderBaseMint) {
+      tx = await contract.mintDigital(
+        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,fileHashBytes32,dataUrlIsFolderBase,
         {value: mintFee}
       );
     } else {
       tx = await contract.mintDigital(
-        year,month,dataHash_,dataUrl_,imgH_,imgU_,fileHashBytes32,
+        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,fileHashBytes32,
         {value: mintFee}
       );
     }
@@ -977,10 +1096,12 @@ async function submit() {
       } catch {}
     }
 
-    let registeredDataUrl = dataUrl_;
+    let registeredDataUrl = dataUrlForMint;
     if (!humanId) throw new Error("Could not read Human ID from mint receipt.");
 
-    if (useFolder && baseNorm) {
+    if (NET.supportsFolderBaseMint && dataUrlIsFolderBase) {
+      registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
+    } else if (!NET.supportsFolderBaseMint && useFolder && baseNorm) {
       registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
       document.getElementById("app").innerHTML = `
         <div style="text-align:center;padding:48px 0">
@@ -990,8 +1111,7 @@ async function submit() {
         </div>
         <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
       try {
-        const tx2 = await contract.updatePassportUrls(humanId, registeredDataUrl, imgU_, dataHash_);
-        await tx2.wait();
+        await updatePassportUrlsWithRetry(humanId, registeredDataUrl, imgU_, dataHash_);
       } catch (e2) {
         const want = esc(registeredDataUrl);
         document.getElementById("app").innerHTML = `<div class="info w" style="max-width:440px;margin:24px auto;line-height:1.6">
@@ -1210,11 +1330,17 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
         <div class="ns-item"><div class="ns-num">3</div><div>Make sure your Creator ID <strong>${esc(creatorId)}</strong> is published on your website and social profiles.</div></div>
       </div>
 
-      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-        <button class="btn" onclick="dlJson('${esc(humanId)}',\`${esc(json)}\`)" style="flex:0;padding:13px 20px">Download passport.json</button>
-        <a href="${net.explorer}/tx/${txHash}" target="_blank"><button class="btn btn-ghost">Explorer ↗</button></a>
-        <a href="${esc(rel)}"><button class="btn btn-ghost">Verify ↗</button></a>
-        <button class="btn btn-ghost" onclick="renderForm()">New Passport</button>
+      <div class="info n" style="max-width:480px;margin:0 auto 16px;text-align:left;line-height:1.65;font-size:12px">
+        <strong>iPhone / MetaMask in-app browser:</strong> a plain download may not appear in Files. Use <strong>Share JSON file</strong> (Save to Files / iCloud) or <strong>Copy JSON</strong>, then upload the file to your host unchanged.
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
+        <button type="button" class="btn" id="successDlJsonBtn" style="flex:0;padding:13px 20px">Download JSON</button>
+        <button type="button" class="btn btn-sec" id="successShareJsonBtn" style="flex:0;padding:13px 20px">Share JSON file</button>
+        <button type="button" class="btn btn-sec" id="successCopyJsonBtn" style="flex:0;padding:13px 20px">Copy JSON</button>
+        <a href="${net.explorer}/tx/${txHash}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn btn-ghost">Explorer ↗</button></a>
+        <a href="${esc(rel)}"><button type="button" class="btn btn-ghost">Verify ↗</button></a>
+        <button type="button" class="btn btn-ghost" onclick="renderForm()">New Passport</button>
       </div>
     </div>
 
@@ -1236,14 +1362,78 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
   bindShareModalCloseHandlers();
   const shareBtn = document.getElementById("sharePassportBtn");
   if (shareBtn) shareBtn.addEventListener("click", () => fillPassportShareModal(humanId));
+
+  try {
+    sessionStorage.setItem("odp_passport_json_" + humanId, json);
+  } catch (e) {}
+  const dl = document.getElementById("successDlJsonBtn");
+  const sh = document.getElementById("successShareJsonBtn");
+  const cp = document.getElementById("successCopyJsonBtn");
+  if (dl) dl.onclick = () => downloadPassportJson(humanId, json);
+  if (sh) sh.onclick = () => sharePassportJsonFile(humanId, json);
+  if (cp) cp.onclick = () => copyPassportJsonText(json, cp);
 }
 
-function dlJson(humanId, json) {
-  const a = Object.assign(document.createElement("a"), {
-    href: URL.createObjectURL(new Blob([json],{type:"application/json"})),
-    download: `${humanId}.json`
-  });
+function blobDownloadPassportJson(humanId, json) {
+  const filename = `${safeFilePart(humanId)}.json`;
+  const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.appendChild(a);
   a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 2500);
+}
+
+/** Returns true if the system share sheet completed successfully; false if Web Share with files is unavailable. */
+async function trySharePassportJsonFile(humanId, json) {
+  const filename = `${safeFilePart(humanId)}.json`;
+  const blob = new Blob([json], { type: "application/json;charset=utf-8" });
+  const file = new File([blob], filename, { type: "application/json" });
+  if (!navigator.canShare || !navigator.canShare({ files: [file] })) return false;
+  await navigator.share({ files: [file], title: "ODP passport.json", text: filename });
+  return true;
+}
+
+/** Download: on mobile, Web Share with File first (Save to Files on iOS); otherwise blob `<a download>`. */
+async function downloadPassportJson(humanId, json) {
+  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  if (mobile) {
+    try {
+      const ok = await trySharePassportJsonFile(humanId, json);
+      if (ok) return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+  }
+  blobDownloadPassportJson(humanId, json);
+}
+
+/** Share sheet — same as mobile branch of Download; falls back to blob if sharing is unavailable or fails. */
+async function sharePassportJsonFile(humanId, json) {
+  try {
+    const ok = await trySharePassportJsonFile(humanId, json);
+    if (ok) return;
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+  }
+  blobDownloadPassportJson(humanId, json);
+}
+
+async function copyPassportJsonText(json, btnEl) {
+  try {
+    await navigator.clipboard.writeText(json);
+    const t = btnEl.textContent;
+    btnEl.textContent = "Copied!";
+    setTimeout(() => { btnEl.textContent = t; }, 2000);
+  } catch (e) {
+    alert("Copy failed: " + (e.message || String(e)));
+  }
 }
 
 function fmtSz(b) {

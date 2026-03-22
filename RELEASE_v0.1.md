@@ -4,7 +4,9 @@
 
 First tagged release of the reference implementation: specification, Solidity contract, static web UI, and helper tooling.
 
-## Live demo (GitHub Pages)
+## Live demo (GitHub Pages) — example UI
+
+Static pages preconfigured for the official v0.1 contract below (illustration only; protocol rules are in `SPEC.md`).
 
 - **Site:** https://object-digital-passport.github.io/object-digital-passport/
 - **Verify** (read-only, no wallet): https://object-digital-passport.github.io/object-digital-passport/verify.html  
@@ -20,7 +22,7 @@ First tagged release of the reference implementation: specification, Solidity co
 
 ## Documentation
 
-- **Protocol (normative):** [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) · [`SPEC_RU.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC_RU.md)  
+- **Protocol (normative):** [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md)  
 - **Security / threat model:** [`SECURITY.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SECURITY.md)  
 - **Overview:** [`README.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md)  
 

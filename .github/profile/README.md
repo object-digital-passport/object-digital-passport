@@ -2,7 +2,7 @@
 
 **An open standard for authenticating physical and digital objects via blockchain** — human-readable IDs, cryptographic hashes, and verifiable seals. No platform lock-in: anyone can implement it, anyone can verify.
 
-**Live demo (GitHub Pages):** [**object-digital-passport.github.io/object-digital-passport**](https://object-digital-passport.github.io/object-digital-passport/) · [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html) · [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)
+**Live demo (GitHub Pages):** [**object-digital-passport.github.io/object-digital-passport**](https://object-digital-passport.github.io/object-digital-passport/) — *example UI* wired to the official v0.1 contract · [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html) · [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
 ---
 

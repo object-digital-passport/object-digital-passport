@@ -116,6 +116,7 @@ CONTRACT_ABI = [
             {"name": "sealHash",     "type": "bytes32"},
             {"name": "nfcPublicKey", "type": "bytes"},
             {"name": "nfcModel",     "type": "string"},
+            {"name": "dataUrlIsFolderBase", "type": "bool"},
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
     },
@@ -132,6 +133,7 @@ CONTRACT_ABI = [
             {"name": "imageHash", "type": "bytes32"},
             {"name": "imageUrl",  "type": "string"},
             {"name": "fileHash",  "type": "bytes32"},
+            {"name": "dataUrlIsFolderBase", "type": "bool"},
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
     },
@@ -590,6 +592,7 @@ def cmd_mint(args):
             to_bytes32(seal_hash_bytes),
             nfc_pub_key,
             nfc_model_str,   # "NTAG424DNA_TT" or ""
+            False,           # dataUrlIsFolderBase — CLI uses full dataUrl; use web UI for folder-base mint
         )
     else:
         fn = contract.functions.mintDigital(
@@ -600,6 +603,7 @@ def cmd_mint(args):
             to_bytes32(image_hash_bytes),
             image_url,
             to_bytes32(file_hash_bytes),
+            False,           # dataUrlIsFolderBase
         )
 
     tx_hash = send_tx(w3, account, fn, net, value=mint_fee)

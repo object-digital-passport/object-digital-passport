@@ -3,9 +3,64 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
 
-**Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html) · [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)
+## Terms (read this first)
 
-*If **`/` works but `verify.html` / `creator.html` return 404**, the site is probably still built with **Jekyll from a branch** (only README), not the static files in **`web/`**. Fix: **Settings → Pages → Build and deployment → Source: GitHub Actions** (not “Deploy from a branch”). Then open **Actions**, run workflow **Deploy GitHub Pages**, wait for green. The workflow lives at [`.github/workflows/pages.yml`](.github/workflows/pages.yml) (same logic as [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml)).*
+Blockchain apps reuse words from NFTs and finance — here is what they mean **in ODP**:
+
+| Term | Meaning here |
+|:--|:--|
+| **Mint / minting** | Sending a **transaction** that **creates** a new on-chain record. For a passport, **mint** means the smart contract **registers** your object: it assigns a **Human ID**, stores cryptographic **hashes**, and takes the **protocol fee**. It does **not** mean “print” or “issue a PDF” by itself — you still **download** and **host** `passport.json` separately. |
+| **Register (Creator ID)** | A **one-time** on-chain step: your wallet pays gas + fee and receives a permanent **Creator ID** (`C-…`, `B-…`, or `P-…`). You must do this **before** you can mint passports. |
+| **Passport** | The **whole record** for one object: the on-chain row **plus** the **passport.json** file at **`dataUrl`**. |
+| **`passport.json`** | The **off-chain JSON document** with title, seal, hashes, etc. Only a **hash** of it lives on-chain; **you** must keep the file and publish it at the URL you gave. |
+| **`dataUrl`** | The **HTTPS link** where `passport.json` is hosted. Verifiers fetch it and compare bytes to the on-chain hash. |
+| **Verify / verification** | **Read-only** check: load chain data + `passport.json`, recompute hashes — **no** wallet or fee. |
+| **Gas** | **POL** paid to the **Polygon network** for executing any transaction (varies with congestion). Separate from the **protocol fee** below. |
+| **Protocol fee** | A fixed **0.001 POL** per payable action (**register**, **mint**, **proof**), **burned** by the contract — not the same as gas. **URL-only updates** pay **gas** only. |
+| **Wallet** | An Ethereum-compatible app (e.g. **MetaMask**) that holds your keys and **signs** transactions. |
+
+Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 and §2 onward).
+
+---
+
+## What this system is (and why)
+
+**Object Digital Passport (ODP)** is an open standard for registering a **physical or digital object** on a public blockchain and later **proving** that a given object matches that registration — without a proprietary platform, subscription, or central gatekeeper.
+
+**How the pieces fit together:**
+
+- **Human ID** (`ODP-YYYY-MM-NNNNNNN`) — a readable, unique handle for the object; minted by the contract, immutable.
+- **Creator ID** (`C-482-930-174`, etc.) — a permanent identity for the artist, brand, or institution; required before minting.
+- **On-chain record** — compact: hashes, creator binding, URLs, seal metadata. **No** large images or full JSON on-chain.
+- **Passport JSON** — the full document lives at **`dataUrl`** (HTTPS); the chain stores a hash so any change to the file is detected.
+
+**Core principles** (from **`SPEC.md` §1**; normative wording there):
+
+| Principle | Meaning |
+|:--|:--|
+| **Open** | Anyone may implement the protocol in any language or platform. |
+| **Decentralized** | No single company controls the registry. |
+| **Offline-friendly** | Authenticity can be verified without internet using only hashes (see **SPEC.md**). Typical browser verifiers also read the chain and `dataUrl` for a complete check. |
+| **Free to read** | Verification never costs anything (chain reads use public RPCs). |
+| **Minimal on-chain** | No images or large data stored on-chain — only what **`SPEC.md`** requires. |
+
+**This repository** is **one reference example**: Solidity contract, static pages under `web/`, deploy scripts, and helpers — **authored by Andrei Chernikov**. It demonstrates the ideas end-to-end. **The normative rules** (ID formats, hashing, verification, seals) are in **[`SPEC.md`](SPEC.md)**; security discussion in **[`SECURITY.md`](SECURITY.md)**.
+
+---
+
+## Live demo (example UI)
+
+The pages below are **example** front ends, preconfigured for the **official v0.1 contract** on Polygon PoS (see **Current release**). Other compatible apps may differ in layout; protocol behavior is defined in **`SPEC.md`**, not by this HTML.
+
+**GitHub Pages:** **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)**
+
+| Page | URL | Notes |
+|:--|:--|:--|
+| **Verify** | [verify.html](https://object-digital-passport.github.io/object-digital-passport/verify.html) | Read-only — **no wallet** |
+| **Creator ID** | [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html) | Needs wallet + gas |
+| **Passport** | [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html) | Needs wallet + gas |
+
+*If the site root loads README-style content but `verify.html` returns 404, GitHub Pages may still be serving a branch/Jekyll build. Prefer **Settings → Pages → Source: GitHub Actions** and a green **Deploy GitHub Pages** run — see [`.github/workflows/pages.yml`](.github/workflows/pages.yml).*
 
 ---
 
@@ -29,9 +84,9 @@ Anyone can implement it. Anyone can verify it. Forever.
 
 ---
 
-## This repository
+## This repository (scope)
 
-What you see here is **one example** of how the protocol can be built: a reference web stack, a Solidity contract, and helper tooling — **authored by Andrei Chernikov** as the initial reference implementation. It is meant to demonstrate the ideas end-to-end — not to be the only “official” product. **The full normative specification** (ID formats, hashes, verification rules, and what any compatible implementation must do) lives in **[`SPEC.md`](SPEC.md)**. Threat model and security notes: **[`SECURITY.md`](SECURITY.md)**. Use those documents as the source of truth; this README is an overview.
+What you see here is **one example** of how the protocol can be built — not the only permissible product. **`SPEC.md`** is the source of truth for compatible implementations; this README is an overview.
 
 ---
 
@@ -39,7 +94,7 @@ What you see here is **one example** of how the protocol can be built: a referen
 
 ODP lets you register any physical or digital object on the Polygon blockchain
 and prove its authenticity — using a human-readable ID, a cryptographic hash,
-and a physical seal.
+and (for physical objects) a physical seal.
 
 ```
 ODP-2026-03-4829301     ← Human ID (on the label, packaging, website)
@@ -47,19 +102,20 @@ C-482-930-174          ← Creator ID (your permanent identity)
 ```
 
 Anyone with a phone can scan the QR code and verify:
+
 - Who made it
 - When it was registered
 - Whether the data has been tampered with
-- Whether the physical seal is intact
+- Whether the physical seal is intact (per the chosen seal method)
 
 ---
 
 ## How it works
 
 ```
-1. Register your Creator ID    (~$0.01, one time)
+1. Register your Creator ID    (~US$0.02 typ., one time — gas + fee)
        ↓
-2. Register your object        (~$0.01)
+2. Register your object        (~US$0.02 typ. — gas + fee)
    → generates Human ID
    → stores data hash on-chain
        ↓
@@ -67,7 +123,7 @@ Anyone with a phone can scan the QR code and verify:
    → QR code  odp://ODP-2026-03-4829301
    → Human ID
    → Creator ID
-   → physical seal (NFC chip or numbered sticker)
+   → physical seal (see below)
        ↓
 4. Anyone scans → verifier checks blockchain → authentic ✓
 ```
@@ -79,7 +135,6 @@ Anyone with a phone can scan the QR code and verify:
 ```
 /
 ├── SPEC.md                    ← Protocol specification (English)
-├── SPEC_RU.md                 ← Specification in Russian
 ├── LICENSE                    ← MIT (copyright: Andrei Chernikov)
 ├── CONTRIBUTING.md            ← How to contribute; labels & PR flow
 ├── CODE_OF_CONDUCT.md         ← Contributor Covenant
@@ -109,79 +164,49 @@ Anyone with a phone can scan the QR code and verify:
 │
 └── web/
     ├── .nojekyll              ← Ensures static upload is not processed as Jekyll when needed
-    ├── creator.html           ← Register Creator ID
-    ├── passport.html          ← Mint passports
-    └── verify.html            ← Verify passports
+    ├── creator.html           ← Register Creator ID (example UI)
+    ├── passport.html          ← Mint passports (example UI)
+    └── verify.html            ← Verify passports (example UI)
 ```
 
 ---
 
-## Quick start
+## Quick start (example web UI)
 
-### 1. Get a wallet
+The following uses the **live demo** links above — **functional examples** on the **official v0.1 contract**.
 
-Install [MetaMask](https://metamask.io). Create a wallet. Save your seed phrase.
+### 1. Wallet — MetaMask
 
-### 2. POL for gas
+- **Phone:** Install the **MetaMask** app from your app store. When you use the demo in the **in-app browser** or when the site opens **MetaMask** via the wallet button, transactions run in the app — same account as on desktop if you sync.
+- **Computer:** Install the **MetaMask browser extension** for your browser; the demo uses the extension when you click **Connect**.
 
-Registering a Creator ID and minting passports **submit transactions on Polygon PoS**. Gas is paid in that chain’s native token (**POL**), so your wallet must have POL on **Polygon PoS** for those actions. Verifying on `verify.html` is read-only and does not need POL.
+Create a wallet, back up your seed phrase, and add **Polygon PoS** if prompted.
 
-### 3. Deploy the contract (or use the official deployment)
+### 2. POL for gas and fees
 
-The official contract address is published at: **[to be added after mainnet deploy]**
+Registering a Creator ID and minting passports **submit transactions on Polygon PoS**. You pay **network gas** in **POL**, and each of those actions also burns a fixed **0.001 POL** protocol fee — in practice often **~US$0.02 total per transaction** (gas + fee; varies). The **Verify** page is read-only and does **not** need POL or a wallet. **Updating URLs** on-chain is **gas only** (no extra protocol fee).
 
-> **After deploying — paste the contract address into all three HTML files.**
->
-> Open each file and find the `CFG` object at the top of the `<script>` section:
->
-> **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** — all three:
-> ```javascript
-> const CFG = {
->   amoy: {
->     ...
->     contract: "",  // ← paste Amoy testnet address here
->   },
->   polygon: {
->     ...
->     contract: "",  // ← paste Polygon mainnet address here
->   },
-> };
-> ```
-> Until you paste the address, the UI will show "Contract not configured".
+### 3. Official contract
 
-To deploy your own:
-```bash
-cd deploy
-npm install
-cp .env.example .env
-# Add your private key to .env
+The **Current release** table lists the canonical **v0.1** deployment. The demo HTML is already configured for that address.
 
-npm run deploy:testnet    # Polygon Amoy testnet
-npm run deploy:mainnet    # Polygon mainnet
-```
+**Folder hosting (`passport.html`):** the file on your server must be named exactly **`<Human ID>.json`** (e.g. `ODP-2026-03-4829301.json`), and the registered `dataUrl` must be the **full HTTPS URL** to that file (e.g. `https://example.com/passport/ODP-2026-03-4829301.json`). The Solidity contract in this repository can resolve `folderBase + "/" + HumanID + ".json"` **inside the mint transaction** when redeployed (`dataUrlIsFolderBase`); the **current** public Polygon deployment still uses the older ABI, so the web UI keeps **`NET.supportsFolderBaseMint: false`** and performs a **second** transaction (`updatePassportUrls`) to replace the temporary mint URL — set **`supportsFolderBaseMint: true`** only after you deploy the updated contract and paste its address.
+
+If you need a **separate** deployment (e.g. private test), use the **`deploy/`** stack and wire addresses per **`SPEC.md`** — that workflow is for operators and integrators, not required to try the public demo.
 
 ### 4. Register your Creator ID
 
-**Via web UI:**
-Open `web/creator.html` in a browser with MetaMask installed.
-Click "Connect Wallet" → registration screen appears autopolally.
+**Example UI:** open **[Creator ID (live demo)](https://object-digital-passport.github.io/object-digital-passport/creator.html)** — **Connect Wallet**, then follow the registration flow.
 
-**Via CLI:**
-```bash
-cd tools
-pip install web3 qrcode[pil] pillow python-dotenv
-python mint.py --register
-```
+Choose your type when registering:
 
-Choose your type:
-- `C` — Creator (individual artist, photographer, maker)
-- `B` — Brand (company, studio, label)
-- `P` — Proof Institution (museum, gallery, auction house)
+- **`C`** — Creator (individual artist, photographer, maker)
+- **`B`** — Brand (company, studio, label)
+- **`P`** — Proof Institution (museum, gallery, auction house)
 
-You'll receive a permanent ID like `C-482-930-174`.
+You receive a permanent ID like `C-482-930-174`.
 
-**Publish your ID publicly** — on your website, social media, and physical objects.
-This is how people verify that a passport was made by you.
+**Publish your ID publicly** — on your website, social media, and physical objects. That is how others confirm a passport was issued by you.
 
 ```
 Short:  C-482-930-174
@@ -190,18 +215,9 @@ Full:   C-482-930-174 / Your Name / 0x742d35Cc...
 
 ### 5. Mint a passport
 
-**Via web UI:**
-Open `web/passport.html`, connect wallet, fill the form, click "Mint Passport".
-The UI handles hashing and blockchain submission. MetaMask will ask you to confirm.
-After minting: download `passport.json` and upload it to your `dataUrl`.
+**Example UI:** open **[Passport (live demo)](https://object-digital-passport.github.io/object-digital-passport/passport.html)**, connect wallet, complete the form, **Mint Passport**. After minting, download **`passport.json`** and host it at the **`dataUrl`** you used.
 
-**Via CLI:**
-```bash
-python mint.py
-```
-Follow the interactive prompts. On completion:
-- `passports/ODP-YYYY-MM-NNNNNNN.json` — upload this to your `dataUrl`
-- Run `python mint.py --qr ODP-YYYY-MM-NNNNNNN` to generate QR
+*(Optional: automation and CLI flows are described in **`tools/mint.py`** — not required for the browser demo.)*
 
 #### Hosting `passport.json` on third-party sites
 
@@ -219,55 +235,43 @@ Full normative wording: **SPEC.md §9 — Hosting `dataUrl` (third-party sites)*
 
 ### 6. Verify
 
-**Via web UI:**
-Open `web/verify.html` in any browser.
-Enter a Human ID or paste a `odp://` URI. No wallet needed.
+**Example UI:** open **[Verify (live demo)](https://object-digital-passport.github.io/object-digital-passport/verify.html)** in any browser. Enter a Human ID or paste an `odp://` URI. **No wallet.**
 
-**Direct link:**
+**Direct link pattern:**
+
 ```
-verify.html?id=ODP-2026-03-4829301
+https://object-digital-passport.github.io/object-digital-passport/verify.html?id=ODP-2026-03-4829301
 ```
 
 ---
 
 ## Physical seal
 
-A seal is required for physical objects. It binds the digital passport
-to the specific physical object.
+A seal is required for **physical** objects: it binds the digital passport to the **specific** object in front of you.
 
-### Option A — NFC crypto chip (recommended for art)
+### Numbered seal (simple, widely used)
 
-Use **NXP NTAG 424 DNA** or **NTAG 424 DNA TagTamper**.
-The chip contains a private key locked in silicon — it cannot be copied.
-Each scan produces a unique cryptographic signature.
+Any tamper-evident seal with a **unique printed number** — holographic sticker, wax seal, lead seal, numbered label. Record the number and description in the passport; anyone can check the physical mark against the document.
 
-- Cost: ~$0.50–3 per chip
-- Buy: AliExpress, Mouser, Seritag
-- Where to get chip data: use any NTAG 424 DNA-compatible NFC writer app
+- Rough cost: from ~$0.05 per piece depending on material
+- Easy to source at many scales
 
-The TagTamper variant permanently records if the seal is removed.
+This reference demo is built around straightforward workflows; **numbered seals** match most maker needs without extra hardware.
 
-### Option B — Numbered seal
+### NFC crypto seal (high assurance)
 
-Any physical seal with a unique printed number:
-holographic sticker, wax seal, lead seal, tamper-evident label.
-
-The number and description are recorded in the passport.
-Anyone can visually verify the number on the object matches the passport.
-
-- Cost: from $0.05 per piece
-- Easy to source at any scale
+The **protocol** allows an optional **cryptographic NFC seal** (challenge–response with a chip-bound key). Requirements are strict (see **`SPEC.md` §6**): generic NFC stickers are **not** sufficient for that profile. Product choices and verification UX are **implementation details** — follow the spec if you implement that path.
 
 ### Verification label
 
 Print a label for each object containing:
+
 - QR code (`odp://ODP-YYYY-MM-NNNNNNN`)
 - Human ID in text
 - Creator ID in text
 - Protocol mark (`ODP`)
 
-The label must physically cover or retain the seal so that
-removing the label damages the seal.
+The label must physically cover or retain the seal so that removing the label damages or disturbs the seal (see **`SPEC.md`** seal retention rules).
 
 ---
 
@@ -283,7 +287,7 @@ For digital art, video, 3D models, and other digital files:
 
 C2PA compatibility: if your file contains an embedded C2PA manifest
 (from Photoshop, Lightroom, Leica camera, etc.), the file hash
-captures the manifest autopolally. No extra steps needed.
+captures the manifest automatically. No extra steps needed.
 
 ---
 
@@ -317,7 +321,7 @@ const creator  = await contract.getCreator(record.creatorId);
 const proofIds = await contract.getProofsForPassport("ODP-2026-03-4829301");
 ```
 
-Reading is always free. No wallet or API key needed.
+Use the **Current release** contract address for `CONTRACT_ADDRESS` on Polygon PoS. Reading is free. No wallet or API key needed.
 
 See `SPEC.md` section 13 for the full SDK interface specification.
 
@@ -326,22 +330,25 @@ See `SPEC.md` section 13 for the full SDK interface specification.
 ## Network
 
 | | |
-|--|--|
+|:--|:--|
 | Network | Polygon PoS |
 | Chain ID | 137 |
-| Gas per mint | ~$0.01 |
+| Typical mint / register (gas + fee) | ~US$0.02 (varies) |
 | Testnet | Polygon Amoy (chain ID 80002) |
-| Contract | [to be published] |
+| Contract (v0.1) | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
 
 ---
 
 ## Costs
 
-| Action | Cost |
-|--------|------|
-| Register Creator ID | ~$0.01 (once) |
-| Mint a passport | ~$0.01 |
-| Submit a proof | ~$0.01 |
+Each **payable** contract call (`registerCreator`, `mintPhysical`, `mintDigital`, `submitProof`) charges a fixed **0.001 POL** protocol fee (burned) **plus** Polygon **network gas** (also paid in POL). In typical conditions that is **roughly US$0.02 per transaction** — about **US$0.01 gas** and **US$0.01** for the protocol line item — but **actual cost varies** with POL price and congestion.
+
+| Action | Typical cost |
+|--------|----------------|
+| Register Creator ID | ~US$0.02 (once) — gas + 0.001 POL fee |
+| Mint a passport | ~US$0.02 — gas + 0.001 POL fee |
+| Submit a proof | ~US$0.02 — gas + 0.001 POL fee |
+| Update passport URLs only (`updatePassportUrls`) | **Gas only** (no protocol fee) |
 | Verify an object | Free |
 | Read any data | Free |
 
@@ -364,7 +371,7 @@ see [`SECURITY.md`](SECURITY.md).
 ## Roadmap
 
 | | |
-|--|--|
+|:--|:--|
 | **Reference launch (v0.1)** | *Now* — draft specification, example stack in this repo, contract & web UI as a working illustration. |
 | **Interim milestones** | *TBD* — ecosystem feedback, testnet/mainnet iterations, spec refinements (tracked via issues and PRs). |
 | **Stable release v1.0** | **January 2027** — target for a stable protocol version and compatible **v1** tooling (see SPEC versioning rules). |

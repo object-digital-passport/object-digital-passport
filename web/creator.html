@@ -306,7 +306,7 @@ function renderForm() {
         <div id="regErr"></div>
 
         <button class="btn" id="regBtn" onclick="doRegister()">
-          Register — ~$0.01 POL
+          Register — ~US$0.02 (typ.) gas + fee
         </button>
       </div>
     </div>`;
@@ -726,9 +726,10 @@ async function connectWallet() {
     return;
   }
   try {
-    const preAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
+    // Polygon first, then accounts — so MetaMask scopes the connection to this chain
+    // (requesting accounts before switch often shows permission for multiple networks).
+    await ensureWalletChain(eth, NET);
     await eth.request({ method: "eth_requestAccounts" });
-    const postAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
     await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch(e) {
@@ -786,7 +787,7 @@ async function doRegister() {
   } catch(e) {
     err.innerHTML = `<div class="info error" style="margin-bottom:10px">${esc(e.message)}</div>`;
     btn.disabled = false;
-    btn.textContent = "Register — ~$0.01 POL";
+    btn.textContent = "Register — ~US$0.02 (typ.) gas + fee";
   }
 }
 

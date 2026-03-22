@@ -77,6 +77,7 @@ async function main() {
       fakeImageHash,                      // imageHash (bytes32)
       "https://example.com/preview.jpg",  // imageUrl
       fakeFileHash,                       // fileHash (bytes32) — required for digital
+      false,                              // dataUrlIsFolderBase — full URL, not folder root
       { value: MINT_FEE }
     );
     const mintReceipt = await mintTx.wait();
