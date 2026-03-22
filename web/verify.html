@@ -37,7 +37,7 @@
   <div class="header-left">
     <h1>Verify</h1>
     <p class="sub">Object Digital Passport · Specification v0.2</p>
-    <p id="odpStackLabel" class="fhint" style="display:none;font-size:11px;margin-top:6px;max-width:42rem;line-height:1.5"></p>
+    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:42rem;line-height:1.5"></div>
     <p class="fhint" style="margin-top:6px;max-width:42rem">Check that a passport or creator ID is registered.</p>
   </div>
   <div class="net-pill" title="Polygon PoS mainnet">
@@ -118,6 +118,8 @@ const NET = {
   explorer: "https://polygonscan.com",
   contract: "",
   contractGenerationFallback: null,
+  /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
+  previousContracts: [],
 };
 
 const ABI = odpBuildVerifyReadAbi();
@@ -160,7 +162,7 @@ async function connect() {
         setNet("warn", `${c.name} — contract address not set`);
         if (lbl) {
           lbl.style.display = "none";
-          lbl.textContent = "";
+          lbl.innerHTML = "";
         }
         odpContractGeneration = null;
         odpLegacyBannerUpdate("odpLegacyBanner", null);
@@ -170,7 +172,7 @@ async function connect() {
       odpContractGeneration = odpResolveGeneration(probed, c);
       contract = new ethers.Contract(c.contract, ABI, provider);
       if (lbl) {
-        lbl.textContent = odpFormatStackLabel(odpContractGeneration);
+        lbl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
         lbl.style.display = "";
       }
       odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
@@ -187,7 +189,7 @@ async function connect() {
   odpLegacyBannerUpdate("odpLegacyBanner", null);
   if (lbl) {
     lbl.style.display = "none";
-    lbl.textContent = "";
+    lbl.innerHTML = "";
   }
 }
 
@@ -195,6 +197,25 @@ function setNet(state, label) {
   const dot = document.getElementById("netDot");
   dot.className = "net-dot " + (state === "on" ? "on" : state === "off" ? "off" : "");
   document.getElementById("netLabel").textContent = label;
+}
+
+/** Primary deployment first, then `NET.previousContracts` (deduped; same read ABI). */
+function verifyReadContractsOrdered() {
+  const addrs = [NET.contract, ...(NET.previousContracts || [])].filter(Boolean);
+  const seen = {};
+  const uniq = [];
+  for (let i = 0; i < addrs.length; i++) {
+    const a = String(addrs[i]).toLowerCase();
+    if (seen[a]) continue;
+    seen[a] = true;
+    uniq.push(addrs[i]);
+  }
+  return uniq.map((addr) => new ethers.Contract(addr, ABI, provider));
+}
+
+function shortAddr(a) {
+  const s = String(a || "");
+  return s.length > 14 ? s.slice(0, 6) + "…" + s.slice(-4) : s;
 }
 
 // ── Parse ─────────────────────────────────────────────────────────────────────
@@ -359,17 +380,26 @@ async function verify() {
 
     const humanId = token.id;
     setLoading(el, "Fetching passport record...");
-    let res;
-    try {
-      res = await contract.resolvePassport(humanId);
-    } catch (e) {
-      const m = String(e && (e.reason || e.message) || "");
-      if (m.includes("Passport not found")) {
-        renderInvalid(humanId);
-        return;
+    let res = null;
+    let readContract = null;
+    for (const c of verifyReadContractsOrdered()) {
+      try {
+        res = await c.resolvePassport(humanId);
+        readContract = c;
+        break;
+      } catch (e) {
+        const m = String(e && (e.reason || e.message) || "");
+        if (m.includes("Passport not found")) {
+          continue;
+        }
+        throw e;
       }
-      throw e;
     }
+    if (!res || !readContract) {
+      renderInvalid(humanId);
+      return;
+    }
+    const resolvedOn = readContract.address;
     const rec = res.passport;
 
     let creator = null;
@@ -385,9 +415,9 @@ async function verify() {
     let proofIds = [];
     let proofs   = [];
     try {
-      proofIds = await contract.getProofsForPassport(humanId);
+      proofIds = await readContract.getProofsForPassport(humanId);
       proofs = await Promise.all(
-        proofIds.map(id => contract.getProof(id).catch(() => null))
+        proofIds.map(id => readContract.getProof(id).catch(() => null))
       );
       proofs = proofs.filter(Boolean);
     } catch {}
@@ -412,7 +442,7 @@ async function verify() {
       } catch {}
     }
 
-    render(humanId, rec, creator, passport, proofs, dataStatus);
+    render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOn);
 
   } catch (e) {
     el.innerHTML = `<div class="err-box">Error: ${esc(e.message)}</div>`;
@@ -423,18 +453,22 @@ async function verify() {
 
 async function verifyCreatorRecord(creatorId, el) {
   setLoading(el, "Fetching creator record...");
-  try {
-    const raw = await contract.getCreator(creatorId);
-    const typeChar = decodeTypePrefix(raw.typePrefix);
-    renderCreatorResult(creatorId, { ...raw, typePrefix: typeChar });
-  } catch (e) {
-    const m = String(e && (e.reason || e.message) || "");
-    if (m.includes("Creator not found")) {
-      renderCreatorNotFound(creatorId);
-    } else {
+  for (const c of verifyReadContractsOrdered()) {
+    try {
+      const raw = await c.getCreator(creatorId);
+      const typeChar = decodeTypePrefix(raw.typePrefix);
+      renderCreatorResult(creatorId, { ...raw, typePrefix: typeChar }, c.address);
+      return;
+    } catch (e) {
+      const m = String(e && (e.reason || e.message) || "");
+      if (m.includes("Creator not found")) {
+        continue;
+      }
       el.innerHTML = `<div class="err-box">Error: ${esc(e.message)}</div>`;
+      return;
     }
   }
+  renderCreatorNotFound(creatorId);
 }
 
 function setLoading(el, msg) {
@@ -480,9 +514,12 @@ function renderCreatorNotFound(creatorId) {
     </div>`;
 }
 
-function renderCreatorResult(creatorId, c) {
+function renderCreatorResult(creatorId, c, deploymentAddress) {
   const net_ = NET;
   const wallet = c.wallet;
+  const showPrior =
+    deploymentAddress &&
+    String(deploymentAddress).toLowerCase() !== String(net_.contract || "").toLowerCase();
   const d = new Date(Number(c.timestamp) * 1000);
   const when = d.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
   const typeLabel = { C: "Creator", B: "Brand", P: "Institution" }[c.typePrefix] || "Creator";
@@ -496,6 +533,7 @@ function renderCreatorResult(creatorId, c) {
         </div>
       </div>
       <div class="card-body">
+        ${showPrior ? `<p class="odp-prior-deploy-note">Resolved on a <strong>prior deployment</strong> (<code class="mono">${esc(shortAddr(deploymentAddress))}</code>). Treat trust separately from the primary registry.</p>` : ""}
         <div class="field"><div class="fl">Creator ID</div><div class="fv"><span class="creator-id-val">${esc(creatorId)}</span></div></div>
         <div class="field"><div class="fl">Type</div><div class="fv">${esc(c.typePrefix)} (${esc(typeLabel)})</div></div>
         <div class="field full"><div class="fl">Wallet</div><div class="fv mono">${esc(wallet)}</div></div>
@@ -648,8 +686,11 @@ function formatOdpProtocolBadge(contractVersion) {
   return `ODP v${v}`;
 }
 
-function render(humanId, rec, creator, passport, proofs, dataStatus) {
+function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnAddress) {
   const net_     = NET;
+  const showPrior =
+    resolvedOnAddress &&
+    String(resolvedOnAddress).toLowerCase() !== String(net_.contract || "").toLowerCase();
   const isDigital = rec.objectType === "digital";
   const hasImage  = rec.imageHash !== ZERO32;
   const hasFile   = rec.fileHash  !== ZERO32;
@@ -697,6 +738,8 @@ function render(humanId, rec, creator, passport, proofs, dataStatus) {
       </div>
 
       <div class="card-body">
+
+        ${showPrior ? `<p class="odp-prior-deploy-note">Record found on a <strong>prior deployment</strong> (<code class="mono">${esc(shortAddr(resolvedOnAddress))}</code>). Compare trust to the primary contract in config.</p>` : ""}
 
         <div class="obj-title">${esc(title)}</div>
         <div class="obj-creator">${esc(cname)}</div>

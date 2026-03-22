@@ -22,7 +22,7 @@
   <div class="header-left">
     <h1>Create Passport</h1>
     <p class="sub">Object Digital Passport · Specification v0.2</p>
-    <p id="odpStackLabel" class="fhint" style="display:none;font-size:11px;margin-top:6px;max-width:40rem;line-height:1.5"></p>
+    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5"></div>
   </div>
   <div class="net-pill" title="Polygon PoS mainnet">
     <div class="net-dot" id="netDot"></div>
@@ -103,6 +103,8 @@ let provider=null, signer=null, contract=null, wallet=null, creatorId=null;
 let objType="physical", sealType=2;
 /** Raw file SHA-256 as bytes32 (0x + 64 hex) — required for mintDigital; matches mint.py to_bytes32 */
 let fileHashBytes32=ZERO32, imageHash=ZERO32, imageUrl="", fileSize=0;
+/** One-shot banner on connect screen (e.g. multi-account rejection). */
+let walletConnectError = null;
 
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
 
@@ -146,7 +148,7 @@ async function disconnectWallet() {
   ABI = null;
   const sl = document.getElementById("odpStackLabel");
   if (sl) {
-    sl.textContent = "";
+    sl.innerHTML = "";
     sl.style.display = "none";
   }
   odpLegacyBannerUpdate("odpLegacyBanner", null);
@@ -154,8 +156,13 @@ async function disconnectWallet() {
 }
 
 function renderConnectUI() {
+  const errBanner = walletConnectError
+    ? `<div class="info e" style="margin-bottom:16px;line-height:1.55;text-align:left">${esc(walletConnectError)}</div>`
+    : "";
+  walletConnectError = null;
   return `
     <div style="max-width:400px;margin:0 auto;text-align:center">
+      ${errBanner}
       <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.7">
         Connect your wallet to create a passport.<br>
         You need a Creator ID first —
@@ -291,6 +298,11 @@ async function connectWallet() {
     // (requesting accounts before switch often shows permission for multiple networks).
     await ensureWalletChain(eth, NET);
     await eth.request({ method: "eth_requestAccounts" });
+    const single = await odpRequireSingleEthereumAccount(eth);
+    if (!single.ok) {
+      errEl.innerHTML = `<div class="info e">${esc(single.message)}</div>`;
+      return;
+    }
     await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch(e) {
@@ -313,7 +325,7 @@ async function _finish(p) {
   contract = fin.contract;
   const sl = document.getElementById("odpStackLabel");
   if (sl) {
-    sl.textContent = odpFormatStackLabel(odpContractGeneration);
+    sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
     sl.style.display = "";
   }
   odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
@@ -827,6 +839,30 @@ async function hashFile(e) {
   const hex = [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
   fileHashBytes32 = "0x"+hex;
   fileSize  = f.size;
+  // #region agent log
+  fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
+    body: JSON.stringify({
+      sessionId: "99fdf4",
+      location: "passport.html:hashFile",
+      message: "original file hashed",
+      data: {
+        inputId: e.target && e.target.id,
+        accept: e.target && e.target.accept,
+        name: f.name,
+        reportedSize: f.size,
+        bufferByteLength: buf.byteLength,
+        head16: Array.from(new Uint8Array(buf).slice(0, 16))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(""),
+        sha256: fileHashBytes32.slice(0, 18),
+      },
+      timestamp: Date.now(),
+      hypothesisId: "A",
+    }),
+  }).catch(() => {});
+  // #endregion
   document.getElementById("fileDrop").classList.add("has-file");
   document.getElementById("fileInfo").innerHTML = `<div class="finfo">✓ ${esc(f.name)}<br>${fmtSz(f.size)}<br>${fileHashBytes32.slice(0,22)}…</div>`;
 }
@@ -837,6 +873,30 @@ async function hashImg(e) {
   const buf = await f.arrayBuffer();
   const h   = await crypto.subtle.digest("SHA-256", buf);
   imageHash = "0x"+[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  // #region agent log
+  fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
+    body: JSON.stringify({
+      sessionId: "99fdf4",
+      location: "passport.html:hashImg",
+      message: "preview image hashed",
+      data: {
+        inputId: e.target && e.target.id,
+        accept: e.target && e.target.accept,
+        name: f.name,
+        reportedSize: f.size,
+        bufferByteLength: buf.byteLength,
+        head16: Array.from(new Uint8Array(buf).slice(0, 16))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join(""),
+        sha256: imageHash.slice(0, 18),
+      },
+      timestamp: Date.now(),
+      hypothesisId: "A",
+    }),
+  }).catch(() => {});
+  // #endregion
   document.getElementById("imgDrop").classList.add("has-file");
   document.getElementById("imgInfo").innerHTML = `<div class="finfo">✓ ${esc(f.name)}<br>${imageHash.slice(0,20)}…</div>`;
 }
@@ -1515,29 +1575,44 @@ document.addEventListener("DOMContentLoaded", async () => {
   })();
   const eth = injectedEthereum();
   if (eth) {
+    odpInstallSingleAccountGuard(eth, {
+      onMultiple: async function () {
+        var r = await odpRequireSingleEthereumAccount(eth);
+        walletConnectError = r.message || "Multiple accounts connected.";
+        await disconnectWallet();
+      },
+      onEmpty: async function () {
+        await disconnectWallet();
+      },
+    });
     const acc = await eth.request({method:"eth_accounts"}).catch(()=>[]);
     if (!skipAuto && acc.length > 0) {
-      try {
-        const net = NET;
-        await ensureWalletChain(eth, net);
-        provider  = new ethers.providers.Web3Provider(eth);
-        signer    = provider.getSigner();
-        wallet    = await signer.getAddress();
-        if (net.contract) {
-          const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "passport");
-          odpContractGeneration = fin.generation;
-          ABI = fin.abi;
-          contract = fin.contract;
-          const sl = document.getElementById("odpStackLabel");
-          if (sl) {
-            sl.textContent = odpFormatStackLabel(odpContractGeneration);
-            sl.style.display = "";
+      if (acc.length > 1) {
+        var br = await odpRequireSingleEthereumAccount(eth);
+        walletConnectError = br.message;
+      } else {
+        try {
+          const net = NET;
+          await ensureWalletChain(eth, net);
+          provider  = new ethers.providers.Web3Provider(eth);
+          signer    = provider.getSigner();
+          wallet    = await signer.getAddress();
+          if (net.contract) {
+            const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "passport");
+            odpContractGeneration = fin.generation;
+            ABI = fin.abi;
+            contract = fin.contract;
+            const sl = document.getElementById("odpStackLabel");
+            if (sl) {
+              sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
+              sl.style.display = "";
+            }
+            odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
+            creatorId = await contract.getCreatorByWallet(wallet);
+            if (creatorId) { renderForm(); initNetPill(); return; }
           }
-          odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
-          creatorId = await contract.getCreatorByWallet(wallet);
-          if (creatorId) { renderForm(); initNetPill(); return; }
-        }
-      } catch(e) { console.warn("Auto-connect failed:", e); }
+        } catch(e) { console.warn("Auto-connect failed:", e); }
+      }
     }
   }
   connect();

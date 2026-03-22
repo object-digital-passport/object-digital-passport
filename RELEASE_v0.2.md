@@ -23,7 +23,8 @@ If you’re new here: **start with v0.2** in this repo and in [`README.md`](READ
 
 ## Deploying v0.2 yourself
 
-1. From the `deploy/` folder: install deps once, compile, then run the deploy script on Amoy (test) or Polygon (main), as in [`deploy/scripts/deploy.js`](deploy/scripts/deploy.js).
+1. From the `deploy/` folder: install deps once, compile, then run the deploy script on Amoy (test) or Polygon (main)
+, as in [`deploy/scripts/deploy.js`](deploy/scripts/deploy.js).
 2. Paste the **new contract address** into **`NET.contract`** in **`web/creator.html`**, **`web/passport.html`**, and **`web/verify.html`** (same address in all three).
 3. The **legacy** v0.1 contract (`0x3800…`) uses different bytecode — don’t mix it with the v0.2 UI without the compatibility layer (see `web/odp-contract.js`).
 
@@ -33,6 +34,7 @@ If you’re new here: **start with v0.2** in this repo and in [`README.md`](READ
 
 - **`tools/mint.py`** — updated for nonpayable calls and optional hosted URL.
 - **Site version** — see **`ODP_SITE_VERSION`** in [`web/odp-contract.js`](web/odp-contract.js) (small doc/UI tweaks bump the patch number; contract-facing UI behavior is tied to **on-chain generation**, not only that string).
+- **Stack panel** — every page shows **site SemVer trust** (red/yellow/green) and the **read policy**: primary **then** **`previousContracts`** on Verify if a record is missing on the current deployment.
 - **Legacy deployments** (generation **0**) show an **amber banner** on Creator / Passport / Verify so nobody mistakes old rules for the latest PoC.
 
 ---

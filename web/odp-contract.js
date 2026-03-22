@@ -6,7 +6,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.2.2";
+  var ODP_SITE_VERSION = "0.2.0";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -33,11 +33,165 @@
     return 2;
   }
 
+  /** Public GitHub Pages base (trailing slash omitted); keep in sync with README live demo links. */
+  var ODP_LIVE_BASE = "https://object-digital-passport.github.io/object-digital-passport";
+
+  /**
+   * Latest stable **site** SemVer **major** (marketing / static release). Bump when you ship a new major (e.g. 2 after 1.x).
+   * Used for red/yellow/green stack flags: 0.x = red; current major = green; older majors 1…(N−1) = yellow when N≥2.
+   */
+  var ODP_LATEST_STABLE_MAJOR = 1;
+
+  function odpEscHtml(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function odpEscAttr(s) {
+    return odpEscHtml(s).replace(/'/g, "&#39;");
+  }
+
+  function odpParseSiteSemverMajor(siteVer) {
+    var parts = String(siteVer || "0.0.0").split(".");
+    var m = parseInt(parts[0], 10);
+    return isNaN(m) ? 0 : m;
+  }
+
+  function odpSiteSemverTrust(siteVer, latestMajor) {
+    var maj = odpParseSiteSemverMajor(siteVer);
+    var L = typeof latestMajor === "number" && latestMajor >= 1 ? latestMajor : 1;
+    if (maj === 0) {
+      return {
+        level: "red",
+        label: "Red flag",
+        title: "Site version 0.x — proof-of-concept; not production-stable.",
+      };
+    }
+    if (maj > L) {
+      return {
+        level: "yellow",
+        label: "Yellow flag",
+        title: "Site major is newer than ODP_LATEST_STABLE_MAJOR — confirm release notes before trusting.",
+      };
+    }
+    if (maj >= 1 && maj < L) {
+      return {
+        level: "yellow",
+        label: "Yellow flag",
+        title: "Older stable major (not the latest). Review migration and trust assumptions.",
+      };
+    }
+    return {
+      level: "green",
+      label: "Stable",
+      title: "Site major matches the current stable line (≥1.0).",
+    };
+  }
+
   function odpFormatStackLabel(generation) {
     var g = generation;
     var spec =
       g === 0 ? "ODP spec v0.1 (fee-era deploy)" : g >= 2 ? "ODP spec v0.2+ (gas-only, optional dataUrl)" : "unknown generation";
     return "Site " + ODP_SITE_VERSION + " · on-chain generation " + g + " — " + spec;
+  }
+
+  /**
+   * Full stack panel: on-chain generation, read/migration policy, SemVer trust colors (0.x red; stable from 1.0; yellow for older majors when latest is N≥2).
+   * Safe HTML (static copy + escaped dynamic parts).
+   */
+  function odpFormatStackBlockHtml(generation) {
+    var g = generation == null ? "?" : String(generation);
+    var spec =
+      generation === 0
+        ? "ODP spec v0.1 (fee-era deploy)"
+        : generation >= 2
+          ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
+          : "unknown generation";
+    var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
+    var flagClass = "odp-stack-flag--" + trust.level;
+    var L = ODP_LATEST_STABLE_MAJOR;
+    var noteSemver;
+    if (L <= 1) {
+      noteSemver =
+        "<strong>0.x</strong> site releases are <strong>red-flag</strong> (experimental). " +
+        "Stable SemVer starts at <strong>major 1</strong>. When <strong>several stable majors</strong> exist, " +
+        "any major below the latest stable is <strong>yellow-flag</strong> — verify upgrade notes.";
+    } else {
+      noteSemver =
+        "<strong>0.x</strong> = red-flag. <strong>Major " +
+        L +
+        "</strong> (latest stable) = green. <strong>Majors 1…" +
+        (L - 1) +
+        "</strong> = yellow-flag — older stable lines; review migration. " +
+        "<strong>1.x</strong> patch releases under the same major stay green when that major is current.";
+    }
+    var noteRead =
+      "The read ABI decodes prior <strong>contractVersion</strong> values on-chain. " +
+      "The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries).";
+
+    return (
+      '<div class="odp-stack-block">' +
+      '<div class="odp-stack-row">' +
+      '<span class="odp-stack-flag ' +
+      flagClass +
+      '" title="' +
+      odpEscAttr(trust.title) +
+      '">' +
+      odpEscHtml(trust.label) +
+      "</span>" +
+      '<span class="odp-stack-meta"> Site <strong>' +
+      odpEscHtml(ODP_SITE_VERSION) +
+      "</strong> · on-chain gen <strong>" +
+      odpEscHtml(g) +
+      "</strong> — " +
+      odpEscHtml(spec) +
+      "</span></div>" +
+      '<p class="odp-stack-note">' +
+      noteRead +
+      "</p>" +
+      '<p class="odp-stack-note">' +
+      noteSemver +
+      "</p>" +
+      "</div>"
+    );
+  }
+
+  async function odpRequireSingleEthereumAccount(eth) {
+    if (!eth) {
+      return { ok: false, count: 0, message: "No injected wallet." };
+    }
+    var accounts = await eth.request({ method: "eth_accounts" }).catch(function () {
+      return [];
+    });
+    if (accounts.length === 0) {
+      return { ok: false, count: 0, message: "No account connected." };
+    }
+    if (accounts.length > 1) {
+      return {
+        ok: false,
+        count: accounts.length,
+        message:
+          "Multiple accounts are connected (" +
+          accounts.length +
+          "). ODP allows only one wallet account at a time. Open MetaMask → this site → disconnect extra accounts, or disable all but one for this site, then refresh and connect again.",
+      };
+    }
+    return { ok: true, address: accounts[0] };
+  }
+
+  function odpInstallSingleAccountGuard(eth, callbacks) {
+    if (!eth || eth._odpSingleAccountGuardInstalled) return;
+    eth._odpSingleAccountGuardInstalled = true;
+    eth.on("accountsChanged", function (accounts) {
+      if (accounts.length > 1) {
+        if (callbacks && callbacks.onMultiple) callbacks.onMultiple(accounts);
+      } else if (accounts.length === 0) {
+        if (callbacks && callbacks.onEmpty) callbacks.onEmpty();
+      }
+    });
   }
 
   async function odpProbeContractGenerationCached(address, chainId, rpcFallbacks, ethersRef) {
@@ -397,11 +551,14 @@
   }
 
   global.ODP_SITE_VERSION = ODP_SITE_VERSION;
+  global.ODP_LIVE_BASE = ODP_LIVE_BASE;
+  global.ODP_LATEST_STABLE_MAJOR = ODP_LATEST_STABLE_MAJOR;
   global.odpProtocolFeeWei = odpProtocolFeeWei;
   global.odpSupportsFolderBaseMint = odpSupportsFolderBaseMint;
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
   global.odpResolveGeneration = odpResolveGeneration;
   global.odpFormatStackLabel = odpFormatStackLabel;
+  global.odpFormatStackBlockHtml = odpFormatStackBlockHtml;
   global.odpProbeContractGenerationCached = odpProbeContractGenerationCached;
   global.odpBuildPassportAbi = odpBuildPassportAbi;
   global.odpBuildCreatorAbi = odpBuildCreatorAbi;
@@ -409,4 +566,6 @@
   global.odpFinalizeWalletContract = odpFinalizeWalletContract;
   global.odpLegacyContractBannerInnerHtml = odpLegacyContractBannerInnerHtml;
   global.odpLegacyBannerUpdate = odpLegacyBannerUpdate;
+  global.odpRequireSingleEthereumAccount = odpRequireSingleEthereumAccount;
+  global.odpInstallSingleAccountGuard = odpInstallSingleAccountGuard;
 })(typeof window !== "undefined" ? window : globalThis);

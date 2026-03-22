@@ -30,6 +30,19 @@ Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 an
 | **On-chain `CONTRACT_VERSION`** | **Not** the same as marketing semver. The reference UI reads it to pick ABIs: **0** = legacy Polygon deploy (fee + older `mint` signatures), **≥2** = v0.2 rules (gas-only, optional `dataUrl`, folder-base mint). See [`web/odp-contract.js`](web/odp-contract.js). |
 | **Backward compatibility** | The static UI talks to **any** deployed contract it can probe. **Legacy (generation 0)** stays usable, but the UI shows a **prominent warning**: older economics and bytecode are **not** the same as **v0.2**. **Assurance and security may be lower than on the current deployment** — read **`SECURITY.md`**, consider migrating new work to **v0.2**, and do not assume identical threat model. |
 
+### Stack label & trust (always on in the web UI)
+
+The pages under `web/` show a **stack panel** (see `odpFormatStackBlockHtml` in [`web/odp-contract.js`](web/odp-contract.js)) so operators never rely on hidden assumptions:
+
+| Topic | What it means |
+|:--|:--|
+| **Reading older data** | The **read ABI** still decodes prior **`contractVersion`** values on-chain. The **verifier** calls the **primary** `NET.contract` first; if a passport or creator is **not** found there, it tries **`NET.previousContracts`** (older Polygon deployments — each is its own registry). |
+| **Site SemVer — red** | **`0.x.y`** (`ODP_SITE_VERSION`) = **red flag**: proof-of-concept / not production-stable. |
+| **Site SemVer — green** | **`1.0.0`** and up: **stable** line. The UI is **green** when this site’s **major** matches **`ODP_LATEST_STABLE_MAJOR`** (bump that constant when you ship a new stable major, e.g. `2` after `1.x`). |
+| **Site SemVer — yellow** | If the latest stable **major** is **N ≥ 2**, **majors `1 … N−1`** are **yellow** (older stable lines — review migration). A site **major newer** than `ODP_LATEST_STABLE_MAJOR` is also **yellow** until you align the constant. |
+
+**Canonical live URLs** (GitHub Pages project site): base **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)** — e.g. [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html), [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html), [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
+
 ---
 
 ## What this system is (and why)
