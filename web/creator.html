@@ -627,6 +627,17 @@ async function revokeSiteWalletPermission(eth) {
   }
 }
 
+/** Opens this page inside the MetaMask mobile app (in-app browser provides window.ethereum). */
+function openInMetaMaskAppUrl() {
+  try {
+    const u = new URL(location.href);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return "";
+    return "https://metamask.app.link/dapp/" + encodeURIComponent(u.toString());
+  } catch {
+    return "";
+  }
+}
+
 /** Ask MetaMask to use Polygon (NET.chainId) before any contract calls. */
 async function ensureWalletChain(eth, cfg) {
   const target = cfg.chainId;
@@ -656,11 +667,20 @@ async function ensureWalletChain(eth, cfg) {
 
 function noWalletHtml() {
   const fileProto = location.protocol === "file:";
+  const mmApp = openInMetaMaskAppUrl();
+  const mobileHint =
+    !fileProto && mmApp
+      ? `<div style="margin:14px 0 10px">
+          <a class="btn" href="${esc(mmApp)}" rel="noopener" style="display:inline-block;text-decoration:none">Open in MetaMask app</a>
+          <p class="fhint" style="margin:10px 0 0;font-size:11px">iPhone / Safari: there is no extension — MetaMask runs as an app with a built-in browser. This link opens the same page there so Connect works.</p>
+        </div>`
+      : "";
   return `<div class="info error" style="line-height:1.6">
-    No injected wallet (<code>window.ethereum</code>). Install
+    No injected wallet (<code>window.ethereum</code>). On desktop, install
     <a href="https://metamask.io" target="_blank" rel="noopener" style="color:var(--accent)">MetaMask</a>
-    or another browser extension, then reload this page.
-    ${fileProto ? `<br><br><strong>Opening as <code>file://</code></strong> — many wallets do not inject on local files. Serve the <code>web/</code> folder over <code>http://localhost</code> (any static server) or upload to HTTPS.` : `<br><br>Use <strong>https://</strong> or <strong>http://localhost</strong> if the wallet still does not appear.`}
+    or another extension, then reload this page.
+    ${mobileHint}
+    ${fileProto ? `<br><br><strong>Opening as <code>file://</code></strong> — many wallets do not inject on local files. Serve the <code>web/</code> folder over <code>http://localhost</code> (any static server) or upload to HTTPS.` : !mmApp ? `<br><br>Use <strong>https://</strong> or <strong>http://localhost</strong> if the wallet still does not appear.` : ""}
   </div>`;
 }
 
@@ -668,6 +688,21 @@ async function connectWallet() {
   const eth = injectedEthereum();
   const errEl = document.getElementById("connectErr");
   if (!eth) {
+    // #region agent log
+    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
+      body: JSON.stringify({
+        sessionId: "99fdf4",
+        location: "creator.html:connectWallet",
+        message: "no window.ethereum",
+        data: { hasMmApp: !!openInMetaMaskAppUrl(), proto: location.protocol },
+        timestamp: Date.now(),
+        runId: "mm-mobile",
+        hypothesisId: "H1",
+      }),
+    }).catch(() => {});
+    // #endregion
     errEl.innerHTML = noWalletHtml();
     return;
   }
@@ -675,21 +710,6 @@ async function connectWallet() {
     const preAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
     await eth.request({ method: "eth_requestAccounts" });
     const postAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        hypothesisId: "H3",
-        location: "creator.html:connectWallet",
-        message: "eth_requestAccounts",
-        data: { preLen: preAcc.length, postLen: postAcc.length },
-        timestamp: Date.now(),
-        runId: "post-fix",
-      }),
-    }).catch(() => {});
-    // #endregion
     await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch(e) {
