@@ -60,7 +60,7 @@ the blockchain.
 
 ### 3. Multiple wallets (anti-spam, not anti-sybil)
 
-**Risk:** The monthly mint limit (1,000/wallet) can be circumvented by creating
+**Risk:** The monthly mint limits (tiered by Creator type in the v0.2 reference contract: **C** ≈ 1k/month, **B** ≈ 100k/month, **P** unlimited) can be circumvented by creating
 multiple wallets. This is an anti-spam measure, not a Sybil resistance mechanism.
 
 **Accepted tradeoff:** The protocol is permissionless by design.

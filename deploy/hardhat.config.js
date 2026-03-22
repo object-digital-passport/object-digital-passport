@@ -14,6 +14,8 @@ if (!PRIVATE_KEY) {
 module.exports = {
   paths: {
     root: path.join(__dirname, ".."),
+    // Tests live under `deploy/test/` (default would be repo-root `test/`)
+    tests: "deploy/test",
   },
   solidity: {
     version: "0.8.20",

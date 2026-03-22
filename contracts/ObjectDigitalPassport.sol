@@ -38,7 +38,7 @@ pragma solidity ^0.8.20;
  *   - Creator is trusted to physically install the correct chip model
  *     The contract cannot verify hardware — only the declared model
  *   - Anti-spam: monthly mint-rate limit (no protocol fee — gas only)
- *   - Rate limit: 1000 mints per wallet per calendar month
+ *   - Rate limit (per wallet, per calendar month): C = 1000, B = 100_000, P = unlimited
  *   - Passport namespace: 100M IDs per year+month (previously 10M)
  *   - P-type whitelist is intentionally off-chain — see external repos
  *
@@ -82,12 +82,14 @@ contract ObjectDigitalPassport {
     string constant OBJECT_DIGITAL  = "digital";
 
     // On-chain deployment generation (uint8). Same name as Passport.contractVersion at mint time.
-    // This is NOT the marketing semver (see README): e.g. generation 0 = first Polygon deploy (ODP spec v0.1 + fee),
-    // generation 2 = ODP spec v0.2 (gas-only, optional dataUrl). Future major protocols may use new generations.
-    uint8 public constant CONTRACT_VERSION = 2;
+    // This is NOT marketing semver (see README): e.g. 0 = first Polygon deploy (spec v0.1 + fee);
+    // 2 = v0.2 (gas-only, optional dataUrl); 3 = v0.2+ external document attestation (PDF hash anchor). Value 1 unused.
+    // Solidity cannot store "0.2" in a uint8; use this as a small integer generation counter, not semver.
+    uint8 public constant CONTRACT_VERSION = 3;
 
-    // Anti-spam: rate limit per calendar month (no protocol fee)
-    uint16 constant MONTHLY_LIMIT  = 1000;          // mints per wallet per calendar month
+    // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows Creator ID prefix.
+    uint32 public constant MONTHLY_LIMIT_C = 1000;
+    uint32 public constant MONTHLY_LIMIT_B = 100_000;
 
     // ─── Structs ──────────────────────────────────────────────────────────────
 
@@ -128,6 +130,15 @@ contract ObjectDigitalPassport {
         uint256 timestamp;
     }
 
+    /// Off-chain document (e.g. PDF contract): creator anchors SHA-256 on-chain — verifiers compare file bytes.
+    struct ExternalDocAttestation {
+        address creator;
+        string  creatorId;
+        bytes32 documentHash;
+        uint256 timestamp;
+        string  documentUri; // optional HTTPS link to the same file; max 512 chars
+    }
+
     // ─── Storage ──────────────────────────────────────────────────────────────
 
     // Creator Registry
@@ -150,9 +161,12 @@ contract ObjectDigitalPassport {
     mapping(string => string[])     private _institutionProofs;
     uint256 private _proofNonce;
 
-    // Rate limiting — mints per wallet per calendar month
+    // Rate limiting — mints per wallet per calendar month (C/B tiers; P skips limit)
     // key = address → (yearMonth uint32 e.g. 202603) → count
-    mapping(address => mapping(uint32 => uint16)) private _mintCount;
+    mapping(address => mapping(uint32 => uint32)) private _mintCount;
+
+    // External document attestations — key = keccak256(abi.encodePacked(wallet, documentHash))
+    mapping(bytes32 => ExternalDocAttestation) private _externalDocAttest;
 
     // ── Extension Registry (v1 architecture) ─────────────────────────────────
     // Maps type bytes1 → extension contract address.
@@ -209,6 +223,14 @@ contract ObjectDigitalPassport {
     );
 
     event ContractFrozen(uint256 timestamp);
+
+    event ExternalDocumentAttested(
+        string  indexed creatorId,
+        address indexed creator,
+        bytes32         documentHash,
+        string          documentUri,
+        uint256         timestamp
+    );
 
     // ─── Constructor ──────────────────────────────────────────────────────────
 
@@ -279,6 +301,56 @@ contract ObjectDigitalPassport {
         return _walletToCreatorId[wallet];
     }
 
+    /**
+     * Anchor SHA-256 of an off-chain document (e.g. PDF) for the caller's Creator ID.
+     * At most one attestation per (wallet, documentHash). Verifiers re-hash the file and compare.
+     * Does not prove legal validity — only that this wallet recorded this hash on-chain.
+     *
+     * @param documentHash SHA-256 of raw file bytes (same encoding as passport fileHash).
+     * @param documentUri  Optional HTTPS URL where the same file is hosted; may be "".
+     */
+    function attestExternalDocument(bytes32 documentHash, string calldata documentUri)
+        external
+        notFrozen
+    {
+        require(documentHash != bytes32(0), "documentHash required");
+        require(bytes(documentUri).length <= 512, "documentUri too long");
+        string memory creatorId = _requireRegistered();
+        bytes32 key = keccak256(abi.encodePacked(msg.sender, documentHash));
+        require(_externalDocAttest[key].creator == address(0), "Already attested");
+
+        _externalDocAttest[key] = ExternalDocAttestation({
+            creator:      msg.sender,
+            creatorId:    creatorId,
+            documentHash: documentHash,
+            timestamp:    block.timestamp,
+            documentUri:  documentUri
+        });
+
+        emit ExternalDocumentAttested(creatorId, msg.sender, documentHash, documentUri, block.timestamp);
+    }
+
+    /**
+     * Check whether a wallet attested a document hash and return metadata.
+     */
+    function getExternalDocumentAttestation(address wallet, bytes32 documentHash)
+        external
+        view
+        returns (
+            bool attested,
+            string memory creatorId,
+            uint256 timestamp,
+            string memory documentUri
+        )
+    {
+        bytes32 key = keccak256(abi.encodePacked(wallet, documentHash));
+        ExternalDocAttestation storage a = _externalDocAttest[key];
+        if (a.creator == address(0)) {
+            return (false, "", 0, "");
+        }
+        return (true, a.creatorId, a.timestamp, a.documentUri);
+    }
+
     // ─── Passport Registry — Physical ─────────────────────────────────────────
 
     /**
@@ -335,7 +407,8 @@ contract ObjectDigitalPassport {
         }
     }
 
-    /// @dev Strip trailing `/` so folder base joins as `base/HumanID.json` without `//`.
+    /// @dev Strip trailing ASCII `/` only (repeated). Does not normalize `//` in the middle of the path;
+    ///      callers should pass a clean HTTPS folder base; malformed bases may resolve to odd URLs.
     function _stripTrailingSlash(string calldata s) internal pure returns (string memory) {
         bytes memory b = bytes(s);
         uint256 end = b.length;
@@ -522,6 +595,9 @@ contract ObjectDigitalPassport {
      *
      * Only the original creator can update URLs.
      *
+     * Folder-base mint (`dataUrlIsFolderBase` on mint) only affects the **initial** stored URL.
+     * This function always sets **literal** `newDataUrl` / `newImageUrl` (no folder resolution here).
+     *
      * @param confirmedDataHash  Must equal the on-chain dataHash. Prevents
      *                           accidental URL updates pointing to wrong content.
      */
@@ -706,7 +782,7 @@ contract ObjectDigitalPassport {
     /** Enforce registration and monthly limit (no protocol fee). */
     function _beginMint() internal returns (string memory creatorId) {
         creatorId = _requireRegistered();
-        _checkAndIncrementMintLimit();
+        _checkAndIncrementMintLimit(creatorId);
     }
 
     function _isValidType(bytes1 t) internal pure returns (bool) {
@@ -714,14 +790,18 @@ contract ObjectDigitalPassport {
     }
 
     /**
-     * Check monthly mint limit and increment counter.
+     * Check monthly mint limit and increment counter (C/B only; P is unlimited).
      * Resets on calendar month boundary (yearMonth key changes).
-     * 1000 mints per wallet per calendar month.
      */
-    function _checkAndIncrementMintLimit() internal {
+    function _checkAndIncrementMintLimit(string memory creatorId) internal {
+        bytes1 t = _creators[creatorId].typePrefix;
+        if (t == TYPE_P) {
+            return;
+        }
+        uint32 limit = (t == TYPE_B) ? MONTHLY_LIMIT_B : MONTHLY_LIMIT_C;
         uint32 ym = _currentYearMonth();
-        uint16 count = _mintCount[msg.sender][ym];
-        require(count < MONTHLY_LIMIT, "Monthly mint limit reached (1000/month)");
+        uint32 count = _mintCount[msg.sender][ym];
+        require(count < limit, "Monthly mint limit reached for this creator tier");
         _mintCount[msg.sender][ym] = count + 1;
     }
 
@@ -740,12 +820,22 @@ contract ObjectDigitalPassport {
 
     /**
      * Get remaining mints for a wallet in the current calendar month.
+     * For P-type creators, returns `type(uint32).max` (unlimited).
      */
-    function getRemainingMints(address wallet) external view returns (uint16) {
+    function getRemainingMints(address wallet) external view returns (uint32) {
+        string memory cid = _walletToCreatorId[wallet];
+        if (bytes(cid).length == 0) {
+            return 0;
+        }
+        bytes1 t = _creators[cid].typePrefix;
+        if (t == TYPE_P) {
+            return type(uint32).max;
+        }
+        uint32 limit = (t == TYPE_B) ? MONTHLY_LIMIT_B : MONTHLY_LIMIT_C;
         uint32 ym = _currentYearMonth();
-        uint16 used = _mintCount[wallet][ym];
-        if (used >= MONTHLY_LIMIT) return 0;
-        return MONTHLY_LIMIT - used;
+        uint32 used = _mintCount[wallet][ym];
+        if (used >= limit) return 0;
+        return limit - used;
     }
 
     // ─── Internal: ID generation ──────────────────────────────────────────────

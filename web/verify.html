@@ -80,6 +80,57 @@
 
 <div id="result"></div>
 
+<section class="card creator-proof-section" style="margin-top:28px">
+  <div class="section-title">Creator wallet proof (EIP-191)</div>
+  <p class="fhint" style="margin:0 0 16px;max-width:48rem;line-height:1.55">
+    Prove control of the <strong>creator wallet</strong> on the passport — <strong>no gas</strong>, no transaction.
+    Anyone can paste the message + signature below and recover the signer; it must match <code class="mono">passport.creator</code> from the chain.
+    This proves <strong>key control</strong>, not legal authorship of the work.
+  </p>
+  <div class="wallet-options-grid" style="align-items:start;gap:20px">
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px">Creator — sign</div>
+      <label class="search-label" for="proofHumanIdSign">Human ID</label>
+      <input type="text" id="proofHumanIdSign" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" placeholder="ODP-2026-03-1234567" autocomplete="off" spellcheck="false">
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <button type="button" class="btn btn-ghost" id="proofConnectBtn" onclick="proofConnectWallet()">Connect wallet</button>
+        <button type="button" class="btn" id="proofSignBtn" onclick="proofSignMessage()">Sign message</button>
+      </div>
+      <p id="proofWalletLabel" class="fhint" style="margin:0 0 8px;font-family:var(--mono);font-size:11px"></p>
+      <label class="search-label" for="proofMessageOut">Message (share with verifier)</label>
+      <textarea id="proofMessageOut" readonly rows="7" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--ink)"></textarea>
+      <label class="search-label" for="proofSigOut" style="margin-top:8px">Signature</label>
+      <textarea id="proofSigOut" readonly rows="3" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--ink)"></textarea>
+      <button type="button" class="btn btn-ghost" style="margin-top:8px" onclick="proofCopyBundle()">Copy JSON bundle</button>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px">Anyone — verify</div>
+      <label class="search-label" for="proofHumanIdVerifier">Human ID (optional if message contains it)</label>
+      <input type="text" id="proofHumanIdVerifier" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" placeholder="ODP-…" autocomplete="off" spellcheck="false">
+      <label class="search-label" for="proofMsgIn">Message</label>
+      <textarea id="proofMsgIn" rows="7" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink)"></textarea>
+      <label class="search-label" for="proofSigIn" style="margin-top:8px">Signature (0x…)</label>
+      <textarea id="proofSigIn" rows="3" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink)"></textarea>
+      <button type="button" class="btn" style="margin-top:10px" onclick="proofVerifyMessage()">Verify signature</button>
+      <div id="proofVerifyResult" style="margin-top:14px"></div>
+    </div>
+  </div>
+</section>
+
+<section class="card creator-proof-section" id="docVerifySection" style="margin-top:20px" hidden>
+  <div class="section-title">Anchored document (PDF) — check hash</div>
+  <p class="fhint" style="margin:0 0 14px;max-width:48rem;line-height:1.55">
+    If a creator recorded a file hash on a <strong>generation 3+</strong> contract, drop the same file here.
+    The page hashes it locally and checks the registry — <strong>no upload</strong>.
+  </p>
+  <label class="search-label" for="docVerifyId">Creator ID (C-…) or wallet 0x…</label>
+  <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" placeholder="C-482-930-174 or 0x…" autocomplete="off" spellcheck="false">
+  <label class="search-label" for="docVerifyFile">File</label>
+  <input type="file" id="docVerifyFile" style="margin-bottom:12px;font-size:12px">
+  <button type="button" class="btn" id="docVerifyBtn" onclick="verifyDocAttestation()">Check on-chain</button>
+  <div id="docVerifyResult" style="margin-top:14px"></div>
+</section>
+
 <div id="qrScanOverlay" class="qr-scan-overlay" hidden>
   <div class="qr-scan-panel">
     <p class="qr-scan-title">Scan QR</p>
@@ -176,6 +227,12 @@ async function connect() {
         lbl.style.display = "";
       }
       odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
+      const docSec = document.getElementById("docVerifySection");
+      if (docSec) {
+        docSec.hidden =
+          odpContractGeneration == null ||
+          (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration));
+      }
       setNet("on", `${c.name} · gen ${odpContractGeneration}`);
       return;
     } catch (e) {
@@ -187,6 +244,8 @@ async function connect() {
   contract = null;
   odpContractGeneration = null;
   odpLegacyBannerUpdate("odpLegacyBanner", null);
+  const docSec = document.getElementById("docVerifySection");
+  if (docSec) docSec.hidden = true;
   if (lbl) {
     lbl.style.display = "none";
     lbl.innerHTML = "";
@@ -683,6 +742,7 @@ function formatOdpProtocolBadge(contractVersion) {
   const v = Number(contractVersion);
   if (v === 0 || Number.isNaN(v)) return "ODP v0.1";
   if (v === 2) return "ODP v0.2";
+  if (v === 3) return "ODP gen 3";
   return `ODP v${v}`;
 }
 
@@ -994,7 +1054,10 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
 
       </div>
     </div>`;
-  queueMicrotask(() => attachJsonVerifyHandlers(humanId, dataHashHex));
+  queueMicrotask(() => {
+    attachJsonVerifyHandlers(humanId, dataHashHex);
+    syncLastHumanIdToProof(humanId);
+  });
 }
 
 /** Wire drag/drop + file picker after render (inline handlers are brittle with long hex strings). */
@@ -1267,6 +1330,290 @@ function fmtSize(bytes) {
   if (bytes < 1048576)    return (bytes / 1024).toFixed(1) + " KB";
   if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + " MB";
   return (bytes / 1073741824).toFixed(2) + " GB";
+}
+
+// ── Creator wallet proof (EIP-191, off-chain) ────────────────────────────────
+
+let proofWeb3Provider = null;
+let proofSigner = null;
+
+function syncLastHumanIdToProof(humanId) {
+  const el = document.getElementById("proofHumanIdSign");
+  if (el && humanId) el.value = humanId;
+}
+
+async function proofConnectWallet() {
+  if (!window.ethereum) {
+    alert("Install a wallet (e.g. MetaMask) to sign.");
+    return;
+  }
+  proofWeb3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+  await proofWeb3Provider.send("eth_requestAccounts", []);
+  proofSigner = proofWeb3Provider.getSigner();
+  const addr = await proofSigner.getAddress();
+  const lab = document.getElementById("proofWalletLabel");
+  if (lab) lab.textContent = "Connected: " + addr;
+}
+
+async function proofEnsurePolygon() {
+  if (!proofWeb3Provider) return false;
+  const net = await proofWeb3Provider.getNetwork();
+  if (Number(net.chainId) === Number(NET.chainId)) return true;
+  const hex = "0x" + Number(NET.chainId).toString(16);
+  try {
+    await proofWeb3Provider.send("wallet_switchEthereumChain", [{ chainId: hex }]);
+    return true;
+  } catch (e) {
+    alert("Switch to " + NET.name + " (chain " + NET.chainId + ") in your wallet, then try again.");
+    return false;
+  }
+}
+
+async function proofSignMessage() {
+  if (!NET.contract) {
+    alert("Set NET.contract in this page script first.");
+    return;
+  }
+  const raw = document.getElementById("proofHumanIdSign").value.trim();
+  const humanId = parseId(raw);
+  if (!humanId) {
+    alert("Enter a valid Human ID (ODP-…).");
+    return;
+  }
+  if (!proofSigner) await proofConnectWallet();
+  if (!proofSigner) return;
+  if (!(await proofEnsurePolygon())) return;
+  const nonce = odpGenerateCreatorProofNonce();
+  const checksummed = ethers.utils.getAddress(NET.contract);
+  const msg = odpBuildCreatorProofMessageV1(humanId, NET.chainId, checksummed, nonce);
+  let sig;
+  try {
+    sig = await proofSigner.signMessage(msg);
+  } catch (e) {
+    alert("Sign cancelled or failed: " + (e.message || String(e)));
+    return;
+  }
+  const mo = document.getElementById("proofMessageOut");
+  const so = document.getElementById("proofSigOut");
+  if (mo) mo.value = msg;
+  if (so) so.value = sig;
+}
+
+function proofCopyBundle() {
+  const msg = document.getElementById("proofMessageOut") && document.getElementById("proofMessageOut").value;
+  const sig = document.getElementById("proofSigOut") && document.getElementById("proofSigOut").value;
+  if (!msg || !sig) {
+    alert("Sign a message first.");
+    return;
+  }
+  const j = JSON.stringify(
+    { format: "odp-creator-proof-v1", chainId: NET.chainId, message: msg, signature: sig },
+    null,
+    2
+  );
+  navigator.clipboard.writeText(j).then(
+    () => alert("Copied JSON to clipboard."),
+    () => alert("Clipboard failed — copy manually.")
+  );
+}
+
+function extractHumanIdFromProofMessage(msg) {
+  for (const line of String(msg).split(/\r?\n/)) {
+    const m = line.match(/^humanId:\s*(.+)$/i);
+    if (m) return parseId(m[1].trim());
+  }
+  return null;
+}
+
+function extractContractFromProofMessage(msg) {
+  for (const line of String(msg).split(/\r?\n/)) {
+    const m = line.match(/^contract:\s*(0x[a-fA-F0-9]{40})$/i);
+    if (m) return m[1];
+  }
+  return null;
+}
+
+function extractChainIdFromProofMessage(msg) {
+  for (const line of String(msg).split(/\r?\n/)) {
+    const m = line.match(/^chainId:\s*(\d+)$/i);
+    if (m) return parseInt(m[1], 10);
+  }
+  return null;
+}
+
+async function proofVerifyMessage() {
+  const resultEl = document.getElementById("proofVerifyResult");
+  if (!resultEl) return;
+  if (!provider || !NET.contract) {
+    resultEl.innerHTML = `<div class="err-box">RPC not ready — set <code class="mono">NET.contract</code> and reload.</div>`;
+    return;
+  }
+  const msg = document.getElementById("proofMsgIn").value.trim();
+  const sig = document.getElementById("proofSigIn").value.trim();
+  const humanInput = document.getElementById("proofHumanIdVerifier").value.trim();
+  if (!msg || !sig) {
+    resultEl.innerHTML = `<div class="err-box">Paste message and signature.</div>`;
+    return;
+  }
+  if (!msg.startsWith(ODP_CREATOR_PROOF_PREFIX)) {
+    resultEl.innerHTML = `<div class="err-box">Message must start with the v1 proof line (see creator column).</div>`;
+    return;
+  }
+  let recovered;
+  try {
+    recovered = ethers.utils.verifyMessage(msg, sig);
+  } catch (e) {
+    resultEl.innerHTML = `<div class="err-box">Invalid signature: ${esc(e.message || String(e))}</div>`;
+    return;
+  }
+  let humanId = parseId(humanInput);
+  if (!humanId) humanId = extractHumanIdFromProofMessage(msg);
+  if (!humanId) {
+    resultEl.innerHTML = `<div class="err-box">Enter Human ID or include <code>humanId:</code> in the message.</div>`;
+    return;
+  }
+  const msgChain = extractChainIdFromProofMessage(msg);
+  if (msgChain !== null && msgChain !== NET.chainId) {
+    resultEl.innerHTML = `<div class="err-box">Message is for chainId <strong>${esc(
+      String(msgChain)
+    )}</strong> but this page is configured for <strong>${NET.chainId}</strong>.</div>`;
+    return;
+  }
+
+  let passport = null;
+  let resolvedAddr = null;
+  for (const c of verifyReadContractsOrdered()) {
+    try {
+      const p = await c.getPassport(humanId);
+      if (p && p.creator && p.creator !== ethers.constants.AddressZero) {
+        passport = p;
+        resolvedAddr = c.address;
+        break;
+      }
+    } catch (e) {
+      const m = String(e && (e.reason || e.message) || "");
+      if (m.includes("Passport not found")) continue;
+      resultEl.innerHTML = `<div class="err-box">${esc(m)}</div>`;
+      return;
+    }
+  }
+  if (!passport) {
+    resultEl.innerHTML = `<div class="err-box">No passport found for ${esc(humanId)}</div>`;
+    return;
+  }
+  const ok = recovered.toLowerCase() === String(passport.creator).toLowerCase();
+  const msgContract = extractContractFromProofMessage(msg);
+  let contractWarn = "";
+  if (msgContract && resolvedAddr && msgContract.toLowerCase() !== String(resolvedAddr).toLowerCase()) {
+    contractWarn = `<p class="fhint" style="margin-top:10px">Message names contract <code class="mono">${esc(
+      msgContract
+    )}</code>; this passport was loaded from <code class="mono">${esc(shortAddr(resolvedAddr))}</code>.</p>`;
+  }
+  if (ok) {
+    resultEl.innerHTML = `
+      <div class="status-bar authentic">
+        <div class="status-icon">✓</div>
+        <div class="status-text">
+          <div class="status-label">Signature matches creator wallet</div>
+          <div class="status-desc">Recovered ${esc(recovered)} — matches on-chain <code class="mono">passport.creator</code></div>
+        </div>
+      </div>${contractWarn}`;
+  } else {
+    resultEl.innerHTML = `
+      <div class="status-bar tampered">
+        <div class="status-icon">✗</div>
+        <div class="status-text">
+          <div class="status-label">Mismatch</div>
+          <div class="status-desc">Recovered ${esc(recovered)} — on-chain creator is ${esc(passport.creator)}</div>
+        </div>
+      </div>${contractWarn}`;
+  }
+}
+
+async function sha256FileToBytes32HexVerify(file) {
+  const buf = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return ethers.utils.hexlify(new Uint8Array(digest));
+}
+
+async function verifyDocAttestation() {
+  const out = document.getElementById("docVerifyResult");
+  if (!out) return;
+  if (!contract) {
+    out.innerHTML = `<div class="err-box">RPC not ready.</div>`;
+    return;
+  }
+  const raw = document.getElementById("docVerifyId").value.trim();
+  const fileEl = document.getElementById("docVerifyFile");
+  const f = fileEl && fileEl.files && fileEl.files[0];
+  if (!raw) {
+    out.innerHTML = `<div class="err-box">Enter Creator ID or wallet.</div>`;
+    return;
+  }
+  if (!f) {
+    out.innerHTML = `<div class="err-box">Choose a file.</div>`;
+    return;
+  }
+  let walletAddr;
+  if (/^0x[a-fA-F0-9]{40}$/.test(raw)) {
+    try {
+      walletAddr = ethers.utils.getAddress(raw);
+    } catch {
+      out.innerHTML = `<div class="err-box">Invalid address.</div>`;
+      return;
+    }
+  } else {
+    const token = parseVerifyToken(raw);
+    if (!token || token.kind !== "creator") {
+      out.innerHTML = `<div class="err-box">Use a Creator ID (C-/B-/P-…) or 0x address.</div>`;
+      return;
+    }
+    try {
+      const cr = await contract.getCreator(token.id);
+      walletAddr = cr.wallet;
+    } catch (e) {
+      out.innerHTML = `<div class="err-box">${esc(String(e && (e.reason || e.message) || e))}</div>`;
+      return;
+    }
+  }
+  out.innerHTML = `<div class="loading"><div class="spin"></div><span>Hashing…</span></div>`;
+  let hash;
+  try {
+    hash = await sha256FileToBytes32HexVerify(f);
+  } catch (e) {
+    out.innerHTML = `<div class="err-box">${esc(e.message || String(e))}</div>`;
+    return;
+  }
+  try {
+    const res = await contract.getExternalDocumentAttestation(walletAddr, hash);
+    const exists = res.attested;
+    const cid = res.creatorId;
+    const ts = res.timestamp;
+    const uri = res.documentUri;
+    if (!exists) {
+      out.innerHTML = `<div class="err-box">No on-chain attestation for this wallet + file hash.</div>`;
+      return;
+    }
+    const when = new Date(Number(ts) * 1000).toLocaleString();
+    out.innerHTML = `
+      <div class="status-bar authentic">
+        <div class="status-icon">✓</div>
+        <div class="status-text">
+          <div class="status-label">Attestation found</div>
+          <div class="status-desc">
+            Creator ID <strong>${esc(cid)}</strong> · ${esc(when)}
+            ${uri ? `<br><a class="ext-link" href="${esc(uri)}" target="_blank" rel="noopener">Linked URL ↗</a>` : ""}
+          </div>
+        </div>
+      </div>`;
+  } catch (e) {
+    const m = String(e && (e.reason || e.message) || e);
+    if (m.includes("CALL_EXCEPTION") || m.includes("missing revert")) {
+      out.innerHTML = `<div class="err-box">This contract may not support document attestation (needs deployment gen 3+).</div>`;
+      return;
+    }
+    out.innerHTML = `<div class="err-box">${esc(m)}</div>`;
+  }
 }
 
 // ── Enter key ─────────────────────────────────────────────────────────────────

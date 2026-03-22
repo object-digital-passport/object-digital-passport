@@ -27,7 +27,8 @@ Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 an
 |:--|:--|
 | **Site / static release** | **`0.X.Y`** (see `ODP_SITE_VERSION` in [`web/odp-contract.js`](web/odp-contract.js)). Bump **Y** when you change only documentation, HTML/CSS, or tooling **without** a new contract deployment. |
 | **Contract / protocol generation** | **`0.X`** in spec labels and git tags when bytecode or on-chain rules change (e.g. v0.1 → v0.2). Each deployment exposes `CONTRACT_VERSION` (uint8) on-chain. |
-| **On-chain `CONTRACT_VERSION`** | **Not** the same as marketing semver. The reference UI reads it to pick ABIs: **0** = legacy Polygon deploy (fee + older `mint` signatures), **≥2** = v0.2 rules (gas-only, optional `dataUrl`, folder-base mint). See [`web/odp-contract.js`](web/odp-contract.js). |
+| **On-chain `CONTRACT_VERSION`** | **Not** the same as marketing semver. The reference UI reads it to pick ABIs: **0** = legacy Polygon deploy (fee + older `mint` signatures), **≥2** = v0.2 rules (gas-only, optional `dataUrl`, folder-base mint), **≥3** = same + **external document hash** anchor (`attestExternalDocument` for PDFs, etc.). See [`web/odp-contract.js`](web/odp-contract.js). |
+| **Why `2`, not `0.2` or `1`?** | On-chain field is **`uint8`** (a small **deployment generation** index), not a semver string — Solidity cannot store `0.2`. **0** = first public Polygon build (spec v0.1). **1** is intentionally **unused** (avoids “is spec v0.2 generation 1?” ambiguity). **2** = spec **v0.2** ruleset (gas-only, optional `dataUrl`, folder-base mint). **3** adds PDF/file hash anchoring for creators (not a qualified e-signature). |
 | **Backward compatibility** | The static UI talks to **any** deployed contract it can probe. **Legacy (generation 0)** stays usable, but the UI shows a **prominent warning**: older economics and bytecode are **not** the same as **v0.2**. **Assurance and security may be lower than on the current deployment** — read **`SECURITY.md`**, consider migrating new work to **v0.2**, and do not assume identical threat model. |
 
 ### Stack label & trust (always on in the web UI)
@@ -383,6 +384,8 @@ See `SPEC.md` section 13 for the full SDK interface specification.
 The full protocol specification is in [`SPEC.md`](SPEC.md).
 It defines exactly how IDs are generated, how hashes are computed,
 how verification works, and what any SDK must implement.
+
+Informal v0.2 design notes (not normative) live in [`docs/V0.2-DRAFT.md`](docs/V0.2-DRAFT.md).
 
 Any developer can build a compatible implementation from the spec alone,
 without reading this code.

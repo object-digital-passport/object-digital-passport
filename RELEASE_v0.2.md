@@ -18,6 +18,7 @@ If you’re new here: **start with v0.2** in this repo and in [`README.md`](READ
 - **No protocol fee** — register and mint are **nonpayable**; you only pay **Polygon gas (POL)**.
 - **`dataUrl` is optional** at mint. If you leave it empty, the public Verify page can’t fetch your JSON from the web; only someone with the real **`passport.json`** file can check it against the on-chain hash.
 - **`updatePassportUrls`** — you can set, change, or clear the public URL (within length limits), still matching the same `dataHash`.
+- **Monthly mint caps (anti-spam, gas-only)** — per wallet, per calendar month: **`C`** ≈ **1,000** mints, **`B`** ≈ **100,000** mints, **`P`** unlimited (`getRemainingMints` returns `2³²−1` for `P`). Large inventories should use **`B`** (organization) or several wallets — not the individual **`C`** tier. See **`SPEC.md`** (Creator ID → monthly caps).
 
 ---
 

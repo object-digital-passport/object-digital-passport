@@ -119,6 +119,9 @@ function render() {
   if (creatorId) {
     app.innerHTML = renderAlready();
     bindCreatorShare();
+    if (typeof odpSupportsExternalDocAttest === "function" && odpSupportsExternalDocAttest(odpContractGeneration)) {
+      bindDocAttestHandlers();
+    }
     return;
   }
 
@@ -475,6 +478,71 @@ function bindCreatorShare() {
   shareBtn.addEventListener("click", () => fillCreatorShareModal());
 }
 
+async function sha256FileToBytes32Hex(file) {
+  const buf = await file.arrayBuffer();
+  const digest = await crypto.subtle.digest("SHA-256", buf);
+  return ethers.utils.hexlify(new Uint8Array(digest));
+}
+
+function bindDocAttestHandlers() {
+  const fileEl = document.getElementById("docAttestFile");
+  const hashEl = document.getElementById("docAttestHash");
+  const btn = document.getElementById("docAttestBtn");
+  if (!fileEl || !btn) return;
+  fileEl.addEventListener("change", async () => {
+    if (!hashEl) return;
+    const f = fileEl.files && fileEl.files[0];
+    if (!f) {
+      hashEl.textContent = "";
+      return;
+    }
+    try {
+      const h = await sha256FileToBytes32Hex(f);
+      hashEl.textContent = "SHA-256: " + h;
+    } catch (e) {
+      hashEl.textContent = "Hash error: " + (e.message || e);
+    }
+  });
+  btn.addEventListener("click", attestPdfDocument);
+}
+
+async function attestPdfDocument() {
+  const out = document.getElementById("docAttestResult");
+  const fileEl = document.getElementById("docAttestFile");
+  const uriEl = document.getElementById("docAttestUri");
+  if (!contract || !fileEl || !out) return;
+  const f = fileEl.files && fileEl.files[0];
+  if (!f) {
+    out.innerHTML = `<div class="info warn">Choose a file first.</div>`;
+    return;
+  }
+  out.innerHTML = `<div class="info neutral">Computing hash…</div>`;
+  let hash;
+  try {
+    hash = await sha256FileToBytes32Hex(f);
+  } catch (e) {
+    out.innerHTML = `<div class="info error">${esc(e.message || String(e))}</div>`;
+    return;
+  }
+  const uri = uriEl && uriEl.value ? String(uriEl.value).trim() : "";
+  if (uri.length > 512) {
+    out.innerHTML = `<div class="info error">URL is too long (max 512).</div>`;
+    return;
+  }
+  out.innerHTML = `<div class="info neutral">Confirm in your wallet…</div>`;
+  try {
+    const tx = await contract.attestExternalDocument(hash, uri);
+    out.innerHTML = `<div class="info neutral">Sent… ${esc(tx.hash)}</div>`;
+    await tx.wait();
+    out.innerHTML = `<div class="info neutral">Recorded on-chain. Hash <code class="mono">${esc(
+      hash
+    )}</code></div>`;
+  } catch (e) {
+    const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+    out.innerHTML = `<div class="info error">${esc(m)}</div>`;
+  }
+}
+
 // ── Already registered ────────────────────────────────────────────────────────
 
 function renderAlready() {
@@ -541,7 +609,28 @@ function renderAlready() {
           <button class="btn btn-sec">View on Explorer ↗</button>
         </a>
       </div>
-    </div>`;
+    </div>
+    ${
+      typeof odpSupportsExternalDocAttest === "function" && odpSupportsExternalDocAttest(odpContractGeneration)
+        ? `
+    <div class="card" style="margin-top:20px">
+      <div class="card-head">Anchor a document (PDF, etc.) on-chain</div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text2);margin:0 0 12px;line-height:1.6">
+          Upload the file (e.g. contract PDF). The page computes <strong>SHA-256</strong> locally and sends only the hash in a transaction — gas only.
+          Counterparties can hash their copy and check it matches this Creator ID on Verify.
+          This is <strong>not</strong> a qualified e-signature; it records that <strong>this wallet</strong> anchored <strong>this hash</strong> at a time.
+        </p>
+        <input type="file" id="docAttestFile" style="margin-bottom:10px;font-size:12px" />
+        <div id="docAttestHash" class="mono" style="font-size:11px;word-break:break-all;margin-bottom:10px;color:var(--ink3)"></div>
+        <label class="search-label" for="docAttestUri">Optional public URL to the same file (HTTPS)</label>
+        <input type="text" id="docAttestUri" placeholder="https://…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" />
+        <button type="button" class="btn" id="docAttestBtn">Record hash on-chain</button>
+        <div id="docAttestResult" style="margin-top:12px;font-size:12px"></div>
+      </div>
+    </div>`
+        : ""
+    }`;
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
@@ -579,21 +668,6 @@ async function disconnect() {
   let revoked = false;
   if (eth) {
     revoked = await revokeSiteWalletPermission(eth);
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        hypothesisId: "H2",
-        location: "creator.html:disconnect",
-        message: "wallet_revokePermissions",
-        data: { revoked },
-        timestamp: Date.now(),
-        runId: "post-fix",
-      }),
-    }).catch(() => {});
-    // #endregion
   }
   try { sessionStorage.setItem(ODP_SKIP_WALLET_AUTOCONNECT, "1"); } catch {}
   wallet = null; provider = null; signer = null; contract = null; creatorId = null;
@@ -641,21 +715,6 @@ function openInMetaMaskAppUrl() {
     if (u.protocol !== "https:" && u.protocol !== "http:") return "";
     const rest = u.href.replace(/^https?:\/\//i, "");
     const out = "https://metamask.app.link/dapp/" + rest;
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        location: "creator.html:openInMetaMaskAppUrl",
-        message: "mm deeplink built",
-        data: { fmt: "strip-protocol", restLen: rest.length, host: u.hostname },
-        timestamp: Date.now(),
-        runId: "post-fix",
-        hypothesisId: "H2",
-      }),
-    }).catch(() => {});
-    // #endregion
     return out;
   } catch {
     return "";

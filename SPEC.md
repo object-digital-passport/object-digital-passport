@@ -117,6 +117,18 @@ T-NNN-NNN-NNN
 | `B` | Brand | Company, studio, label |
 | `P` | Proof Institution | Museum, gallery, auction house, expert, certification body |
 
+### Monthly mint caps (reference v0.2 contract)
+
+The reference `ObjectDigitalPassport` deployment limits **new passport mints** per wallet, per **calendar month** (anti-spam; gas only — no protocol fee). Caps depend on the registered **Creator type**:
+
+| Type | Approximate cap |
+|------|-----------------|
+| `C` | 1,000 mints / month |
+| `B` | 100,000 mints / month |
+| `P` | No limit (`getRemainingMints` returns `2^32−1` in the reference implementation) |
+
+**Large inventories** (e.g. a museum digitizing millions of works) are expected to register as **`B`** (brand/organization), not **`C`** (individual creator). Very large throughput may use **multiple `B` wallets** under the same organization if policy allows. The **`P`** prefix is for **proof attestations** (`submitProof`), not primarily for bulk passport minting; institutions that mainly **mint** object passports should still use **`C`** or **`B`** as appropriate. Future spec revisions may define additional institutional tiers if needed.
+
 **Type prefixes are governed exclusively by this specification.**
 No individual, company, or implementation may introduce custom prefixes.
 New prefixes are added only through an official update to this specification,
@@ -829,6 +841,42 @@ INPUT: humanId (from QR, NFC, or manual entry)
 8. Match    → AUTHENTIC
    No match → TAMPERED
 ```
+
+### Level 1B — Creator wallet proof (off-chain, EIP-191)
+
+**Purpose:** Prove control of the **creator wallet** (`passport.creator`) **without** a blockchain transaction (no gas for the verifier).
+
+**Not** proof of authorship of the artwork in a legal sense — only that the signer controls the key bound to that passport on-chain.
+
+**Canonical message (v1)** — UTF-8 string, signed with Ethereum **EIP-191** (`personal_sign` / `eth_sign` with the standard message prefix):
+
+```
+Object Digital Passport — creator wallet proof (EIP-191) v1
+
+humanId: <Human ID>
+chainId: <decimal chain ID>
+contract: <registry contract address, EIP-55 checksum recommended>
+nonce: <random unique string, e.g. 0x-prefixed hex>
+```
+
+**Verification steps:**
+
+1. `recoveredAddress = ecrecover(EIP191(message), signature)` (as implemented by `ethers.verifyMessage` / equivalent).
+2. `getPassport(humanId)` on the registry for that chain → read `creator`.
+3. **Match** if `recoveredAddress == creator` (compare as addresses, case-insensitive).
+
+The verifier should confirm `chainId` and `contract` in the message match the deployment being queried. Implementations may reject messages whose `humanId` line does not match the passport being checked.
+
+### Level 1C — External document hash (PDF, contract file)
+
+**Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
+
+**On-chain (reference contract, generation ≥ 3):**
+
+- `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)`.
+- `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — returns `attested`, `creatorId`, timestamp, and `documentUri`.
+
+**Verification:** compute SHA-256 of the local file; query the contract; **match** means the creator recorded this hash at `timestamp`. This does **not** replace qualified e-signatures or national law — it is a **public, immutable anchor** tying a wallet to a file hash.
 
 ### Level 2A — NFC seal verification (physical, sealType 1 or 3)
 

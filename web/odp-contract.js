@@ -36,6 +36,37 @@
   /** Public GitHub Pages base (trailing slash omitted); keep in sync with README live demo links. */
   var ODP_LIVE_BASE = "https://object-digital-passport.github.io/object-digital-passport";
 
+  /** First line of EIP-191 creator proof messages (must match SPEC / verify.html). */
+  var ODP_CREATOR_PROOF_PREFIX = "Object Digital Passport — creator wallet proof (EIP-191) v1";
+
+  /**
+   * Canonical text signed with the creator wallet (EIP-191 `personal_sign`).
+   * @param {string} contractAddress — registry contract (checksum recommended; verifier binds to this line)
+   */
+  function odpBuildCreatorProofMessageV1(humanId, chainId, contractAddress, nonce) {
+    var addr = String(contractAddress || "").trim();
+    return [
+      ODP_CREATOR_PROOF_PREFIX,
+      "",
+      "humanId: " + String(humanId),
+      "chainId: " + String(chainId),
+      "contract: " + addr,
+      "nonce: " + String(nonce),
+    ].join("\n");
+  }
+
+  /** 128-bit random nonce, hex with 0x prefix. */
+  function odpGenerateCreatorProofNonce() {
+    if (typeof global.crypto !== "undefined" && global.crypto.getRandomValues) {
+      var b = new Uint8Array(16);
+      global.crypto.getRandomValues(b);
+      var hex = "0x";
+      for (var i = 0; i < b.length; i++) hex += ("0" + b[i].toString(16)).slice(-2);
+      return hex;
+    }
+    return "0x" + Date.now().toString(16) + Math.random().toString(16).slice(2);
+  }
+
   /**
    * Latest stable **site** SemVer **major** (marketing / static release). Bump when you ship a new major (e.g. 2 after 1.x).
    * Used for red/yellow/green stack flags: 0.x = red; current major = green; older majors 1…(N−1) = yellow when N≥2.
@@ -94,8 +125,18 @@
   function odpFormatStackLabel(generation) {
     var g = generation;
     var spec =
-      g === 0 ? "ODP spec v0.1 (fee-era deploy)" : g >= 2 ? "ODP spec v0.2+ (gas-only, optional dataUrl)" : "unknown generation";
+      g === 0
+        ? "ODP spec v0.1 (fee-era deploy)"
+        : g >= 3
+          ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
+          : g >= 2
+            ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
+            : "unknown generation";
     return "Site " + ODP_SITE_VERSION + " · on-chain generation " + g + " — " + spec;
+  }
+
+  function odpSupportsExternalDocAttest(generation) {
+    return generation >= 3;
   }
 
   /**
@@ -219,21 +260,6 @@
       }
     }
 
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        location: "odp-contract.js:odpProbeContractGenerationCached",
-        message: "CONTRACT_VERSION probe result",
-        data: { address: String(address), probed: gen, resolvedWillUseFallback: gen === null },
-        timestamp: Date.now(),
-        hypothesisId: "H-probe",
-      }),
-    }).catch(function () {});
-    // #endregion
-
     return gen;
   }
 
@@ -268,7 +294,7 @@
       mintDigitalInputs.push({ name: "dataUrlIsFolderBase", type: "bool" });
     }
 
-    return [
+    var passportAbi = [
       {
         name: "getCreatorByWallet",
         type: "function",
@@ -330,11 +356,39 @@
         outputs: [],
       },
     ];
+
+    if (folder) {
+      passportAbi.push(
+        {
+          name: "getRemainingMints",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "wallet", type: "address" }],
+          outputs: [{ name: "", type: "uint32" }],
+        },
+        {
+          name: "MONTHLY_LIMIT_C",
+          type: "function",
+          stateMutability: "view",
+          inputs: [],
+          outputs: [{ name: "", type: "uint32" }],
+        },
+        {
+          name: "MONTHLY_LIMIT_B",
+          type: "function",
+          stateMutability: "view",
+          inputs: [],
+          outputs: [{ name: "", type: "uint32" }],
+        }
+      );
+    }
+
+    return passportAbi;
   }
 
   function odpBuildCreatorAbi(generation) {
     var pay = generation === 0;
-    return [
+    var abi = [
       {
         name: "registerCreator",
         type: "function",
@@ -368,11 +422,41 @@
         ],
       },
     ];
+    if (generation >= 3) {
+      abi.push(
+        {
+          name: "attestExternalDocument",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "documentHash", type: "bytes32" },
+            { name: "documentUri", type: "string" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "getExternalDocumentAttestation",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "wallet", type: "address" },
+            { name: "documentHash", type: "bytes32" },
+          ],
+          outputs: [
+            { name: "attested", type: "bool" },
+            { name: "creatorId", type: "string" },
+            { name: "timestamp", type: "uint256" },
+            { name: "documentUri", type: "string" },
+          ],
+        }
+      );
+    }
+    return abi;
   }
 
   /** Read-only ABI for verify.html + deployment generation probe. */
   function odpBuildVerifyReadAbi() {
-    return [
+    var abi = [
       CV_ABI[0],
       {
         name: "getPassport",
@@ -502,6 +586,22 @@
         ],
       },
     ];
+    abi.push({
+      name: "getExternalDocumentAttestation",
+      type: "function",
+      stateMutability: "view",
+      inputs: [
+        { name: "wallet", type: "address" },
+        { name: "documentHash", type: "bytes32" },
+      ],
+      outputs: [
+        { name: "attested", type: "bool" },
+        { name: "creatorId", type: "string" },
+        { name: "timestamp", type: "uint256" },
+        { name: "documentUri", type: "string" },
+      ],
+    });
+    return abi;
   }
 
   /** HTML for the legacy-contract banner (generation 0). Escaping not needed — static copy. */
@@ -531,20 +631,6 @@
   async function odpFinalizeWalletContract(net, signer, rpcFallbacks, kind) {
     var probed = await odpProbeContractGenerationCached(net.contract, net.chainId, rpcFallbacks, global.ethers);
     var gen = odpResolveGeneration(probed, net);
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        location: "odp-contract.js:odpFinalizeWalletContract",
-        message: "finalized generation for wallet",
-        data: { kind: kind, generation: gen, probed: probed },
-        timestamp: Date.now(),
-        hypothesisId: "H-finalize",
-      }),
-    }).catch(function () {});
-    // #endregion
     var abi = kind === "creator" ? odpBuildCreatorAbi(gen) : odpBuildPassportAbi(gen);
     var contract = new global.ethers.Contract(net.contract, abi, signer);
     return { contract: contract, generation: gen, abi: abi };
@@ -556,6 +642,7 @@
   global.odpProtocolFeeWei = odpProtocolFeeWei;
   global.odpSupportsFolderBaseMint = odpSupportsFolderBaseMint;
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
+  global.odpSupportsExternalDocAttest = odpSupportsExternalDocAttest;
   global.odpResolveGeneration = odpResolveGeneration;
   global.odpFormatStackLabel = odpFormatStackLabel;
   global.odpFormatStackBlockHtml = odpFormatStackBlockHtml;
@@ -568,4 +655,7 @@
   global.odpLegacyBannerUpdate = odpLegacyBannerUpdate;
   global.odpRequireSingleEthereumAccount = odpRequireSingleEthereumAccount;
   global.odpInstallSingleAccountGuard = odpInstallSingleAccountGuard;
+  global.ODP_CREATOR_PROOF_PREFIX = ODP_CREATOR_PROOF_PREFIX;
+  global.odpBuildCreatorProofMessageV1 = odpBuildCreatorProofMessageV1;
+  global.odpGenerateCreatorProofNonce = odpGenerateCreatorProofNonce;
 })(typeof window !== "undefined" ? window : globalThis);
