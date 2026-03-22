@@ -53,6 +53,7 @@
 </div>
 
 
+<div class="odp-verify-primary">
 <div class="search-wrap">
   <label class="search-label" for="idInput">Paste an ID or link, or scan a QR code</label>
   <div class="search-row">
@@ -78,45 +79,68 @@
 </div>
 
 <div id="result"></div>
+</div>
 
-<section class="card creator-proof-section" style="margin-top:28px">
-  <div class="section-title">Creator wallet proof (EIP-191)</div>
-  <p class="fhint" style="margin:0 0 16px;max-width:48rem;line-height:1.55">
-    Prove control of the <strong>creator wallet</strong> on the passport — <strong>no gas</strong>, no transaction.
-    Anyone can paste the message + signature below and recover the signer; it must match <code class="mono">passport.creator</code> from the chain.
-    This proves <strong>key control</strong>, not legal authorship of the work.
+<hr class="odp-verify-signature-divider" />
+
+<section class="card odp-proof-card" id="creatorProofSection" aria-labelledby="creatorProofHeading">
+  <h2 class="section-title" id="creatorProofHeading">Creator wallet proof (EIP-191)</h2>
+  <p class="fhint odp-proof-lead">
+    Separate tool from <strong>registry verify</strong> above: prove control of the <strong>creator wallet</strong> for a passport — <strong>no gas</strong>.
+    The recovered signer must match <code class="mono">passport.creator</code> on-chain. This is <strong>key control</strong>, not legal authorship.
   </p>
-  <div class="wallet-options-grid" style="align-items:start;gap:20px">
-    <div>
-      <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px">Creator — sign</div>
-      <label class="search-label" for="proofHumanIdSign">Human ID</label>
-      <input type="text" id="proofHumanIdSign" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" placeholder="ODP-2026-03-1234567" autocomplete="off" spellcheck="false">
-      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+
+  <div class="odp-proof-tablist" role="tablist" aria-label="Creator proof steps">
+    <button type="button" class="odp-proof-tab is-active" role="tab" id="proofTabSign" aria-selected="true" aria-controls="proofPanelSign" onclick="proofSetTab('sign')">Creator: sign</button>
+    <button type="button" class="odp-proof-tab" role="tab" id="proofTabVerify" aria-selected="false" aria-controls="proofPanelVerify" onclick="proofSetTab('verify')">Anyone: verify</button>
+  </div>
+
+  <div id="proofPanelSign" class="odp-proof-panel" role="tabpanel" aria-labelledby="proofTabSign">
+    <p class="fhint odp-proof-panel-hint">Connect the <strong>creator</strong> wallet, enter the passport Human ID, then sign. Copy the message + signature or the JSON bundle for the verifier.</p>
+    <div class="odp-proof-stack">
+      <div>
+        <label class="search-label" for="proofHumanIdSign">Human ID</label>
+        <input type="text" id="proofHumanIdSign" class="odp-proof-input" placeholder="ODP-2026-03-1234567" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="odp-proof-actions">
         <button type="button" class="btn btn-ghost" id="proofConnectBtn" onclick="proofConnectWallet()">Connect wallet</button>
         <button type="button" class="btn" id="proofSignBtn" onclick="proofSignMessage()">Sign message</button>
       </div>
-      <p id="proofWalletLabel" class="fhint" style="margin:0 0 8px;font-family:var(--mono);font-size:11px"></p>
-      <label class="search-label" for="proofMessageOut">Message (share with verifier)</label>
-      <textarea id="proofMessageOut" readonly rows="7" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--ink)"></textarea>
-      <label class="search-label" for="proofSigOut" style="margin-top:8px">Signature</label>
-      <textarea id="proofSigOut" readonly rows="3" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel2);border:1px solid var(--line);color:var(--ink)"></textarea>
-      <button type="button" class="btn btn-ghost" style="margin-top:8px" onclick="proofCopyBundle()">Copy JSON bundle</button>
+      <p id="proofWalletLabel" class="odp-proof-wallet-label"></p>
+      <div>
+        <label class="search-label" for="proofMessageOut">Signed text (send to verifier)</label>
+        <textarea id="proofMessageOut" class="odp-proof-textarea odp-proof-textarea--readonly" readonly rows="8" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <label class="search-label" for="proofSigOut">Signature</label>
+        <textarea id="proofSigOut" class="odp-proof-textarea odp-proof-textarea--readonly" readonly rows="3" spellcheck="false"></textarea>
+      </div>
+      <button type="button" class="btn btn-ghost odp-proof-copy-btn" onclick="proofCopyBundle()">Copy JSON bundle</button>
     </div>
-    <div>
-      <div style="font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:10px">Anyone — verify</div>
-      <label class="search-label" for="proofHumanIdVerifier">Human ID (optional if message contains it)</label>
-      <input type="text" id="proofHumanIdVerifier" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" placeholder="ODP-…" autocomplete="off" spellcheck="false">
-      <label class="search-label" for="proofMsgIn">Message</label>
-      <textarea id="proofMsgIn" rows="7" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink)"></textarea>
-      <label class="search-label" for="proofSigIn" style="margin-top:8px">Signature (0x…)</label>
-      <textarea id="proofSigIn" rows="3" style="width:100%;max-width:28rem;font-family:var(--mono);font-size:11px;padding:10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);color:var(--ink)"></textarea>
-      <button type="button" class="btn" style="margin-top:10px" onclick="proofVerifyMessage()">Verify signature</button>
-      <div id="proofVerifyResult" style="margin-top:14px"></div>
+  </div>
+
+  <div id="proofPanelVerify" class="odp-proof-panel" role="tabpanel" aria-labelledby="proofTabVerify" hidden>
+    <p class="fhint odp-proof-panel-hint">Paste the <strong>exact message</strong> and <strong>signature</strong> from the creator. The page checks EIP-191 recovery against the passport’s on-chain creator (needs RPC + <code class="mono">NET.contract</code>).</p>
+    <div class="odp-proof-stack">
+      <div>
+        <label class="search-label" for="proofHumanIdVerifier">Human ID <span class="odp-proof-optional">(optional if the message includes <code class="mono">humanId:</code>)</span></label>
+        <input type="text" id="proofHumanIdVerifier" class="odp-proof-input" placeholder="ODP-…" autocomplete="off" spellcheck="false">
+      </div>
+      <div>
+        <label class="search-label" for="proofMsgIn">Message</label>
+        <textarea id="proofMsgIn" class="odp-proof-textarea" rows="8" spellcheck="false"></textarea>
+      </div>
+      <div>
+        <label class="search-label" for="proofSigIn">Signature <span class="odp-proof-optional">(0x…)</span></label>
+        <textarea id="proofSigIn" class="odp-proof-textarea" rows="3" spellcheck="false"></textarea>
+      </div>
+      <button type="button" class="btn" onclick="proofVerifyMessage()">Verify signature</button>
+      <div id="proofVerifyResult" class="odp-proof-verify-result"></div>
     </div>
   </div>
 </section>
 
-<section class="card creator-proof-section" id="docVerifySection" style="margin-top:20px" hidden>
+<section class="card odp-doc-card" id="docVerifySection" style="margin-top:20px" hidden>
   <div class="section-title">Anchored document (PDF) — check hash</div>
   <p class="fhint" style="margin:0 0 14px;max-width:48rem;line-height:1.55">
     If a creator recorded a file hash on a <strong>generation 3+</strong> contract, drop the same file here.
@@ -199,6 +223,10 @@ async function init() {
     document.getElementById("idInput").value = id;
     await verify();
   }
+  try {
+    const pt = sessionStorage.getItem("odp_proof_tab");
+    if (pt === "verify" || pt === "sign") proofSetTab(pt);
+  } catch {}
 }
 
 async function connect() {
@@ -1354,6 +1382,32 @@ function fmtSize(bytes) {
 let proofWeb3Provider = null;
 let proofSigner = null;
 
+/** Tabs: sign vs verify (single column each — avoids cluttered two-column layout). */
+function proofSetTab(tab) {
+  const signP = document.getElementById("proofPanelSign");
+  const verP = document.getElementById("proofPanelVerify");
+  const tSign = document.getElementById("proofTabSign");
+  const tVer = document.getElementById("proofTabVerify");
+  const isSign = tab === "sign";
+  if (signP) {
+    signP.hidden = !isSign;
+  }
+  if (verP) {
+    verP.hidden = isSign;
+  }
+  if (tSign) {
+    tSign.setAttribute("aria-selected", isSign ? "true" : "false");
+    tSign.classList.toggle("is-active", isSign);
+  }
+  if (tVer) {
+    tVer.setAttribute("aria-selected", isSign ? "false" : "true");
+    tVer.classList.toggle("is-active", !isSign);
+  }
+  try {
+    sessionStorage.setItem("odp_proof_tab", isSign ? "sign" : "verify");
+  } catch {}
+}
+
 function syncLastHumanIdToProof(humanId) {
   const el = document.getElementById("proofHumanIdSign");
   if (el && humanId) el.value = humanId;
@@ -1473,7 +1527,7 @@ async function proofVerifyMessage() {
     return;
   }
   if (!msg.startsWith(ODP_CREATOR_PROOF_PREFIX)) {
-    resultEl.innerHTML = `<div class="err-box">Message must start with the v1 proof line (see creator column).</div>`;
+    resultEl.innerHTML = `<div class="err-box">Message must start with the v1 proof line (same format as in <strong>Creator: sign</strong>).</div>`;
     return;
   }
   let recovered;

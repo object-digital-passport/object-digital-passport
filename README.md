@@ -85,6 +85,8 @@ The pages below are **example** front ends. Set **`NET.contract`** in `web/creat
 
 *If the site root loads README-style content but `verify.html` returns 404, GitHub Pages may still be serving a branch/Jekyll build. Prefer **Settings → Pages → Source: GitHub Actions** and a green **Deploy GitHub Pages** run — see [`.github/workflows/pages.yml`](.github/workflows/pages.yml).*
 
+**GitHub Pages — registry address:** The static HTML ships with `NET.contract: ""` in git. The Pages workflow injects your deployed Polygon address at build time from a repository secret **`ODP_CONTRACT_ADDRESS`** (checksum `0x…` string). Add it under **Settings → Secrets and variables → Actions** (same value in all three pages). If the secret is missing, wallet connect succeeds but the UI shows “contract not set” until you set the secret and redeploy or paste the address locally in `web/creator.html`, `web/passport.html`, and `web/verify.html`.
+
 ---
 
 ## Current release

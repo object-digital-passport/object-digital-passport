@@ -98,6 +98,8 @@ let contract   = null;
 let wallet     = null;
 let creatorId  = null;
 let selType    = "C";
+/** Prevents parallel wallet prompts (double-click → “already pending”). */
+let odpWalletConnectInFlight = false;
 let secOk      = false;
 /** One-shot banner on connect screen (e.g. multi-account rejection). */
 let walletConnectError = null;
@@ -159,7 +161,7 @@ function renderConnect() {
         </p>
 
         <div class="wallet-options-grid" style="grid-template-columns:1fr;max-width:420px;margin:0 auto">
-          <div class="wallet-opt" onclick="connectWallet()">
+          <div class="wallet-opt" id="odpConnectWalletBtn" onclick="connectWallet()">
             <div class="wallet-opt-icon">🔗</div>
             <div class="wallet-opt-name">Connect wallet</div>
             <div class="wallet-opt-desc">Browser extension — MetaMask, Rabby, Brave Wallet, etc.</div>
@@ -767,9 +769,35 @@ function noWalletHtml() {
 async function connectWallet() {
   const eth = injectedEthereum();
   const errEl = document.getElementById("connectErr");
+  const btn = document.getElementById("odpConnectWalletBtn");
+  // #region agent log
+  fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+    body: JSON.stringify({
+      sessionId: "7d72c7",
+      hypothesisId: "H3",
+      location: "creator.html:connectWallet:entry",
+      message: "connect click",
+      data: { inFlight: odpWalletConnectInFlight, hasEth: !!eth, contractLen: String(NET.contract || "").trim().length },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+  if (odpWalletConnectInFlight) {
+    if (errEl)
+      errEl.innerHTML =
+        `<div class="info error">Connection already in progress. Approve or reject the request in your wallet extension (icon in the toolbar), then try again.</div>`;
+    return;
+  }
   if (!eth) {
     errEl.innerHTML = noWalletHtml();
     return;
+  }
+  odpWalletConnectInFlight = true;
+  if (btn) {
+    btn.style.opacity = "0.65";
+    btn.style.pointerEvents = "none";
   }
   try {
     // Polygon first, then accounts — so MetaMask scopes the connection to this chain
@@ -783,8 +811,34 @@ async function connectWallet() {
     }
     await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
-  } catch(e) {
-    errEl.innerHTML = `<div class="info error">${esc(e.message)}</div>`;
+  } catch (e) {
+    const msg = String((e && e.message) || e);
+    // #region agent log
+    fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+      body: JSON.stringify({
+        sessionId: "7d72c7",
+        hypothesisId: "H2",
+        location: "creator.html:connectWallet:catch",
+        message: "connect error",
+        data: { errMsg: msg.slice(0, 200) },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    if (/already pending|request of type.*pending/i.test(msg)) {
+      errEl.innerHTML =
+        `<div class="info error">A wallet request is already open. Use the <strong>wallet extension icon</strong> in your browser toolbar to approve or cancel — do not click Connect again until that finishes.</div>`;
+    } else {
+      errEl.innerHTML = `<div class="info error">${esc(msg)}</div>`;
+    }
+  } finally {
+    odpWalletConnectInFlight = false;
+    if (btn) {
+      btn.style.opacity = "";
+      btn.style.pointerEvents = "";
+    }
   }
 }
 
@@ -798,9 +852,23 @@ async function _finish(web3p) {
     return;
   }
   const net = NET;
+  // #region agent log
+  fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+    body: JSON.stringify({
+      sessionId: "7d72c7",
+      hypothesisId: "H1",
+      location: "creator.html:_finish:contractCheck",
+      message: "before finalize",
+      data: { hasContract: !!(net.contract && String(net.contract).trim()), contractLen: String(net.contract || "").trim().length },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
   if (!net.contract) {
     document.getElementById("connectErr").innerHTML =
-      `<div class="info error">Contract address not set for ${net.name}. Edit NET in source.</div>`;
+      `<div class="info error">Contract address not set for ${net.name}. For local use, set <code>NET.contract</code> in this file. For GitHub Pages, add repository secret <code>ODP_CONTRACT_ADDRESS</code> (see README).</div>`;
     return;
   }
   provider = web3p;
@@ -921,6 +989,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         var br = await odpRequireSingleEthereumAccount(eth);
         walletConnectError = br.message;
       } else {
+        odpWalletConnectInFlight = true;
         try {
           const net = NET;
           await ensureWalletChain(eth, net);
@@ -949,8 +1018,14 @@ document.addEventListener("DOMContentLoaded", async () => {
               if (existing) creatorId = existing;
               secOk = true;
             }
+          } else {
+            walletConnectError =
+              "No registry contract is configured for this site build (NET.contract empty). For GitHub Pages set repository secret ODP_CONTRACT_ADDRESS; for local dev paste your deploy address into the HTML source.";
           }
         } catch {}
+        finally {
+          odpWalletConnectInFlight = false;
+        }
       }
     }
   }
