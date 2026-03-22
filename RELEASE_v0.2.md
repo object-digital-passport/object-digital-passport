@@ -1,22 +1,40 @@
-# Object Digital Passport — v0.2 release notes
+# Object Digital Passport — Release notes · v0.2
 
-## Contract
+Hi — thanks for reading. This note is meant for **humans**, not only for developers.
+
+## What v0.2 is (in plain words)
+
+**v0.2** is the line we treat today as the **most stable proof of concept**: one Solidity contract, static pages, and docs that line up with how we actually want the protocol to behave **now** — gas-only use (no separate burned “protocol fee” on register/mint), optional public JSON URL at mint, and a clearer story for verification.
+
+Earlier work lived under the **v0.1** idea (first Polygon deploy, fee-era rules). In practice, **not every improvement we made while iterating on “0.1” ended up neatly frozen in a single perfect v0.1 tag** — as the person running the repo, I’m still **getting comfortable with GitHub** (releases, tags, what landed when). So please don’t read “v0.1” as a perfectly complete snapshot of every experiment; **v0.2 is the coherent baseline we’re pointing people to** for a serious PoC today.
+
+If you’re new here: **start with v0.2** in this repo and in [`README.md`](README.md). The old mainnet contract at `0x3800…` remains **legacy** (generation `0` on-chain); the UI still supports it with a **warning**, but new deployments should follow **v0.2** rules.
+
+---
+
+## What changed in the contract (technical)
 
 - **`CONTRACT_VERSION`** is **2** on new deployments.
-- **No protocol fee** — `registerCreator`, `mintPhysical`, and `mintDigital` are **nonpayable**; users pay **Polygon gas (POL)** only.
-- **`dataUrl` optional** at mint — empty string is allowed. If empty, the public Verify page **cannot** fetch `passport.json` from the network; **only** someone who holds the canonical **`passport.json`** file can check details and authenticity (compare canonical hash to on-chain `dataHash`).
-- **`updatePassportUrls`** — `newDataUrl` may be empty (clear public URL) or non-empty (add/change), subject to length limits.
+- **No protocol fee** — register and mint are **nonpayable**; you only pay **Polygon gas (POL)**.
+- **`dataUrl` is optional** at mint. If you leave it empty, the public Verify page can’t fetch your JSON from the web; only someone with the real **`passport.json`** file can check it against the on-chain hash.
+- **`updatePassportUrls`** — you can set, change, or clear the public URL (within length limits), still matching the same `dataHash`.
 
-## Deployment
+---
 
-1. From `deploy/`: `npm install` (once), then `npx hardhat compile` and `npx hardhat run scripts/deploy.js --network amoy` (testnet) or `--network polygon` (mainnet).
-2. Copy the deployed address into **`NET.contract`** in `web/creator.html`, `web/passport.html`, and `web/verify.html` (all three must match).
-3. The static site expects **v0.2** bytecode (folder-base mint flags, nonpayable mints, optional `dataUrl`). The legacy **v0.1** mainnet contract `0x380092fA9C708BF01a552247909CF5DeceFb469E` is **not** compatible with this UI/ABI.
+## Deploying v0.2 yourself
 
-## Tools
+1. From the `deploy/` folder: install deps once, compile, then run the deploy script on Amoy (test) or Polygon (main), as in [`deploy/scripts/deploy.js`](deploy/scripts/deploy.js).
+2. Paste the **new contract address** into **`NET.contract`** in **`web/creator.html`**, **`web/passport.html`**, and **`web/verify.html`** (same address in all three).
+3. The **legacy** v0.1 contract (`0x3800…`) uses different bytecode — don’t mix it with the v0.2 UI without the compatibility layer (see `web/odp-contract.js`).
 
-- `tools/mint.py` — ABI updated for nonpayable register/mint; optional hosted URL prompt.
+---
 
-## Site release
+## Tools & site
 
-- Static site semver is **`ODP_SITE_VERSION`** in `web/odp-contract.js` (bump patch when only HTML/docs change; bump minor when contract generation rules change for the UI).
+- **`tools/mint.py`** — updated for nonpayable calls and optional hosted URL.
+- **Site version** — see **`ODP_SITE_VERSION`** in [`web/odp-contract.js`](web/odp-contract.js) (small doc/UI tweaks bump the patch number; contract-facing UI behavior is tied to **on-chain generation**, not only that string).
+- **Legacy deployments** (generation **0**) show an **amber banner** on Creator / Passport / Verify so nobody mistakes old rules for the latest PoC.
+
+---
+
+*Questions or corrections welcome via issues — we’re learning in public.*

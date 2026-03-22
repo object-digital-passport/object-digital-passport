@@ -77,12 +77,11 @@ The pages below are **example** front ends. Set **`NET.contract`** in `web/creat
 
 | | |
 |:--|:--|
-| **Version** | **v0.1** |
-| **Git tag** | [`v0.1`](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.1) |
-| **Network** | Polygon PoS (chain ID 137) |
-| **Contract** | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
+| **Recommended PoC line** | **v0.2** — see **[`RELEASE_v0.2.md`](RELEASE_v0.2.md)** for a friendly overview. It is the **most stable proof-of-concept** baseline in this repo right now (gas-only contract rules, optional `dataUrl`, updated UI). |
+| **Legacy (v0.1-era) deploy** | Polygon PoS (chain ID **137**) — [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) (on-chain generation **0**, fee-era rules). The site still supports it with a **legacy warning**; prefer **v0.2** for new work. |
+| **Git / tags** | Not every iteration of the “0.1” idea was captured in a single tidy tag while the repo was still learning GitHub workflows — **v0.2** is the coherent snapshot we point people to. Older tags may exist for history; trust **`RELEASE_v0.2.md`** + `main` for the current PoC story. |
 
-When you publish a release on GitHub, create tag **`v0.1`** on the commit that matches this deployment so the tag link above resolves.
+After you deploy **v0.2** to mainnet, add a **`v0.2`** (or similar) tag on the matching commit and paste the new address into the three `NET.contract` fields in `web/`.
 
 ---
 
