@@ -21,6 +21,14 @@ Blockchain apps reuse words from NFTs and finance — here is what they mean **i
 
 Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 and §2 onward).
 
+### Versioning (site vs contract)
+
+| | |
+|:--|:--|
+| **Site / static release** | **`0.X.Y`** (see `ODP_SITE_VERSION` in [`web/odp-contract.js`](web/odp-contract.js)). Bump **Y** when you change only documentation, HTML/CSS, or tooling **without** a new contract deployment. |
+| **Contract / protocol generation** | **`0.X`** in spec labels and git tags when bytecode or on-chain rules change (e.g. v0.1 → v0.2). Each deployment exposes `CONTRACT_VERSION` (uint8) on-chain. |
+| **On-chain `CONTRACT_VERSION`** | **Not** the same as marketing semver. The reference UI reads it to pick ABIs: **0** = legacy Polygon deploy (fee + older `mint` signatures), **≥2** = v0.2 rules (gas-only, optional `dataUrl`, folder-base mint). See [`web/odp-contract.js`](web/odp-contract.js). |
+
 ---
 
 ## What this system is (and why)
@@ -50,7 +58,7 @@ Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 an
 
 ## Live demo (example UI)
 
-The pages below are **example** front ends, preconfigured for the **official v0.1 contract** on Polygon PoS (see **Current release**). Other compatible apps may differ in layout; protocol behavior is defined in **`SPEC.md`**, not by this HTML.
+The pages below are **example** front ends. Set **`NET.contract`** in `web/creator.html`, `web/passport.html`, and `web/verify.html` to your deployment; the UI probes **`CONTRACT_VERSION()`** and stays compatible with both the legacy fee-era contract and v0.2 (see **Versioning** above). Protocol behavior is defined in **`SPEC.md`**, not by this HTML alone.
 
 **GitHub Pages:** **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)**
 

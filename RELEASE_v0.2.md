@@ -16,3 +16,7 @@
 ## Tools
 
 - `tools/mint.py` — ABI updated for nonpayable register/mint; optional hosted URL prompt.
+
+## Site release
+
+- Static site semver is **`ODP_SITE_VERSION`** in `web/odp-contract.js` (bump patch when only HTML/docs change; bump minor when contract generation rules change for the UI).

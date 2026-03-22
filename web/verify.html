@@ -26,6 +26,7 @@
 
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
+<script src="odp-contract.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 </head>
 
@@ -36,6 +37,7 @@
   <div class="header-left">
     <h1>Verify</h1>
     <p class="sub">Object Digital Passport · Specification v0.2</p>
+    <p id="odpStackLabel" class="fhint" style="display:none;font-size:11px;margin-top:6px;max-width:42rem;line-height:1.5"></p>
     <p class="fhint" style="margin-top:6px;max-width:42rem">Check that a passport or creator ID is registered.</p>
   </div>
   <div class="net-pill" title="Polygon PoS mainnet">
@@ -91,7 +93,7 @@
 <footer>
   <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
-  <span>v0.2</span>
+  <span id="footerSiteVer"></span>
   <span>MIT License</span>
   <span>Andrei Chernikov</span>
 </footer>
@@ -113,99 +115,12 @@ const NET = {
   rpc:      POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
   contract: "",
+  contractGenerationFallback: null,
 };
 
-const ABI = [
-  {
-    name: "getPassport", type: "function", stateMutability: "view",
-    inputs: [{ name: "humanId", type: "string" }],
-    outputs: [{ name: "", type: "tuple", components: [
-      { name: "humanId",          type: "string"  },
-      { name: "contractVersion",  type: "uint8"   },
-      { name: "creator",          type: "address" },
-      { name: "creatorId",        type: "string"  },
-      { name: "year",             type: "uint32"  },
-      { name: "month",            type: "uint8"   },
-      { name: "objectType",       type: "string"  },
-      { name: "dataHash",         type: "bytes32" },
-      { name: "imageHash",        type: "bytes32" },
-      { name: "fileHash",         type: "bytes32" },
-      { name: "sealType",         type: "uint8"   },
-      { name: "sealHash",         type: "bytes32" },
-      { name: "nfcPublicKey",     type: "bytes"   },
-      { name: "nfcModel",         type: "string"  },
-      { name: "dataUrl",          type: "string"  },
-      { name: "imageUrl",         type: "string"  },
-      { name: "timestamp",        type: "uint256" },
-    ]}],
-  },
-  {
-    name: "resolvePassport", type: "function", stateMutability: "view",
-    inputs: [{ name: "humanId", type: "string" }],
-    outputs: [
-      { name: "passport", type: "tuple", components: [
-        { name: "humanId",          type: "string"  },
-        { name: "contractVersion",  type: "uint8"   },
-        { name: "creator",          type: "address" },
-        { name: "creatorId",        type: "string"  },
-        { name: "year",             type: "uint32"  },
-        { name: "month",            type: "uint8"   },
-        { name: "objectType",       type: "string"  },
-        { name: "dataHash",         type: "bytes32" },
-        { name: "imageHash",        type: "bytes32" },
-        { name: "fileHash",         type: "bytes32" },
-        { name: "sealType",         type: "uint8"   },
-        { name: "sealHash",         type: "bytes32" },
-        { name: "nfcPublicKey",     type: "bytes"   },
-        { name: "nfcModel",         type: "string"  },
-        { name: "dataUrl",          type: "string"  },
-        { name: "imageUrl",         type: "string"  },
-        { name: "timestamp",        type: "uint256" },
-      ]},
-      { name: "creator", type: "tuple", components: [
-        { name: "creatorId",  type: "string"  },
-        { name: "wallet",     type: "address" },
-        { name: "typePrefix", type: "bytes1"  },
-        { name: "timestamp",  type: "uint256" },
-      ]},
-      { name: "proofCount", type: "uint256" },
-      { name: "version", type: "uint8" },
-    ],
-  },
-  {
-    name: "exists", type: "function", stateMutability: "view",
-    inputs:  [{ name: "humanId", type: "string" }],
-    outputs: [{ name: "", type: "bool" }],
-  },
-  {
-    name: "getCreator", type: "function", stateMutability: "view",
-    inputs: [{ name: "creatorId", type: "string" }],
-    outputs: [{ name: "", type: "tuple", components: [
-      { name: "creatorId",  type: "string"  },
-      { name: "wallet",     type: "address" },
-      { name: "typePrefix", type: "bytes1"  },
-      { name: "timestamp",  type: "uint256" },
-    ]}],
-  },
-  {
-    name: "getProofsForPassport", type: "function", stateMutability: "view",
-    inputs:  [{ name: "humanId",  type: "string" }],
-    outputs: [{ name: "", type: "string[]" }],
-  },
-  {
-    name: "getProof", type: "function", stateMutability: "view",
-    inputs: [{ name: "proofId", type: "string" }],
-    outputs: [{ name: "", type: "tuple", components: [
-      { name: "proofId",         type: "string"  },
-      { name: "contractVersion", type: "uint8"   },
-      { name: "prover",          type: "string"  },
-      { name: "humanId",         type: "string"  },
-      { name: "noteHash",        type: "bytes32" },
-      { name: "noteUrl",         type: "string"  },
-      { name: "timestamp",       type: "uint256" },
-    ]}],
-  },
-];
+const ABI = odpBuildVerifyReadAbi();
+
+let odpContractGeneration = null;
 
 const ZERO32 = "0x" + "0".repeat(64);
 
@@ -217,6 +132,8 @@ let contract = null;
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function init() {
+  const fv = document.getElementById("footerSiteVer");
+  if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
   await connect();
 
   // Handle odp:// or ?id= in URL
@@ -232,16 +149,28 @@ async function connect() {
   const c = NET;
   setNet("connecting", `${c.name} — connecting...`);
   let lastErr = null;
+  const lbl = document.getElementById("odpStackLabel");
   for (const rpcUrl of POLYGON_RPC_FALLBACKS) {
     try {
       provider = new ethers.providers.JsonRpcProvider(rpcUrl, { name: "polygon", chainId: c.chainId });
       await provider.getBlockNumber();
       if (!c.contract) {
         setNet("warn", `${c.name} — contract address not set`);
+        if (lbl) {
+          lbl.style.display = "none";
+          lbl.textContent = "";
+        }
+        odpContractGeneration = null;
         return;
       }
+      const probed = await odpProbeContractGenerationCached(c.contract, c.chainId, POLYGON_RPC_FALLBACKS, ethers);
+      odpContractGeneration = odpResolveGeneration(probed, c);
       contract = new ethers.Contract(c.contract, ABI, provider);
-      setNet("on", `${c.name}`);
+      if (lbl) {
+        lbl.textContent = odpFormatStackLabel(odpContractGeneration);
+        lbl.style.display = "";
+      }
+      setNet("on", `${c.name} · gen ${odpContractGeneration}`);
       return;
     } catch (e) {
       lastErr = e;
@@ -250,6 +179,11 @@ async function connect() {
   }
   setNet("off", `${c.name} — offline`);
   contract = null;
+  odpContractGeneration = null;
+  if (lbl) {
+    lbl.style.display = "none";
+    lbl.textContent = "";
+  }
 }
 
 function setNet(state, label) {

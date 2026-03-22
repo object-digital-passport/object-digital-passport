@@ -11,6 +11,7 @@
 <title>ODP v0.2 — Register Creator ID</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
+<script src="odp-contract.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
@@ -21,6 +22,7 @@
   <div class="header-left">
     <h1>Creator ID</h1>
     <p class="sub">Object Digital Passport · Specification v0.2</p>
+    <p id="odpStackLabel" class="fhint" style="display:none;font-size:11px;margin-top:6px;max-width:40rem;line-height:1.5"></p>
   </div>
   <div class="net-pill" title="Polygon PoS mainnet">
     <div class="net-dot" id="netDot"></div>
@@ -39,7 +41,7 @@
 <footer>
   <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
-  <span>v0.2</span>
+  <span id="footerSiteVer"></span>
   <span>MIT License</span>
   <span>Andrei Chernikov</span>
 </footer>
@@ -61,6 +63,7 @@ const NET = {
   rpc: POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
   contract: "",
+  contractGenerationFallback: null,
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
@@ -83,28 +86,8 @@ function getVerifyAbsoluteUrl(id) {
   return new URL(rel, window.location.href).href;
 }
 
-const ABI = [
-  {
-    name: "registerCreator", type: "function", stateMutability: "nonpayable",
-    inputs:  [{ name: "typePrefix", type: "bytes1" }],
-    outputs: [{ name: "creatorId",  type: "string" }],
-  },
-  {
-    name: "getCreatorByWallet", type: "function", stateMutability: "view",
-    inputs:  [{ name: "wallet", type: "address" }],
-    outputs: [{ name: "", type: "string" }],
-  },
-  {
-    name: "getCreator", type: "function", stateMutability: "view",
-    inputs: [{ name: "creatorId", type: "string" }],
-    outputs: [{ name: "", type: "tuple", components: [
-      { name: "creatorId",  type: "string"  },
-      { name: "wallet",     type: "address" },
-      { name: "typePrefix", type: "bytes1"  },
-      { name: "timestamp",  type: "uint256" },
-    ]}],
-  },
-];
+let ABI = null;
+let odpContractGeneration = null;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -306,7 +289,7 @@ function renderForm() {
         <div id="regErr"></div>
 
         <button class="btn" id="regBtn" onclick="doRegister()">
-          Register — Polygon gas only (~US$0.01 typ.)
+          ${registerButtonLabel()}
         </button>
       </div>
     </div>`;
@@ -605,7 +588,19 @@ async function disconnect() {
   }
   try { sessionStorage.setItem(ODP_SKIP_WALLET_AUTOCONNECT, "1"); } catch {}
   wallet = null; provider = null; signer = null; contract = null; creatorId = null;
+  odpContractGeneration = null;
+  ABI = null;
+  const sl = document.getElementById("odpStackLabel");
+  if (sl) {
+    sl.textContent = "";
+    sl.style.display = "none";
+  }
   render();
+}
+
+function registerButtonLabel() {
+  if (odpContractGeneration === 0) return "Register — ~US$0.02 typ. (gas + 0.001 POL fee)";
+  return "Register — Polygon gas only (~US$0.01 typ.)";
 }
 
 // ── Wallet connection ─────────────────────────────────────────────────────────
@@ -748,7 +743,15 @@ async function _finish(web3p) {
   provider = web3p;
   signer   = provider.getSigner();
   wallet   = await signer.getAddress();
-  contract = new ethers.Contract(net.contract, ABI, signer);
+  const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "creator");
+  odpContractGeneration = fin.generation;
+  ABI = fin.abi;
+  contract = fin.contract;
+  const sl = document.getElementById("odpStackLabel");
+  if (sl) {
+    sl.textContent = odpFormatStackLabel(odpContractGeneration);
+    sl.style.display = "";
+  }
 
   // Check existing
   const existing = await contract.getCreatorByWallet(wallet);
@@ -776,7 +779,10 @@ async function doRegister() {
     const typeBytes = ethers.utils.hexlify(
       ethers.utils.toUtf8Bytes(selType)
     ); // e.g. "0x43" for "C"
-    const tx = await contract.registerCreator(typeBytes);
+    const fee = odpProtocolFeeWei(odpContractGeneration, ethers);
+    const tx = fee.isZero()
+      ? await contract.registerCreator(typeBytes)
+      : await contract.registerCreator(typeBytes, { value: fee });
     btn.textContent = "Confirming…";
     err.innerHTML = `<div class="info neutral" style="margin-bottom:10px">Transaction sent: ${tx.hash.slice(0,20)}…</div>`;
     await tx.wait();
@@ -785,7 +791,7 @@ async function doRegister() {
   } catch(e) {
     err.innerHTML = `<div class="info error" style="margin-bottom:10px">${esc(e.message)}</div>`;
     btn.disabled = false;
-    btn.textContent = "Register — Polygon gas only (~US$0.01 typ.)";
+    btn.textContent = registerButtonLabel();
   }
 }
 
@@ -818,6 +824,8 @@ document.addEventListener("keydown", (e) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const fv = document.getElementById("footerSiteVer");
+  if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
   initNetPill();
   const skipAuto = (() => {
     try { return sessionStorage.getItem(ODP_SKIP_WALLET_AUTOCONNECT) === "1"; } catch { return false; }
@@ -848,7 +856,15 @@ document.addEventListener("DOMContentLoaded", async () => {
         signer    = provider.getSigner();
         wallet    = await signer.getAddress();
         if (net.contract) {
-          contract  = new ethers.Contract(net.contract, ABI, signer);
+          const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "creator");
+          odpContractGeneration = fin.generation;
+          ABI = fin.abi;
+          contract = fin.contract;
+          const sl = document.getElementById("odpStackLabel");
+          if (sl) {
+            sl.textContent = odpFormatStackLabel(odpContractGeneration);
+            sl.style.display = "";
+          }
           const existing = await contract.getCreatorByWallet(wallet);
           if (existing) creatorId = existing;
           secOk = true;

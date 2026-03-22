@@ -25,7 +25,7 @@ pragma solidity ^0.8.20;
  *   Protocol updates require a new contract (v0.2, v0.3, etc.)
  *
  * SECURITY NOTES:
- *   - No ETH/POL stored or transferred — nothing to steal financially
+ *   - v0.2+: no protocol fee — native token only pays network gas (no POL routed to fee burn)
  *   - No external calls — reentrancy not possible
  *   - Solidity 0.8.20 — overflow/underflow protection built in
  *   - Access control enforced via require() on all write functions
@@ -81,9 +81,9 @@ contract ObjectDigitalPassport {
     string constant OBJECT_PHYSICAL = "physical";
     string constant OBJECT_DIGITAL  = "digital";
 
-    // Protocol version — readable on-chain, stored in every Passport and ProofRecord.
-    // When v1 is deployed, it will reference this contract as legacy via legacyContractsRoot.
-    // Verifiers use this to display "Legacy (v0)" vs "Canonical (v1)".
+    // On-chain deployment generation (uint8). Same name as Passport.contractVersion at mint time.
+    // This is NOT the marketing semver (see README): e.g. generation 0 = first Polygon deploy (ODP spec v0.1 + fee),
+    // generation 2 = ODP spec v0.2 (gas-only, optional dataUrl). Future major protocols may use new generations.
     uint8 public constant CONTRACT_VERSION = 2;
 
     // Anti-spam: rate limit per calendar month (no protocol fee)
