@@ -190,7 +190,8 @@ const NET = {
   chainId:  137,
   rpc:      POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  contract: "",
+  /** Temporary default: public Polygon v0.1 registry (historical). Override via ?contract= / registry-config merge when using v0.2+. */
+  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
   contractGenerationFallback: null,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
   previousContracts: [],

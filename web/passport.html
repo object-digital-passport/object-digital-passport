@@ -63,8 +63,8 @@ const NET = {
   name: "Polygon PoS", chainId: 137,
   rpc: POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
-  contract: "",
+  /** Temporary default: public Polygon v0.1 registry (byte 0). This UI targets v0.2+ — legacy is rejected on connect unless you override ?contract= / ODP_CONTRACT_ADDRESS. */
+  contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
   /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
   contractGenerationFallback: null,
 };
