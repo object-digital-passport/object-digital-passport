@@ -5,7 +5,7 @@
 
 **Try the live demo (GitHub Pages):** **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) (no wallet) · [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html) · [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
-*If links show **404**, GitHub Pages is not deployed yet. **(1)** Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**. **(2)** Add [`.github/workflows/pages.yml`](https://github.com/object-digital-passport/object-digital-passport/blob/main/deploy/github-pages-workflow.yml) — same YAML as [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml) (use **Add file** on GitHub if `git push` is denied: PAT needs **`workflow`** scope for that path). **(3)** **Actions** → run **Deploy GitHub Pages**, wait for green, then reload the demo URL.*
+*If **`/` works but `verify.html` / `creator.html` return 404**, the site is probably still built with **Jekyll from a branch** (only README), not the static files in **`web/`**. Fix: **Settings → Pages → Build and deployment → Source: GitHub Actions** (not “Deploy from a branch”). Then open **Actions**, run workflow **Deploy GitHub Pages**, wait for green. The workflow lives at [`.github/workflows/pages.yml`](.github/workflows/pages.yml) (same logic as [`deploy/github-pages-workflow.yml`](deploy/github-pages-workflow.yml)).*
 
 ---
 
@@ -86,6 +86,8 @@ Anyone with a phone can scan the QR code and verify:
 ├── docs/
 │   └── VERSIONING_AND_RELEASES.md  ← Tags, main, freezing v0.1, hotfixes
 ├── .github/
+│   ├── workflows/
+│   │   └── pages.yml          ← GitHub Pages: deploy /web (enable “GitHub Actions” in Settings → Pages)
 │   ├── ISSUE_TEMPLATE/        ← Bug, feature, spec discussion (+ config contact links)
 │   ├── pull_request_template.md
 │   ├── BRANCH_PROTECTION.md   ← Optional GitHub branch protection (enable later in Settings)
@@ -106,6 +108,7 @@ Anyone with a phone can scan the QR code and verify:
 │   └── mint.py                ← CLI for minting (Python)
 │
 └── web/
+    ├── .nojekyll              ← Ensures static upload is not processed as Jekyll when needed
     ├── creator.html           ← Register Creator ID
     ├── passport.html          ← Mint passports
     └── verify.html            ← Verify passports
