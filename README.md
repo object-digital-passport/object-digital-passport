@@ -7,6 +7,12 @@ Anyone can implement it. Anyone can verify it. Forever.
 
 ---
 
+## This repository
+
+What you see here is **one example** of how the protocol can be built: a reference web stack, a Solidity contract, and helper tooling. It is meant to demonstrate the ideas end-to-end — not to be the only “official” product. **The full normative specification** (ID formats, hashes, verification rules, and what any compatible implementation must do) lives in **[`SPEC.md`](SPEC.md)**; the Russian edition is **[`SPEC_RU.md`](SPEC_RU.md)**. Threat model and security notes: **[`SECURITY.md`](SECURITY.md)**. Use those documents as the source of truth; this README is an overview.
+
+---
+
 ## What it is
 
 ODP lets you register any physical or digital object on the Polygon blockchain
@@ -66,8 +72,9 @@ Anyone with a phone can scan the QR code and verify:
 │   └── mint.py                ← CLI for minting (Python)
 │
 └── web/
-    ├── create.html            ← Web UI for creating passports
-    └── verify.html            ← Web UI for verifying passports
+    ├── creator.html           ← Register Creator ID
+    ├── passport.html          ← Mint passports
+    └── verify.html            ← Verify passports
 ```
 
 ---
@@ -127,7 +134,7 @@ npm run deploy:mainnet    # Polygon mainnet
 ### 4. Register your Creator ID
 
 **Via web UI:**
-Open `web/create.html` in a browser with MetaMask installed.
+Open `web/creator.html` in a browser with MetaMask installed.
 Click "Connect Wallet" → registration screen appears autopolally.
 
 **Via CLI:**
@@ -155,7 +162,7 @@ Full:   C-482-930-174 / Your Name / 0x742d35Cc...
 ### 5. Mint a passport
 
 **Via web UI:**
-Open `web/create.html`, connect wallet, fill the form, click "Mint Passport".
+Open `web/passport.html`, connect wallet, fill the form, click "Mint Passport".
 The UI handles hashing and blockchain submission. MetaMask will ask you to confirm.
 After minting: download `passport.json` and upload it to your `dataUrl`.
 
@@ -166,6 +173,20 @@ python mint.py
 Follow the interactive prompts. On completion:
 - `passports/ODP-YYYY-MM-NNNNNNN.json` — upload this to your `dataUrl`
 - Run `python mint.py --qr ODP-YYYY-MM-NNNNNNN` to generate QR
+
+#### Hosting `passport.json` on third-party sites
+
+The verifier loads your `dataUrl` in the browser. The URL must:
+
+- **HTTPS** — public endpoint.
+- **Raw JSON** — the HTTP response body must be the passport bytes only (not an HTML GitHub page, not a login wall).
+- **GitHub / Git forges** — use the **Raw** link (`raw.githubusercontent.com/...`), not the blob viewer.
+- **CORS** — the host must allow cross-origin `GET` from the verifier page (many static hosts and GitHub Raw do).
+- **Unchanged bytes** — upload the file from the mint download without edits.
+
+If you need the Human ID in the URL path, mint with a stable URL first, upload the file, then use **Update hosting URLs** in the wallet UI (gas only — no second mint fee).
+
+Full normative wording: **SPEC.md §9 — Hosting `dataUrl` (third-party sites)**.
 
 ### 6. Verify
 
@@ -311,6 +332,18 @@ see [`SECURITY.md`](SECURITY.md).
 
 ---
 
+## Roadmap
+
+| | |
+|--|--|
+| **Reference launch (v0.1)** | *Now* — draft specification, example stack in this repo, contract & web UI as a working illustration. |
+| **Interim milestones** | *TBD* — ecosystem feedback, testnet/mainnet iterations, spec refinements (tracked via issues and PRs). |
+| **Stable release v1.0** | **January 2027** — target for a stable protocol version and compatible **v1** tooling (see SPEC versioning rules). |
+
+Until v1.0, breaking changes to the draft spec (0.x) are expected. Implementations should pin a spec version they support.
+
+---
+
 ## Contributing
 
 This is a draft specification (v0.1). Feedback is the goal.
@@ -328,4 +361,4 @@ MIT — use freely, build on it, fork it.
 ---
 
 *Object Digital Passport — open source.*
-*Spec v0.1 — subject to change before stable release.*
+*Spec v0.1 — draft; stable **v1.0** targeted for January 2027 (see Roadmap).*

@@ -193,6 +193,6 @@ When verifying an object:
 ## Reporting security issues
 
 Open an issue at:
-[https://github.com/andrei-chernikov/object-digital-passport/issues](https://github.com/andrei-chernikov/object-digital-passport/issues)
+[https://github.com/object-digital-passport/odp-v.0.1/issues](https://github.com/object-digital-passport/odp-v.0.1/issues)
 
 For sensitive disclosures, contact via GitHub private security advisory.

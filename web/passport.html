@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0e0c">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <title>ODP — Create Passport</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
@@ -34,8 +39,8 @@
 </div>
 
 <footer>
-  <a href="https://github.com/object-digital-passport" target="_blank">GitHub</a>
-  <span>ODP Spec v0.1</span>
+  <a href="https://github.com/object-digital-passport/odp-v.0.1" target="_blank" rel="noopener noreferrer">object-digital-passport/odp-v.0.1</a>
+  <a href="https://github.com/object-digital-passport/odp-v.0.1/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
   <span>MIT License</span>
 </footer>
 
@@ -55,6 +60,27 @@ const NET = {
   explorer: "https://polygonscan.com",
   contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
 };
+
+/** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
+const PUBLIC_VERIFY_BASE = "";
+
+function getVerifyRelativePath(id) {
+  return `verify.html?id=${encodeURIComponent(id)}`;
+}
+
+/** Absolute URL for Web Share / APIs; uses PUBLIC_VERIFY_BASE when set, else current page origin. */
+function getVerifyAbsoluteUrl(id) {
+  const rel = getVerifyRelativePath(id);
+  const b = typeof PUBLIC_VERIFY_BASE === "string" && PUBLIC_VERIFY_BASE.trim();
+  if (b) {
+    try {
+      return new URL(rel, b.endsWith("/") ? b : `${b}/`).href;
+    } catch {
+      /* fall through */
+    }
+  }
+  return new URL(rel, window.location.href).href;
+}
 
 const ABI = [
   { name:"getCreatorByWallet",type:"function",stateMutability:"view",inputs:[{name:"wallet",type:"address"}],outputs:[{name:"",type:"string"}] },
@@ -79,9 +105,14 @@ const ABI = [
     {name:"dataHash",type:"bytes32"},{name:"dataUrl",type:"string"},
     {name:"imageHash",type:"bytes32"},{name:"imageUrl",type:"string"},
     {name:"fileHash",type:"bytes32"}],outputs:[{name:"humanId",type:"string"}] },
+  { name:"updatePassportUrls",type:"function",stateMutability:"nonpayable",inputs:[
+    {name:"humanId",type:"string"},{name:"newDataUrl",type:"string"},{name:"newImageUrl",type:"string"},
+    {name:"confirmedDataHash",type:"bytes32"}],outputs:[] },
 ];
 
 const ZERO32 = "0x"+"0".repeat(64);
+/** User chose Disconnect — skip eth_accounts auto-reconnect until explicit Connect (same tab). */
+const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
 let provider=null, signer=null, contract=null, wallet=null, creatorId=null;
 let objType="physical", sealType=2;
 /** Raw file SHA-256 as bytes32 (0x + 64 hex) — required for mintDigital; matches mint.py to_bytes32 */
@@ -94,6 +125,17 @@ function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;")
 async function connect() {
   const app = document.getElementById("app");
   app.innerHTML = renderConnectUI();
+}
+
+async function disconnectWallet() {
+  const eth = injectedEthereum();
+  let revoked = false;
+  if (eth) {
+    revoked = await revokeSiteWalletPermission(eth);
+  }
+  try { sessionStorage.setItem(ODP_SKIP_WALLET_AUTOCONNECT, "1"); } catch {}
+  provider = null; signer = null; contract = null; wallet = null; creatorId = null;
+  connect();
 }
 
 function renderConnectUI() {
@@ -121,6 +163,17 @@ function injectedEthereum() {
   if (w.providers && w.providers.length)
     return w.providers.find((p) => p.isMetaMask) || w.providers[0];
   return w;
+}
+
+/** MetaMask / modern EIP-1193: revoke site access so the next Connect shows a wallet prompt. */
+async function revokeSiteWalletPermission(eth) {
+  if (!eth) return false;
+  try {
+    await eth.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function ensureWalletChain(eth, cfg) {
@@ -167,7 +220,9 @@ async function connectWallet() {
     return;
   }
   try {
+    const preAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
     await eth.request({ method: "eth_requestAccounts" });
+    const postAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
     await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch(e) {
@@ -176,6 +231,7 @@ async function connectWallet() {
 }
 
 async function _finish(p) {
+  try { sessionStorage.removeItem(ODP_SKIP_WALLET_AUTOCONNECT); } catch {}
   const net = NET;
   if (!net.contract) {
     document.getElementById("connectErr").innerHTML = `<div class="info e">Contract not configured for ${net.name}.</div>`;
@@ -230,6 +286,8 @@ async function loadMyPassports() {
             </div>
             <div class="pl-actions">
               <a href="${vbase}${encodeURIComponent(r.hid)}">Verify</a>
+              <button type="button" class="pl-url-btn" onclick='openPassportShareModal(${JSON.stringify(r.hid)})'>Share</button>
+              <button type="button" class="pl-url-btn" onclick='openPassportUrlEditor(${JSON.stringify(r.hid)})'>URLs</button>
             </div>
           </div>`).join("")}
       </div>`;
@@ -256,6 +314,66 @@ async function initNetPill() {
   label.textContent = NET.name + " — offline";
 }
 
+function closeUrlModal() {
+  const m = document.getElementById("urlModal");
+  if (m) m.classList.remove("open");
+}
+
+function openHostingJsonInfo() {
+  const m = document.getElementById("hostingJsonInfoModal");
+  if (m) m.classList.add("open");
+}
+
+function closeHostingJsonInfo() {
+  const m = document.getElementById("hostingJsonInfoModal");
+  if (m) m.classList.remove("open");
+}
+
+async function openPassportUrlEditor(humanId) {
+  const errEl = document.getElementById("urlEditErr");
+  if (errEl) errEl.innerHTML = "";
+  try {
+    const p = await contract.getPassport(humanId);
+    document.getElementById("urlEditHid").value = humanId;
+    document.getElementById("urlEditDataHash").value = p.dataHash;
+    document.getElementById("urlEditDataUrl").value = p.dataUrl || "";
+    document.getElementById("urlEditImageUrl").value = p.imageUrl || "";
+    document.getElementById("urlModal").classList.add("open");
+  } catch (e) {
+    alert(esc(e.message || String(e)));
+  }
+}
+
+async function submitPassportUrls() {
+  const errEl = document.getElementById("urlEditErr");
+  errEl.innerHTML = "";
+  const humanId = document.getElementById("urlEditHid").value;
+  const newData = document.getElementById("urlEditDataUrl").value.trim();
+  const newImg = document.getElementById("urlEditImageUrl").value.trim();
+  const confirmed = document.getElementById("urlEditDataHash").value;
+  if (!newData) {
+    errEl.innerHTML = '<div class="info e">Passport JSON URL is required</div>';
+    return;
+  }
+  if (newData.length > 512 || newImg.length > 512) {
+    errEl.innerHTML = '<div class="info e">Each URL must be at most 512 characters</div>';
+    return;
+  }
+  const btn = document.getElementById("urlEditSubmit");
+  btn.disabled = true;
+  try {
+    const tx = await contract.updatePassportUrls(humanId, newData, newImg, confirmed);
+    errEl.innerHTML = '<div class="info n">Confirm in wallet…</div>';
+    await tx.wait();
+    closeUrlModal();
+    await loadMyPassports();
+  } catch (e) {
+    errEl.innerHTML = `<div class="info e">${esc(e.message || String(e))}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ── Form ──────────────────────────────────────────────────────────────────────
 
 function renderForm() {
@@ -266,7 +384,7 @@ function renderForm() {
       <div class="wdot on"></div>
       <div class="wbar-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
       <div class="wbar-id">${esc(creatorId)}</div>
-      <div class="wbar-dis" onclick="wallet=null;connect()">Disconnect</div>
+      <div class="wbar-dis" onclick="disconnectWallet()">Disconnect</div>
     </div>
 
     <div class="card passport-list-card">
@@ -338,12 +456,17 @@ function renderForm() {
     <div class="section">
       <div class="section-label">Hosting</div>
       <div class="field">
-        <label>Passport JSON URL<span class="req">*</span></label>
+        <div class="field-label-row">
+          <label for="f_url">Passport JSON URL<span class="req">*</span></label>
+          <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How third-party JSON hosting works" aria-label="How third-party JSON hosting works">ⓘ</button>
+        </div>
         <input type="url" id="f_url" placeholder="https://example.com/odp/passport-001.json">
         <p class="fhint">
           <strong>Final public HTTPS URL</strong> of the file that will contain the <strong>same</strong> canonical <code>passport.json</code>
           whose SHA-256 is written on-chain as <code>dataHash</code>. The file does not need to exist yet — but the path must be the one you will use after mint.
           The verifier downloads this URL, minifies JSON like the spec, hashes it, and compares to the chain.
+          <strong>Human ID</strong> is assigned randomly when you mint — you cannot know it in advance, so pick a stable path <em>without</em> the ID (e.g. <code>…/works/title/passport.json</code>).
+          If you want the ID in the path, mint with any valid URL first, upload the downloaded file, then use <strong>Update hosting URLs</strong> (gas only — no second mint fee).
         </p>
       </div>
     </div>
@@ -439,8 +562,83 @@ function renderForm() {
       <button class="btn btn-ghost" onclick="previewJson()">Preview JSON</button>
     </div>
     <div id="jsonPreview"></div>
+
+    <div id="hostingJsonInfoModal" class="modal-backdrop" onclick="if(event.target===this)closeHostingJsonInfo()">
+      <div class="modal-panel card" onclick="event.stopPropagation()">
+        <div class="card-head">Hosting <code>passport.json</code> on the web</div>
+        <div class="card-body">
+          <p class="fhint" style="margin-bottom:12px">
+            The verifier loads your URL in the browser (same as opening the link). The response must be the <strong>raw JSON bytes</strong> of the passport — not an HTML page, not a login wall, not a pretty-printed GitHub file view.
+          </p>
+          <p class="fhint" style="margin-bottom:12px">
+            <strong>HTTPS</strong> is required. Use a <strong>direct</strong> file URL that returns status <code>200</code> with the file body (e.g. <code>application/json</code> or plain text).
+          </p>
+          <p class="fhint" style="margin-bottom:12px">
+            <strong>GitHub:</strong> use the <strong>Raw</strong> URL (<code>raw.githubusercontent.com/…</code> or Raw button), not the repository HTML page. After pushing, wait until the raw link shows your file.
+          </p>
+          <p class="fhint" style="margin-bottom:12px">
+            <strong>Your site / CDN:</strong> upload the downloaded file unchanged to any static host (object storage, Netlify, Vercel, nginx, …). The path in the URL must match where you actually put the file.
+          </p>
+          <p class="fhint" style="margin-bottom:12px">
+            <strong>CORS:</strong> verification runs in the browser; the host must allow cross-origin <code>GET</code> from the verifier page (many public static hosts and GitHub Raw do; a misconfigured private server may block the request).
+          </p>
+          <p class="fhint" style="margin-bottom:0">
+            <strong>Bytes = truth:</strong> any change to whitespace or characters changes the SHA-256. Upload the exact file from the mint success screen unless you use tooling that reproduces the same canonical minified JSON.
+          </p>
+          <div class="btn-row" style="margin-top:20px">
+            <button type="button" class="btn" onclick="closeHostingJsonInfo()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="urlModal" class="modal-backdrop" onclick="if(event.target===this)closeUrlModal()">
+      <div class="modal-panel card" onclick="event.stopPropagation()">
+        <div class="card-head">Update hosting URLs</div>
+        <div class="card-body">
+          <p class="fhint" style="margin-bottom:14px">
+            Change where <code>passport.json</code> and the optional image are hosted. Only the creator wallet can submit.
+            <code>dataHash</code> on-chain stays the same — the file at the new URL must still match that hash.
+            <strong>No ODP mint fee</strong> for this action — you only pay Polygon <strong>network gas</strong> (POL) in your wallet.
+          </p>
+          <input type="hidden" id="urlEditHid">
+          <input type="hidden" id="urlEditDataHash">
+          <div class="field">
+            <div class="field-label-row">
+              <label for="urlEditDataUrl">Passport JSON URL<span class="req">*</span></label>
+              <button type="button" class="btn-inline-info" onclick="openHostingJsonInfo()" title="How third-party JSON hosting works" aria-label="How third-party JSON hosting works">ⓘ</button>
+            </div>
+            <input type="url" id="urlEditDataUrl" placeholder="https://…/passport.json" autocomplete="off"></div>
+          <div class="field"><label>Image URL (optional)</label>
+            <input type="url" id="urlEditImageUrl" placeholder="Leave empty to clear" autocomplete="off"></div>
+          <div id="urlEditErr"></div>
+          <div class="btn-row" style="margin-top:16px">
+            <button type="button" class="btn" id="urlEditSubmit" onclick="submitPassportUrls()">Update on-chain — gas only (POL)</button>
+            <button type="button" class="btn btn-ghost" onclick="closeUrlModal()">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="shareModal" class="share-modal" hidden aria-hidden="true">
+      <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
+      <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
+        <button type="button" class="share-modal-x" id="shareModalClose" aria-label="Close">×</button>
+        <h3 id="shareModalTitle" class="share-modal-title">Share verification</h3>
+        <div id="shareModalQr"></div>
+        <div id="shareModalUrl" class="share-modal-url"></div>
+        <div class="share-modal-actions">
+          <button type="button" class="btn" id="shareModalDl">Download QR (PNG)</button>
+          <button type="button" class="btn btn-sec" id="shareModalCopy">Copy text</button>
+          <button type="button" class="btn btn-sec" id="shareModalNative">Share via device</button>
+        </div>
+      </div>
+    </div>
   `;
-  queueMicrotask(loadMyPassports);
+  queueMicrotask(() => {
+    loadMyPassports();
+    bindShareModalCloseHandlers();
+  });
 }
 
 // ── Object type switch ────────────────────────────────────────────────────────
@@ -675,8 +873,9 @@ async function submit() {
       } catch {}
     }
 
-    // Do not inject humanId into JSON: dataHash on-chain is for buildPassport(null).
-    const finalJson = canonicalJsonString(passport);
+    // dataHash on-chain is sha256(buildPassport(null)). Download includes real humanId; verify.html maps matching humanId string → null for hash check.
+    const passportOut = buildPassport(humanId);
+    const finalJson = canonicalJsonString(passportOut);
     showSuccess(humanId, tx.hash, finalJson, passport.title);
 
   } catch(e) {
@@ -685,10 +884,178 @@ async function submit() {
   }
 }
 
-// ── Success ───────────────────────────────────────────────────────────────────
+// ── Success / share modal ─────────────────────────────────────────────────────
+
+function safeFilePart(s) {
+  return String(s).replace(/[^\w.-]+/g, "_").slice(0, 96);
+}
+
+function downloadQrFromEl(containerEl, filename) {
+  if (!containerEl) return;
+  const img = containerEl.querySelector("img");
+  const canvas = containerEl.querySelector("canvas");
+  let url;
+  if (img && img.src) url = img.src;
+  else if (canvas) url = canvas.toDataURL("image/png");
+  else return;
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: filename || "odp-qr.png",
+  });
+  a.click();
+}
+
+function closeShareModal() {
+  const m = document.getElementById("shareModal");
+  if (!m) return;
+  m.hidden = true;
+  m.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+}
+
+function openShareModal() {
+  const m = document.getElementById("shareModal");
+  if (!m) return;
+  m.hidden = false;
+  m.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function bindShareModalCloseHandlers() {
+  const close = () => closeShareModal();
+  document.getElementById("shareModalClose")?.addEventListener("click", close);
+  document.getElementById("shareModalBackdrop")?.addEventListener("click", close);
+}
+
+function fillPassportShareModal(humanId) {
+  const odpUri = `odp://${humanId}`;
+  const sharePayload = `Object Digital Passport - verify this object\nHuman ID: ${humanId}\n${odpUri}`;
+  const vuAbs = getVerifyAbsoluteUrl(humanId);
+  const qrEl = document.getElementById("shareModalQr");
+  const urlEl = document.getElementById("shareModalUrl");
+  if (urlEl) urlEl.textContent = odpUri;
+  renderOdpQr(qrEl, odpUri, odpUri);
+  openShareModal();
+  const fn = `${safeFilePart(humanId)}-odp-qr.png`;
+  const dl = document.getElementById("shareModalDl");
+  const copyB = document.getElementById("shareModalCopy");
+  const nat = document.getElementById("shareModalNative");
+  if (dl) dl.onclick = () => downloadQrFromEl(qrEl, fn);
+  if (copyB) {
+    copyB.onclick = () => {
+      navigator.clipboard
+        .writeText(sharePayload)
+        .then(() => alert("Copied to clipboard."))
+        .catch(() => prompt("Copy:", sharePayload));
+    };
+  }
+  if (nat) {
+    nat.onclick = () => {
+      void shareOdpVerify({
+        title: "Object Digital Passport",
+        text: `Verify this object - Human ID: ${humanId}`,
+        url: vuAbs,
+        fullText: sharePayload,
+      });
+    };
+  }
+}
+
+function openPassportShareModal(humanId) {
+  if (!humanId) return;
+  fillPassportShareModal(humanId);
+}
+
+async function shareOdpVerify({ title, text, url, fullText }) {
+  const body = fullText || `${text}\n\n${url}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text: body, url });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+  }
+  try {
+    await navigator.clipboard.writeText(body);
+    alert("Copied to clipboard.");
+  } catch {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard.");
+    } catch {
+      prompt("Copy:", body);
+    }
+  }
+}
+
+/** qrcodejs: SPEC short `odp://` / `odpc://` uses ECC Q; longer text uses L; fallback = same primary URI. */
+function renderOdpQr(el, primaryText, fallbackUrl) {
+  if (!el) return;
+  el.innerHTML = "";
+  if (typeof QRCode === "undefined") {
+    el.innerHTML = `<div class="qr-fail">QR library did not load (network / CDN blocked).<br><a href="${esc(fallbackUrl)}">${esc(fallbackUrl)}</a></div>`;
+    return;
+  }
+  const w = 168;
+  const h = 168;
+  const cl =
+    QRCode.CorrectLevel && QRCode.CorrectLevel.L !== undefined
+      ? QRCode.CorrectLevel.L
+      : QRCode.CorrectLevel && QRCode.CorrectLevel.M !== undefined
+        ? QRCode.CorrectLevel.M
+        : undefined;
+  const make = (t, useCl, eccOverride) => {
+    el.innerHTML = "";
+    const o = {
+      text: t,
+      width: w,
+      height: h,
+      colorDark: "#000",
+      colorLight: "#fff",
+    };
+    const ecc =
+      eccOverride !== undefined
+        ? eccOverride
+        : useCl !== false && cl !== undefined
+          ? cl
+          : undefined;
+    if (ecc !== undefined) o.correctLevel = ecc;
+    new QRCode(el, o);
+  };
+  const specShort =
+    typeof primaryText === "string" &&
+    primaryText.length < 120 &&
+    (primaryText.startsWith("odp://") || primaryText.startsWith("odpc://")) &&
+    QRCode.CorrectLevel &&
+    QRCode.CorrectLevel.Q !== undefined
+      ? QRCode.CorrectLevel.Q
+      : null;
+  try {
+    make(primaryText, true, specShort !== null ? specShort : undefined);
+  } catch (e1) {
+    try {
+      make(primaryText, false, specShort !== null ? specShort : undefined);
+    } catch {
+      try {
+        make(fallbackUrl, true, specShort !== null ? specShort : undefined);
+      } catch {
+        try {
+          make(fallbackUrl, false, specShort !== null ? specShort : undefined);
+        } catch (e2) {
+          el.innerHTML = `<div class="qr-fail">Could not generate QR. <a href="${esc(fallbackUrl)}">Open verify link</a><br><span style="font-size:10px;color:var(--text3)">${esc(
+            String((e2 && e2.message) || (e1 && e1.message) || "unknown")
+          )}</span></div>`;
+        }
+      }
+    }
+  }
+}
 
 function showSuccess(humanId, txHash, json, title) {
   const net = NET;
+  const rel = getVerifyRelativePath(humanId);
+
   document.getElementById("app").innerHTML = `
     <div class="success">
       <div class="success-icon">✓</div>
@@ -696,28 +1063,45 @@ function showSuccess(humanId, txHash, json, title) {
       <span class="success-id">${esc(humanId)}</span>
       <p class="success-sub">Registered on ${esc(net.name)}</p>
 
-      <div id="qrWrap"></div>
+      <div class="qr-share-block">
+        <p class="qr-share-caption">Open <strong>Share</strong> to get a QR, the link, download the image, or send via your device.</p>
+        <div class="qr-share-actions">
+          <button type="button" class="btn btn-sec" id="sharePassportBtn">Share</button>
+        </div>
+      </div>
 
       <div class="next-steps">
-        <div class="ns-item"><div class="ns-num">1</div><div>Upload the downloaded file <strong>unchanged</strong> to the URL you entered (same bytes → hash matches <code>dataHash</code>). File still has <code>"humanId":null</code> — your real Human ID is on-chain above; verifiers use the chain for ID + this URL for content hash.</div></div>
-        <div class="ns-item"><div class="ns-num">2</div><div>Print the QR code and attach to the object on a verification label. Include Human ID and Creator ID in text.</div></div>
+        <div class="ns-item"><div class="ns-num">1</div><div>Upload the downloaded file <strong>unchanged</strong> to the URL you entered (same bytes → hash matches <code>dataHash</code>). The JSON includes your Human ID for readability; verification still compares to the hash from mint (verifier treats that ID like the pre-mint <code>null</code>).</div></div>
+        <div class="ns-item"><div class="ns-num">2</div><div>Use <strong>Share</strong>: QR encodes <code>odp://</code> + Human ID (SPEC).</div></div>
         <div class="ns-item"><div class="ns-num">3</div><div>Make sure your Creator ID <strong>${esc(creatorId)}</strong> is published on your website and social profiles.</div></div>
       </div>
 
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <button class="btn" onclick="dlJson('${esc(humanId)}',\`${esc(json)}\`)" style="flex:0;padding:13px 20px">Download passport.json</button>
         <a href="${net.explorer}/tx/${txHash}" target="_blank"><button class="btn btn-ghost">Explorer ↗</button></a>
-        <a href="verify.html?id=${esc(humanId)}"><button class="btn btn-ghost">Verify ↗</button></a>
+        <a href="${esc(rel)}"><button class="btn btn-ghost">Verify ↗</button></a>
         <button class="btn btn-ghost" onclick="renderForm()">New Passport</button>
+      </div>
+    </div>
+
+    <div id="shareModal" class="share-modal" hidden aria-hidden="true">
+      <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
+      <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
+        <button type="button" class="share-modal-x" id="shareModalClose" aria-label="Close">×</button>
+        <h3 id="shareModalTitle" class="share-modal-title">Share verification</h3>
+        <div id="shareModalQr"></div>
+        <div id="shareModalUrl" class="share-modal-url"></div>
+        <div class="share-modal-actions">
+          <button type="button" class="btn" id="shareModalDl">Download QR (PNG)</button>
+          <button type="button" class="btn btn-sec" id="shareModalCopy">Copy text</button>
+          <button type="button" class="btn btn-sec" id="shareModalNative">Share via device</button>
+        </div>
       </div>
     </div>`;
 
-  try {
-    new QRCode(document.getElementById("qrWrap"), {
-      text: `odp://${humanId}`, width:160, height:160,
-      colorDark:"#000", colorLight:"#fff", correctLevel:QRCode.CorrectLevel.Q,
-    });
-  } catch {}
+  bindShareModalCloseHandlers();
+  const shareBtn = document.getElementById("sharePassportBtn");
+  if (shareBtn) shareBtn.addEventListener("click", () => fillPassportShareModal(humanId));
 }
 
 function dlJson(humanId, json) {
@@ -735,13 +1119,22 @@ function fmtSz(b) {
   return (b/1073741824).toFixed(2)+" GB";
 }
 
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const m = document.getElementById("shareModal");
+  if (m && !m.hidden) closeShareModal();
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const skipAuto = (() => {
+    try { return sessionStorage.getItem(ODP_SKIP_WALLET_AUTOCONNECT) === "1"; } catch { return false; }
+  })();
   const eth = injectedEthereum();
   if (eth) {
     const acc = await eth.request({method:"eth_accounts"}).catch(()=>[]);
-    if (acc.length>0) {
+    if (!skipAuto && acc.length > 0) {
       try {
         const net = NET;
         await ensureWalletChain(eth, net);

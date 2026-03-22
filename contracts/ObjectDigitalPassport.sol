@@ -42,7 +42,7 @@ pragma solidity ^0.8.20;
  *   - P-type whitelist is intentionally off-chain — see external repos
  *
  * SOURCE CODE:
- *   Published at: https://github.com/andrei-chernikov/object-digital-passport
+ *   Published at: https://github.com/object-digital-passport/odp-v.0.1
  *   Anyone can read, verify, fork, or deploy their own instance.
  */
 /**

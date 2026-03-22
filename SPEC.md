@@ -461,6 +461,15 @@ Using a different address means operating a separate, incompatible registry.
 
 ## 9. Passport JSON
 
+### Hosting `dataUrl` (third-party sites)
+
+`dataUrl` may point to any public HTTPS host (object storage, CDN, static site, Git forge, etc.). Implementations that fetch the file MUST satisfy:
+
+1. **HTTPS** — The URL uses TLS; the server returns HTTP **200** with a response body that is **only** the passport JSON octets (not an HTML page, login prompt, or repository browser UI).
+2. **Raw file on Git forges** — For GitHub, GitLab, and similar hosts, use the **raw** file URL (e.g. `raw.githubusercontent.com/.../passport.json`), not the HTML blob page.
+3. **CORS (browser verifiers)** — Web-based verifiers run `fetch()` from their origin; the host SHOULD allow cross-origin **GET** for `dataUrl` so the browser can read the body (many static hosts and GitHub Raw do; a misconfigured private server may block verification).
+4. **Integrity** — After canonicalization, the content MUST match `dataHash` on chain (see §10). Any byte change (including whitespace) changes the hash.
+
 ### Minimal valid passport — physical object
 
 ```json

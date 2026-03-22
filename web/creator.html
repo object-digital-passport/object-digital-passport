@@ -2,10 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0e0c">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <title>ODP — Register Creator ID</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
 <body>
@@ -14,7 +20,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1>Creator ID</h1>
-    <p class="sub">Object Digital Passport · Registration</p>
+    <p class="sub">Object Digital Passport · Specification v0.1</p>
   </div>
   <div class="net-pill" title="Polygon PoS mainnet">
     <div class="net-dot" id="netDot"></div>
@@ -31,8 +37,8 @@
 <div id="app"></div>
 
 <footer>
-  <a href="https://github.com/object-digital-passport" target="_blank">GitHub</a>
-  <span>ODP Spec v0.1</span>
+  <a href="https://github.com/object-digital-passport/odp-v.0.1" target="_blank" rel="noopener noreferrer">object-digital-passport/odp-v.0.1</a>
+  <a href="https://github.com/object-digital-passport/odp-v.0.1/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
   <span>MIT License</span>
 </footer>
 
@@ -54,6 +60,26 @@ const NET = {
   explorer: "https://polygonscan.com",
   contract: "0x380092fA9C708BF01a552247909CF5DeceFb469E",
 };
+
+/** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
+const PUBLIC_VERIFY_BASE = "";
+
+function getVerifyRelativePath(id) {
+  return `verify.html?id=${encodeURIComponent(id)}`;
+}
+
+function getVerifyAbsoluteUrl(id) {
+  const rel = getVerifyRelativePath(id);
+  const b = typeof PUBLIC_VERIFY_BASE === "string" && PUBLIC_VERIFY_BASE.trim();
+  if (b) {
+    try {
+      return new URL(rel, b.endsWith("/") ? b : `${b}/`).href;
+    } catch {
+      /* fall through */
+    }
+  }
+  return new URL(rel, window.location.href).href;
+}
 
 const ABI = [
   {
@@ -88,6 +114,9 @@ let creatorId  = null;
 let selType    = "C";
 let secOk      = false;
 
+/** User chose Disconnect — skip eth_accounts auto-reconnect until explicit Connect (same tab). */
+const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
+
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function render() {
@@ -100,6 +129,7 @@ function render() {
 
   if (creatorId) {
     app.innerHTML = renderAlready();
+    bindCreatorShare();
     return;
   }
 
@@ -280,10 +310,182 @@ function renderForm() {
     </div>`;
 }
 
+// ── QR + share modal (Creator ID) ───────────────────────────────────────────
+
+function safeFilePart(s) {
+  return String(s).replace(/[^\w.-]+/g, "_").slice(0, 96);
+}
+
+function downloadQrFromEl(containerEl, filename) {
+  if (!containerEl) return;
+  const img = containerEl.querySelector("img");
+  const canvas = containerEl.querySelector("canvas");
+  let url;
+  if (img && img.src) url = img.src;
+  else if (canvas) url = canvas.toDataURL("image/png");
+  else return;
+  const a = Object.assign(document.createElement("a"), {
+    href: url,
+    download: filename || "odp-qr.png",
+  });
+  a.click();
+}
+
+function closeShareModal() {
+  const m = document.getElementById("shareModal");
+  if (!m) return;
+  m.hidden = true;
+  m.setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+}
+
+function openShareModal() {
+  const m = document.getElementById("shareModal");
+  if (!m) return;
+  m.hidden = false;
+  m.setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+
+function bindShareModalCloseHandlers() {
+  const close = () => closeShareModal();
+  document.getElementById("shareModalClose")?.addEventListener("click", close);
+  document.getElementById("shareModalBackdrop")?.addEventListener("click", close);
+}
+
+async function shareOdpVerify({ title, text, url, fullText }) {
+  const body = fullText || `${text}\n\n${url}`;
+  try {
+    if (navigator.share) {
+      await navigator.share({ title, text: body, url });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+  }
+  try {
+    await navigator.clipboard.writeText(body);
+    alert("Copied to clipboard.");
+  } catch {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Link copied to clipboard.");
+    } catch {
+      prompt("Copy:", body);
+    }
+  }
+}
+
+/** Same as passport.html — SPEC odp:// / odpc:// + ECC Q when short; never silent-fail. */
+function renderOdpQr(el, primaryText, fallbackUrl) {
+  if (!el) return;
+  el.innerHTML = "";
+  if (typeof QRCode === "undefined") {
+    el.innerHTML = `<div class="qr-fail">QR library did not load (network / CDN blocked).<br><a href="${esc(fallbackUrl)}">${esc(fallbackUrl)}</a></div>`;
+    return;
+  }
+  const w = 168;
+  const h = 168;
+  const cl =
+    QRCode.CorrectLevel && QRCode.CorrectLevel.L !== undefined
+      ? QRCode.CorrectLevel.L
+      : QRCode.CorrectLevel && QRCode.CorrectLevel.M !== undefined
+        ? QRCode.CorrectLevel.M
+        : undefined;
+  const make = (t, useCl, eccOverride) => {
+    el.innerHTML = "";
+    const o = {
+      text: t,
+      width: w,
+      height: h,
+      colorDark: "#000",
+      colorLight: "#fff",
+    };
+    const ecc =
+      eccOverride !== undefined
+        ? eccOverride
+        : useCl !== false && cl !== undefined
+          ? cl
+          : undefined;
+    if (ecc !== undefined) o.correctLevel = ecc;
+    new QRCode(el, o);
+  };
+  const specShort =
+    typeof primaryText === "string" &&
+    primaryText.length < 120 &&
+    (primaryText.startsWith("odp://") || primaryText.startsWith("odpc://")) &&
+    QRCode.CorrectLevel &&
+    QRCode.CorrectLevel.Q !== undefined
+      ? QRCode.CorrectLevel.Q
+      : null;
+  try {
+    make(primaryText, true, specShort !== null ? specShort : undefined);
+  } catch (e1) {
+    try {
+      make(primaryText, false, specShort !== null ? specShort : undefined);
+    } catch {
+      try {
+        make(fallbackUrl, true, specShort !== null ? specShort : undefined);
+      } catch {
+        try {
+          make(fallbackUrl, false, specShort !== null ? specShort : undefined);
+        } catch (e2) {
+          el.innerHTML = `<div class="qr-fail">Could not generate QR. <a href="${esc(fallbackUrl)}">Open verify link</a><br><span style="font-size:10px;color:var(--text3)">${esc(
+            String((e2 && e2.message) || (e1 && e1.message) || "unknown")
+          )}</span></div>`;
+        }
+      }
+    }
+  }
+}
+
+function fillCreatorShareModal() {
+  if (!creatorId) return;
+  const odpcUri = `odpc://${creatorId}`;
+  const sharePayload = `Object Digital Passport - verify this Creator ID\nCreator ID: ${creatorId}\n${odpcUri}`;
+  const vuAbs = getVerifyAbsoluteUrl(creatorId);
+  const qrEl = document.getElementById("shareModalQr");
+  const urlEl = document.getElementById("shareModalUrl");
+  if (urlEl) urlEl.textContent = odpcUri;
+  renderOdpQr(qrEl, odpcUri, odpcUri);
+  openShareModal();
+  const fn = `${safeFilePart(creatorId)}-creator-odp-qr.png`;
+  const dl = document.getElementById("shareModalDl");
+  const copyB = document.getElementById("shareModalCopy");
+  const nat = document.getElementById("shareModalNative");
+  if (dl) dl.onclick = () => downloadQrFromEl(qrEl, fn);
+  if (copyB) {
+    copyB.onclick = () => {
+      navigator.clipboard
+        .writeText(sharePayload)
+        .then(() => alert("Copied to clipboard."))
+        .catch(() => prompt("Copy:", sharePayload));
+    };
+  }
+  if (nat) {
+    nat.onclick = () => {
+      void shareOdpVerify({
+        title: "Object Digital Passport - Creator ID",
+        text: `Verify this Creator ID: ${creatorId}`,
+        url: vuAbs,
+        fullText: sharePayload,
+      });
+    };
+  }
+}
+
+function bindCreatorShare() {
+  bindShareModalCloseHandlers();
+  const shareBtn = document.getElementById("shareCreatorBtn");
+  if (!shareBtn || !creatorId) return;
+  shareBtn.addEventListener("click", () => fillCreatorShareModal());
+}
+
 // ── Already registered ────────────────────────────────────────────────────────
 
 function renderAlready() {
   const net = NET;
+  const rel = getVerifyRelativePath(creatorId);
   return `
     <div class="wallet-bar">
       <div class="w-dot on"></div>
@@ -294,10 +496,6 @@ function renderAlready() {
     <div class="card">
       <div class="card-head">Your Creator ID</div>
       <div class="card-body">
-        <div class="info success" style="margin-bottom:20px">
-          ✓ Registered and active on ${esc(net.name)}
-        </div>
-
         <span class="result-id">${esc(creatorId)}</span>
         <div class="result-full">
           ${esc(creatorId)} / ${wallet}
@@ -316,12 +514,35 @@ function renderAlready() {
 
         <div class="info neutral" style="margin-bottom:16px;font-size:11px">
           Short:&nbsp; <strong style="color:var(--text)">${esc(creatorId)}</strong><br>
-          Full:&nbsp;&nbsp; <strong style="color:var(--text)">${esc(creatorId)} / [your name] / ${wallet}</strong>
+          Full:&nbsp;&nbsp; <strong style="color:var(--text)">${esc(creatorId)} / ${wallet}</strong>
+        </div>
+
+        <div class="qr-share-block" style="margin-top:4px">
+          <p class="qr-share-caption">Open <strong>Share</strong> for a QR, the link, PNG download, or send via your device.</p>
+          <div class="qr-share-actions">
+            <button type="button" class="btn btn-sec" id="shareCreatorBtn">Share</button>
+          </div>
+        </div>
+
+        <div id="shareModal" class="share-modal" hidden aria-hidden="true">
+          <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
+          <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
+            <button type="button" class="share-modal-x" id="shareModalClose" aria-label="Close">×</button>
+            <h3 id="shareModalTitle" class="share-modal-title">Share Creator ID</h3>
+            <div id="shareModalQr"></div>
+            <div id="shareModalUrl" class="share-modal-url"></div>
+            <div class="share-modal-actions">
+              <button type="button" class="btn" id="shareModalDl">Download QR (PNG)</button>
+              <button type="button" class="btn btn-sec" id="shareModalCopy">Copy text</button>
+              <button type="button" class="btn btn-sec" id="shareModalNative">Share via device</button>
+            </div>
+          </div>
         </div>
 
         <a href="passport.html">
           <button class="btn">Create a Passport →</button>
         </a>
+        <a href="${esc(rel)}"><button class="btn btn-sec">Verify Creator ID ↗</button></a>
         <a href="${net.explorer}/address/${wallet}" target="_blank">
           <button class="btn btn-sec">View on Explorer ↗</button>
         </a>
@@ -359,7 +580,28 @@ function showRegister() {
   render();
 }
 
-function disconnect() {
+async function disconnect() {
+  const eth = injectedEthereum();
+  let revoked = false;
+  if (eth) {
+    revoked = await revokeSiteWalletPermission(eth);
+    // #region agent log
+    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
+      body: JSON.stringify({
+        sessionId: "99fdf4",
+        hypothesisId: "H2",
+        location: "creator.html:disconnect",
+        message: "wallet_revokePermissions",
+        data: { revoked },
+        timestamp: Date.now(),
+        runId: "post-fix",
+      }),
+    }).catch(() => {});
+    // #endregion
+  }
+  try { sessionStorage.setItem(ODP_SKIP_WALLET_AUTOCONNECT, "1"); } catch {}
   wallet = null; provider = null; signer = null; contract = null; creatorId = null;
   render();
 }
@@ -372,6 +614,17 @@ function injectedEthereum() {
   if (w.providers && w.providers.length)
     return w.providers.find((p) => p.isMetaMask) || w.providers[0];
   return w;
+}
+
+/** MetaMask / modern EIP-1193: revoke site access so the next Connect shows a wallet prompt. */
+async function revokeSiteWalletPermission(eth) {
+  if (!eth) return false;
+  try {
+    await eth.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Ask MetaMask to use Polygon (NET.chainId) before any contract calls. */
@@ -419,7 +672,24 @@ async function connectWallet() {
     return;
   }
   try {
+    const preAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
     await eth.request({ method: "eth_requestAccounts" });
+    const postAcc = await eth.request({ method: "eth_accounts" }).catch(() => []);
+    // #region agent log
+    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
+      body: JSON.stringify({
+        sessionId: "99fdf4",
+        hypothesisId: "H3",
+        location: "creator.html:connectWallet",
+        message: "eth_requestAccounts",
+        data: { preLen: preAcc.length, postLen: postAcc.length },
+        timestamp: Date.now(),
+        runId: "post-fix",
+      }),
+    }).catch(() => {});
+    // #endregion
     await ensureWalletChain(eth, NET);
     await _finish(new ethers.providers.Web3Provider(eth));
   } catch(e) {
@@ -428,6 +698,7 @@ async function connectWallet() {
 }
 
 async function _finish(web3p) {
+  try { sessionStorage.removeItem(ODP_SKIP_WALLET_AUTOCONNECT); } catch {}
   const net = NET;
   if (!net.contract) {
     document.getElementById("connectErr").innerHTML =
@@ -500,15 +771,38 @@ async function initNetPill() {
   label.textContent = NET.name + " — offline";
 }
 
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const m = document.getElementById("shareModal");
+  if (m && !m.hidden) closeShareModal();
+});
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
   initNetPill();
-  // Auto-reconnect browser extension if already approved
+  const skipAuto = (() => {
+    try { return sessionStorage.getItem(ODP_SKIP_WALLET_AUTOCONNECT) === "1"; } catch { return false; }
+  })();
+  // Auto-reconnect browser extension if already approved (unless user disconnected this tab)
   const eth = injectedEthereum();
   if (eth) {
     const accounts = await eth.request({ method: "eth_accounts" }).catch(() => []);
-    if (accounts.length > 0) {
+    // #region agent log
+    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
+      body: JSON.stringify({
+        sessionId: "99fdf4",
+        hypothesisId: "H1",
+        location: "creator.html:DOMContentLoaded",
+        message: "wallet autoconnect check",
+        data: { skipAuto, accLen: accounts.length },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    if (!skipAuto && accounts.length > 0) {
       try {
         const net = NET;
         await ensureWalletChain(eth, net);

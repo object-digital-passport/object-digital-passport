@@ -636,9 +636,9 @@ def cmd_mint(args):
     print()
     print(f"  Next steps:")
     print(f"  1. Find your Human ID on the explorer (PassportMinted event)")
-    print(f"  2. Add the Human ID to passport.json (replace null)")
-    print(f"  3. Upload passport.json to {data_url}")
-    print(f"  4. Generate QR: python mint.py --qr <human_id>")
+    print(f"  2. Upload passport.json to {data_url} unchanged — dataHash was computed with humanId null;")
+    print(f"     do not substitute the real Human ID into the JSON file or the content hash will not match.")
+    print(f"  3. Generate QR: python mint.py --qr <human_id>")
     divider()
 
 # ─── Generate QR ──────────────────────────────────────────────────────────────

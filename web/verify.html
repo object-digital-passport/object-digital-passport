@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0e0c">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <title>ODP — Verify</title>
 
 <!--
@@ -20,6 +25,7 @@
 
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -28,7 +34,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1>Verify</h1>
-    <p class="sub">Object Digital Passport · Spec v0.1</p>
+    <p class="sub">Check that a passport or creator ID is registered.</p>
   </div>
   <div class="net-pill" title="Polygon PoS mainnet">
     <div class="net-dot" id="netDot"></div>
@@ -43,27 +49,47 @@
 </div>
 
 <div class="search-wrap">
-  <label class="search-label" for="idInput">Object ID or QR content</label>
+  <label class="search-label" for="idInput">Paste an ID or link, or scan a QR code</label>
   <div class="search-row">
     <input
       type="text"
       id="idInput"
-      placeholder="ODP-2026-03-4829301  or  odp://ODP-2026-03-4829301"
+      placeholder="Example: ODP-2026-03-1234567"
       autocomplete="off"
       autocorrect="off"
       spellcheck="false"
     />
+    <button type="button" class="btn btn-qr-scan" id="qrScanBtn" onclick="openQrScanner()" title="Scan QR code" aria-label="Scan QR code">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="5" height="5" x="3" y="3" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
+        <rect width="5" height="5" x="16" y="3" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
+        <rect width="5" height="5" x="3" y="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-4"/>
+      </svg>
+    </button>
     <button class="btn" onclick="verify()" id="verifyBtn">Verify</button>
   </div>
-  <p class="search-hint">Enter a Human ID, paste a QR URI, or scan with your camera.</p>
+  <p class="search-hint">Passport IDs start with <strong>ODP-</strong>. Creator IDs look like <strong>C-123-456-789</strong> (also B- or P-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
 </div>
 
 <div id="result"></div>
 
+<div id="qrScanOverlay" class="qr-scan-overlay" hidden>
+  <div class="qr-scan-panel">
+    <p class="qr-scan-title">Scan QR</p>
+    <p class="qr-scan-hint">Point the camera at the QR code on the label or screen.</p>
+    <div class="qr-scan-video-wrap">
+      <video id="qrVideo" playsinline muted autoplay></video>
+      <canvas id="qrCanvas" hidden></canvas>
+    </div>
+    <button type="button" class="btn btn-ghost qr-scan-cancel" id="qrScanCancel" onclick="closeQrScanner()">Cancel</button>
+  </div>
+</div>
+
 <footer>
-  <a href="https://github.com/object-digital-passport" target="_blank">GitHub</a>
+  <a href="https://github.com/object-digital-passport/odp-v.0.1" target="_blank" rel="noopener noreferrer">object-digital-passport/odp-v.0.1</a>
+  <a href="https://github.com/object-digital-passport/odp-v.0.1/blob/main/README.md" target="_blank" rel="noopener noreferrer">README</a>
   <span>MIT License</span>
-  <span>Spec v0.1</span>
 </footer>
 
 </div>
@@ -212,18 +238,12 @@ async function connect() {
       }
       contract = new ethers.Contract(c.contract, ABI, provider);
       setNet("on", `${c.name}`);
-      // #region agent log
-      fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"99fdf4"},body:JSON.stringify({sessionId:"99fdf4",location:"verify.html:connect",message:"rpc_ok",data:{rpcUrl},timestamp:Date.now(),hypothesisId:"A",runId:"post-fix"})}).catch(()=>{});
-      // #endregion
       return;
     } catch (e) {
       lastErr = e;
       provider = null;
     }
   }
-  // #region agent log
-  fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a",{method:"POST",headers:{"Content-Type":"application/json","X-Debug-Session-Id":"99fdf4"},body:JSON.stringify({sessionId:"99fdf4",location:"verify.html:connect",message:"rpc_all_failed",data:{lastErr:String(lastErr&&lastErr.message||lastErr)},timestamp:Date.now(),hypothesisId:"A",runId:"post-fix"})}).catch(()=>{});
-  // #endregion
   setNet("off", `${c.name} — offline`);
   contract = null;
 }
@@ -236,35 +256,165 @@ function setNet(state, label) {
 
 // ── Parse ─────────────────────────────────────────────────────────────────────
 
+/** Contract uses _pad8 → serial is 1–8 digits (SPEC examples use 7). Accept both. */
 function parseId(raw) {
   raw = raw.trim();
   if (raw.startsWith("odp://")) raw = raw.slice(5);
-  const m = raw.match(/ODP-\d{4}-\d{2}-\d{7}/i);
+  const m = raw.match(/ODP-\d{4}-\d{2}-\d{7,8}/i);
   if (m) return m[0].toUpperCase();
-  if (/^ODP-\d{4}-\d{2}-\d{7}$/i.test(raw)) return raw.toUpperCase();
+  if (/^ODP-\d{4}-\d{2}-\d{7,8}$/i.test(raw)) return raw.toUpperCase();
   return null;
+}
+
+/** If the user pasted a full Verify page URL, use its ?id= (passport or creator). */
+function normalizeVerifyInput(raw) {
+  raw = String(raw ?? "").trim();
+  if (!raw) return "";
+  if (/^https?:\/\//i.test(raw)) {
+    try {
+      const u = new URL(raw);
+      const id = u.searchParams.get("id");
+      if (id) return id.trim();
+    } catch {}
+  }
+  return raw;
+}
+
+/** Passport Human ID or Creator ID (C-/B-/P-…), or null. */
+function parseVerifyToken(raw) {
+  raw = normalizeVerifyInput(raw);
+  if (!raw) return null;
+  const passportId = parseId(raw);
+  if (passportId) return { kind: "passport", id: passportId };
+  let c = raw.trim();
+  if (/^odpc:\/\//i.test(c)) c = c.slice(7);
+  const cm = c.match(/^([CBP])-(\d{3})-(\d{3})-(\d{3})$/i);
+  if (cm) {
+    const cid = `${cm[1].toUpperCase()}-${cm[2]}-${cm[3]}-${cm[4]}`;
+    return { kind: "creator", id: cid };
+  }
+  return null;
+}
+
+/** Multiline QR (ODP share): use first line that parses as Human ID / Creator ID / URL. */
+function pickVerifiableLine(text) {
+  const full = String(text ?? "").trim();
+  if (full && parseVerifyToken(full)) return full;
+  for (const line of full.split(/\r?\n/)) {
+    const L = line.trim();
+    if (!L) continue;
+    if (parseVerifyToken(L)) return L;
+    const n = normalizeVerifyInput(L);
+    if (n && n !== L && parseVerifyToken(n)) return n;
+  }
+  return full;
+}
+
+let qrScanStream = null;
+let qrScanRaf = 0;
+
+function closeQrScanner() {
+  if (qrScanRaf) {
+    cancelAnimationFrame(qrScanRaf);
+    qrScanRaf = 0;
+  }
+  if (qrScanStream) {
+    qrScanStream.getTracks().forEach((t) => t.stop());
+    qrScanStream = null;
+  }
+  const v = document.getElementById("qrVideo");
+  if (v) v.srcObject = null;
+  const o = document.getElementById("qrScanOverlay");
+  if (o) {
+    o.hidden = true;
+    document.body.style.overflow = "";
+  }
+}
+
+function openQrScanner() {
+  if (typeof jsQR !== "function") {
+    alert("QR scanner failed to load. Check your network and reload the page.");
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert("Camera is not available here. Paste the text from the QR into the field, or open this page in Safari / MetaMask with camera permission.");
+    return;
+  }
+  const overlay = document.getElementById("qrScanOverlay");
+  const video = document.getElementById("qrVideo");
+  const canvas = document.getElementById("qrCanvas");
+  if (!overlay || !video || !canvas) return;
+  overlay.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  navigator.mediaDevices
+    .getUserMedia({ video: { facingMode: { ideal: "environment" } }, audio: false })
+    .then((stream) => {
+      qrScanStream = stream;
+      video.srcObject = stream;
+      video.setAttribute("playsinline", "true");
+      video.muted = true;
+      video.play().catch(() => {});
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      function tick() {
+        if (!qrScanStream || !video.srcObject) return;
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const code = jsQR(img.data, img.width, img.height, { inversionAttempts: "attemptBoth" });
+          if (code && code.data) {
+            const picked = pickVerifiableLine(code.data);
+            document.getElementById("idInput").value = picked;
+            closeQrScanner();
+            verify();
+            return;
+          }
+        }
+        qrScanRaf = requestAnimationFrame(tick);
+      }
+      qrScanRaf = requestAnimationFrame(tick);
+    })
+    .catch((e) => {
+      alert("Camera: " + (e.message || String(e)));
+      closeQrScanner();
+    });
+}
+
+function decodeTypePrefix(tp) {
+  if (typeof tp === "string" && tp.startsWith("0x"))
+    return String.fromCharCode(parseInt(tp.slice(2, 4), 16));
+  if (typeof tp === "string" && tp.length === 1) return tp;
+  return "?";
 }
 
 // ── Verify ────────────────────────────────────────────────────────────────────
 
 async function verify() {
-  const raw     = document.getElementById("idInput").value;
-  const humanId = parseId(raw);
-  const el      = document.getElementById("result");
+  const raw   = document.getElementById("idInput").value;
+  const el    = document.getElementById("result");
+  const token = parseVerifyToken(raw);
 
-  if (!humanId) {
-    el.innerHTML = `<div class="err-box">Invalid format. Expected: ODP-2026-03-4829301</div>`;
+  if (!token) {
+    el.innerHTML = `<div class="err-box">That doesn’t look like a passport ID, creator ID, or a link from this site. Passport IDs start with ODP-. Creator IDs look like C-123-456-789.</div>`;
     return;
   }
   if (!contract) {
-    el.innerHTML = `<div class="err-box">Cannot load data from Polygon RPC (read-only). Check your network or try again later.</div>`;
+    el.innerHTML = `<div class="err-box">Can’t load registration data right now. Check your internet connection and try again.</div>`;
     return;
   }
 
-  el.innerHTML = `<div class="loading"><div class="spin"></div><span>Querying blockchain...</span></div>`;
+  el.innerHTML = `<div class="loading"><div class="spin"></div><span>Checking registration…</span></div>`;
   document.getElementById("verifyBtn").disabled = true;
 
   try {
+    if (token.kind === "creator") {
+      await verifyCreatorRecord(token.id, el);
+      return;
+    }
+
+    const humanId = token.id;
     setLoading(el, "Fetching passport record...");
     let res;
     try {
@@ -281,15 +431,14 @@ async function verify() {
 
     let creator = null;
     try {
-      const raw = res.creator;
-      const tp = raw.typePrefix;
+      const rawC = res.creator;
+      const tp = rawC.typePrefix;
       const typeChar = (typeof tp === "string" && tp.startsWith("0x"))
         ? String.fromCharCode(parseInt(tp.slice(2, 4), 16))
         : (typeof tp === "string" ? tp : "?");
-      creator = { ...raw, typePrefix: typeChar };
+      creator = { ...rawC, typePrefix: typeChar };
     } catch {}
 
-    // Fetch proofs
     let proofIds = [];
     let proofs   = [];
     try {
@@ -300,7 +449,6 @@ async function verify() {
       proofs = proofs.filter(Boolean);
     } catch {}
 
-    // Fetch passport.json
     setLoading(el, "Fetching passport data...");
     let passport   = null;
     let dataStatus = "unverifiable";
@@ -308,11 +456,11 @@ async function verify() {
     try {
       const resp = await fetch(rec.dataUrl, { cache: "no-cache" });
       if (resp.ok) {
-        const raw   = await resp.text();
-        const hash  = await sha256text(minify(raw));
+        const rawJ  = await resp.text();
+        const hash  = await sha256text(minify(rawJ, humanId));
         const onchain = rec.dataHash.toLowerCase();
         dataStatus  = hash === onchain ? "authentic" : "tampered";
-        passport    = JSON.parse(raw);
+        passport    = JSON.parse(rawJ);
       }
     } catch {}
 
@@ -322,6 +470,22 @@ async function verify() {
     el.innerHTML = `<div class="err-box">Error: ${esc(e.message)}</div>`;
   } finally {
     document.getElementById("verifyBtn").disabled = false;
+  }
+}
+
+async function verifyCreatorRecord(creatorId, el) {
+  setLoading(el, "Fetching creator record...");
+  try {
+    const raw = await contract.getCreator(creatorId);
+    const typeChar = decodeTypePrefix(raw.typePrefix);
+    renderCreatorResult(creatorId, { ...raw, typePrefix: typeChar });
+  } catch (e) {
+    const m = String(e && (e.reason || e.message) || "");
+    if (m.includes("Creator not found")) {
+      renderCreatorNotFound(creatorId);
+    } else {
+      el.innerHTML = `<div class="err-box">Error: ${esc(e.message)}</div>`;
+    }
   }
 }
 
@@ -350,12 +514,199 @@ function renderInvalid(humanId) {
     </div>`;
 }
 
+function renderCreatorNotFound(creatorId) {
+  document.getElementById("result").innerHTML = `
+    <div class="card">
+      <div class="status-bar invalid">
+        <div class="status-icon">✕</div>
+        <div class="status-text">
+          <div class="status-label">Creator Not Found</div>
+          <div class="status-desc">No creator record for ${esc(creatorId)}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2)">
+          This Creator ID does not exist in the registry, or the ID may be incorrect.
+        </p>
+      </div>
+    </div>`;
+}
+
+function renderCreatorResult(creatorId, c) {
+  const net_ = NET;
+  const wallet = c.wallet;
+  const d = new Date(Number(c.timestamp) * 1000);
+  const when = d.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
+  const typeLabel = { C: "Creator", B: "Brand", P: "Institution" }[c.typePrefix] || "Creator";
+  document.getElementById("result").innerHTML = `
+    <div class="card">
+      <div class="status-bar authentic">
+        <div class="status-icon">✓</div>
+        <div class="status-text">
+          <div class="status-label">Creator ID Registered</div>
+          <div class="status-desc">${esc(typeLabel)} · ${esc(creatorId)}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="field"><div class="fl">Creator ID</div><div class="fv"><span class="creator-id-val">${esc(creatorId)}</span></div></div>
+        <div class="field"><div class="fl">Type</div><div class="fv">${esc(c.typePrefix)} (${esc(typeLabel)})</div></div>
+        <div class="field full"><div class="fl">Wallet</div><div class="fv mono">${esc(wallet)}</div></div>
+        <div class="field"><div class="fl">Registered</div><div class="fv">${esc(when)}</div></div>
+        ${net_.explorer ? `<p style="margin-top:10px"><a class="ext-link" href="${esc(net_.explorer)}/address/${esc(wallet)}" target="_blank" rel="noopener noreferrer">View wallet on explorer ↗</a></p>` : ""}
+      </div>
+    </div>`;
+}
+
+function truncStr(s, n) {
+  const t = String(s ?? "");
+  return t.length <= n ? t : t.slice(0, n) + "…";
+}
+
+/** Fields from hosted passport.json that the main card does not show (version, seal details, provenance, …). */
+function renderPassportJsonExtras(passport, isDigital) {
+  if (!passport || typeof passport !== "object") return "";
+  const p = passport;
+  const rows = [];
+
+  if (p.version != null) {
+    rows.push(`<div class="field"><div class="fl">JSON spec</div><div class="fv">${esc(String(p.version))}</div></div>`);
+  }
+  if ("humanId" in p) {
+    const hj = p.humanId === null ? "null" : String(p.humanId);
+    rows.push(
+      `<div class="field"><div class="fl">humanId (in JSON)</div><div class="fv"><span class="human-id-val">${esc(hj)}</span></div></div>`
+    );
+  }
+  if (p.year != null || p.month != null) {
+    const y = p.year != null ? String(p.year) : "—";
+    const mo = p.month != null ? String(p.month).padStart(2, "0") : "—";
+    rows.push(`<div class="field"><div class="fl">Year / month (JSON)</div><div class="fv">${esc(y)} · ${esc(mo)}</div></div>`);
+  }
+  if (p.registeredAt != null && !Number.isNaN(Number(p.registeredAt))) {
+    const d = new Date(Number(p.registeredAt) * 1000);
+    rows.push(
+      `<div class="field full"><div class="fl">registeredAt (JSON)</div><div class="fv">${esc(
+        d.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" })
+      )}</div></div>`
+    );
+  }
+  if (p.creator && p.creator.wallet) {
+    rows.push(
+      `<div class="field full"><div class="fl">Creator wallet (in JSON)</div><div class="fv mono">${esc(String(p.creator.wallet))}</div></div>`
+    );
+  }
+  if (p.dimensions && typeof p.dimensions === "object") {
+    const d = p.dimensions;
+    const parts = [d.width, d.height, d.depth, d.unit].filter((x) => x != null && x !== "");
+    rows.push(
+      `<div class="field full"><div class="fl">Dimensions</div><div class="fv">${esc(parts.length ? parts.map(String).join(" × ") : JSON.stringify(d))}</div></div>`
+    );
+  }
+  if (p.image && typeof p.image === "object") {
+    if (p.image.url) {
+      rows.push(
+        `<div class="field full"><div class="fl">Image URL (JSON)</div><div class="fv"><a class="ext-link" href="${esc(p.image.url)}" target="_blank" rel="noopener noreferrer">${esc(truncStr(p.image.url, 96))}</a></div></div>`
+      );
+    }
+    if (p.image.hash) {
+      rows.push(
+        `<div class="field full"><div class="fl">Image hash (JSON)</div><div class="vinfo-val" style="font-size:11px;word-break:break-all">${esc(String(p.image.hash))}</div></div>`
+      );
+    }
+  }
+  if (isDigital && p.digital && typeof p.digital === "object") {
+    const d = p.digital;
+    if (d.fileHash) {
+      rows.push(
+        `<div class="field full"><div class="fl">Digital fileHash</div><div class="vinfo-val" style="font-size:11px;word-break:break-all">${esc(String(d.fileHash))}</div></div>`
+      );
+    }
+    if (d.dataUrl) {
+      rows.push(
+        `<div class="field full"><div class="fl">Digital dataUrl</div><div class="fv"><a class="ext-link" href="${esc(d.dataUrl)}" target="_blank" rel="noopener noreferrer">${esc(truncStr(d.dataUrl, 96))}</a></div></div>`
+      );
+    }
+    if (d.c2pa && typeof d.c2pa === "object" && Object.keys(d.c2pa).length) {
+      rows.push(
+        `<div class="field full"><div class="fl">C2PA</div><div class="fv mono" style="font-size:11px;white-space:pre-wrap;word-break:break-word">${esc(JSON.stringify(d.c2pa, null, 2))}</div></div>`
+      );
+    }
+  }
+  if (!isDigital && p.seal && typeof p.seal === "object") {
+    if (p.seal.nfc && typeof p.seal.nfc === "object") {
+      const n = p.seal.nfc;
+      if (n.uid) rows.push(`<div class="field"><div class="fl">NFC UID</div><div class="fv mono">${esc(String(n.uid))}</div></div>`);
+      if (n.model) rows.push(`<div class="field"><div class="fl">NFC model</div><div class="fv">${esc(String(n.model))}</div></div>`);
+      if (n.installedAt) rows.push(`<div class="field"><div class="fl">NFC installed</div><div class="fv">${esc(String(n.installedAt))}</div></div>`);
+      if (n.publicKey) {
+        const pk = String(n.publicKey);
+        rows.push(
+          `<div class="field full"><div class="fl">NFC public key (JSON)</div><div class="vinfo-val" style="font-size:10px;word-break:break-all">${esc(pk.length > 200 ? pk.slice(0, 200) + "…" : pk)}</div></div>`
+        );
+      }
+      if (n.notes) rows.push(`<div class="field full"><div class="fl">NFC notes</div><div class="fv">${esc(String(n.notes))}</div></div>`);
+    }
+    if (p.seal.numbered && typeof p.seal.numbered === "object") {
+      const s = p.seal.numbered;
+      ["color", "size", "notes"].forEach((k) => {
+        if (s[k]) rows.push(`<div class="field"><div class="fl">Seal ${esc(k)}</div><div class="fv">${esc(String(s[k]))}</div></div>`);
+      });
+    }
+  }
+  if (Array.isArray(p.materials) && p.materials.some((m) => m && typeof m === "object" && m.notes)) {
+    const bits = p.materials
+      .map((m) => {
+        if (!m) return "";
+        if (typeof m === "string") return esc(m);
+        const nm = m.name || "";
+        return m.notes ? `${esc(nm)} (${esc(String(m.notes))})` : esc(nm);
+      })
+      .filter(Boolean);
+    if (bits.length) {
+      rows.push(`<div class="field full"><div class="fl">Materials (with notes)</div><div class="fv">${bits.join(", ")}</div></div>`);
+    }
+  }
+  if (Array.isArray(p.provenance) && p.provenance.length) {
+    const lines = p.provenance
+      .slice(0, 20)
+      .map((ev) => {
+        if (!ev || typeof ev !== "object") return "";
+        const bits = [ev.event, ev.date, ev.note].filter((x) => x != null && x !== "");
+        return bits.length ? `<div style="font-size:12px;margin-bottom:6px;line-height:1.5">${esc(bits.join(" · "))}</div>` : "";
+      })
+      .filter(Boolean)
+      .join("");
+    if (lines) {
+      rows.push(`<div class="field full"><div class="fl">Provenance</div><div class="fv">${lines}</div></div>`);
+    }
+  }
+  if (p.custom && typeof p.custom === "object" && Object.keys(p.custom).length > 0) {
+    rows.push(
+      `<div class="field full"><div class="fl">custom</div><div class="fv mono" style="font-size:11px;white-space:pre-wrap;word-break:break-word">${esc(JSON.stringify(p.custom, null, 2))}</div></div>`
+    );
+  }
+
+  if (!rows.length) return "";
+  return `
+        <div class="section-title" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">More from passport.json</div>
+        <div class="fields">${rows.join("")}</div>`;
+}
+
 function render(humanId, rec, creator, passport, proofs, dataStatus) {
   const net_     = NET;
   const isDigital = rec.objectType === "digital";
   const hasImage  = rec.imageHash !== ZERO32;
   const hasFile   = rec.fileHash  !== ZERO32;
   const hasNFC    = rec.sealType  === 1 || rec.sealType === 3;
+  let dataHashHex;
+  try {
+    dataHashHex =
+      typeof ethers !== "undefined" && rec.dataHash != null
+        ? ethers.utils.hexlify(rec.dataHash).toLowerCase()
+        : String(rec.dataHash || "").toLowerCase();
+  } catch {
+    dataHashHex = String(rec.dataHash || "").toLowerCase();
+  }
 
   const statusClass = { authentic: "authentic", tampered: "tampered", unverifiable: "unverif" }[dataStatus] || "unverif";
   const statusIcon  = { authentic: "✓", tampered: "⚠", unverifiable: "?" }[dataStatus];
@@ -469,6 +820,8 @@ function render(humanId, rec, creator, passport, proofs, dataStatus) {
 
         </div>
 
+        ${passport ? renderPassportJsonExtras(passport, isDigital) : ""}
+
         <!-- Hashes -->
         <div class="section-title">Verification</div>
 
@@ -481,6 +834,18 @@ function render(humanId, rec, creator, passport, proofs, dataStatus) {
             <div class="vinfo-val">${rec.dataHash}</div>
           </div>
         </div>
+
+        <div class="section-title">Verify passport.json (local file)</div>
+        <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
+          Drop your copy of <code>passport.json</code> to compare its canonical SHA-256 to the on-chain <code>dataHash</code>.
+          Useful when the hosted URL is slow or you want to double-check a file — everything runs in your browser.
+        </p>
+        <div class="drop-zone json-drop" id="jsonDrop">
+          <input type="file" id="jsonInput" accept=".json,application/json,text/plain,*/*">
+          <p>Drop JSON here or click to select<br>
+          <span style="opacity:0.6">Canonical minify + hash — same rules as URL fetch — not uploaded</span></p>
+        </div>
+        <div id="jsonResult"></div>
 
         ${isDigital && hasFile ? `
         <div class="vrow">
@@ -630,6 +995,42 @@ function render(humanId, rec, creator, passport, proofs, dataStatus) {
 
       </div>
     </div>`;
+  queueMicrotask(() => attachJsonVerifyHandlers(humanId, dataHashHex));
+}
+
+/** Wire drag/drop + file picker after render (inline handlers are brittle with long hex strings). */
+function attachJsonVerifyHandlers(expectedHumanId, dataHashHex) {
+  const drop = document.getElementById("jsonDrop");
+  const input = document.getElementById("jsonInput");
+  if (!drop || !input) return;
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    drop.classList.add("drop-zone-over");
+  };
+  const onDragLeave = (e) => {
+    const rel = e.relatedTarget;
+    if (!rel || !drop.contains(rel)) drop.classList.remove("drop-zone-over");
+  };
+  const onDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    drop.classList.remove("drop-zone-over");
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) void runPassportJsonVerify(f, dataHashHex, expectedHumanId);
+  };
+
+  /* Capture: transparent file input sits on top — catch drag on container first */
+  drop.addEventListener("dragover", onDragOver, true);
+  drop.addEventListener("dragleave", onDragLeave, true);
+  drop.addEventListener("drop", onDrop, true);
+
+  input.addEventListener("change", (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (f) void runPassportJsonVerify(f, dataHashHex, expectedHumanId);
+    e.target.value = "";
+  });
 }
 
 // ── File verification ─────────────────────────────────────────────────────────
@@ -658,6 +1059,115 @@ async function verifyFile(e, onchain) {
       This file does not match the registered original.
       The registered file hash: ${onchain}
     </div>` : ""}`;
+}
+
+/** Show key passport fields after local file hash matches (same ideas as main card). */
+function renderLocalPassportPreview(p) {
+  if (!p || typeof p !== "object") return "";
+  const title = p.title != null ? String(p.title) : "—";
+  const cname = p.creator && p.creator.name != null ? String(p.creator.name) : "—";
+  const cid = p.creator && p.creator.creatorId != null ? String(p.creator.creatorId) : "—";
+  const cwallet = p.creator && p.creator.wallet != null ? String(p.creator.wallet) : "";
+  const humanJson = p.humanId === undefined ? "—" : p.humanId === null ? "null" : String(p.humanId);
+  const objType = (p.type != null ? String(p.type) : p.objectType != null ? String(p.objectType) : "—");
+  const isDigital = String(p.objectType || "").toLowerCase() === "digital";
+  const ver = p.version != null ? String(p.version) : "—";
+
+  const parts = [];
+  parts.push(
+    `<div class="field"><div class="fl">Spec version</div><div class="fv">${esc(ver)}</div></div>`,
+    `<div class="field full"><div class="fl">Title</div><div class="fv" style="font-family:var(--serif);font-size:15px;font-style:italic">${esc(title)}</div></div>`,
+    `<div class="field"><div class="fl">Creator</div><div class="fv">${esc(cname)}</div></div>`,
+    `<div class="field"><div class="fl">Creator ID</div><div class="fv"><span class="creator-id-val">${esc(cid)}</span></div></div>`,
+    `<div class="field"><div class="fl">humanId in file</div><div class="fv"><span class="human-id-val">${esc(humanJson)}</span></div></div>`,
+    `<div class="field"><div class="fl">Object / type</div><div class="fv"><span class="type-badge ${isDigital ? "digital" : ""}">${esc(objType)}</span></div></div>`
+  );
+
+  if (p.year != null || p.month != null) {
+    const y = p.year != null ? String(p.year) : "—";
+    const mo = p.month != null ? String(p.month).padStart(2, "0") : "—";
+    parts.push(`<div class="field"><div class="fl">Year / month</div><div class="fv">${esc(y)}-${esc(mo)}</div></div>`);
+  }
+  if (p.edition && typeof p.edition === "object") {
+    parts.push(
+      `<div class="field"><div class="fl">Edition</div><div class="fv">${esc(String(p.edition.number))} / ${esc(String(p.edition.total))}</div></div>`
+    );
+  }
+  if (p.medium) parts.push(`<div class="field full"><div class="fl">Medium</div><div class="fv">${esc(String(p.medium))}</div></div>`);
+  if (Array.isArray(p.materials) && p.materials.length) {
+    const m = p.materials.map((x) => (typeof x === "string" ? x : x && x.name)).filter(Boolean).join(", ");
+    if (m) parts.push(`<div class="field full"><div class="fl">Materials</div><div class="fv">${esc(m)}</div></div>`);
+  }
+  if (p.description) {
+    parts.push(`<div class="field full"><div class="fl">Description</div><div class="fv">${esc(String(p.description))}</div></div>`);
+  }
+  if (isDigital && p.digital && typeof p.digital === "object") {
+    const d = p.digital;
+    parts.push(
+      `<div class="field"><div class="fl">File type</div><div class="fv">${esc(d.subtype || "—")}${d.format ? ` · ${esc(String(d.format))}` : ""}</div></div>`
+    );
+    if (d.fileSize != null && !Number.isNaN(Number(d.fileSize))) {
+      parts.push(`<div class="field"><div class="fl">File size</div><div class="fv">${esc(fmtSize(Number(d.fileSize)))}</div></div>`);
+    }
+    if (d.fileHash) parts.push(`<div class="field full"><div class="fl">fileHash</div><div class="vinfo-val" style="font-size:11px">${esc(String(d.fileHash))}</div></div>`);
+  }
+  if (p.seal && typeof p.seal === "object" && !isDigital) {
+    if (p.seal.numbered && p.seal.numbered.number) {
+      parts.push(
+        `<div class="field full"><div class="fl">Seal</div><div class="fv">${esc(String(p.seal.numbered.number))} · ${esc(String(p.seal.numbered.type || ""))}</div></div>`
+      );
+    }
+  }
+  if (cwallet) {
+    parts.push(`<div class="field full"><div class="fl">Creator wallet (in file)</div><div class="fv mono">${esc(cwallet)}</div></div>`);
+  }
+
+  return `
+    <div class="local-json-preview" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;font-family:var(--mono)">Passport contents (this file)</div>
+      <div class="fields" style="grid-template-columns:1fr 1fr;gap:10px 16px">${parts.join("")}</div>
+    </div>`;
+}
+
+async function runPassportJsonVerify(file, onchainHash, expectedHumanId) {
+  const el = document.getElementById("jsonResult");
+  const drop = document.getElementById("jsonDrop");
+  if (!el) return;
+  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Reading and hashing JSON…</span></div>`;
+  const want = String(onchainHash).toLowerCase();
+  try {
+    const raw = await file.text();
+    const canon = minify(raw, expectedHumanId);
+    const hash = await sha256text(canon);
+    const match = hash.toLowerCase() === want;
+    if (drop) drop.style.borderStyle = "solid";
+    let previewHtml = "";
+    if (match) {
+      try {
+        previewHtml = renderLocalPassportPreview(JSON.parse(raw));
+      } catch {
+        previewHtml = "";
+      }
+    }
+    el.innerHTML = `
+      <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge ${match ? "ok" : "bad"}">${match ? "Authentic" : "Mismatch"}</span>
+        <div class="vinfo">
+          <div class="vinfo-label">${esc(file.name)}</div>
+          <div class="vinfo-val">${hash}</div>
+        </div>
+      </div>
+      ${!match ? `<div class="err-box" style="margin-top:8px;font-size:11px">
+        This file does not match the on-chain <code>dataHash</code> for <code>${esc(expectedHumanId)}</code>.
+        Expected: ${esc(want)}
+      </div>` : previewHtml}`;
+  } catch (err) {
+    const m = err && (err.message || String(err));
+    if (drop) drop.style.borderStyle = "solid";
+    el.innerHTML = `<div class="err-box" style="margin-top:10px;font-size:12px">
+      <strong>Invalid JSON or hash step failed.</strong> ${esc(m)}
+    </div>`;
+  }
 }
 
 async function verifyImage(e, onchain) {
@@ -717,8 +1227,27 @@ function sortKeysDeep(obj) {
   return obj;
 }
 
-function minify(str) {
+/**
+ * Canonical JSON for hash compare (must match mint).
+ * Mint hashes buildPassport(null) with humanId null. We accept:
+ * - missing humanId → null
+ * - humanId string equal to this passport's chain ID → null (same bytes as mint after post-mint export)
+ */
+function minify(str, expectedHumanId) {
   const parsed = JSON.parse(str);
+  if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+    if (!("humanId" in parsed)) {
+      parsed.humanId = null;
+    } else if (
+      expectedHumanId &&
+      typeof parsed.humanId === "string"
+    ) {
+      const pid = parseId(parsed.humanId);
+      if (pid && pid === expectedHumanId) {
+        parsed.humanId = null;
+      }
+    }
+  }
   return JSON.stringify(sortKeysDeep(normalizeNFC(parsed)));
 }
 
@@ -744,8 +1273,14 @@ function fmtSize(bytes) {
 // ── Enter key ─────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("idInput").addEventListener("keydown", e => {
+  document.getElementById("idInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") verify();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const o = document.getElementById("qrScanOverlay");
+      if (o && !o.hidden) closeQrScanner();
+    }
   });
   init();
 });
