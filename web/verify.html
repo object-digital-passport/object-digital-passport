@@ -278,6 +278,7 @@ async function connect() {
           (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration));
       }
       setNet("on", `${c.name} · gen ${odpContractGeneration}`);
+      if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(c);
       return;
     } catch (e) {
       lastErr = e;

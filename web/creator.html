@@ -869,8 +869,13 @@ async function _finish(web3p) {
   }).catch(() => {});
   // #endregion
   if (!net.contract) {
+    const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
     document.getElementById("connectErr").innerHTML =
-      `<div class="info error">Contract address not set for ${net.name}. For local use, set <code>NET.contract</code> in this file. For GitHub Pages, add repository secret <code>ODP_CONTRACT_ADDRESS</code> (see README).</div>`;
+      `<div class="info error">Contract address not set for ${net.name}. ` +
+      (isLocal
+        ? `Local: set <code>NET.contract</code> in this file, or <code>{"contract":"0x…"}</code> in <code>registry-config.json</code> next to these HTML files, or open once with <code>?contract=0x…</code> (40 hex chars).`
+        : `Set <code>NET.contract</code> in source, add GitHub secret <code>ODP_CONTRACT_ADDRESS</code>, or rely on deployed <code>registry-config.json</code> (see README).`) +
+      `</div>`;
     return;
   }
   provider = web3p;
@@ -892,6 +897,7 @@ async function _finish(web3p) {
   odpContractGeneration = fin.generation;
   ABI = fin.abi;
   contract = fin.contract;
+  if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(net);
   const sl = document.getElementById("odpStackLabel");
   if (sl) {
     sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);

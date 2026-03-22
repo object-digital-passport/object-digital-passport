@@ -337,7 +337,13 @@ async function _finish(p) {
   }).catch(() => {});
   // #endregion
   if (!net.contract) {
-    document.getElementById("connectErr").innerHTML = `<div class="info e">Contract not configured for ${net.name}. Set <code>NET.contract</code> or GitHub secret <code>ODP_CONTRACT_ADDRESS</code> (see README).</div>`;
+    const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
+    document.getElementById("connectErr").innerHTML =
+      `<div class="info e">Contract not configured for ${net.name}. ` +
+      (isLocal
+        ? `Local: set <code>NET.contract</code>, or <code>registry-config.json</code>, or <code>?contract=0x…</code>.`
+        : `Set <code>NET.contract</code>, GitHub secret <code>ODP_CONTRACT_ADDRESS</code>, or deployed <code>registry-config.json</code> (see README).`) +
+      `</div>`;
     return;
   }
   provider = p; signer = p.getSigner();
@@ -358,6 +364,7 @@ async function _finish(p) {
   odpContractGeneration = fin.generation;
   ABI = fin.abi;
   contract = fin.contract;
+  if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(net);
   const sl = document.getElementById("odpStackLabel");
   if (sl) {
     sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);

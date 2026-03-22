@@ -29,11 +29,51 @@
     return generation >= 2;
   }
 
+  function odpRegistrySessionKey(chainId) {
+    return "odp_registry_contract_" + String(chainId != null ? chainId : 137);
+  }
+
+  /**
+   * Sync: URL `?contract=0x…` / `?odp_contract=0x…`, then sessionStorage from last successful connect (per chainId).
+   */
+  function odpApplyInlineRegistryOverrides(net) {
+    if (!net) return;
+    var existing = String(net.contract || "").trim();
+    if (existing && /^0x[a-fA-F0-9]{40}$/i.test(existing)) return;
+    try {
+      if (typeof global.location !== "undefined" && global.location.search) {
+        var q = new URLSearchParams(global.location.search);
+        var fromQ = q.get("contract") || q.get("odp_contract") || q.get("registry");
+        if (fromQ && /^0x[a-fA-F0-9]{40}$/i.test(fromQ.trim())) {
+          net.contract = fromQ.trim();
+          return;
+        }
+      }
+      if (global.sessionStorage) {
+        var s = global.sessionStorage.getItem(odpRegistrySessionKey(net.chainId));
+        if (s && /^0x[a-fA-F0-9]{40}$/i.test(s.trim())) {
+          net.contract = s.trim();
+        }
+      }
+    } catch (e0) {}
+  }
+
+  /** Remember registry address for this tab after a successful wallet session (local dev without editing HTML). */
+  function odpPersistRegistryContractToSession(net) {
+    if (!net || !global.sessionStorage) return;
+    var c = String(net.contract || "").trim();
+    if (!c || !/^0x[a-fA-F0-9]{40}$/i.test(c)) return;
+    try {
+      global.sessionStorage.setItem(odpRegistrySessionKey(net.chainId), c);
+    } catch (e1) {}
+  }
+
   /**
    * If `net.contract` is empty (stale cached HTML on first visit), try loading `registry-config.json`
    * next to the page (same-origin, `cache: no-store`). CI writes this file with the deploy address.
    */
   function odpMergeRegistryConfigAsync(net) {
+    odpApplyInlineRegistryOverrides(net);
     if (!net) return Promise.resolve();
     var existing = String(net.contract || "").trim();
     if (existing && /^0x[a-fA-F0-9]{40}$/i.test(existing)) return Promise.resolve();
@@ -47,6 +87,20 @@
         global
           .fetch(url.toString(), { cache: "no-store" })
           .then(function (r) {
+            // #region agent log
+            fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+              body: JSON.stringify({
+                sessionId: "7d72c7",
+                hypothesisId: "H2",
+                location: "odp-contract.js:odpMergeRegistryConfigAsync:fetch",
+                message: "registry-config fetch result",
+                data: { ok: r.ok, status: r.status, urlLen: String(url.pathname || "").length },
+                timestamp: Date.now(),
+              }),
+            }).catch(function () {});
+            // #endregion
             if (!r.ok) return null;
             return r.json();
           })
@@ -64,6 +118,21 @@
                   location: "odp-contract.js:odpMergeRegistryConfigAsync",
                   message: "merged contract from registry-config.json",
                   data: { contractLen: c.length },
+                  timestamp: Date.now(),
+                }),
+              }).catch(function () {});
+              // #endregion
+            } else if (j) {
+              // #region agent log
+              fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+                body: JSON.stringify({
+                  sessionId: "7d72c7",
+                  hypothesisId: "H3",
+                  location: "odp-contract.js:odpMergeRegistryConfigAsync:emptyJson",
+                  message: "registry-config present but contract empty",
+                  data: { hasContractKey: j.contract != null },
                   timestamp: Date.now(),
                 }),
               }).catch(function () {});
@@ -685,6 +754,8 @@
   global.odpSupportsExternalDocAttest = odpSupportsExternalDocAttest;
   global.odpResolveGeneration = odpResolveGeneration;
   global.odpMergeRegistryConfigAsync = odpMergeRegistryConfigAsync;
+  global.odpApplyInlineRegistryOverrides = odpApplyInlineRegistryOverrides;
+  global.odpPersistRegistryContractToSession = odpPersistRegistryContractToSession;
   global.odpFormatStackLabel = odpFormatStackLabel;
   global.odpFormatStackBlockHtml = odpFormatStackBlockHtml;
   global.odpProbeContractGenerationCached = odpProbeContractGenerationCached;

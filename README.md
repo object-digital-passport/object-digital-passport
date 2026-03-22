@@ -17,9 +17,15 @@ Blockchain apps reuse words from NFTs and finance — here is what they mean **i
 | **Verify / verification** | **Read-only** check: load chain data + (if available) `passport.json`, recompute hashes — **no** wallet or protocol fee. |
 | **Gas** | **POL** paid to the **Polygon network** for executing transactions (varies with congestion). **v0.2** has **no** extra burned protocol fee on register/mint. |
 | **Protocol fee** | **v0.1** deployments used a fixed **0.001 POL** burn on some actions. **v0.2** removes that — you pay **gas only** (POL). |
-| **Wallet** | An Ethereum-compatible app (e.g. **MetaMask**) that holds your keys and **signs** transactions. |
+| **Wallet** | An Ethereum-compatible app that holds your keys and **signs** transactions. On desktop, the reference HTML talks to **injected** providers (see **Wallets (browser)** below), not only MetaMask. |
 
 Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 and §2 onward).
+
+### Wallets (browser)
+
+The **Creator** and **Passport** pages use **`window.ethereum`** ([**EIP-1193**](https://eips.ethereum.org/EIPS/eip-1193)): any browser extension that injects this provider can connect and sign. Examples include **MetaMask**, **Rabby**, **Coinbase Wallet**, **Brave Wallet**, **OKX Wallet**, and other EIP-1193–compatible extensions. The helper in [`web/creator.html`](web/creator.html) / [`web/passport.html`](web/passport.html) (`injectedEthereum`) prefers MetaMask when multiple extensions expose `providers[]`; otherwise it uses the first injected provider.
+
+**Out of scope in this repo:** **WalletConnect** (or similar) flows that do not inject `window.ethereum` are not wired in the static pages — they would need an explicit integration. On **mobile Safari** without an extension, use your wallet’s **in-app browser** or open the Pages URL from the wallet app so the same injected provider is available.
 
 ### Versioning (site vs contract)
 
@@ -85,7 +91,7 @@ The pages below are **example** front ends. Set **`NET.contract`** in `web/creat
 
 *If the site root loads README-style content but `verify.html` returns 404, GitHub Pages may still be serving a branch/Jekyll build. Prefer **Settings → Pages → Source: GitHub Actions** and a green **Deploy GitHub Pages** run — see [`.github/workflows/pages.yml`](.github/workflows/pages.yml).*
 
-**GitHub Pages — registry address:** The static HTML ships with `NET.contract: ""` in git. The Pages workflow injects your deployed Polygon address at build time from a repository secret **`ODP_CONTRACT_ADDRESS`** (checksum `0x…` string). Add it under **Settings → Secrets and variables → Actions** (same value in all three pages). The workflow also writes **`registry-config.json`** next to the HTML; the UI fetches it with `cache: no-store` so the first visit after a deploy still picks up the address even if the browser cached an older HTML without `NET.contract`. If the secret is missing, set the address locally in `web/creator.html`, `web/passport.html`, and `web/verify.html`, or add `web/registry-config.json` with `{"contract":"0x…"}` for static hosting.
+**GitHub Pages — registry address:** The static HTML ships with `NET.contract: ""` in git. The Pages workflow injects your deployed Polygon address at build time from a repository secret **`ODP_CONTRACT_ADDRESS`** (checksum `0x…` string). Add it under **Settings → Secrets and variables → Actions** (same value in all three pages). The workflow also writes **`registry-config.json`** next to the HTML; the UI fetches it with `cache: no-store` so the first visit after a deploy still picks up the address even if the browser cached an older HTML without `NET.contract`. If the secret is missing, set the address locally in `web/creator.html`, `web/passport.html`, and `web/verify.html`, or add `web/registry-config.json` with `{"contract":"0x…"}` for static hosting. **Quick local try:** open `creator.html` once as `…/creator.html?contract=0xYourPolygonAddress` — the UI stores it in **sessionStorage** for that tab (keyed by chain id) so you can drop the query on later loads during the same session.
 
 ---
 
@@ -199,10 +205,10 @@ Anyone with a phone can scan the QR code and verify:
 
 The following uses the **live demo** links above — **functional examples** on the **official v0.1 contract**.
 
-### 1. Wallet — MetaMask
+### 1. Wallet
 
-- **Phone:** Install the **MetaMask** app from your app store. When you use the demo in the **in-app browser** or when the site opens **MetaMask** via the wallet button, transactions run in the app — same account as on desktop if you sync.
-- **Computer:** Install the **MetaMask browser extension** for your browser; the demo uses the extension when you click **Connect**.
+- **Desktop browser:** Any **EIP-1193** extension that injects **`window.ethereum`** can connect (see **Wallets (browser)** at the top of this README). **MetaMask** is a common choice; **Rabby**, **Coinbase Wallet**, **Brave Wallet**, and others work the same way when you click **Connect**.
+- **Phone:** Install a wallet app (**MetaMask** or another that supports Polygon and in-app browsing). Open the demo in the wallet’s **in-app browser** so the page gets an injected provider — same idea as the desktop extension.
 
 Create a wallet, back up your seed phrase, and add **Polygon PoS** if prompted.
 
