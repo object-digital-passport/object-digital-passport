@@ -29,6 +29,14 @@ describe("ObjectDigitalPassport", function () {
     return contract;
   }
 
+  it("SPEC_MAJOR / SPEC_MINOR match packed CONTRACT_VERSION (major*16+minor)", async function () {
+    const c = await deployFixture();
+    const maj = await c.SPEC_MAJOR();
+    const min = await c.SPEC_MINOR();
+    const packed = await c.CONTRACT_VERSION();
+    expect(Number(maj) * 16 + Number(min)).to.equal(Number(packed));
+  });
+
   /** ethers v6: mintDigital returns a TransactionResponse, not humanId. IDs are random — read last passport for the wallet. */
   async function mintDigitalAndId(contract, signer, args) {
     const tx = await contract.connect(signer).mintDigital(...args);

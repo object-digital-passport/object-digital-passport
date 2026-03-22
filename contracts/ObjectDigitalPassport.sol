@@ -81,11 +81,13 @@ contract ObjectDigitalPassport {
     string constant OBJECT_PHYSICAL = "physical";
     string constant OBJECT_DIGITAL  = "digital";
 
-    // On-chain deployment generation (uint8). Same name as Passport.contractVersion at mint time.
-    // This is NOT marketing semver (see README): e.g. 0 = first Polygon deploy (spec v0.1 + fee);
-    // 2 = v0.2 (gas-only, optional dataUrl); 3 = v0.2+ external document attestation (PDF hash anchor). Value 1 unused.
-    // Solidity cannot store "0.2" in a uint8; use this as a small integer generation counter, not semver.
-    uint8 public constant CONTRACT_VERSION = 3;
+    // On-chain spec line (variant: two uint8s, human-readable as major.minor).
+    uint8 public constant SPEC_MAJOR = 0;
+    uint8 public constant SPEC_MINOR = 3;
+
+    /// Packed byte stored in Passport.contractVersion: `SPEC_MAJOR * 16 + SPEC_MINOR` (each must stay < 16).
+    /// Example line: 0.3 → packed 3 (+ external doc attestation). Older registries may still hold mint-time byte `0` in rows; this reference UI targets v0.2+ contracts only.
+    uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows Creator ID prefix.
     uint32 public constant MONTHLY_LIMIT_C = 1000;
@@ -102,7 +104,7 @@ contract ObjectDigitalPassport {
 
     struct Passport {
         string  humanId;       // "ODP-2026-03-04829301"
-        uint8   contractVersion; // CONTRACT_VERSION at time of minting — for cross-version queries
+        uint8   contractVersion; // packed SPEC_MAJOR/SPEC_MINOR (see CONTRACT_VERSION) at mint
         address creator;
         string  creatorId;     // mandatory
         uint32  year;          // uint32 supports any year from 1 to 4,294,967,295
@@ -122,7 +124,7 @@ contract ObjectDigitalPassport {
 
     struct ProofRecord {
         string  proofId;         // "PRF-2031-03-7392018"
-        uint8   contractVersion; // CONTRACT_VERSION at time of submission
+        uint8   contractVersion; // packed SPEC_MAJOR/SPEC_MINOR at submission
         string  prover;          // Creator ID of P-type institution
         string  humanId;         // attested passport
         bytes32 noteHash;        // SHA-256 of attached document. bytes32(0) = none

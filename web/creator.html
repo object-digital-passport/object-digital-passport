@@ -36,7 +36,6 @@
   <a href="verify.html">Verify</a>
 </div>
 
-<div id="odpLegacyBanner" class="odp-legacy-banner" hidden role="alert"></div>
 
 <div id="app"></div>
 
@@ -678,12 +677,10 @@ async function disconnect() {
     sl.innerHTML = "";
     sl.style.display = "none";
   }
-  odpLegacyBannerUpdate("odpLegacyBanner", null);
   render();
 }
 
 function registerButtonLabel() {
-  if (odpContractGeneration === 0) return "Register — ~US$0.02 typ. (gas + 0.001 POL fee)";
   return "Register — Polygon gas only (~US$0.01 typ.)";
 }
 
@@ -771,21 +768,6 @@ async function connectWallet() {
   const eth = injectedEthereum();
   const errEl = document.getElementById("connectErr");
   if (!eth) {
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        location: "creator.html:connectWallet",
-        message: "no window.ethereum",
-        data: { hasMmApp: !!openInMetaMaskAppUrl(), proto: location.protocol },
-        timestamp: Date.now(),
-        runId: "mm-mobile",
-        hypothesisId: "H1",
-      }),
-    }).catch(() => {});
-    // #endregion
     errEl.innerHTML = noWalletHtml();
     return;
   }
@@ -825,6 +807,18 @@ async function _finish(web3p) {
   signer   = provider.getSigner();
   wallet   = await signer.getAddress();
   const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "creator");
+  if (fin.legacyUnsupported) {
+    provider = null;
+    signer = null;
+    contract = null;
+    wallet = null;
+    odpContractGeneration = null;
+    ABI = null;
+    const msg = fin.message || (typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined" ? ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG : "Legacy contract not supported.");
+    const ce = document.getElementById("connectErr");
+    if (ce) ce.innerHTML = `<div class="info error">${esc(msg)}</div>`;
+    return;
+  }
   odpContractGeneration = fin.generation;
   ABI = fin.abi;
   contract = fin.contract;
@@ -833,7 +827,6 @@ async function _finish(web3p) {
     sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
     sl.style.display = "";
   }
-  odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
 
   // Check existing
   const existing = await contract.getCreatorByWallet(wallet);
@@ -861,10 +854,7 @@ async function doRegister() {
     const typeBytes = ethers.utils.hexlify(
       ethers.utils.toUtf8Bytes(selType)
     ); // e.g. "0x43" for "C"
-    const fee = odpProtocolFeeWei(odpContractGeneration, ethers);
-    const tx = fee.isZero()
-      ? await contract.registerCreator(typeBytes)
-      : await contract.registerCreator(typeBytes, { value: fee });
+    const tx = await contract.registerCreator(typeBytes);
     btn.textContent = "Confirming…";
     err.innerHTML = `<div class="info neutral" style="margin-bottom:10px">Transaction sent: ${tx.hash.slice(0,20)}…</div>`;
     await tx.wait();
@@ -926,20 +916,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       },
     });
     const accounts = await eth.request({ method: "eth_accounts" }).catch(() => []);
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        hypothesisId: "H1",
-        location: "creator.html:DOMContentLoaded",
-        message: "wallet autoconnect check",
-        data: { skipAuto, accLen: accounts.length },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
     if (!skipAuto && accounts.length > 0) {
       if (accounts.length > 1) {
         var br = await odpRequireSingleEthereumAccount(eth);
@@ -953,18 +929,26 @@ document.addEventListener("DOMContentLoaded", async () => {
           wallet    = await signer.getAddress();
           if (net.contract) {
             const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "creator");
-            odpContractGeneration = fin.generation;
-            ABI = fin.abi;
-            contract = fin.contract;
-            const sl = document.getElementById("odpStackLabel");
-            if (sl) {
-              sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
-              sl.style.display = "";
+            if (fin.legacyUnsupported) {
+              provider = null;
+              signer = null;
+              contract = null;
+              wallet = null;
+              odpContractGeneration = null;
+              ABI = null;
+            } else {
+              odpContractGeneration = fin.generation;
+              ABI = fin.abi;
+              contract = fin.contract;
+              const sl = document.getElementById("odpStackLabel");
+              if (sl) {
+                sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
+                sl.style.display = "";
+              }
+              const existing = await contract.getCreatorByWallet(wallet);
+              if (existing) creatorId = existing;
+              secOk = true;
             }
-            odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
-            const existing = await contract.getCreatorByWallet(wallet);
-            if (existing) creatorId = existing;
-            secOk = true;
           }
         } catch {}
       }

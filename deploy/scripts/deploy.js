@@ -39,12 +39,15 @@ async function main() {
   const address = await contract.getAddress();
   console.log(`  ✅ Deployed: ${address}`);
   const deployedVersion = await contract.CONTRACT_VERSION();
+  const specMajor = await contract.SPEC_MAJOR();
+  const specMinor = await contract.SPEC_MINOR();
+  console.log(`  SPEC_MAJOR: ${specMajor}  SPEC_MINOR: ${specMinor}  CONTRACT_VERSION (packed): ${deployedVersion}`);
 
   // ── Smoke test (testnet only) ──────────────────────────────────────────────
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
-    console.log(`  CONTRACT_VERSION: ${deployedVersion} (3 = + external document hash anchor; 2 = gas only, optional dataUrl)`);
+    console.log(`  Packed byte: ${deployedVersion} (≥3 = + external document hash anchor; 2 = gas only, optional dataUrl)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering Creator ID (type C)...");

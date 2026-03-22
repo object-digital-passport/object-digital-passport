@@ -26,10 +26,10 @@ Normative definitions and formats: **[`SPEC.md`](SPEC.md)** (especially §1.1 an
 | | |
 |:--|:--|
 | **Site / static release** | **`0.X.Y`** (see `ODP_SITE_VERSION` in [`web/odp-contract.js`](web/odp-contract.js)). Bump **Y** when you change only documentation, HTML/CSS, or tooling **without** a new contract deployment. |
-| **Contract / protocol generation** | **`0.X`** in spec labels and git tags when bytecode or on-chain rules change (e.g. v0.1 → v0.2). Each deployment exposes `CONTRACT_VERSION` (uint8) on-chain. |
-| **On-chain `CONTRACT_VERSION`** | **Not** the same as marketing semver. The reference UI reads it to pick ABIs: **0** = legacy Polygon deploy (fee + older `mint` signatures), **≥2** = v0.2 rules (gas-only, optional `dataUrl`, folder-base mint), **≥3** = same + **external document hash** anchor (`attestExternalDocument` for PDFs, etc.). See [`web/odp-contract.js`](web/odp-contract.js). |
-| **Why `2`, not `0.2` or `1`?** | On-chain field is **`uint8`** (a small **deployment generation** index), not a semver string — Solidity cannot store `0.2`. **0** = first public Polygon build (spec v0.1). **1** is intentionally **unused** (avoids “is spec v0.2 generation 1?” ambiguity). **2** = spec **v0.2** ruleset (gas-only, optional `dataUrl`, folder-base mint). **3** adds PDF/file hash anchoring for creators (not a qualified e-signature). |
-| **Backward compatibility** | The static UI talks to **any** deployed contract it can probe. **Legacy (generation 0)** stays usable, but the UI shows a **prominent warning**: older economics and bytecode are **not** the same as **v0.2**. **Assurance and security may be lower than on the current deployment** — read **`SECURITY.md`**, consider migrating new work to **v0.2**, and do not assume identical threat model. |
+| **Contract / protocol generation** | **`0.X`** in spec labels and git tags when bytecode or on-chain rules change (e.g. v0.1 → v0.2). The reference contract exposes **`SPEC_MAJOR`** / **`SPEC_MINOR`** (readable spec line) and a packed **`CONTRACT_VERSION`** byte for the UI. |
+| **On-chain `CONTRACT_VERSION`** | **Not** marketing semver. The reference UI reads it to pick ABIs: **≥2** = v0.2 rules (gas-only, optional `dataUrl`, folder-base mint), **≥3** = same + **external document hash** anchor (`attestExternalDocument` for PDFs, etc.). **`CONTRACT_VERSION == 0`** (historical v0.1 fee-era deploys) is **rejected** — Creator / Passport refuse to connect; Verify shows an error. See [`web/odp-contract.js`](web/odp-contract.js). |
+| **Why `2`, not `0.2` or `1`?** | On-chain field is **`uint8`** (a small packed index / generation), not a semver string. **1** is intentionally **unused**. **2** = spec **v0.2** ruleset (gas-only, optional `dataUrl`, folder-base mint). **3** adds PDF/file hash anchoring for creators (not a qualified e-signature). |
+| **Older mainnet deploy** | The first public Polygon contract used on-chain byte **0** (fee-era). This repo’s **current HTML does not support that address** as `NET.contract`; use a **v0.2+** deployment. Historical discussion: **`SECURITY.md`**, **`SPEC.md`**. |
 
 ### Stack label & trust (always on in the web UI)
 
@@ -73,7 +73,7 @@ The pages under `web/` show a **stack panel** (see `odpFormatStackBlockHtml` in 
 
 ## Live demo (example UI)
 
-The pages below are **example** front ends. Set **`NET.contract`** in `web/creator.html`, `web/passport.html`, and `web/verify.html` to your deployment; the UI probes **`CONTRACT_VERSION()`** and stays compatible with both the legacy fee-era contract and v0.2 (see **Versioning** above). Protocol behavior is defined in **`SPEC.md`**, not by this HTML alone.
+The pages below are **example** front ends. Set **`NET.contract`** in `web/creator.html`, `web/passport.html`, and `web/verify.html` to your **v0.2+** deployment; the UI probes **`CONTRACT_VERSION()`** and **rejects** legacy byte **0** (see **Versioning** above). Protocol behavior is defined in **`SPEC.md`**, not by this HTML alone.
 
 **GitHub Pages:** **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)**
 
@@ -92,7 +92,7 @@ The pages below are **example** front ends. Set **`NET.contract`** in `web/creat
 | | |
 |:--|:--|
 | **Recommended PoC line** | **v0.2** — see **[`RELEASE_v0.2.md`](RELEASE_v0.2.md)** for a friendly overview. It is the **most stable proof-of-concept** baseline in this repo right now (gas-only contract rules, optional `dataUrl`, updated UI). |
-| **Legacy (v0.1-era) deploy** | Polygon PoS (chain ID **137**) — [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) (on-chain generation **0**, fee-era rules). The site still supports it with a **legacy warning**; prefer **v0.2** for new work. |
+| **Historical v0.1-era deploy** | Polygon PoS — [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) (on-chain byte **0**). **Not** supported by this reference UI; listed for transparency only. Use a **v0.2+** contract for new work. |
 | **Git / tags** | Not every iteration of the “0.1” idea was captured in a single tidy tag while the repo was still learning GitHub workflows — **v0.2** is the coherent snapshot we point people to. Older tags may exist for history; trust **`RELEASE_v0.2.md`** + `main` for the current PoC story. |
 
 After you deploy **v0.2** to mainnet, add a **`v0.2`** (or similar) tag on the matching commit and paste the new address into the three `NET.contract` fields in `web/`.
@@ -357,16 +357,16 @@ See `SPEC.md` section 13 for the full SDK interface specification.
 | Chain ID | 137 |
 | Typical mint / register (gas only, v0.2) | ~US$0.01 (varies) |
 | Testnet | Polygon Amoy (chain ID 80002) |
-| Contract (v0.1, legacy) | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) — **fee + old ABI**; use **v0.2** deploy for gas-only + optional `dataUrl`. |
-| Contract (v0.2) | Set in `web/*.html` `NET.contract` after deploy (see `deploy/scripts/deploy.js`). |
+| Historical contract (v0.1-era) | [`0x3800…469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) — not supported by this UI. |
+| Contract (v0.2+) | Set in `web/*.html` `NET.contract` after deploy (see `deploy/scripts/deploy.js`). |
 
 ---
 
 ## Costs
 
-**v0.2** (`CONTRACT_VERSION == 2`): **register**, **mint**, and **proof** transactions pay **Polygon network gas** (POL) only — **no** separate burned protocol fee.
+**v0.2+** (on-chain packed byte **≥ 2**): **register**, **mint**, and **proof** transactions pay **Polygon network gas** (POL) only — **no** separate burned protocol fee in this line.
 
-**v0.1** (legacy deployment `0x3800…`): **payable** actions also charged **0.001 POL** per register/mint (burned) **plus** gas.
+Older **v0.1-era** deployments used a separate burned fee on some actions; this reference UI does not target those contracts.
 
 | Action | Typical cost (v0.2) |
 |--------|----------------|

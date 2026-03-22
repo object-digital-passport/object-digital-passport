@@ -8,13 +8,13 @@ Hi — thanks for reading. This note is meant for **humans**, not only for devel
 
 Earlier work lived under the **v0.1** idea (first Polygon deploy, fee-era rules). In practice, **not every improvement we made while iterating on “0.1” ended up neatly frozen in a single perfect v0.1 tag** — as the person running the repo, I’m still **getting comfortable with GitHub** (releases, tags, what landed when). So please don’t read “v0.1” as a perfectly complete snapshot of every experiment; **v0.2 is the coherent baseline we’re pointing people to** for a serious PoC today.
 
-If you’re new here: **start with v0.2** in this repo and in [`README.md`](README.md). The old mainnet contract at `0x3800…` remains **legacy** (generation `0` on-chain); the UI still supports it with a **warning**, but new deployments should follow **v0.2** rules.
+If you’re new here: **start with v0.2** in this repo and in [`README.md`](README.md). The old mainnet contract at `0x3800…` is **legacy** (on-chain byte `0`); **this reference UI does not connect to it** — new deployments should follow **v0.2+** rules only.
 
 ---
 
 ## What changed in the contract (technical)
 
-- **`CONTRACT_VERSION`** is **2** on new deployments.
+- **`CONTRACT_VERSION`** is a packed byte (e.g. **3** for spec line **0.3** on current reference bytecode); **`SPEC_MAJOR`** / **`SPEC_MINOR`** mirror that line on-chain.
 - **No protocol fee** — register and mint are **nonpayable**; you only pay **Polygon gas (POL)**.
 - **`dataUrl` is optional** at mint. If you leave it empty, the public Verify page can’t fetch your JSON from the web; only someone with the real **`passport.json`** file can check it against the on-chain hash.
 - **`updatePassportUrls`** — you can set, change, or clear the public URL (within length limits), still matching the same `dataHash`.
@@ -27,7 +27,7 @@ If you’re new here: **start with v0.2** in this repo and in [`README.md`](READ
 1. From the `deploy/` folder: install deps once, compile, then run the deploy script on Amoy (test) or Polygon (main)
 , as in [`deploy/scripts/deploy.js`](deploy/scripts/deploy.js).
 2. Paste the **new contract address** into **`NET.contract`** in **`web/creator.html`**, **`web/passport.html`**, and **`web/verify.html`** (same address in all three).
-3. The **legacy** v0.1 contract (`0x3800…`) uses different bytecode — don’t mix it with the v0.2 UI without the compatibility layer (see `web/odp-contract.js`).
+3. Don’t point **`NET.contract`** at the legacy v0.1 contract (`0x3800…`) — the reference UI **rejects** on-chain byte `0`.
 
 ---
 
@@ -36,7 +36,7 @@ If you’re new here: **start with v0.2** in this repo and in [`README.md`](READ
 - **`tools/mint.py`** — updated for nonpayable calls and optional hosted URL.
 - **Site version** — see **`ODP_SITE_VERSION`** in [`web/odp-contract.js`](web/odp-contract.js) (small doc/UI tweaks bump the patch number; contract-facing UI behavior is tied to **on-chain generation**, not only that string).
 - **Stack panel** — every page shows **site SemVer trust** (red/yellow/green) and the **read policy**: primary **then** **`previousContracts`** on Verify if a record is missing on the current deployment.
-- **Legacy deployments** (generation **0**) show an **amber banner** on Creator / Passport / Verify so nobody mistakes old rules for the latest PoC.
+- **Legacy deployments** (byte **0**) are **not supported** by Creator / Passport / Verify — you get a clear error if `NET.contract` points at one.
 
 ---
 

@@ -36,7 +36,6 @@
   <a href="verify.html">Verify</a>
 </div>
 
-<div id="odpLegacyBanner" class="odp-legacy-banner" hidden role="alert"></div>
 
 <div id="app">
   <div class="info n">Connecting wallet…</div>
@@ -64,9 +63,9 @@ const NET = {
   name: "Polygon PoS", chainId: 137,
   rpc: POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  /** Paste deployed address (legacy v0.1 or v0.2 — generation is read via CONTRACT_VERSION()). */
+  /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
   contract: "",
-  /** If CONTRACT_VERSION cannot be probed, assume this (0 = legacy fee ABI, 2 = v0.2). Default: 2. */
+  /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
   contractGenerationFallback: null,
 };
 
@@ -93,7 +92,7 @@ function getVerifyAbsoluteUrl(id) {
 
 /** Filled after wallet connect from `odpFinalizeWalletContract` (depends on on-chain CONTRACT_VERSION). */
 let ABI = null;
-/** 0 = v0.1-era (payable + fee), ≥2 = v0.2+ (folder mint, optional dataUrl). */
+/** ≥2 = v0.2+ (folder mint, optional dataUrl). Legacy byte 0 is rejected (see odpFinalizeWalletContract). */
 let odpContractGeneration = null;
 
 const ZERO32 = "0x"+"0".repeat(64);
@@ -108,25 +107,9 @@ let walletConnectError = null;
 
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
 
-/** Legacy gen 0 mints attach 0.001 POL fee; v0.2+ uses {}. */
+/** v0.2+ mints: gas only (no protocol fee). */
 function mintTxOpts() {
-  if (odpContractGeneration === null) return {};
-  const fee = odpProtocolFeeWei(odpContractGeneration, ethers);
-  // #region agent log
-  fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-    body: JSON.stringify({
-      sessionId: "99fdf4",
-      location: "passport.html:mintTxOpts",
-      message: "mint tx fee branch",
-      data: { generation: odpContractGeneration, feeWei: fee.toString(), attachValue: !fee.isZero() },
-      timestamp: Date.now(),
-      hypothesisId: "H-fee",
-    }),
-  }).catch(() => {});
-  // #endregion
-  return fee.isZero() ? {} : { value: fee };
+  return {};
 }
 
 // ── Connect ───────────────────────────────────────────────────────────────────
@@ -151,7 +134,6 @@ async function disconnectWallet() {
     sl.innerHTML = "";
     sl.style.display = "none";
   }
-  odpLegacyBannerUpdate("odpLegacyBanner", null);
   connect();
 }
 
@@ -205,21 +187,6 @@ function openInMetaMaskAppUrl() {
     if (u.protocol !== "https:" && u.protocol !== "http:") return "";
     const rest = u.href.replace(/^https?:\/\//i, "");
     const out = "https://metamask.app.link/dapp/" + rest;
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        location: "passport.html:openInMetaMaskAppUrl",
-        message: "mm deeplink built",
-        data: { fmt: "strip-protocol", restLen: rest.length, host: u.hostname },
-        timestamp: Date.now(),
-        runId: "post-fix",
-        hypothesisId: "H2",
-      }),
-    }).catch(() => {});
-    // #endregion
     return out;
   } catch {
     return "";
@@ -275,21 +242,6 @@ async function connectWallet() {
   const eth = injectedEthereum();
   const errEl = document.getElementById("connectErr");
   if (!eth) {
-    // #region agent log
-    fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-      body: JSON.stringify({
-        sessionId: "99fdf4",
-        location: "passport.html:connectWallet",
-        message: "no window.ethereum",
-        data: { hasMmApp: !!openInMetaMaskAppUrl(), proto: location.protocol },
-        timestamp: Date.now(),
-        runId: "mm-mobile",
-        hypothesisId: "H1",
-      }),
-    }).catch(() => {});
-    // #endregion
     errEl.innerHTML = noWalletHtml();
     return;
   }
@@ -320,6 +272,18 @@ async function _finish(p) {
   provider = p; signer = p.getSigner();
   wallet   = await signer.getAddress();
   const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "passport");
+  if (fin.legacyUnsupported) {
+    provider = null;
+    signer = null;
+    contract = null;
+    wallet = null;
+    odpContractGeneration = null;
+    ABI = null;
+    const msg = fin.message || (typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined" ? ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG : "Legacy contract not supported.");
+    walletConnectError = msg;
+    document.getElementById("connectErr").innerHTML = `<div class="info e">${esc(msg)}</div>`;
+    return;
+  }
   odpContractGeneration = fin.generation;
   ABI = fin.abi;
   contract = fin.contract;
@@ -328,7 +292,6 @@ async function _finish(p) {
     sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
     sl.style.display = "";
   }
-  odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
   creatorId = await contract.getCreatorByWallet(wallet);
   if (!creatorId) {
     document.getElementById("app").innerHTML = `
@@ -658,9 +621,7 @@ function renderForm() {
     <!-- Submit -->
     <div class="btn-row">
       <p class="fhint" style="width:100%;margin:0 0 12px;line-height:1.65">
-        ${odpContractGeneration === 0
-          ? "This deployment (generation <strong>0</strong>): <strong>0.001 POL</strong> protocol fee per mint + Polygon <strong>gas</strong> — often ~US$0.02 total in calm conditions (varies)."
-          : "This deployment (generation <strong>" + odpContractGeneration + "</strong>): <strong>Polygon gas</strong> (POL) only — no separate protocol fee. Typical ~US$0.01 (varies)."}
+        This deployment (on-chain gen <strong>${odpContractGeneration}</strong>): <strong>Polygon gas</strong> (POL) only — no separate protocol fee. Typical ~US$0.01 (varies).
       </p>
       <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn">Mint Passport</button>
       <button type="button" class="btn btn-ghost" onclick="previewJson()">Preview JSON</button>
@@ -839,30 +800,6 @@ async function hashFile(e) {
   const hex = [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
   fileHashBytes32 = "0x"+hex;
   fileSize  = f.size;
-  // #region agent log
-  fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-    body: JSON.stringify({
-      sessionId: "99fdf4",
-      location: "passport.html:hashFile",
-      message: "original file hashed",
-      data: {
-        inputId: e.target && e.target.id,
-        accept: e.target && e.target.accept,
-        name: f.name,
-        reportedSize: f.size,
-        bufferByteLength: buf.byteLength,
-        head16: Array.from(new Uint8Array(buf).slice(0, 16))
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join(""),
-        sha256: fileHashBytes32.slice(0, 18),
-      },
-      timestamp: Date.now(),
-      hypothesisId: "A",
-    }),
-  }).catch(() => {});
-  // #endregion
   document.getElementById("fileDrop").classList.add("has-file");
   document.getElementById("fileInfo").innerHTML = `<div class="finfo">✓ ${esc(f.name)}<br>${fmtSz(f.size)}<br>${fileHashBytes32.slice(0,22)}…</div>`;
 }
@@ -873,30 +810,6 @@ async function hashImg(e) {
   const buf = await f.arrayBuffer();
   const h   = await crypto.subtle.digest("SHA-256", buf);
   imageHash = "0x"+[...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
-  // #region agent log
-  fetch("http://127.0.0.1:7568/ingest/413879c6-a994-407f-b8b7-86c3aa65000a", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "99fdf4" },
-    body: JSON.stringify({
-      sessionId: "99fdf4",
-      location: "passport.html:hashImg",
-      message: "preview image hashed",
-      data: {
-        inputId: e.target && e.target.id,
-        accept: e.target && e.target.accept,
-        name: f.name,
-        reportedSize: f.size,
-        bufferByteLength: buf.byteLength,
-        head16: Array.from(new Uint8Array(buf).slice(0, 16))
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join(""),
-        sha256: imageHash.slice(0, 18),
-      },
-      timestamp: Date.now(),
-      hypothesisId: "A",
-    }),
-  }).catch(() => {});
-  // #endregion
   document.getElementById("imgDrop").classList.add("has-file");
   document.getElementById("imgInfo").innerHTML = `<div class="finfo">✓ ${esc(f.name)}<br>${imageHash.slice(0,20)}…</div>`;
 }
@@ -1599,17 +1512,26 @@ document.addEventListener("DOMContentLoaded", async () => {
           wallet    = await signer.getAddress();
           if (net.contract) {
             const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "passport");
-            odpContractGeneration = fin.generation;
-            ABI = fin.abi;
-            contract = fin.contract;
-            const sl = document.getElementById("odpStackLabel");
-            if (sl) {
-              sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
-              sl.style.display = "";
+            if (fin.legacyUnsupported) {
+              provider = null;
+              signer = null;
+              contract = null;
+              wallet = null;
+              odpContractGeneration = null;
+              ABI = null;
+              walletConnectError = fin.message || (typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined" ? ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG : "Legacy contract not supported.");
+            } else {
+              odpContractGeneration = fin.generation;
+              ABI = fin.abi;
+              contract = fin.contract;
+              const sl = document.getElementById("odpStackLabel");
+              if (sl) {
+                sl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
+                sl.style.display = "";
+              }
+              creatorId = await contract.getCreatorByWallet(wallet);
+              if (creatorId) { renderForm(); initNetPill(); return; }
             }
-            odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
-            creatorId = await contract.getCreatorByWallet(wallet);
-            if (creatorId) { renderForm(); initNetPill(); return; }
           }
         } catch(e) { console.warn("Auto-connect failed:", e); }
       }

@@ -52,7 +52,6 @@
   <a href="verify.html" class="active">Verify</a>
 </div>
 
-<div id="odpLegacyBanner" class="odp-legacy-banner" hidden role="alert"></div>
 
 <div class="search-wrap">
   <label class="search-label" for="idInput">Paste an ID or link, or scan a QR code</label>
@@ -176,6 +175,8 @@ const NET = {
 const ABI = odpBuildVerifyReadAbi();
 
 let odpContractGeneration = null;
+/** Set when primary `NET.contract` probes as legacy (byte 0). */
+let verifyContractError = null;
 
 const ZERO32 = "0x" + "0".repeat(64);
 
@@ -202,6 +203,7 @@ async function init() {
 
 async function connect() {
   const c = NET;
+  verifyContractError = null;
   setNet("connecting", `${c.name} — connecting...`);
   let lastErr = null;
   const lbl = document.getElementById("odpStackLabel");
@@ -216,17 +218,30 @@ async function connect() {
           lbl.innerHTML = "";
         }
         odpContractGeneration = null;
-        odpLegacyBannerUpdate("odpLegacyBanner", null);
         return;
       }
       const probed = await odpProbeContractGenerationCached(c.contract, c.chainId, POLYGON_RPC_FALLBACKS, ethers);
       odpContractGeneration = odpResolveGeneration(probed, c);
+      if (odpContractGeneration === 0) {
+        verifyContractError =
+          typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined"
+            ? ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG
+            : "Legacy contract (CONTRACT_VERSION 0) is not supported by this verifier.";
+        contract = null;
+        if (lbl) {
+          lbl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
+          lbl.style.display = "";
+        }
+        const docSec = document.getElementById("docVerifySection");
+        if (docSec) docSec.hidden = true;
+        setNet("warn", `${c.name} — legacy contract not supported`);
+        return;
+      }
       contract = new ethers.Contract(c.contract, ABI, provider);
       if (lbl) {
         lbl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
         lbl.style.display = "";
       }
-      odpLegacyBannerUpdate("odpLegacyBanner", odpContractGeneration);
       const docSec = document.getElementById("docVerifySection");
       if (docSec) {
         docSec.hidden =
@@ -243,7 +258,6 @@ async function connect() {
   setNet("off", `${c.name} — offline`);
   contract = null;
   odpContractGeneration = null;
-  odpLegacyBannerUpdate("odpLegacyBanner", null);
   const docSec = document.getElementById("docVerifySection");
   if (docSec) docSec.hidden = true;
   if (lbl) {
@@ -424,7 +438,10 @@ async function verify() {
     return;
   }
   if (!contract) {
-    el.innerHTML = `<div class="err-box">Can’t load registration data right now. Check your internet connection and try again.</div>`;
+    const msg = verifyContractError
+      ? verifyContractError
+      : "Can’t load registration data right now. Check your internet connection and try again.";
+    el.innerHTML = `<div class="err-box">${esc(msg)}</div>`;
     return;
   }
 
@@ -737,13 +754,13 @@ function renderPassportJsonExtras(passport, isDigital) {
         <div class="fields">${rows.join("")}</div>`;
 }
 
-/** On-chain `contractVersion` is uint8 — 0 = v0.1 deployment, 2 = v0.2 (gas only, optional dataUrl). */
+/** On-chain packed `contractVersion` byte (mint-time). This UI targets v0.2+ registries; `0` may appear only on historical rows. */
 function formatOdpProtocolBadge(contractVersion) {
   const v = Number(contractVersion);
-  if (v === 0 || Number.isNaN(v)) return "ODP v0.1";
-  if (v === 2) return "ODP v0.2";
-  if (v === 3) return "ODP gen 3";
-  return `ODP v${v}`;
+  if (Number.isNaN(v)) return "ODP —";
+  if (v === 0) return "ODP mint v0.1-era (byte 0)";
+  if (v < 16) return `ODP spec 0.${v}`;
+  return `ODP spec ${Math.floor(v / 16)}.${v % 16}`;
 }
 
 function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnAddress) {

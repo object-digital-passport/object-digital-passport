@@ -12,9 +12,12 @@
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
   ];
 
+  /** Shown when `NET.contract` probes as legacy (on-chain byte 0). This UI targets v0.2+ only. */
+  var ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG =
+    "This site does not support legacy deployments (on-chain CONTRACT_VERSION 0 — v0.1 fee-era). Set NET.contract to a v0.2+ registry address.";
+
   function odpProtocolFeeWei(generation, ethersRef) {
     var E = ethersRef || global.ethers;
-    if (generation === 0) return E.utils.parseEther("0.001");
     return E.BigNumber.from(0);
   }
 
@@ -125,12 +128,12 @@
   function odpFormatStackLabel(generation) {
     var g = generation;
     var spec =
-      g === 0
-        ? "ODP spec v0.1 (fee-era deploy)"
-        : g >= 3
-          ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
-          : g >= 2
-            ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
+      g >= 3
+        ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
+        : g >= 2
+          ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
+          : g === 0
+            ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
             : "unknown generation";
     return "Site " + ODP_SITE_VERSION + " · on-chain generation " + g + " — " + spec;
   }
@@ -147,10 +150,12 @@
     var g = generation == null ? "?" : String(generation);
     var spec =
       generation === 0
-        ? "ODP spec v0.1 (fee-era deploy)"
-        : generation >= 2
-          ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
-          : "unknown generation";
+        ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
+        : generation >= 3
+          ? "ODP spec v0.2+ (gas-only, PDF/doc hash anchor)"
+          : generation >= 2
+            ? "ODP spec v0.2+ (gas-only, optional dataUrl)"
+            : "unknown generation";
     var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
     var flagClass = "odp-stack-flag--" + trust.level;
     var L = ODP_LATEST_STABLE_MAJOR;
@@ -265,8 +270,7 @@
 
   function odpBuildPassportAbi(generation) {
     var folder = generation >= 2;
-    var payableMint = generation === 0;
-    var mintMut = payableMint ? "payable" : "nonpayable";
+    var mintMut = "nonpayable";
 
     var mintPhysicalInputs = [
       { name: "year", type: "uint32" },
@@ -387,12 +391,11 @@
   }
 
   function odpBuildCreatorAbi(generation) {
-    var pay = generation === 0;
     var abi = [
       {
         name: "registerCreator",
         type: "function",
-        stateMutability: pay ? "payable" : "nonpayable",
+        stateMutability: "nonpayable",
         inputs: [{ name: "typePrefix", type: "bytes1" }],
         outputs: [{ name: "creatorId", type: "string" }],
       },
@@ -604,39 +607,25 @@
     return abi;
   }
 
-  /** HTML for the legacy-contract banner (generation 0). Escaping not needed — static copy. */
-  function odpLegacyContractBannerInnerHtml() {
-    return (
-      '<div class="odp-legacy-banner-inner">' +
-      '<span class="odp-legacy-badge">Legacy contract</span>' +
-      '<p class="odp-legacy-banner-lead">This address is an <strong>older deployment</strong> (on-chain generation <strong>0</strong>, v0.1-era: burned protocol fee on register/mint, older mint signatures).</p>' +
-      '<p class="odp-legacy-banner-lead">The site remains <strong>backward compatible</strong>, but you should treat this registry as <strong>not equivalent</strong> to the current <strong>v0.2</strong> contract. <strong>Security and trust properties may be weaker than on the latest deployment</strong> — review <code>README.md</code> and <code>SECURITY.md</code>, and prefer a <strong>v0.2</strong> deployment for new high-assurance records when possible.</p>' +
-      "</div>"
-    );
-  }
-
-  /** Show warning banner when `generation === 0`; hide otherwise (including null / unknown). */
-  function odpLegacyBannerUpdate(elId, generation) {
-    var el = document.getElementById(elId || "odpLegacyBanner");
-    if (!el) return;
-    if (generation === 0) {
-      el.hidden = false;
-      el.innerHTML = odpLegacyContractBannerInnerHtml();
-    } else {
-      el.hidden = true;
-      el.innerHTML = "";
-    }
-  }
-
   async function odpFinalizeWalletContract(net, signer, rpcFallbacks, kind) {
     var probed = await odpProbeContractGenerationCached(net.contract, net.chainId, rpcFallbacks, global.ethers);
     var gen = odpResolveGeneration(probed, net);
+    if (gen === 0) {
+      return {
+        contract: null,
+        generation: null,
+        abi: null,
+        legacyUnsupported: true,
+        message: ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG,
+      };
+    }
     var abi = kind === "creator" ? odpBuildCreatorAbi(gen) : odpBuildPassportAbi(gen);
     var contract = new global.ethers.Contract(net.contract, abi, signer);
-    return { contract: contract, generation: gen, abi: abi };
+    return { contract: contract, generation: gen, abi: abi, legacyUnsupported: false };
   }
 
   global.ODP_SITE_VERSION = ODP_SITE_VERSION;
+  global.ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG = ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG;
   global.ODP_LIVE_BASE = ODP_LIVE_BASE;
   global.ODP_LATEST_STABLE_MAJOR = ODP_LATEST_STABLE_MAJOR;
   global.odpProtocolFeeWei = odpProtocolFeeWei;
@@ -651,8 +640,6 @@
   global.odpBuildCreatorAbi = odpBuildCreatorAbi;
   global.odpBuildVerifyReadAbi = odpBuildVerifyReadAbi;
   global.odpFinalizeWalletContract = odpFinalizeWalletContract;
-  global.odpLegacyContractBannerInnerHtml = odpLegacyContractBannerInnerHtml;
-  global.odpLegacyBannerUpdate = odpLegacyBannerUpdate;
   global.odpRequireSingleEthereumAccount = odpRequireSingleEthereumAccount;
   global.odpInstallSingleAccountGuard = odpInstallSingleAccountGuard;
   global.ODP_CREATOR_PROOF_PREFIX = ODP_CREATOR_PROOF_PREFIX;
