@@ -488,11 +488,12 @@ Using a different address means operating a separate, incompatible registry.
 
 #### Creator responsibility for `passport.json` after mint (normative)
 
-The protocol does **not** store the full passport JSON on-chain — only `dataHash` and related fields (see §8). The creator **must** retain the **canonical minified** `passport.json` octets and make them available at `dataUrl`.
+The protocol does **not** store the full passport JSON on-chain — only `dataHash` and related fields (see §8). The creator **must** retain the **canonical minified** `passport.json` octets. **v0.2** allows `dataUrl` to be empty at mint; if set, the creator **should** make those octets available at `dataUrl` for public web verification.
 
-1. **Without** an HTTP **200** response at `dataUrl` whose body matches `dataHash` after canonicalization, verifiers **must** treat verification as **failed** (e.g. **UNVERIFIABLE** / hash mismatch per §11 — exact state names are implementation-defined, but the record cannot be fully authenticated).
-2. The creator **may** update `dataUrl` later via on-chain URL update (e.g. `updatePassportUrls` in the reference contract) **without** reminting, as long as the hosted file still matches `dataHash`.
-3. **Reference and compatible UIs** SHOULD require **explicit user acknowledgement** immediately before submitting a mint transaction: that persisting and hosting `passport.json` is the creator’s responsibility; that verification depends on that file being reachable at the registered URL with unchanged bytes; and that the user should download or copy the file before closing the success screen when the implementation provides that action.
+1. If `dataUrl` is **non-empty** but there is **no** HTTP **200** response whose body matches `dataHash` after canonicalization, verifiers **must** treat web-based verification as **failed** (e.g. **UNVERIFIABLE** / hash mismatch per §11 — exact state names are implementation-defined).
+2. If `dataUrl` is **empty**, HTTP fetch cannot apply; only parties with the **passport.json** file can verify against `dataHash` (implementation-defined UX SHOULD warn the creator at mint time).
+3. The creator **may** update `dataUrl` later via on-chain URL update (e.g. `updatePassportUrls` in the reference contract) **without** reminting, as long as the hosted file still matches `dataHash`.
+4. **Reference and compatible UIs** SHOULD require **explicit user acknowledgement** immediately before submitting a mint transaction: that persisting `passport.json` is the creator’s responsibility; that public verification depends on that file being reachable at the registered URL when `dataUrl` is set; and that the user should download or copy the file before closing the success screen when the implementation provides that action.
 
 ### Minimal valid passport — physical object
 
