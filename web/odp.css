@@ -89,44 +89,62 @@ header.header-row {
 .odp-lang-switch {
   display: flex;
   align-items: center;
-  gap: 4px;
+  flex-shrink: 0;
 }
 
-.odp-lang-btn {
-  display: inline-flex;
+/* Matches .net-pill: one closed control; other locales only in the native dropdown list */
+.odp-lang-wrap {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 9px;
   border: 1px solid var(--border);
   border-radius: 100px;
   background: var(--bg2);
-  color: var(--text2);
-  font-size: 10px;
-  font-family: var(--mono);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  padding: 0 2px 0 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.odp-lang-btn:hover {
-  color: var(--text);
+.odp-lang-wrap:hover {
   border-color: var(--text3);
 }
 
-.odp-lang-btn.is-active {
-  color: var(--accent);
+.odp-lang-wrap:focus-within {
   border-color: var(--accent);
-  background: rgba(212, 175, 55, 0.08);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.25);
 }
 
-.odp-lang-emoji {
-  font-size: 14px;
-  line-height: 1;
+.odp-lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  padding: 7px 26px 7px 12px;
+  border: none;
+  border-radius: 100px;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8580' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+  background-size: 12px 12px;
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.06em;
+  color: var(--text2);
+  cursor: pointer;
+  min-width: 5.5rem;
+  max-width: 10rem;
 }
 
-.odp-lang-abbr {
-  font-weight: 600;
+.odp-lang-select:hover {
+  color: var(--text);
+}
+
+.odp-lang-select:focus {
+  outline: none;
+  color: var(--text);
+}
+
+.odp-lang-select option {
+  background: var(--panel);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px;
 }
 
 header:not(.header-row) {
@@ -1445,6 +1463,14 @@ a, button, .btn, label[for], select {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
+  }
+  .odp-lang-wrap {
+    min-height: 44px;
+  }
+  .odp-lang-select {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
   .w-switch, .wbar-dis, .share-modal-x {
     min-width: 44px;

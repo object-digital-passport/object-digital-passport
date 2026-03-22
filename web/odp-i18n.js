@@ -37,6 +37,7 @@
     return out;
   }
 
+  /** Prefer last explicit choice (localStorage), then browser language. */
   function odpResolveLocale() {
     try {
       var s = global.localStorage && global.localStorage.getItem(STORAGE_KEY);
@@ -99,27 +100,27 @@
     var loc = _locale;
     el.innerHTML = "";
     el.className = (el.className ? el.className + " " : "") + "odp-lang-switch";
-    el.setAttribute("role", "group");
-    el.setAttribute("aria-label", t("lang.switchLabel"));
+    var wrap = global.document.createElement("div");
+    wrap.className = "odp-lang-wrap";
+    var sel = global.document.createElement("select");
+    sel.className = "odp-lang-select";
+    sel.id = "odpLangSelect";
+    sel.setAttribute("aria-label", t("lang.switchLabel"));
+    sel.setAttribute("title", t("lang.switchLabel"));
     ODP_LOCALES.forEach(function (L) {
-      var b = global.document.createElement("button");
-      b.type = "button";
-      b.className = "odp-lang-btn" + (L.code === loc ? " is-active" : "");
-      b.setAttribute("aria-pressed", L.code === loc ? "true" : "false");
-      b.setAttribute("title", L.label);
-      b.innerHTML =
-        '<span class="odp-lang-emoji" aria-hidden="true">' +
-        L.emoji +
-        '</span><span class="odp-lang-abbr">' +
-        L.abbr +
-        "</span>";
-      (function (code, active) {
-        b.onclick = function () {
-          if (code !== active) odpSetLocale(code);
-        };
-      })(L.code, loc);
-      el.appendChild(b);
+      var opt = global.document.createElement("option");
+      opt.value = L.code;
+      opt.textContent = L.emoji + " " + L.abbr;
+      opt.setAttribute("title", L.label);
+      if (L.code === loc) opt.selected = true;
+      sel.appendChild(opt);
     });
+    sel.addEventListener("change", function () {
+      var v = sel.value;
+      if (v && v !== loc) odpSetLocale(v);
+    });
+    wrap.appendChild(sel);
+    el.appendChild(wrap);
   }
 
   /** Registry banner HTML (replaces odpRegistryMisconfiguredBannerHtml when i18n loaded). */
@@ -167,20 +168,6 @@
     return global
       .fetch(new URL("en/common.json", base).toString(), { cache: "no-store" })
       .then(function (r) {
-        // #region agent log
-        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-          body: JSON.stringify({
-            sessionId: "7d72c7",
-            hypothesisId: "H1",
-            location: "odp-i18n.js:fetchCommon",
-            message: "en/common.json response",
-            data: { url: r.url, ok: r.ok, status: r.status, base: String(base) },
-            timestamp: Date.now(),
-          }),
-        }).catch(function () {});
-        // #endregion
         if (!r.ok) throw new Error("i18n fetch failed: " + r.status);
         return r.json();
       })
@@ -243,21 +230,7 @@
         odpApplyDataI18n(global.document.body);
       })
       .catch(function (err) {
-        // #region agent log
-        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-          body: JSON.stringify({
-            sessionId: "7d72c7",
-            hypothesisId: "H3",
-            location: "odp-i18n.js:catch",
-            message: "odpInitI18n failed",
-            data: { err: String(err && err.message ? err.message : err) },
-            timestamp: Date.now(),
-          }),
-        }).catch(function () {});
         console.warn("[ODP i18n] init failed — language switch uses fallback labels", err);
-        // #endregion
         _merged = { lang: { switchLabel: "Language" } };
         global.odpT = t;
         global.odpGetLocale = function () {
