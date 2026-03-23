@@ -27,7 +27,7 @@
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.2"></script>
-<script src="odp-i18n.js?v=5"></script>
+<script src="odp-i18n.js?v=6"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 </head>
 
@@ -633,8 +633,7 @@ function renderCreatorResult(creatorId, c, deploymentAddress) {
   const showPrior =
     deploymentAddress &&
     String(deploymentAddress).toLowerCase() !== String(net_.contract || "").toLowerCase();
-  const d = new Date(Number(c.timestamp) * 1000);
-  const when = d.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" });
+  const whenUtc = formatUnixUtcSeconds(c.timestamp);
   const typeLabel = { C: "Creator", B: "Brand", P: "Institution", M: "Museum" }[c.typePrefix] || "Creator";
   document.getElementById("result").innerHTML = `
     <div class="card">
@@ -650,7 +649,13 @@ function renderCreatorResult(creatorId, c, deploymentAddress) {
         <div class="field"><div class="fl">Creator ID</div><div class="fv"><span class="creator-id-val">${esc(creatorId)}</span></div></div>
         <div class="field"><div class="fl">Type</div><div class="fv">${esc(c.typePrefix)} (${esc(typeLabel)})</div></div>
         <div class="field full"><div class="fl">Wallet</div><div class="fv mono">${esc(wallet)}</div></div>
-        <div class="field"><div class="fl">Registered</div><div class="fv">${esc(when)}</div></div>
+        <div class="field full"><div class="fl">${esc(t("verify.time.creatorRegisteredUtc"))}</div><div class="fv">${
+          whenUtc
+            ? `<div style="font-family:var(--mono);font-size:11px;word-break:break-all">${esc(whenUtc.iso)}</div><div style="font-size:12px;margin-top:4px;color:var(--text2)">${esc(
+                whenUtc.human
+              )}</div>`
+            : "—"
+        }</div></div>
         ${net_.explorer ? `<p style="margin-top:10px"><a class="ext-link" href="${esc(net_.explorer)}/address/${esc(wallet)}" target="_blank" rel="noopener noreferrer">View wallet on explorer ↗</a></p>` : ""}
       </div>
     </div>`;
@@ -659,6 +664,28 @@ function renderCreatorResult(creatorId, c, deploymentAddress) {
 function truncStr(s, n) {
   const t = String(s ?? "");
   return t.length <= n ? t : t.slice(0, n) + "…";
+}
+
+/** Chain timestamps are Unix seconds in UTC (offset 0). Used for on-chain + JSON `registeredAt`. */
+function formatUnixUtcSeconds(sec) {
+  const ms = Number(sec) * 1000;
+  if (!Number.isFinite(ms)) return null;
+  const d = new Date(ms);
+  const iso =
+    d.getUTCFullYear() +
+    "-" +
+    String(d.getUTCMonth() + 1).padStart(2, "0") +
+    "-" +
+    String(d.getUTCDate()).padStart(2, "0") +
+    "T" +
+    String(d.getUTCHours()).padStart(2, "0") +
+    ":" +
+    String(d.getUTCMinutes()).padStart(2, "0") +
+    ":" +
+    String(d.getUTCSeconds()).padStart(2, "0") +
+    "Z";
+  const human = d.toLocaleString("en-GB", { timeZone: "UTC", dateStyle: "long", timeStyle: "medium" });
+  return { iso: iso, human: human + " · UTC" };
 }
 
 /** Fields from hosted passport.json that the main card does not show (version, seal details, provenance, …). */
@@ -682,15 +709,25 @@ function renderPassportJsonExtras(passport, isDigital) {
     rows.push(`<div class="field"><div class="fl">Year / month (JSON)</div><div class="fv">${esc(y)} · ${esc(mo)}</div></div>`);
   }
   if (p.registeredAt != null && !Number.isNaN(Number(p.registeredAt))) {
-    const d = new Date(Number(p.registeredAt) * 1000);
+    const cu = formatUnixUtcSeconds(p.registeredAt);
     rows.push(
-      `<div class="field full"><div class="fl">registeredAt (JSON)</div><div class="fv">${esc(
-        d.toLocaleString("en-GB", { dateStyle: "long", timeStyle: "short" })
-      )} <span style="opacity:0.75">(UTC instant)</span></div></div>`
+      `<div class="field full"><div class="fl">registeredAt (Unix · same instant as UTC)</div><div class="fv"><span class="mono" style="font-size:12px">${esc(
+        String(p.registeredAt)
+      )}</span>${
+        cu
+          ? `<div style="margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--text2)">${esc(cu.iso)}</div><div style="font-size:11px;color:var(--ink3);margin-top:4px">${esc(
+              cu.human
+            )}</div>`
+          : ""
+      }</div></div>`
     );
   }
   if (p.registration && typeof p.registration === "object") {
     const r = p.registration;
+    if (r.utcIso8601)
+      rows.push(
+        `<div class="field full"><div class="fl">registration.utcIso8601</div><div class="fv mono">${esc(String(r.utcIso8601))}</div></div>`
+      );
     if (r.localIso8601)
       rows.push(
         `<div class="field full"><div class="fl">registration.localIso8601</div><div class="fv mono">${esc(String(r.localIso8601))}</div></div>`
@@ -847,8 +884,9 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
   const edition = passport?.edition  ? `${passport.edition.number} / ${passport.edition.total}` : null;
   const materials = passport?.materials?.map(m => m.name || m).join(", ") || null;
   const desc    = passport?.description || null;
-  const ts      = new Date(Number(rec.timestamp) * 1000);
-  const dateStr = ts.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" });
+  const chainUtc = formatUnixUtcSeconds(rec.timestamp);
+  const localReg =
+    passport && passport.registration && typeof passport.registration === "object" ? passport.registration : null;
 
   const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 
@@ -884,10 +922,32 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             </div>
           </div>
 
-          <div class="field">
-            <div class="fl">Registered</div>
-            <div class="fv">${dateStr}</div>
+          <div class="field full">
+            <div class="fl">${esc(t("verify.time.onChainUtc"))}</div>
+            <div class="fv">${
+              chainUtc
+                ? `<div style="font-family:var(--mono);font-size:12px;word-break:break-all">${esc(chainUtc.iso)}</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(chainUtc.human)}</div>
+              <div style="font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.45">${esc(t("verify.time.onChainUtcHint"))}</div>`
+                : "—"
+            }</div>
           </div>
+          ${
+            localReg && localReg.localIso8601
+              ? `<div class="field full">
+            <div class="fl">${esc(t("verify.time.localFromJson"))}</div>
+            <div class="fv">
+              <div style="font-family:var(--mono);font-size:12px;word-break:break-all">${esc(String(localReg.localIso8601))}</div>
+              ${
+                localReg.ianaTimeZone
+                  ? `<div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(String(localReg.ianaTimeZone))}</div>`
+                  : ""
+              }
+              <div style="font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.45">${esc(t("verify.time.localFromJsonHint"))}</div>
+            </div>
+          </div>`
+              : ""
+          }
 
           <div class="field">
             <div class="fl">Protocol Version</div>

@@ -3,6 +3,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
 
+## IMPORTANT: 0.X contracts are not long-term storage
+
+In this repo we ship **0.X** deployments as proof-of-concept. During 0.X the **on-chain contracts may change** (including how creator registration works). Because **Creator IDs are assigned by the specific deployed contract**, you should assume that:
+
+- You **can register and mint only inside that exact contract deployment**.
+- Even with the same wallet address, a new deployment may generate a **different** `creatorId`.
+- After a new 0.X deployment, you **won’t be able to “add” your old information into the new contract** (new registry = new creator registration / new records). The data you wrote remains available on-chain in the old registry, but it will not automatically carry over to the next deployment.
+- If you want **only one wallet + one persistent `creatorId`** to be your main long-term storage, **please wait for the stable `v1`** and use that deployment for your canonical records.
+
 ## Terms (read this first)
 
 Blockchain apps reuse words from NFTs and finance — here is what they mean **in ODP**:

@@ -1,7 +1,7 @@
 /**
- * ODP UI i18n — loads JSON from i18n/<lang>/*.json (canonical copy in repo root: /i18n).
- * When the page is served from /web/*.html, resolves ../i18n/ so one copy on the server is enough.
- * localStorage odp_locale: "en" | "ru". Add languages under i18n/<code>/.
+ * ODP UI i18n — loads JSON from localization/<lang>/*.json (canonical copy in repo root: /localization).
+ * When the page is served from /web/*.html, resolves ../localization/ so one copy on the server is enough.
+ * localStorage odp_locale: "en" | "ru". Add languages under localization/<code>/.
  */
 (function (global) {
   "use strict";
@@ -156,11 +156,11 @@
       return Promise.resolve();
     }
 
-    var i18nPath = "i18n/";
+    var i18nPath = "localization/";
     try {
       var pathname = global.location && global.location.pathname ? String(global.location.pathname) : "";
       if (/\/web\/[^/]+\.html?$/i.test(pathname)) {
-        i18nPath = "../i18n/";
+        i18nPath = "../localization/";
       }
     } catch (ePath) {}
     var base = new URL(i18nPath, global.location.href);

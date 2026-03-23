@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.2"></script>
-<script src="odp-i18n.js?v=5"></script>
+<script src="odp-i18n.js?v=6"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
@@ -990,13 +990,26 @@ function buildRegistrationClock(now) {
   const oh = pad(Math.floor(a / 60));
   const om = pad(a % 60);
   const localIso8601 = y + "-" + mo + "-" + da + "T" + h + ":" + mi + ":" + s + sign + oh + ":" + om;
+  const utcIso8601 =
+    now.getUTCFullYear() +
+    "-" +
+    pad(now.getUTCMonth() + 1) +
+    "-" +
+    pad(now.getUTCDate()) +
+    "T" +
+    pad(now.getUTCHours()) +
+    ":" +
+    pad(now.getUTCMinutes()) +
+    ":" +
+    pad(now.getUTCSeconds()) +
+    "Z";
   let ianaTimeZone = "UTC";
   try {
     ianaTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   } catch (e0) {}
   return {
     registeredAt: registeredAt,
-    registration: { localIso8601: localIso8601, ianaTimeZone: ianaTimeZone },
+    registration: { ianaTimeZone: ianaTimeZone, localIso8601: localIso8601, utcIso8601: utcIso8601 },
   };
 }
 

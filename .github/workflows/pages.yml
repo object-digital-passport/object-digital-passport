@@ -36,11 +36,10 @@ jobs:
           cp -r web/. _site/
           mkdir -p _site/web
           cp -r web/. _site/web/
-          # Real JSON trees (web/i18n may be a symlink — replace so Pages serves files, not broken links)
-          if [ -d i18n ]; then
-            rm -rf _site/i18n _site/web/i18n
-            cp -r i18n _site/i18n
-            cp -r i18n _site/web/i18n
+          # Localization assets (UI i18n JSON + translated docs) are stored under localization/.
+          if [ -d localization ]; then
+            rm -rf _site/localization
+            cp -r localization _site/localization
           fi
           if [ -n "$ODP_CONTRACT_ADDRESS" ]; then
             echo "Injecting ODP_CONTRACT_ADDRESS into NET.contract (6 HTML files) + registry-config.json"

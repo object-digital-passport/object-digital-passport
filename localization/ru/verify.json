@@ -70,6 +70,13 @@
       "title": "Скан QR",
       "hint": "Наведите камеру на QR на этикетке или экране.",
       "cancel": "Отмена"
+    },
+    "time": {
+      "onChainUtc": "Время в сети (UTC)",
+      "onChainUtcHint": "В блокчейне хранится Unix-время в секундах; реестр трактует его как момент в UTC.",
+      "localFromJson": "Местное время (из passport.json)",
+      "localFromJsonHint": "Часы и часовой пояс IANA на момент создания файла — тот же момент, что и выше.",
+      "creatorRegisteredUtc": "Зарегистрировано (UTC)"
     }
   }
 }

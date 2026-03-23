@@ -6,6 +6,16 @@
 > An open standard for physical and digital object authentication
 > via blockchain and human-readable identifiers.
 
+## IMPORTANT: v0.X is not backward-compatible storage
+
+This repository documents a **v0.X** protocol line. During **0.X** the on-chain contracts (and how creator registration works) may change between deployments.
+
+Because **Creator IDs and on-chain records belong to a specific deployed contract**, data you write during one 0.X deployment will remain available there, but you should not expect to be able to register the same creator data and add the same records into a later 0.X contract deployment.
+
+Even with the same wallet address, a new deployment may generate a **different** `creatorId`.
+
+If you want **one wallet and one persistent `creatorId`** for your canonical long-term storage, please wait for the stable **v1** deployment.
+
 ---
 
 ## 1. Overview
@@ -524,11 +534,12 @@ These fields are part of the hashed `passport.json`; changing them changes `data
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `registeredAt` | yes | `number` (integer) | **Unix time in seconds** (UTC instant) at registration — same instant as the on-chain `timestamp` intent. |
-| `registration` | yes | `object` | Wall-clock view of **the same instant** with timezone context. |
+| `registration` | yes | `object` | Same instant as `registeredAt`: explicit **UTC** string plus **local** wall time + IANA zone. |
+| `registration.utcIso8601` | yes | `string` | Same instant as `registeredAt`, in **UTC** with **`Z`** suffix and **second** precision (e.g. `2026-03-22T18:45:30Z`). Aligns with how chain / block time is interpreted (offset 0). |
 | `registration.localIso8601` | yes | `string` | ISO 8601 **date-time with numeric offset**, **second** precision (e.g. `2026-03-22T21:45:30+03:00`). No sub-second fractional digits in the reference UI. |
 | `registration.ianaTimeZone` | yes | `string` | [IANA time zone name](https://www.iana.org/time-zones) for the environment where the passport JSON was built (e.g. `Europe/Moscow`, `America/New_York`). Use `UTC` if unknown. |
 
-Implementations MUST use the **same** UTC instant for `registeredAt` and for the instant encoded in `registration.localIso8601` (only the representation differs).
+Implementations MUST use the **same** UTC instant for `registeredAt`, `registration.utcIso8601`, and the instant encoded in `registration.localIso8601` (only the representation differs).
 
 ### Minimal valid passport — physical object
 
@@ -549,8 +560,9 @@ Implementations MUST use the **same** UTC instant for `registeredAt` and for the
   "month": 3,
   "registeredAt": 1748000000,
   "registration": {
+    "ianaTimeZone": "UTC",
     "localIso8601": "2026-03-22T18:30:45+00:00",
-    "ianaTimeZone": "UTC"
+    "utcIso8601": "2026-03-22T18:30:45Z"
   },
   "seal": {
     "nfc": {
@@ -582,8 +594,9 @@ Implementations MUST use the **same** UTC instant for `registeredAt` and for the
   "month": 3,
   "registeredAt": 1748000000,
   "registration": {
+    "ianaTimeZone": "UTC",
     "localIso8601": "2026-03-22T18:30:45+00:00",
-    "ianaTimeZone": "UTC"
+    "utcIso8601": "2026-03-22T18:30:45Z"
   },
   "digital": {
     "subtype": "image",
@@ -614,8 +627,9 @@ Implementations MUST use the **same** UTC instant for `registeredAt` and for the
   "month": 3,
   "registeredAt": 1748000000,
   "registration": {
+    "ianaTimeZone": "Europe/Moscow",
     "localIso8601": "2026-03-22T21:30:45+03:00",
-    "ianaTimeZone": "Europe/Moscow"
+    "utcIso8601": "2026-03-22T18:30:45Z"
   },
   "medium": "mixed media, Polaroid",
   "materials": [
@@ -686,8 +700,9 @@ Implementations MUST use the **same** UTC instant for `registeredAt` and for the
   "month": 3,
   "registeredAt": 1748000000,
   "registration": {
+    "ianaTimeZone": "America/New_York",
     "localIso8601": "2026-03-22T16:30:45-05:00",
-    "ianaTimeZone": "America/New_York"
+    "utcIso8601": "2026-03-22T21:30:45Z"
   },
   "description": "...",
   "digital": {

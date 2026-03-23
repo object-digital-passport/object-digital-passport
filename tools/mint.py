@@ -356,15 +356,16 @@ def issuer_role_from_creator_id(cid: str) -> str:
 
 
 def registration_clock_block(utc_now: datetime):
-    """Unix UTC instant + local wall time (second precision) with offset and IANA zone."""
+    """Unix UTC instant + explicit UTC ISO + local wall time + IANA zone (second precision)."""
     unix = int(utc_now.timestamp())
+    utc_iso = utc_now.strftime("%Y-%m-%dT%H:%M:%SZ")
     local = utc_now.astimezone()
     local_iso = local.isoformat(timespec="seconds")
     iana = "UTC"
     tz = local.tzinfo
     if tz is not None and hasattr(tz, "key"):
         iana = tz.key
-    return unix, {"localIso8601": local_iso, "ianaTimeZone": iana}
+    return unix, {"ianaTimeZone": iana, "localIso8601": local_iso, "utcIso8601": utc_iso}
 
 
 # ─── Mint ─────────────────────────────────────────────────────────────────────

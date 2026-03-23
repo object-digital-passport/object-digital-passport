@@ -70,6 +70,13 @@
       "title": "Scan QR",
       "hint": "Point the camera at the QR code on the label or screen.",
       "cancel": "Cancel"
+    },
+    "time": {
+      "onChainUtc": "On-chain time (UTC)",
+      "onChainUtcHint": "The chain stores a Unix timestamp in seconds; the registry treats it as a UTC instant.",
+      "localFromJson": "Local time (from passport.json)",
+      "localFromJsonHint": "Wall-clock time and IANA zone as recorded when the passport file was built — the same instant as above.",
+      "creatorRegisteredUtc": "Registered (UTC)"
     }
   }
 }
