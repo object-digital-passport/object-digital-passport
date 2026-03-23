@@ -57,9 +57,9 @@ The **Creator** and **Passport** pages use **`window.ethereum`** ([**EIP-1193**]
 |:--|:--|
 | **Site / static release** | **`0.X.Y`** (see `ODP_SITE_VERSION` in [`web/odp-contract.js`](web/odp-contract.js)). Bump **Y** when you change only documentation, HTML/CSS, or tooling **without** a new contract deployment. |
 | **Contract / protocol generation** | **`0.X`** in spec labels and git tags when bytecode or on-chain rules change (e.g. v0.1 → v0.2). The reference contract exposes **`SPEC_MAJOR`** / **`SPEC_MINOR`** (readable spec line) and a packed **`CONTRACT_VERSION`** byte for the UI. |
-| **On-chain `CONTRACT_VERSION`** | **Not** marketing semver. The reference UI reads it to pick ABIs: **≥2** = spec **v0.2** (gas-only, optional `dataUrl`, folder-base mint, **external document hash**, **`M` (museum)** prefix, unlimited **P/M** mints, **`submitProof`** from **P or M**). **`CONTRACT_VERSION == 0`** (historical v0.1 fee-era deploys) is **rejected**. See [`web/odp-contract.js`](web/odp-contract.js). |
+| **On-chain `CONTRACT_VERSION`** | **Not** marketing semver. The reference UI reads it to pick ABIs: **≥2** = spec **v0.2** (gas-only, optional `dataUrl`, folder-base mint, **external document hash**, **`M` (museum)** prefix, unlimited **P/M** mints, **`submitProof`** from **P or M**). **`CONTRACT_VERSION == 0`** (historical v0.1 fee-line deploys) is **rejected**. See [`web/odp-contract.js`](web/odp-contract.js). |
 | **Packed byte** | **`SPEC_MAJOR`/`SPEC_MINOR`** each &lt; 16. **Spec 0.2** → `SPEC_MINOR=2` → **`CONTRACT_VERSION = 2`**. |
-| **Older mainnet deploy** | The first public Polygon contract used on-chain byte **0** (fee-era). This repo’s **current HTML does not support that address** as `NET.contract`; use a **v0.2+** deployment. Historical discussion: **`SECURITY.md`**, **`SPEC.md`**. |
+| **Older mainnet deploy** | The first public Polygon contract used on-chain byte **0** (legacy fee-line). This repo’s **current HTML does not support that address** as `NET.contract`; use a **v0.2+** deployment. Historical discussion: **`SECURITY.md`**, **`SPEC.md`**. |
 
 ### Stack label & trust (always on in the web UI)
 
@@ -124,10 +124,11 @@ The pages below are **example** front ends. Set **`NET.contract`** in `web/creat
 | | |
 |:--|:--|
 | **Recommended PoC line** | **v0.2** — see **[`RELEASE_v0.2.md`](RELEASE_v0.2.md)** for a friendly overview. It is the **most stable proof-of-concept** baseline in this repo right now (gas-only contract rules, optional `dataUrl`, updated UI). |
-| **Historical v0.1-era deploy** | Polygon PoS — [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) (on-chain byte **0**). **Not** supported by this reference UI; listed for transparency only. Use a **v0.2+** contract for new work. |
+| **Current v0.2 mainnet deploy** | Polygon PoS — [`0x6c83c8C2e18c183a2776431a23187832b42FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) |
+| **Historical v0.1 deploy** | Polygon PoS — [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) (on-chain byte **0**). **Not** supported by this reference UI; listed for transparency only. Use a **v0.2+** contract for new work. |
 | **Git / tags** | Not every iteration of the “0.1” idea was captured in a single tidy tag while the repo was still learning GitHub workflows — **v0.2** is the coherent snapshot we point people to. Older tags may exist for history; trust **`RELEASE_v0.2.md`** + `main` for the current PoC story. |
 
-After you deploy **v0.2** to mainnet, add a **`v0.2`** (or similar) tag on the matching commit and paste the new address into the three `NET.contract` fields in `web/`.
+After each new **v0.2** mainnet redeploy, add/update a release tag on the matching commit and replace the address in the three `NET.contract` fields in `web/`.
 
 ---
 
@@ -227,7 +228,7 @@ Anyone with a phone can scan the QR code and verify:
 
 ## Quick start (example web UI)
 
-The following uses the **live demo** links above — **functional examples** on the **official v0.1 contract**.
+The following uses the **live demo** links above — **functional examples** on the **official v0.2 contract**.
 
 ### 1. Wallet
 
@@ -242,7 +243,7 @@ Registering a Creator ID and minting passports **submit transactions on Polygon 
 
 ### 3. Official contract
 
-The **Current release** table lists the canonical **v0.1** deployment. The demo HTML is already configured for that address.
+The **Current release** table lists the canonical **v0.2** deployment. The demo HTML in this repo is configured for that address.
 
 ### 3.1 Compilation requirements (important)
 
@@ -252,6 +253,10 @@ For this contract, compile with optimizer and IR pipeline enabled:
 - `viaIR = true`
 
 Without `viaIR`, some environments may fail with `Stack too deep` in `mintPhysical`.
+
+Important: `solc` CLI does not reliably support a `--via-ir` flag across versions.
+If you compile via CLI, prefer Remix “viaIR” or compile via standard JSON with `viaIR: true`
+(this repository already documents the standard JSON approach in operator notes).
 
 Lifecycle note: the contract includes a **one-time irreversible** `freeze()` action controlled by the deployer.  
 It does not allow changing existing records or rules; it only stops new writes.
@@ -414,8 +419,8 @@ See `SPEC.md` section 13 for the full SDK interface specification.
 | Chain ID | 137 |
 | Typical mint / register (gas only, v0.2) | ~US$0.01 (varies) |
 | Testnet | Polygon Amoy (chain ID 80002) |
-| Historical contract (v0.1-era) | [`0x3800…469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) — not supported by this UI. |
-| Contract (v0.2+) | Set in `web/*.html` `NET.contract` after deploy (see `deploy/scripts/deploy.js`). |
+| Historical contract (v0.1) | [`0x3800…469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) — not supported by this UI. |
+| Contract (v0.2 current) | [`0x6c83c8C2e18c183a2776431a23187832b42FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) |
 
 ---
 
@@ -423,7 +428,7 @@ See `SPEC.md` section 13 for the full SDK interface specification.
 
 **v0.2+** (on-chain packed byte **≥ 2**): **register**, **mint**, and **proof** transactions pay **Polygon network gas** (POL) only — **no** separate burned protocol fee in this line.
 
-Older **v0.1-era** deployments used a separate burned fee on some actions; this reference UI does not target those contracts.
+Older **v0.1** deployments used a separate burned fee on some actions; this reference UI does not target those contracts.
 
 | Action | Typical cost (v0.2) |
 |--------|----------------|

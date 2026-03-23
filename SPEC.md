@@ -492,6 +492,7 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 |----------|-------|
 | Network | Polygon PoS (mainnet) |
 | Chain ID | 137 |
+| Canonical v0.2 contract | `0x6c83c8C2e18c183a2776431a23187832b42FfFBb` ([PolygonScan](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb)) |
 | Testnet | Polygon Amoy (chain ID 80002) |
 | Gas token | POL (ex-POL) |
 | Avg. mint cost | ~$0.01 |
@@ -500,7 +501,7 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 A single canonical network eliminates ambiguity in verification.
 Multi-network support is reserved for a future version.
 
-The official contract address is published in the protocol repository.
+The official contract address for this v0.2 line is listed above and in the protocol repository.
 Using a different address means operating a separate, incompatible registry.
 
 ---
