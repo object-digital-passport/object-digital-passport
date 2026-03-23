@@ -110,14 +110,25 @@
    * next to the page. First `no-store`, then `reload` if still empty (bypasses some CDN/browser caches).
    */
   function odpMergeRegistryConfigAsync(net) {
+    var __odpMergeStart = Date.now();
+    var __odpMergeRunId = "run-" + __odpMergeStart;
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H1',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:start',message:'Registry merge start',data:{hasNet:!!net,hasValidBefore:!!(net && odpHasValidRegistryAddress(net)),contractBefore:net && net.contract ? String(net.contract) : ''},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     odpApplyInlineRegistryOverrides(net);
     if (!net) return Promise.resolve();
-    if (odpHasValidRegistryAddress(net)) return Promise.resolve();
+    if (odpHasValidRegistryAddress(net)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H2',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:short-circuit',message:'Registry merge skipped due valid inline/session address',data:{durationMs:Date.now()-__odpMergeStart,contractAfter:String(net.contract||'')},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return Promise.resolve();
+    }
     if (typeof global.location === "undefined" || !global.location || !global.location.href) {
       return Promise.resolve();
     }
 
     function fetchAndMerge(cacheMode) {
+      var __fetchStart = Date.now();
       var url = new URL("registry-config.json", global.location.href);
       url.searchParams.set("_", String(Date.now()) + "_" + Math.random().toString(16).slice(2));
       return global
@@ -139,6 +150,9 @@
               if (global.localStorage) global.localStorage.setItem(k, c);
             } catch (e2) {}
           }
+          // #region agent log
+          fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H2',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:fetchAndMerge',message:'Registry config fetch completed',data:{cacheMode:cacheMode||'no-store',durationMs:Date.now()-__fetchStart,resolvedValid:odpHasValidRegistryAddress(net),resolvedContract:String((net&&net.contract)||'')},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
         });
     }
 
@@ -147,6 +161,11 @@
       .then(function () {
         if (odpHasValidRegistryAddress(net)) return;
         return fetchAndMerge("reload").catch(function () {});
+      })
+      .then(function () {
+        // #region agent log
+        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H2',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:end',message:'Registry merge end',data:{durationMs:Date.now()-__odpMergeStart,hasValidAfter:odpHasValidRegistryAddress(net),contractAfter:String((net&&net.contract)||'')},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
       });
   }
 
@@ -454,14 +473,25 @@
   async function odpProbeContractGenerationCached(address, chainId, rpcFallbacks, ethersRef) {
     var E = ethersRef || global.ethers;
     if (!address || !E) return null;
+    var __probeStart = Date.now();
+    var __probeRunId = "run-" + __probeStart;
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H3',location:'web/odp-contract.js:odpProbeContractGenerationCached:start',message:'Generation probe start',data:{address:String(address||''),chainId:chainId,rpcCount:Array.isArray(rpcFallbacks)?rpcFallbacks.length:0},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     var key = "odp_cv_" + String(address).toLowerCase();
     try {
       var cached = sessionStorage.getItem(key);
-      if (cached !== null && cached !== "") return parseInt(cached, 10);
+      if (cached !== null && cached !== "") {
+        // #region agent log
+        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H4',location:'web/odp-contract.js:odpProbeContractGenerationCached:cache-hit',message:'Generation probe cache hit',data:{durationMs:Date.now()-__probeStart,cached:String(cached)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        return parseInt(cached, 10);
+      }
     } catch (e0) {}
 
     var gen = null;
     for (var i = 0; i < rpcFallbacks.length; i++) {
+      var __rpcStart = Date.now();
       try {
         var provider = new E.providers.JsonRpcProvider(rpcFallbacks[i], { name: "polygon", chainId: chainId });
         await provider.getBlockNumber();
@@ -470,8 +500,14 @@
         try {
           sessionStorage.setItem(key, String(gen));
         } catch (e1) {}
+        // #region agent log
+        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H3',location:'web/odp-contract.js:odpProbeContractGenerationCached:rpc-success',message:'Generation probe rpc success',data:{rpcUrl:String(rpcFallbacks[i]||''),attempt:i+1,durationMs:Date.now()-__rpcStart,generation:gen,totalDurationMs:Date.now()-__probeStart},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         break;
       } catch (e2) {
+        // #region agent log
+        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H3',location:'web/odp-contract.js:odpProbeContractGenerationCached:rpc-fail',message:'Generation probe rpc failed',data:{rpcUrl:String(rpcFallbacks[i]||''),attempt:i+1,durationMs:Date.now()-__rpcStart,error:e2&&e2.message?String(e2.message):String(e2),totalDurationMs:Date.now()-__probeStart},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         continue;
       }
     }
