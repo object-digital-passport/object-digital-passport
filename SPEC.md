@@ -8,13 +8,15 @@
 
 ## IMPORTANT: v0.X is not backward-compatible storage
 
-This repository documents a **v0.X** protocol line. During **0.X** the on-chain contracts (and how creator registration works) may change between deployments.
+This repository documents a **v0.X** protocol line. During **0.X**, contract rules may still change.
 
-Because **Creator IDs and on-chain records belong to a specific deployed contract**, data you write during one 0.X deployment will remain available there, but you should not expect to be able to register the same creator data and add the same records into a later 0.X contract deployment.
+In plain terms:
+- A **deployment** means one specific contract address (one registry instance).
+- Your `creatorId` and passport records belong to that specific deployment.
+- If a new 0.X deployment is launched, even the same wallet may get a **different** `creatorId`.
+- Data already written to an older deployment remains there and stays readable, but it does not move automatically into a newer deployment.
 
-Even with the same wallet address, a new deployment may generate a **different** `creatorId`.
-
-If you want **one wallet and one persistent `creatorId`** for your canonical long-term storage, please wait for the stable **v1** deployment.
+If your goal is **one wallet + one long-lived `creatorId`** as canonical storage, wait for stable **v1**.
 
 ---
 ## Translated versions (informational)
@@ -48,6 +50,7 @@ This specification uses the following terms in a precise sense:
 |:--|:--|
 | **Mint**, **minting** | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Human ID**, records **hashes**, optional **URLs**, and seal metadata. **v0.2** charges **network gas only** (no separate **MINT_FEE**). Minting does **not** upload `passport.json` to the blockchain; the creator **may** host that file at `dataUrl` (see §8–§9). If `dataUrl` is empty, public web verification cannot fetch JSON — only a holder of the canonical **passport.json** can verify against `dataHash`. |
 | **Register (Creator ID)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **Creator ID** before any mint or proof. **v0.2**: gas only (no **REGISTER_FEE**). |
+| **Deployment** | One specific smart-contract instance at one address (one registry). Creator IDs and passport records are tied to that deployment. |
 | **Passport** | The on-chain **Passport** record plus, when applicable, **passport.json** bytes matching `dataHash` (at `dataUrl` if set). |
 | **`passport.json`** | The normative off-chain JSON document (§9). |
 | **`dataUrl`** | Optional HTTPS URL where `passport.json` is served (§8–§9). May be empty on-chain in **v0.2**; if empty, verifiers relying on HTTP **cannot** obtain the file unless the user provides it. |

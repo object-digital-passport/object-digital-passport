@@ -5,12 +5,20 @@
 
 ## IMPORTANT: 0.X contracts are not long-term storage
 
-In this repo we ship **0.X** deployments as proof-of-concept. During 0.X the **on-chain contracts may change** (including how creator registration works). Because **Creator IDs are assigned by the specific deployed contract**, you should assume that:
+In this repo, **0.X** means proof-of-concept stage. Contract rules may still change.
 
-- You **can register and mint only inside that exact contract deployment**.
-- Even with the same wallet address, a new deployment may generate a **different** `creatorId`.
-- After a new 0.X deployment, you **won’t be able to “add” your old information into the new contract** (new registry = new creator registration / new records). The data you wrote remains available on-chain in the old registry, but it will not automatically carry over to the next deployment.
-- If you want **only one wallet + one persistent `creatorId`** to be your main long-term storage, **please wait for the stable `v1`** and use that deployment for your canonical records.
+In plain terms:
+- A **deployment** is one specific contract address (one registry).
+- Your `creatorId` and passports belong to that deployment.
+- A later 0.X deployment may issue a **different** `creatorId`, even for the same wallet.
+- Older data stays in the older deployment and remains readable, but it does not migrate automatically.
+
+If you want **one wallet + one persistent `creatorId`** for canonical long-term storage, wait for stable **v1**.
+
+Quick example:
+1. You register and mint in deployment A (`contractAddress_A`) and get `creatorId_A`.
+2. Later, deployment B (`contractAddress_B`) is launched with updated rules.
+3. Your data in A remains readable, but in B you may need a new registration and can get a different `creatorId_B`.
 
 ## Translated versions (informational)
 
@@ -25,6 +33,7 @@ Blockchain apps reuse words from NFTs and finance — here is what they mean **i
 |:--|:--|
 | **Mint / minting** | Sending a **transaction** that **creates** a new on-chain record. For a passport, **mint** means the smart contract **registers** your object: it assigns a **Human ID** and stores cryptographic **hashes** (v0.2: **network gas only** — no separate protocol fee). You still **download** and may **host** `passport.json` separately. |
 | **Register (Creator ID)** | A **one-time** on-chain step: your wallet pays **gas** and receives a permanent **Creator ID** (`C-…`, `B-…`, or `P-…`). You must do this **before** you can mint passports. |
+| **Deployment** | One specific smart-contract instance at one address (one registry). Your `creatorId` and records are tied to it. |
 | **Passport** | The **whole record** for one object: the on-chain row **plus** (when published) the **passport.json** file at **`dataUrl`**. |
 | **`passport.json`** | The **off-chain JSON document** with title, seal, hashes, etc. Only a **hash** of it lives on-chain; **you** must keep the file. If you register a **`dataUrl`**, publish the file there so verifiers can fetch it. |
 | **`dataUrl`** | Optional **HTTPS** link where `passport.json` is hosted. If empty on-chain, the public Verify page **cannot** fetch JSON — only someone with the **file** can check details and authenticity. |
