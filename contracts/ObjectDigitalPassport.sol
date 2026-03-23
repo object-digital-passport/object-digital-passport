@@ -179,6 +179,12 @@ contract ObjectDigitalPassport {
     mapping(string  => string)    private _pParentOf;           // childPId -> parentPId (active)
     mapping(string  => string[])  private _pChildrenOf;         // parentPId -> childPId[]
 
+    // Hard caps (v0.2 anti-growth limits)
+    uint16 private constant MAX_P_ACTIVE_CHILDREN_PER_PARENT = 100;
+    uint16 private constant MAX_P_PENDING_PARENTS_PER_CHILD  = 100;
+    mapping(string => uint16) private _pActiveChildrenCountByParent; // parentPId -> active children count
+    mapping(string => uint16) private _pPendingParentsCountByChild;   // childPId -> pending parent requests count
+
     // ── Extension Registry (v1 architecture) ─────────────────────────────────
     // Maps type bytes1 → extension contract address.
     // In v0 this is empty — all types are handled natively.
@@ -388,10 +394,12 @@ contract ObjectDigitalPassport {
         require(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)), "Self-link not allowed");
         _requireTypeP(parentPId, "Parent must be P-type");
         require(bytes(_pParentOf[childPId]).length == 0, "Child already has parent P");
+        require(_pPendingParentsCountByChild[childPId] < MAX_P_PENDING_PARENTS_PER_CHILD, "Pending limit reached for this child P");
 
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
         require(!_pendingPAffiliation[k], "Affiliation already pending");
         _pendingPAffiliation[k] = true;
+        _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] + 1;
 
         emit PAffiliationProposed(parentPId, childPId, block.timestamp);
     }
@@ -413,9 +421,13 @@ contract ObjectDigitalPassport {
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
         require(_pendingPAffiliation[k], "No pending affiliation request");
         delete _pendingPAffiliation[k];
+        _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] - 1;
+
+        require(_pActiveChildrenCountByParent[parentPId] < MAX_P_ACTIVE_CHILDREN_PER_PARENT, "Parent P active children limit reached");
 
         _pParentOf[childPId] = parentPId;
         _pChildrenOf[parentPId].push(childPId);
+        _pActiveChildrenCountByParent[parentPId] = _pActiveChildrenCountByParent[parentPId] + 1;
 
         emit PAffiliationConfirmed(parentPId, childPId, block.timestamp);
     }
@@ -432,6 +444,7 @@ contract ObjectDigitalPassport {
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
         require(_pendingPAffiliation[k], "No pending affiliation request");
         delete _pendingPAffiliation[k];
+        _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] - 1;
     }
 
     function isPAffiliationPending(string calldata parentPId, string calldata childPId)
@@ -456,6 +469,33 @@ contract ObjectDigitalPassport {
         returns (string[] memory)
     {
         return _pChildrenOf[parentPId];
+    }
+
+    /**
+     * Paginated affiliated children (v0.2 standard-friendly read endpoint).
+     * For large lists, frontends MUST use this method to avoid heavy responses.
+     *
+     * @return result children slice in range [offset, min(offset+limit, total))
+     * @return total total count of active affiliated children for parentPId
+     */
+    function getPAffiliatedChildrenPaged(
+        string calldata parentPId,
+        uint256 offset,
+        uint256 limit
+    )
+        external
+        view
+        returns (string[] memory result, uint256 total)
+    {
+        string[] storage all = _pChildrenOf[parentPId];
+        total = all.length;
+        if (offset >= total) return (new string[](0), total);
+        uint256 end = offset + limit;
+        if (end > total) end = total;
+        result = new string[](end - offset);
+        for (uint256 i = offset; i < end; i++) {
+            result[i - offset] = all[i];
+        }
     }
 
     // ─── Passport Registry — Physical ─────────────────────────────────────────

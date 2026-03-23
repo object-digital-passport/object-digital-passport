@@ -1061,6 +1061,34 @@ odp://ODP-2026-03-004829301
 
 ## 13. SDK Requirements
 
+### Almost-ERC Read Standard (v0.2)
+
+This section defines the practical “read-only integration surface” that other
+developers should treat as stable for v0.2 verifiers.
+
+Level 1 (core reading)
+- `exists(humanId) -> bool` (no revert)
+- `resolvePassport(humanId) -> (passport, creator, proofCount, contractVersion)` (reverts if not found)
+- `getCreator(creatorId) -> CreatorRecord`
+- `getProofsForPassportPaged(humanId, offset, limit) -> (proofIds[], total)` (pagination returns slice `[offset, offset+limit)`; does not copy full arrays first)
+- `getProof(proofId) -> ProofRecord`
+
+Optional Level 1 list endpoints
+- `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> (humanIds[], total)`
+
+Core guarantees (invariants)
+- Hashes are immutable after mint: `dataHash`, `imageHash`, `fileHash`, `sealHash`.
+- `updatePassportUrls()` may change only URLs and requires `confirmedDataHash == on-chain dataHash`.
+- `freeze()` is an irreversible one-time switch that stops new writes; it does not affect existing reads.
+
+Affiliation note (P → P, one-level)
+- `getPAffiliatedChildrenPaged(parentPId, offset, limit) -> (children[], total)` is the preferred pagination endpoint for verifiers/frontends.
+- `getPAffiliatedChildren(parentPId) -> string[]` returns the entire list in v0.2. Verifier/frontends MUST treat the result as potentially large and apply UI/Network caps.
+- Hard caps in v0.2: a single parent `P` can have at most **100 active child `P`**, and a single child `P` can have at most **100 pending parent proposals** at any moment.
+
+Document anchoring
+- `getExternalDocumentAttestation(wallet, documentHash)` returns metadata for a single `(wallet, hash)` attestation.
+
 ```
 verify(humanId) → VerificationResult
   .status       // AUTHENTIC | INVALID | UNVERIFIABLE | TAMPERED
@@ -1095,6 +1123,7 @@ confirmPAffiliation(childPId)
 cancelPAffiliationRequest(parentPId)
 isPAffiliationPending(parentPId, childPId) → bool
 getPAffiliatedParent(childPId) → string
+getPAffiliatedChildrenPaged(parentPId, offset, limit) → (children[], total)
 getPAffiliatedChildren(parentPId) → string[]
 
 getCreator(creatorId) → CreatorRecord

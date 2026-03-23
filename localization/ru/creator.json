@@ -118,6 +118,7 @@
       "childInputLabel": "Child P (подтвердить)",
       "confirmBtn": "Подтвердить связь",
       "childrenTitle": "Активные affiliated школы (children)",
+      "loadMoreBtn": "Ещё",
       "parentRequired": "Сначала укажите parent P Creator ID.",
       "sending": "Отправляем…",
       "proposed": "Предложено. Ожидаем подтверждения parent.",

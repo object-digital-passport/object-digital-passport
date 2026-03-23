@@ -684,6 +684,20 @@
           outputs: [{ name: "", type: "string[]" }],
         },
         {
+          name: "getPAffiliatedChildrenPaged",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "parentPId", type: "string" },
+            { name: "offset", type: "uint256" },
+            { name: "limit", type: "uint256" },
+          ],
+          outputs: [
+            { name: "", type: "string[]" },
+            { name: "total", type: "uint256" },
+          ],
+        },
+        {
           name: "attestExternalDocument",
           type: "function",
           stateMutability: "nonpayable",
@@ -867,6 +881,20 @@
         stateMutability: "view",
         inputs: [{ name: "parentPId", type: "string" }],
         outputs: [{ name: "", type: "string[]" }],
+      },
+      {
+        name: "getPAffiliatedChildrenPaged",
+        type: "function",
+        stateMutability: "view",
+        inputs: [
+          { name: "parentPId", type: "string" },
+          { name: "offset", type: "uint256" },
+          { name: "limit", type: "uint256" },
+        ],
+        outputs: [
+          { name: "", type: "string[]" },
+          { name: "total", type: "uint256" },
+        ],
       },
     ];
     abi.push({

@@ -118,6 +118,7 @@
       "childInputLabel": "Child P (confirm)",
       "confirmBtn": "Confirm link",
       "childrenTitle": "Active affiliated schools (children)",
+      "loadMoreBtn": "Load more",
       "parentRequired": "Enter a parent P Creator ID first.",
       "sending": "Sending…",
       "proposed": "Proposed. Waiting for parent confirmation.",

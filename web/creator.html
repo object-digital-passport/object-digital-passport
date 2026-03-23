@@ -573,12 +573,18 @@ function bindPAffiliationHandlers() {
   const confirmBtn = document.getElementById("pAffConfirmBtn");
   const confirmResult = document.getElementById("pAffConfirmResult");
   const childrenList = document.getElementById("pAffChildrenList");
-  if (!contract || !activeParentVal || !parentInput || !proposeBtn || !childInput || !confirmBtn || !childrenList) return;
+  const childrenMeta = document.getElementById("pAffChildrenMeta");
+  const loadMoreBtn = document.getElementById("pAffLoadMoreBtn");
+  if (!contract || !activeParentVal || !parentInput || !proposeBtn || !childInput || !confirmBtn || !childrenList || !childrenMeta || !loadMoreBtn) return;
 
   proposeBtn.disabled = true;
   confirmBtn.disabled = false;
   proposeResult.innerHTML = "";
   confirmResult.innerHTML = "";
+
+  const limit = 12;
+  let loaded = [];
+  let total = 0;
 
   async function refresh() {
     try {
@@ -586,22 +592,35 @@ function bindPAffiliationHandlers() {
       confirmResult.innerHTML = "";
       activeParentVal.textContent = "…";
       childrenList.textContent = "…";
+      childrenMeta.textContent = "";
+      loaded = [];
+      total = 0;
+      loadMoreBtn.disabled = true;
 
       const parentPId = await contract.getPAffiliatedParent(creatorId);
       const hasParent = parentPId && String(parentPId).trim().length > 0;
       activeParentVal.textContent = hasParent ? parentPId : "—";
       proposeBtn.disabled = hasParent;
 
-      const children = await contract.getPAffiliatedChildren(creatorId);
-      if (!children || children.length === 0) {
-        childrenList.textContent = "—";
+      if (typeof contract.getPAffiliatedChildrenPaged === "function") {
+        const [slice, t] = await contract.getPAffiliatedChildrenPaged(creatorId, 0, limit);
+        total = Number(t || 0);
+        loaded = Array.isArray(slice) ? slice : [];
       } else {
-        childrenList.textContent = children.join(", ");
+        const children = await contract.getPAffiliatedChildren(creatorId);
+        loaded = Array.isArray(children) ? children : [];
+        total = loaded.length;
       }
+
+      childrenList.textContent = loaded.length ? loaded.join(", ") : "—";
+      childrenMeta.textContent = loaded.length ? `${loaded.length} / ${total}` : `0 / ${total}`;
+      loadMoreBtn.disabled = total === 0 || loaded.length >= total;
     } catch (e) {
       const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
       activeParentVal.textContent = "Error";
       childrenList.textContent = m;
+      childrenMeta.textContent = "";
+      loadMoreBtn.disabled = true;
     }
   }
 
@@ -665,6 +684,25 @@ function bindPAffiliationHandlers() {
       const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
       confirmResult.innerHTML = `<div class="info error">${esc(m)}</div>`;
       confirmBtn.disabled = false;
+    }
+  });
+
+  loadMoreBtn.addEventListener("click", async () => {
+    if (!contract || total === 0) return;
+    try {
+      loadMoreBtn.disabled = true;
+      const nextOffset = loaded.length;
+      const [slice, t] = await contract.getPAffiliatedChildrenPaged(creatorId, nextOffset, limit);
+      total = Number(t || total);
+      const more = Array.isArray(slice) ? slice : [];
+      loaded = loaded.concat(more);
+      childrenList.textContent = loaded.length ? loaded.join(", ") : "—";
+      childrenMeta.textContent = loaded.length ? `${loaded.length} / ${total}` : `0 / ${total}`;
+      loadMoreBtn.disabled = loaded.length >= total;
+    } catch (e) {
+      const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      childrenMeta.textContent = "Load error";
+      loadMoreBtn.disabled = false;
     }
   });
 }
@@ -791,6 +829,12 @@ function renderAlready() {
             ${esc(t("creator.pAff.childrenTitle"))}
           </div>
           <div id="pAffChildrenList" class="mono" style="font-size:12px;word-break:break-word"></div>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
+            <div id="pAffChildrenMeta" style="font-size:11px;color:var(--text3);line-height:1.35"></div>
+            <button type="button" class="btn btn-sec" id="pAffLoadMoreBtn" style="padding:10px 12px" disabled>
+              ${esc(t("creator.pAff.loadMoreBtn"))}
+            </button>
+          </div>
         </div>
       </div>
     </div>`
