@@ -8,11 +8,11 @@
     },
     "search": {
       "label": "Paste an ID or link, or scan a QR code",
-      "placeholder": "Example: ODP-2026-03-1234567",
+      "placeholder": "Example: ODP-2026-03-123456789",
       "verifyBtn": "Verify",
       "scanTitle": "Scan QR code",
       "scanAria": "Scan QR code",
-      "hint": "Passport IDs start with ODP-. Creator IDs look like C-123-456-789 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code."
+      "hint": "Passport IDs start with ODP-. Creator IDs look like C-123-456-789-012 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code."
     },
     "net": {
       "connecting": "Connecting...",
@@ -23,7 +23,7 @@
       "offline": "offline"
     },
     "result": {
-      "badToken": "That doesn’t look like a passport ID, creator ID, or a link from this site. Passport IDs start with ODP-. Creator IDs look like C-123-456-789.",
+      "badToken": "That doesn’t look like a passport ID, creator ID, or a link from this site. Passport IDs start with ODP-. Creator IDs look like C-123-456-789-012.",
       "loadFail": "Can’t load registration data right now. Check your internet connection and try again.",
       "checking": "Checking registration…",
       "notRegisteredLabel": "Not Registered",
@@ -55,14 +55,14 @@
       "panelVerifyHint": "Paste the exact message and signature from the creator. The page checks EIP-191 recovery against the passport’s on-chain creator (needs RPC + NET.contract).",
       "verifySignatureBtn": "Verify signature",
       "labelMessage": "Message",
-      "humanIdPlaceholder": "ODP-2026-03-1234567",
+      "humanIdPlaceholder": "ODP-2026-03-123456789",
       "optionalHumanIdSuffix": "(optional if the message includes humanId:)"
     },
     "doc": {
       "sectionTitle": "Anchored document (PDF) — check hash",
       "lead": "If a creator recorded a file hash on a v0.2 contract (generation ≥ 2), drop the same file here. The page hashes it locally and checks the registry — no upload.",
       "idLabel": "Creator ID (C-…) or wallet 0x…",
-      "idPlaceholder": "C-482-930-174 or 0x…",
+      "idPlaceholder": "C-482-930-174-005 or 0x…",
       "fileLabel": "File",
       "checkBtn": "Check on-chain"
     },

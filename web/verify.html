@@ -29,6 +29,7 @@
 <script src="odp-contract.js?v=0.2"></script>
 <script src="odp-i18n.js?v=6"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -65,7 +66,7 @@
       type="text"
       id="idInput"
       data-i18n-placeholder="verify.search.placeholder"
-      placeholder="Example: ODP-2026-03-1234567"
+      placeholder="Example: ODP-2026-03-123456789"
       autocomplete="off"
       autocorrect="off"
       spellcheck="false"
@@ -80,7 +81,7 @@
     </button>
     <button class="btn" onclick="verify()" id="verifyBtn" data-i18n="verify.search.verifyBtn">Verify</button>
   </div>
-  <p class="search-hint" data-i18n="verify.search.hint">Passport IDs start with ODP-. Creator IDs look like C-123-456-789 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
+  <p class="search-hint" data-i18n="verify.search.hint">Passport IDs start with ODP-. Creator IDs look like C-123-456-789-012 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
 </div>
 
 <div id="result"></div>
@@ -104,7 +105,7 @@
     <div class="odp-proof-stack">
       <div>
         <label class="search-label" for="proofHumanIdSign" data-i18n="verify.proof.humanId">Human ID</label>
-        <input type="text" id="proofHumanIdSign" class="odp-proof-input" data-i18n-placeholder="verify.proof.humanIdPlaceholder" placeholder="ODP-2026-03-1234567" autocomplete="off" spellcheck="false">
+        <input type="text" id="proofHumanIdSign" class="odp-proof-input" data-i18n-placeholder="verify.proof.humanIdPlaceholder" placeholder="ODP-2026-03-123456789" autocomplete="off" spellcheck="false">
       </div>
       <div class="odp-proof-actions">
         <button type="button" class="btn btn-ghost" id="proofConnectBtn" onclick="proofConnectWallet()" data-i18n="verify.proof.connectWallet">Connect wallet</button>
@@ -150,7 +151,7 @@
     If a creator recorded a file hash on a v0.2 contract (generation ≥ 2), drop the same file here. The page hashes it locally and checks the registry — no upload.
   </p>
   <label class="search-label" for="docVerifyId" data-i18n="verify.doc.idLabel">Creator ID (C-…) or wallet 0x…</label>
-  <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.idPlaceholder" placeholder="C-482-930-174 or 0x…" autocomplete="off" spellcheck="false">
+  <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.idPlaceholder" placeholder="C-482-930-174-005 or 0x…" autocomplete="off" spellcheck="false">
   <label class="search-label" for="docVerifyFile" data-i18n="verify.doc.fileLabel">File</label>
   <input type="file" id="docVerifyFile" style="margin-bottom:12px;font-size:12px">
   <button type="button" class="btn" id="docVerifyBtn" onclick="verifyDocAttestation()" data-i18n="verify.doc.checkBtn">Check on-chain</button>
@@ -331,13 +332,13 @@ function shortAddr(a) {
 
 // ── Parse ─────────────────────────────────────────────────────────────────────
 
-/** Contract uses _pad8 → serial is 1–8 digits (SPEC examples use 7). Accept both. */
+/** Legacy deployments may have shorter serials; current contract uses 9 digits. Accept 7–9. */
 function parseId(raw) {
   raw = raw.trim();
   if (raw.startsWith("odp://")) raw = raw.slice(5);
-  const m = raw.match(/ODP-\d{4}-\d{2}-\d{7,8}/i);
+  const m = raw.match(/ODP-\d{4}-\d{2}-\d{7,9}/i);
   if (m) return m[0].toUpperCase();
-  if (/^ODP-\d{4}-\d{2}-\d{7,8}$/i.test(raw)) return raw.toUpperCase();
+  if (/^ODP-\d{4}-\d{2}-\d{7,9}$/i.test(raw)) return raw.toUpperCase();
   return null;
 }
 
@@ -363,9 +364,11 @@ function parseVerifyToken(raw) {
   if (passportId) return { kind: "passport", id: passportId };
   let c = raw.trim();
   if (/^odpc:\/\//i.test(c)) c = c.slice(7);
-  const cm = c.match(/^([CBPM])-(\d{3})-(\d{3})-(\d{3})$/i);
+  const cm = c.match(/^([CBPM])-(\d{3})-(\d{3})-(\d{3})(?:-(\d{3}))?$/i);
   if (cm) {
-    const cid = `${cm[1].toUpperCase()}-${cm[2]}-${cm[3]}-${cm[4]}`;
+    const cid = cm[5]
+      ? `${cm[1].toUpperCase()}-${cm[2]}-${cm[3]}-${cm[4]}-${cm[5]}`
+      : `${cm[1].toUpperCase()}-${cm[2]}-${cm[3]}-${cm[4]}`;
     return { kind: "creator", id: cid };
   }
   return null;
@@ -1031,6 +1034,29 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         </div>
         <div id="jsonResult"></div>
 
+        <div class="section-title" style="margin-top:16px">Verify .odp bundle</div>
+        <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
+          Drop a <code>.odp</code> file. The verifier reads <code>passport.json</code> inside the bundle and checks it against on-chain <code>dataHash</code>.
+        </p>
+        <div class="drop-zone json-drop" id="odpDrop">
+          <input type="file" id="odpInput" accept=".odp,application/zip,application/octet-stream,.zip">
+          <p>Drop .odp here or click to select<br>
+          <span style="opacity:0.6">Processed locally in browser — not uploaded</span></p>
+        </div>
+        <div id="odpResult"></div>
+
+        ${isDigital && passport?.digital?.c2pa?.manifestHash ? `
+        <div class="section-title" style="margin-top:16px">Verify C2PA manifest hash (manual)</div>
+        <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
+          Declared in passport: <code>${esc(passport.digital.c2pa.manifestHash)}</code>. MVP mode: paste the hash extracted by your C2PA tool.
+        </p>
+        <div class="drop-zone json-drop" style="padding:12px">
+          <input type="text" id="c2paHashInput" placeholder="sha256:... or 0x..." style="width:100%;margin-bottom:8px">
+          <button type="button" class="btn btn-sec" id="c2paHashCheckBtn">Check C2PA hash</button>
+        </div>
+        <div id="c2paHashResult"></div>
+        ` : ""}
+
         ${isDigital && hasFile ? `
         <div class="vrow">
           <span class="vbadge na">Registered</span>
@@ -1149,7 +1175,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             <div class="vinfo-label">How to trust a Proof</div>
             <div class="vinfo-val">
               Anyone can register as a P-type institution — names are self-declared and unverified.
-              Only the Creator ID (P-NNN-NNN-NNN) is on-chain.
+              Only the Creator ID (P-NNN-NNN-NNN-NNN) is on-chain.
               Find this exact ID published on the institution's official website to confirm identity.
             </div>
           </div>
@@ -1181,6 +1207,12 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
     </div>`;
   queueMicrotask(() => {
     attachJsonVerifyHandlers(humanId, dataHashHex);
+    attachOdpVerifyHandlers(humanId, dataHashHex, rec.fileHash, rec.imageHash);
+    const c2paDeclared =
+      passport && passport.digital && passport.digital.c2pa && passport.digital.c2pa.manifestHash
+        ? String(passport.digital.c2pa.manifestHash)
+        : "";
+    attachC2paHashCheck(c2paDeclared);
     syncLastHumanIdToProof(humanId);
   });
 }
@@ -1297,6 +1329,9 @@ function renderLocalPassportPreview(p) {
       parts.push(`<div class="field"><div class="fl">File size</div><div class="fv">${esc(fmtSize(Number(d.fileSize)))}</div></div>`);
     }
     if (d.fileHash) parts.push(`<div class="field full"><div class="fl">fileHash</div><div class="vinfo-val" style="font-size:11px">${esc(String(d.fileHash))}</div></div>`);
+    if (d.c2pa && typeof d.c2pa === "object" && d.c2pa.manifestHash) {
+      parts.push(`<div class="field full"><div class="fl">c2pa.manifestHash</div><div class="vinfo-val" style="font-size:11px">${esc(String(d.c2pa.manifestHash))}</div></div>`);
+    }
   }
   if (p.seal && typeof p.seal === "object" && !isDigital) {
     if (p.seal.numbered && p.seal.numbered.number) {
@@ -1355,6 +1390,142 @@ async function runPassportJsonVerify(file, onchainHash, expectedHumanId) {
       <strong>Invalid JSON or hash step failed.</strong> ${esc(m)}
     </div>`;
   }
+}
+
+function attachOdpVerifyHandlers(expectedHumanId, dataHashHex, onchainFileHash, onchainImageHash) {
+  const drop = document.getElementById("odpDrop");
+  const input = document.getElementById("odpInput");
+  if (!drop || !input) return;
+  const onDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    drop.classList.add("drop-zone-over");
+  };
+  const onDragLeave = (e) => {
+    const rel = e.relatedTarget;
+    if (!rel || !drop.contains(rel)) drop.classList.remove("drop-zone-over");
+  };
+  const onDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    drop.classList.remove("drop-zone-over");
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) void runOdpBundleVerify(f, expectedHumanId, dataHashHex, onchainFileHash, onchainImageHash);
+  };
+  drop.addEventListener("dragover", onDragOver, true);
+  drop.addEventListener("dragleave", onDragLeave, true);
+  drop.addEventListener("drop", onDrop, true);
+  input.addEventListener("change", (e) => {
+    const f = e.target && e.target.files && e.target.files[0];
+    if (f) void runOdpBundleVerify(f, expectedHumanId, dataHashHex, onchainFileHash, onchainImageHash);
+    e.target.value = "";
+  });
+}
+
+async function sha256BufferToHex(buf) {
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return "0x" + Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, onchainFileHash, onchainImageHash) {
+  const out = document.getElementById("odpResult");
+  const drop = document.getElementById("odpDrop");
+  if (!out) return;
+  out.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Reading .odp bundle…</span></div>`;
+  try {
+    if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
+    const zip = await JSZip.loadAsync(file);
+    const passportEntry = zip.file("passport.json");
+    if (!passportEntry) throw new Error("passport.json not found in bundle");
+    const raw = await passportEntry.async("text");
+    const canon = minify(raw, expectedHumanId);
+    const localDataHash = await sha256text(canon);
+    const dataMatch = localDataHash.toLowerCase() === String(onchainDataHash || "").toLowerCase();
+
+    let sidecarCheckHtml = "";
+    const wantFile = String(onchainFileHash || "").toLowerCase();
+    const wantImage = String(onchainImageHash || "").toLowerCase();
+    const hasFileHash = wantFile && wantFile !== ZERO32.toLowerCase();
+    const hasImageHash = wantImage && wantImage !== ZERO32.toLowerCase();
+    const originalEntry = Object.values(zip.files).find((z) => !z.dir && z.name.startsWith("original/"));
+    const imageEntry = Object.values(zip.files).find((z) => !z.dir && z.name.startsWith("image/"));
+    if (originalEntry && hasFileHash) {
+      const buf = await originalEntry.async("arraybuffer");
+      const got = await sha256BufferToHex(buf);
+      const ok = got.toLowerCase() === wantFile;
+      sidecarCheckHtml = `<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? "Original OK" : "Original mismatch"}</span>
+        <div class="vinfo">
+          <div class="vinfo-label">${esc(originalEntry.name)}</div>
+          <div class="vinfo-val">${esc(got)}</div>
+        </div>
+      </div>`;
+    } else if (imageEntry && hasImageHash) {
+      const buf = await imageEntry.async("arraybuffer");
+      const got = await sha256BufferToHex(buf);
+      const ok = got.toLowerCase() === wantImage;
+      sidecarCheckHtml = `<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? "Image OK" : "Image mismatch"}</span>
+        <div class="vinfo">
+          <div class="vinfo-label">${esc(imageEntry.name)}</div>
+          <div class="vinfo-val">${esc(got)}</div>
+        </div>
+      </div>`;
+    }
+
+    if (drop) drop.style.borderStyle = "solid";
+    out.innerHTML = `
+      <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge ${dataMatch ? "ok" : "bad"}">${dataMatch ? "Authentic" : "Mismatch"}</span>
+        <div class="vinfo">
+          <div class="vinfo-label">${esc(file.name)} → passport.json</div>
+          <div class="vinfo-val">${esc(localDataHash)}</div>
+        </div>
+      </div>
+      ${!dataMatch ? `<div class="err-box" style="margin-top:8px;font-size:11px">
+        Bundle passport.json does not match on-chain <code>dataHash</code> for <code>${esc(expectedHumanId)}</code>.
+      </div>` : ""}
+      ${sidecarCheckHtml}
+    `;
+  } catch (e) {
+    if (drop) drop.style.borderStyle = "solid";
+    out.innerHTML = `<div class="err-box" style="margin-top:10px;font-size:12px">
+      <strong>Invalid .odp bundle.</strong> ${esc(e && (e.message || String(e)))}
+    </div>`;
+  }
+}
+
+function normalizeSha256Like(s) {
+  const raw = String(s || "").trim();
+  if (!raw) return "";
+  if (/^sha256:[a-fA-F0-9]{64}$/.test(raw)) return "sha256:" + raw.slice(7).toLowerCase();
+  if (/^0x[a-fA-F0-9]{64}$/.test(raw)) return "sha256:" + raw.slice(2).toLowerCase();
+  return "";
+}
+
+function attachC2paHashCheck(declaredHashRaw) {
+  const btn = document.getElementById("c2paHashCheckBtn");
+  const inp = document.getElementById("c2paHashInput");
+  const out = document.getElementById("c2paHashResult");
+  if (!btn || !inp || !out || !declaredHashRaw) return;
+  const declared = normalizeSha256Like(declaredHashRaw);
+  btn.addEventListener("click", () => {
+    const got = normalizeSha256Like(inp.value);
+    if (!got) {
+      out.innerHTML = `<div class="err-box" style="margin-top:10px">Enter a valid hash: <code>sha256:...</code> or <code>0x...</code>.</div>`;
+      return;
+    }
+    const ok = got === declared;
+    out.innerHTML = `
+      <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? "C2PA hash match" : "C2PA hash mismatch"}</span>
+        <div class="vinfo">
+          <div class="vinfo-label">Declared manifestHash</div>
+          <div class="vinfo-val">${esc(declared)}</div>
+        </div>
+      </div>
+    `;
+  });
 }
 
 async function verifyImage(e, onchain) {

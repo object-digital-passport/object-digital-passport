@@ -14,6 +14,7 @@
 <script src="odp-contract.js?v=0.2"></script>
 <script src="odp-i18n.js?v=6"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -113,6 +114,7 @@ let provider=null, signer=null, contract=null, wallet=null, creatorId=null;
 let objType="physical", sealType=2;
 /** Raw file SHA-256 as bytes32 (0x + 64 hex) — required for mintDigital; matches mint.py to_bytes32 */
 let fileHashBytes32=ZERO32, imageHash=ZERO32, imageUrl="", fileSize=0;
+let selectedOriginalFile = null, selectedImageFile = null;
 /** One-shot banner on connect screen (e.g. multi-account rejection). */
 let walletConnectError = null;
 /** When true, `walletConnectError` is trusted HTML (neutral hint, not escaped). */
@@ -613,6 +615,18 @@ function renderForm() {
             <select id="f_sub">${htmlSubtypeOptions()}</select></div>
           <div class="field"><label>${esc(t("passport.form.labelFormat"))}</label><input type="text" id="f_fmt" placeholder="${esc(t("passport.form.phFormat"))}"></div>
         </div>
+        <div class="section-label" style="margin-top:12px">C2PA (optional)</div>
+        <div class="row2">
+          <div class="field">
+            <label>C2PA manifest hash (sha256)</label>
+            <input type="text" id="f_c2pa_manifest_hash" placeholder="sha256:... or 0x...">
+          </div>
+          <div class="field">
+            <label>Active manifest label</label>
+            <input type="text" id="f_c2pa_manifest_label" placeholder="optional">
+          </div>
+        </div>
+        <p class="fhint">MVP: set this only if you extracted C2PA manifest hash with a dedicated C2PA tool.</p>
       </div>
       <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
         <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
@@ -925,6 +939,7 @@ function tog(id) { document.getElementById(id).classList.toggle("open"); }
 
 async function hashFile(e) {
   const f = e.target.files[0]; if (!f) return;
+  selectedOriginalFile = f;
   document.getElementById("fileInfo").innerHTML = `<div class="info n" style="margin-top:8px">${esc(t("passport.form.file.computingSha"))}</div>`;
   const buf = await f.arrayBuffer();
   const h   = await crypto.subtle.digest("SHA-256", buf);
@@ -937,6 +952,7 @@ async function hashFile(e) {
 
 async function hashImg(e) {
   const f = e.target.files[0]; if (!f) return;
+  selectedImageFile = f;
   document.getElementById("imgInfo").innerHTML = `<div class="info n" style="margin-top:8px">${esc(t("passport.form.file.computingSha"))}</div>`;
   const buf = await f.arrayBuffer();
   const h   = await crypto.subtle.digest("SHA-256", buf);
@@ -1050,10 +1066,18 @@ function buildPassport(humanId) {
     p.seal = seal;
   } else {
     const desc=v("f_desc"), fmt=v("f_fmt");
+    const c2paManifestRaw = v("f_c2pa_manifest_hash");
+    const c2paManifestLabel = v("f_c2pa_manifest_label");
     // Passport JSON: "sha256:hex" — matches mint.py; chain uses fileHashBytes32
     const dig = { subtype:v("f_sub"), fileHash: "sha256:"+fileHashBytes32.slice(2) };
     if (fmt) dig.format = fmt;
     if (fileSize) dig.fileSize = fileSize;
+    const c2paManifestNorm = normalizeSha256Text(c2paManifestRaw);
+    if (c2paManifestNorm || c2paManifestLabel) {
+      dig.c2pa = {};
+      if (c2paManifestNorm) dig.c2pa.manifestHash = c2paManifestNorm;
+      if (c2paManifestLabel) dig.c2pa.activeManifest = c2paManifestLabel;
+    }
     p.digital = dig;
     if (desc) p.description = desc;
   }
@@ -1074,6 +1098,14 @@ function normalizeNFC(obj) {
     return Object.fromEntries(Object.entries(obj).map(([k,v]) => [k, normalizeNFC(v)]));
   }
   return obj;
+}
+
+function normalizeSha256Text(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return "";
+  if (/^sha256:[a-fA-F0-9]{64}$/.test(s)) return "sha256:" + s.slice(7).toLowerCase();
+  if (/^0x[a-fA-F0-9]{64}$/.test(s)) return "sha256:" + s.slice(2).toLowerCase();
+  return "";
 }
 
 function sortKeysDeep(obj) {
@@ -1115,6 +1147,10 @@ function validate() {
     }
   }
   if (objType==="digital" && fileHashBytes32===ZERO32) return t("passport.form.validateDigitalFile");
+  if (objType==="digital") {
+    const c2 = v("f_c2pa_manifest_hash");
+    if (c2 && !normalizeSha256Text(c2)) return "C2PA manifest hash must be sha256:... or 0x... (32 bytes).";
+  }
   if (objType==="physical") {
     if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return t("passport.form.validateNfc");
     if ((sealType===2||sealType===3) && (!v("f_snum")||!v("f_stype"))) return t("passport.form.validateSeal");
@@ -1179,7 +1215,7 @@ function confirmPreMintAndMint() {
 function previewJson() {
   const el = document.getElementById("jsonPreview");
   if (el.innerHTML) { el.innerHTML=""; return; }
-  const p = buildPassport("ODP-????-??-???????");
+  const p = buildPassport("ODP-????-??-?????????");
   el.innerHTML = `<pre style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:14px;font-size:10px;color:var(--text2);overflow-x:auto;margin-top:12px;max-height:260px;overflow-y:auto;white-space:pre">${esc(JSON.stringify(p,null,2))}</pre>`;
 }
 
@@ -1335,7 +1371,14 @@ async function executeMint() {
     // dataHash on-chain is sha256(buildPassport(null)). Download includes real humanId; verify.html maps matching humanId string → null for hash check.
     const passportOut = buildPassport(humanId);
     const finalJson = canonicalJsonString(passportOut);
-    showSuccess(humanId, tx.hash, finalJson, passport.title, registeredDataUrl);
+    showSuccess(humanId, tx.hash, finalJson, passport.title, registeredDataUrl, {
+      txHash: tx.hash,
+      dataHash: dataHash_,
+      imageHash: imgH_,
+      fileHash: fileHashBytes32,
+      originalFile: selectedOriginalFile,
+      imageFile: selectedImageFile,
+    });
 
   } catch(e) {
     document.getElementById("app").innerHTML = `<div class="info e">${esc(e.message)}</div>`;
@@ -1511,7 +1554,7 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
   }
 }
 
-function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
+function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
   const net = NET;
   const rel = getVerifyRelativePath(humanId);
   const hasPublicUrl = dataUrlOnChain && String(dataUrlOnChain).trim().length > 0;
@@ -1546,6 +1589,7 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
 
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
         <button type="button" class="btn" id="successDlJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDlJson"))}</button>
+        <button type="button" class="btn" id="successDlOdpBtn" style="flex:0;padding:13px 20px">Download .odp</button>
         <button type="button" class="btn btn-sec" id="successShareJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successShareJson"))}</button>
         <button type="button" class="btn btn-sec" id="successCopyJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successCopyJson"))}</button>
         <a href="${net.explorer}/tx/${txHash}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn btn-ghost">${esc(t("passport.form.successExplorer"))}</button></a>
@@ -1577,11 +1621,14 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain) {
     sessionStorage.setItem("odp_passport_json_" + humanId, json);
   } catch (e) {}
   const dl = document.getElementById("successDlJsonBtn");
+  const dlOdp = document.getElementById("successDlOdpBtn");
   const sh = document.getElementById("successShareJsonBtn");
   const cp = document.getElementById("successCopyJsonBtn");
   if (dl) dl.onclick = () => downloadPassportJson(humanId, json);
+  if (dlOdp) dlOdp.onclick = () => void downloadPassportOdp(humanId, json, bundleMeta);
   if (sh) sh.onclick = () => sharePassportJsonFile(humanId, json);
   if (cp) cp.onclick = () => copyPassportJsonText(json, cp);
+  void downloadPassportOdp(humanId, json, bundleMeta);
 }
 
 function blobDownloadPassportJson(humanId, json) {
@@ -1633,6 +1680,78 @@ async function sharePassportJsonFile(humanId, json) {
     if (e && e.name === "AbortError") return;
   }
   blobDownloadPassportJson(humanId, json);
+}
+
+async function sha256HexFromBuffer(buf) {
+  const d = await crypto.subtle.digest("SHA-256", buf);
+  return "0x" + Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function blobDownloadOdp(humanId, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${safeFilePart(humanId)}.odp`;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 2500);
+}
+
+async function createPassportOdpBlob(humanId, json, bundleMeta) {
+  if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
+  const zip = new JSZip();
+  zip.file("passport.json", json);
+  const manifest = {
+    format: "odp-bundle",
+    bundleVersion: "0.1",
+    humanId: String(humanId || ""),
+    createdAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+    mode: "full",
+    onChain: {
+      dataHash: String((bundleMeta && bundleMeta.dataHash) || ""),
+      imageHash: String((bundleMeta && bundleMeta.imageHash) || ZERO32),
+      fileHash: String((bundleMeta && bundleMeta.fileHash) || ZERO32),
+      txHash: String((bundleMeta && bundleMeta.txHash) || ""),
+      chainId: Number(NET.chainId),
+      contract: String(NET.contract || ""),
+    },
+    files: [{ path: "passport.json", role: "passport", mime: "application/json" }],
+  };
+  if (bundleMeta && bundleMeta.originalFile) {
+    const f = bundleMeta.originalFile;
+    zip.file(`original/${f.name}`, f);
+    const h = await sha256HexFromBuffer(await f.arrayBuffer());
+    manifest.files.push({
+      path: `original/${f.name}`,
+      role: "original",
+      mime: String(f.type || "application/octet-stream"),
+      sizeBytes: Number(f.size || 0),
+      sha256: h,
+    });
+  }
+  if (bundleMeta && bundleMeta.imageFile) {
+    const f = bundleMeta.imageFile;
+    zip.file(`image/${f.name}`, f);
+    const h = await sha256HexFromBuffer(await f.arrayBuffer());
+    manifest.files.push({
+      path: `image/${f.name}`,
+      role: "imageOriginal",
+      mime: String(f.type || "application/octet-stream"),
+      sizeBytes: Number(f.size || 0),
+      sha256: h,
+    });
+  }
+  zip.file("manifest.json", JSON.stringify(manifest, null, 2));
+  return zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+}
+
+async function downloadPassportOdp(humanId, json, bundleMeta) {
+  const blob = await createPassportOdpBlob(humanId, json, bundleMeta);
+  blobDownloadOdp(humanId, blob);
 }
 
 async function copyPassportJsonText(json, btnEl) {

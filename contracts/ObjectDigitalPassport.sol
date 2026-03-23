@@ -97,7 +97,7 @@ contract ObjectDigitalPassport {
     // ─── Structs ──────────────────────────────────────────────────────────────
 
     struct CreatorRecord {
-        string  creatorId;    // "C-482-930-174"
+        string  creatorId;    // "C-482-930-174-005"
         address wallet;
         bytes1  typePrefix;   // "C", "B", "P", or "M" — stored as bytes1 for gas efficiency
         uint256 timestamp;
@@ -147,7 +147,7 @@ contract ObjectDigitalPassport {
     // Creator Registry
     mapping(string  => CreatorRecord) private _creators;
     mapping(address => string)        private _walletToCreatorId;
-    mapping(uint32  => bool)          private _creatorNumberTaken;
+    mapping(uint64  => bool)          private _creatorNumberTaken;
     uint256 private _creatorNonce;
 
     // Passport Registry
@@ -262,7 +262,7 @@ contract ObjectDigitalPassport {
      * Register as a Creator (C), Brand (B), Proof Institution (P), or Museum (M).
      * One registration per wallet. Permanent.
      * Type prefix must be "C", "B", "P", or "M" — enforced by contract.
-     * The 9-digit number is randomly generated — cannot be chosen.
+     * The 12-digit number is randomly generated — cannot be chosen.
      *
      * Cost: network gas only (no protocol fee).
      */
@@ -274,7 +274,7 @@ contract ObjectDigitalPassport {
         require(_isValidType(typePrefix),                          "Invalid type prefix");
         require(bytes(_walletToCreatorId[msg.sender]).length == 0, "Already registered");
 
-        uint32 number = _generateCreatorNumber();
+        uint64 number = _generateCreatorNumber();
         creatorId     = _buildCreatorId(typePrefix, number);
 
         _creators[creatorId] = CreatorRecord({
@@ -842,22 +842,22 @@ contract ObjectDigitalPassport {
     // ─── Internal: ID generation ──────────────────────────────────────────────
 
     /**
-     * Generate a unique Creator ID number (0–999,999,999).
+     * Generate a unique Creator ID number (0–999,999,999,999).
      * Uses keccak256 entropy with nonce. Retries on collision (max 10 attempts).
      */
-    function _generateCreatorNumber() internal returns (uint32) {
+    function _generateCreatorNumber() internal returns (uint64) {
         uint256 baseNonce = _creatorNonce;
         for (uint i = 0; i < 25; i++) {
             // Combine multiple sources for better unpredictability.
             // Note: on-chain entropy is never truly random — IDs are not
             // security-critical (no funds at stake), so this is acceptable.
-            uint32 n = uint32(uint256(keccak256(abi.encodePacked(
+            uint64 n = uint64(uint256(keccak256(abi.encodePacked(
                 block.timestamp,
                 block.prevrandao,   // replaces block.difficulty post-Merge
                 msg.sender,
                 baseNonce + i,
                 gasleft()
-            ))) % 1_000_000_000);
+            ))) % 1_000_000_000_000);
             if (!_creatorNumberTaken[n]) {
                 _creatorNonce = baseNonce + i + 1;
                 return n;
@@ -867,7 +867,7 @@ contract ObjectDigitalPassport {
     }
 
     /**
-     * Generate a unique Passport ID number (0–99,999,999) for year+month.
+     * Generate a unique Passport ID number (0–999,999,999) for year+month.
      * Uses keccak256 entropy with nonce. Retries on collision (max 10 attempts).
      */
     function _generatePassportId(uint32 year, uint8 month)
@@ -883,7 +883,7 @@ contract ObjectDigitalPassport {
                 baseNonce + i,
                 key,
                 gasleft()
-            ))) % 100_000_000);
+            ))) % 1_000_000_000);
             if (!_passportNumberTaken[key][n]) {
                 _passportNonce = baseNonce + i + 1;
                 _passportNumberTaken[key][n] = true;
@@ -891,7 +891,7 @@ contract ObjectDigitalPassport {
                     "ODP-",
                     _yearToString(year), "-",
                     _monthToString(month), "-",
-                    _pad8(n)
+                    _pad9(n)
                 ));
             }
         }
@@ -933,15 +933,16 @@ contract ObjectDigitalPassport {
 
     // ─── Internal: string builders ────────────────────────────────────────────
 
-    // "C-482-930-174"
-    function _buildCreatorId(bytes1 typePrefix, uint32 number)
+    // "C-482-930-174-005"
+    function _buildCreatorId(bytes1 typePrefix, uint64 number)
         internal pure returns (string memory)
     {
         return string(abi.encodePacked(
             string(abi.encodePacked(typePrefix)), "-",
-            _pad3(number / 1_000_000), "-",
-            _pad3((number / 1_000) % 1_000), "-",
-            _pad3(number % 1_000)
+            _pad3(uint32(number / 1_000_000_000)), "-",
+            _pad3(uint32((number / 1_000_000) % 1_000)), "-",
+            _pad3(uint32((number / 1_000) % 1_000)), "-",
+            _pad3(uint32(number % 1_000))
         ));
     }
 
@@ -989,6 +990,12 @@ contract ObjectDigitalPassport {
     function _pad8(uint32 v) internal pure returns (string memory) {
         bytes memory b = new bytes(8);
         for (uint i = 8; i > 0; i--) { b[i-1] = bytes1(uint8(48 + v % 10)); v /= 10; }
+        return string(b);
+    }
+
+    function _pad9(uint32 v) internal pure returns (string memory) {
+        bytes memory b = new bytes(9);
+        for (uint i = 9; i > 0; i--) { b[i-1] = bytes1(uint8(48 + v % 10)); v /= 10; }
         return string(b);
     }
 

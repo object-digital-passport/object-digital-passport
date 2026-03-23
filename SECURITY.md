@@ -35,7 +35,7 @@ Links in `dataUrl` or `noteUrl` pointing to malicious content.
 **Mitigation:**
 - The verifier computes SHA-256 of fetched content and compares to on-chain hash.
   Content substitution is detected automatically.
-- Verifiers show only the Creator ID (P-NNN-NNN-NNN) — no institution name.
+- Verifiers show only the Creator ID (P-NNN-NNN-NNN-NNN) — no institution name.
   Names are self-declared and not stored in the protocol.
 - To trust a Proof, find the exact Creator ID on the institution's official website.
 - Never click links from `noteUrl` without checking the domain.

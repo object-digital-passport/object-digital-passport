@@ -87,7 +87,7 @@
       "useFolder": "Use a folder on my site — after mint, the app registers …/YourHumanID.json automatically (one extra confirm in the wallet)",
       "folderUrlLabel": "HTTPS folder for passport files",
       "folderUrlPh": "https://art.com/passport",
-      "folderHint": "No filename — just the folder. After mint, upload one file named ODP-YYYY-MM-NNNNNNN.json (your real Human ID from the success screen, same casing). The on-chain dataUrl will be your-folder/ODP-….json.",
+      "folderHint": "No filename — just the folder. After mint, upload one file named ODP-YYYY-MM-NNNNNNNNN.json (your real Human ID from the success screen, same casing). The on-chain dataUrl will be your-folder/ODP-….json.",
       "fullUrlLabel": "Full URL to passport.json",
       "fullUrlPh": "https://example.com/odp/passport-001.json",
       "fullUrlHint": "Exact public HTTPS URL of the file after you upload it. Use this if you already know the full path (without using the folder option above).",

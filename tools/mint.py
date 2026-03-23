@@ -286,7 +286,8 @@ def cmd_register(args):
     print("  Type:")
     print("    C — Creator  (individual artist, photographer, maker)")
     print("    B — Brand    (company, studio, label)")
-    print("    P — Proof Institution (museum, gallery, auction house)")
+    print("    P — Proof Institution (expert body, certification, auction attestations)")
+    print("    M — Museum / Collection (for institutional holdings; museums should use M, not B)")
     print()
 
     t = prompt("Type (C / B / P / M)", "C").strip().upper()
@@ -356,16 +357,12 @@ def issuer_role_from_creator_id(cid: str) -> str:
 
 
 def registration_clock_block(utc_now: datetime):
-    """Unix UTC instant + explicit UTC ISO + local wall time + IANA zone (second precision)."""
+    """Privacy-safe registration clock block: UTC-only representations."""
     unix = int(utc_now.timestamp())
     utc_iso = utc_now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    local = utc_now.astimezone()
-    local_iso = local.isoformat(timespec="seconds")
-    iana = "UTC"
-    tz = local.tzinfo
-    if tz is not None and hasattr(tz, "key"):
-        iana = tz.key
-    return unix, {"ianaTimeZone": iana, "localIso8601": local_iso, "utcIso8601": utc_iso}
+    # Use UTC-only timezone metadata to avoid leaking device locale.
+    local_iso = utc_now.strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    return unix, {"ianaTimeZone": "UTC", "localIso8601": local_iso, "utcIso8601": utc_iso}
 
 
 # ─── Mint ─────────────────────────────────────────────────────────────────────
@@ -720,7 +717,7 @@ Commands:
   python mint.py                  Mint a new passport (interactive)
   python mint.py --register       Register your Creator ID
   python mint.py --check          Check your Creator ID
-  python mint.py --qr ODP-2026-03-4829301  Generate QR for a Human ID
+  python mint.py --qr ODP-2026-03-004829301  Generate QR for a Human ID
         """
     )
     parser.add_argument("--register", action="store_true", help="Register Creator ID")

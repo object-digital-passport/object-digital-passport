@@ -12,6 +12,7 @@ In plain terms:
 - Your `creatorId` and passports belong to that deployment.
 - A later 0.X deployment may issue a **different** `creatorId`, even for the same wallet.
 - Older data stays in the older deployment and remains readable, but it does not migrate automatically.
+- There is **no backward compatibility with v0.1** for creator IDs or passport records: v0.1 and v0.2 are separate registries.
 
 If you want **one wallet + one persistent `creatorId`** for canonical long-term storage, wait for stable **v1**.
 
@@ -81,8 +82,8 @@ The pages under `web/` show a **stack panel** (see `odpFormatStackBlockHtml` in 
 
 **How the pieces fit together:**
 
-- **Human ID** (`ODP-YYYY-MM-NNNNNNN`) — a readable, unique handle for the object; minted by the contract, immutable.
-- **Creator ID** (`C-482-930-174`, etc.) — a permanent identity for the artist, brand, or institution; required before minting.
+- **Human ID** (`ODP-YYYY-MM-NNNNNNNNN`) — a readable, unique handle for the object; minted by the contract, immutable.
+- **Creator ID** (`C-482-930-174-005`, etc.) — a permanent identity for the artist, brand, or institution; required before minting.
 - **On-chain record** — compact: hashes, creator binding, URLs, seal metadata. **No** large images or full JSON on-chain.
 - **Passport JSON** — the full document should live at **`dataUrl`** when you want public web verification (HTTPS); the chain stores a hash so any change to the file is detected. **`dataUrl` may be omitted** at mint (v0.2), but then only people with the **file** can verify.
 
@@ -150,8 +151,8 @@ and prove its authenticity — using a human-readable ID, a cryptographic hash,
 and (for physical objects) a physical seal.
 
 ```
-ODP-2026-03-4829301     ← Human ID (on the label, packaging, website)
-C-482-930-174          ← Creator ID (your permanent identity)
+ODP-2026-03-004829301   ← Human ID (on the label, packaging, website)
+C-482-930-174-005      ← Creator ID (your permanent identity)
 ```
 
 Anyone with a phone can scan the QR code and verify:
@@ -173,7 +174,7 @@ Anyone with a phone can scan the QR code and verify:
    → stores data hash on-chain
        ↓
 3. Print the verification label
-   → QR code  odp://ODP-2026-03-4829301
+   → QR code  odp://ODP-2026-03-004829301
    → Human ID
    → Creator ID
    → physical seal (see below)
@@ -243,7 +244,7 @@ Registering a Creator ID and minting passports **submit transactions on Polygon 
 
 The **Current release** table lists the canonical **v0.1** deployment. The demo HTML is already configured for that address.
 
-**Folder hosting (`passport.html`):** the file on your server must be named exactly **`<Human ID>.json`** (e.g. `ODP-2026-03-4829301.json`), and the registered `dataUrl` must be the **full HTTPS URL** to that file (e.g. `https://example.com/passport/ODP-2026-03-4829301.json`). The Solidity contract in this repository can resolve `folderBase + "/" + HumanID + ".json"` **inside the mint transaction** when redeployed (`dataUrlIsFolderBase`); the **current** public Polygon deployment still uses the older ABI, so the web UI keeps **`NET.supportsFolderBaseMint: false`** and performs a **second** transaction (`updatePassportUrls`) to replace the temporary mint URL — set **`supportsFolderBaseMint: true`** only after you deploy the updated contract and paste its address.
+**Folder hosting (`passport.html`):** the file on your server must be named exactly **`<Human ID>.json`** (e.g. `ODP-2026-03-004829301.json`), and the registered `dataUrl` must be the **full HTTPS URL** to that file (e.g. `https://example.com/passport/ODP-2026-03-004829301.json`). The Solidity contract in this repository can resolve `folderBase + "/" + HumanID + ".json"` **inside the mint transaction** when redeployed (`dataUrlIsFolderBase`); the **current** public Polygon deployment still uses the older ABI, so the web UI keeps **`NET.supportsFolderBaseMint: false`** and performs a **second** transaction (`updatePassportUrls`) to replace the temporary mint URL — set **`supportsFolderBaseMint: true`** only after you deploy the updated contract and paste its address.
 
 If you need a **separate** deployment (e.g. private test), use the **`deploy/`** stack and wire addresses per **`SPEC.md`** — that workflow is for operators and integrators, not required to try the public demo.
 
@@ -255,20 +256,22 @@ Choose your type when registering:
 
 - **`C`** — Creator (individual artist, photographer, maker)
 - **`B`** — Brand (company, studio, label)
-- **`P`** — Proof Institution (museum, gallery, auction house)
+- **`P`** — Proof Institution (expert body, certification, auction attestations)
+- **`M`** — Museum / collection (for institutional holdings; use this for museums, not `B`)
 
-You receive a permanent ID like `C-482-930-174`.
+You receive a permanent ID like `C-482-930-174-005`.
 
 **Publish your ID publicly** — on your website, social media, and physical objects. That is how others confirm a passport was issued by you.
 
 ```
-Short:  C-482-930-174
-Full:   C-482-930-174 / Your Name / 0x742d35Cc...
+Short:  C-482-930-174-005
+Full:   C-482-930-174-005 / Your Name / 0x742d35Cc...
 ```
 
 ### 5. Mint a passport
 
 **Example UI:** open **[Passport (live demo)](https://object-digital-passport.github.io/object-digital-passport/passport.html)**, connect wallet, complete the form, **Mint Passport**. After minting, download **`passport.json`** and host it at the **`dataUrl`** you used.
+Optionally, download the **`<Human ID>.odp`** bundle — it packages `passport.json` (and when you provided them in the form, also the original file bytes / image bytes) so offline tools can recompute and verify hashes.
 
 *(Optional: automation and CLI flows are described in **`tools/mint.py`** — not required for the browser demo.)*
 
@@ -289,11 +292,12 @@ Full normative wording: **SPEC.md §9 — Hosting `dataUrl` (third-party sites)*
 ### 6. Verify
 
 **Example UI:** open **[Verify (live demo)](https://object-digital-passport.github.io/object-digital-passport/verify.html)** in any browser. Enter a Human ID or paste an `odp://` URI. **No wallet.**
+You can also verify offline by dropping a **`.odp` bundle** into the verifier — it checks the embedded `passport.json` against on-chain `dataHash` and (when applicable) validates the bundled original/image bytes against on-chain `fileHash` / `imageHash`.
 
 **Direct link pattern:**
 
 ```
-https://object-digital-passport.github.io/object-digital-passport/verify.html?id=ODP-2026-03-4829301
+https://object-digital-passport.github.io/object-digital-passport/verify.html?id=ODP-2026-03-004829301
 ```
 
 ---
@@ -317,14 +321,17 @@ The **protocol** allows an optional **cryptographic NFC seal** (challenge–resp
 
 ### Verification label
 
-Print a label for each object containing:
+Verification labels are optional and mainly improve end-user convenience. Core trust comes from on-chain records plus the seal state (NFC / numbered seal).
 
-- QR code (`odp://ODP-YYYY-MM-NNNNNNN`)
+If you use a label, include:
+
+- QR code (`odp://ODP-YYYY-MM-NNNNNNNNN`)
 - Human ID in text
-- Creator ID in text
 - Protocol mark (`ODP`)
 
-The label must physically cover or retain the seal so that removing the label damages or disturbs the seal (see **`SPEC.md`** seal retention rules).
+`Creator ID` on the label is optional and informational only. For trust, use Creator ID from verified public sources (official website / public social profiles), then match it against on-chain verification.
+
+If you use a label, it should physically cover or retain the seal so that removing the label damages or disturbs the seal (see **`SPEC.md`** seal retention rules).
 
 ---
 
@@ -342,6 +349,9 @@ C2PA compatibility: if your file contains an embedded C2PA manifest
 (from Photoshop, Lightroom, Leica camera, etc.), the file hash
 captures the manifest automatically. No extra steps needed.
 
+Optional explicit C2PA check: set `digital.c2pa.manifestHash` (`sha256:...`) in `passport.json`.
+In this MVP UI flow, that hash is entered from an external C2PA tool and can be checked in Verify (manual hash compare).
+
 ---
 
 ## Proof Institution
@@ -350,9 +360,9 @@ Museums, galleries, and experts can register as type `P`
 and attach attestations to any passport:
 
 ```
-ODP-2026-03-4829301
-  └── Proof from P-029-384-751  Garage Museum    2031
-  └── Proof from P-774-002-391  Sotheby's        2051
+ODP-2026-03-004829301
+  └── Proof from P-029-384-751-224  Garage Museum    2031
+  └── Proof from P-774-002-391-888  Sotheby's        2051
 ```
 
 Registration is open — no approval required.
@@ -369,9 +379,9 @@ To build a verifier or integrate ODP into your application:
 const provider = new ethers.providers.JsonRpcProvider("https://polygon-rpc.com");
 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 
-const record   = await contract.getPassport("ODP-2026-03-4829301");
+const record   = await contract.getPassport("ODP-2026-03-004829301");
 const creator  = await contract.getCreator(record.creatorId);
-const proofIds = await contract.getProofsForPassport("ODP-2026-03-4829301");
+const proofIds = await contract.getProofsForPassport("ODP-2026-03-004829301");
 ```
 
 Use the **Current release** contract address for `CONTRACT_ADDRESS` on Polygon PoS. Reading is free. No wallet or API key needed.

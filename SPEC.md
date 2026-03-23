@@ -15,6 +15,7 @@ In plain terms:
 - Your `creatorId` and passport records belong to that specific deployment.
 - If a new 0.X deployment is launched, even the same wallet may get a **different** `creatorId`.
 - Data already written to an older deployment remains there and stays readable, but it does not move automatically into a newer deployment.
+- **No backward compatibility with v0.1** for creator IDs or passport records: treat v0.1 and v0.2 as separate registries.
 
 If your goal is **one wallet + one long-lived `creatorId`** as canonical storage, wait for stable **v1**.
 
@@ -66,7 +67,7 @@ Every registered object receives a globally unique human-readable identifier.
 ### Format
 
 ```
-ODP-YYYY-MM-NNNNNNN
+ODP-YYYY-MM-NNNNNNNNN
 ```
 
 | Part | Description | Example |
@@ -74,15 +75,15 @@ ODP-YYYY-MM-NNNNNNN
 | `ODP` | Protocol prefix, fixed | `ODP` |
 | `YYYY` | Year of registration (any year > 0) | `2026` |
 | `MM` | Month of registration (01–12) | `03` |
-| `NNNNNNN` | 7-digit random number, unique within the year and month | `4829301` |
+| `NNNNNNNNN` | 9-digit random number, unique within the year and month | `004829301` |
 
 ### Examples
 
 ```
-ODP-2026-03-4829301   ← object registered in March 2026
-ODP-2026-03-0193847   ← another object in the same month
-ODP-2026-04-7392018   ← object registered in April 2026
-ODP-2027-01-2048391   ← object registered in January 2027
+ODP-2026-03-004829301   ← object registered in March 2026
+ODP-2026-03-000193847   ← another object in the same month
+ODP-2026-04-007392018   ← object registered in April 2026
+ODP-2027-01-002048391   ← object registered in January 2027
 ```
 
 The number does not indicate the order or total count of registered objects.
@@ -92,10 +93,10 @@ This is intentional.
 
 ```
 entropy = keccak256(block.timestamp + msg.sender + nonce)
-number  = uint32(entropy) % 10_000_000        // 0000000–9999999
+number  = uint32(entropy) % 1_000_000_000      // 000000000–999999999
 if number already exists for this year+month:
     nonce++, retry
-humanId = "ODP-" + year + "-" + month + "-" + zero_pad(number, 7)
+humanId = "ODP-" + year + "-" + month + "-" + zero_pad(number, 9)
 ```
 
 10 million possible values per month. Uniqueness is guaranteed by the contract
@@ -150,7 +151,7 @@ The reference `ObjectDigitalPassport` deployment limits **new passport mints** p
 | `P` | No limit (`getRemainingMints` returns `2^32−1` in the reference implementation) |
 | `M` | No limit (same as `P`) |
 
-**Museums and large inventories** digitizing collection holdings should register as **`M`** (museum/collection) or **`B`** (broader organization), not **`C`**. The **`P`** prefix is for institutions whose **primary** role in the protocol is cross-cutting **proof** attestations; **`M`** signals custodial / collection issuance. Very large throughput may still use **multiple wallets** if policy allows.
+**Museums and large inventories** digitizing collection holdings should register as **`M`** (museum/collection), **not `B` and not `C`**. The **`P`** prefix is for institutions whose **primary** role in the protocol is cross-cutting **proof** attestations; **`M`** signals custodial / collection issuance. Very large throughput may still use **multiple wallets** if policy allows.
 
 **Type prefixes are governed exclusively by this specification.**
 No individual, company, or implementation may introduce custom prefixes.
@@ -162,69 +163,70 @@ prefix is rejected at the contract level.
 ### Examples
 
 ```
-C-482-930-174   ← individual creator
-B-029-384-751   ← brand or company
-P-001-293-847   ← proof institution
-M-204-839-112   ← museum or collection
+C-482-930-174-005   ← individual creator
+B-029-384-751-224   ← brand or company
+P-001-293-847-119   ← proof institution
+M-204-839-112-441   ← museum or collection
 ```
 
 ### Generation algorithm
 
 ```
 entropy  = keccak256(block.timestamp + msg.sender + nonce)
-number   = uint32(entropy) % 1_000_000_000     // 000000000–999999999
+number   = uint64(entropy) % 1_000_000_000_000 // 000000000000–999999999999
 if number already exists: nonce++, retry
-group_1  = number / 1_000_000                  // first 3 digits
-group_2  = (number / 1_000) % 1_000            // middle 3 digits
-group_3  = number % 1_000                      // last 3 digits
-creatorId = type + "-" + pad3(group_1) + "-" + pad3(group_2) + "-" + pad3(group_3)
+group_1  = number / 1_000_000_000              // 1st 3 digits
+group_2  = (number / 1_000_000) % 1_000        // 2nd 3 digits
+group_3  = (number / 1_000) % 1_000            // 3rd 3 digits
+group_4  = number % 1_000                      // 4th 3 digits
+creatorId = type + "-" + pad3(group_1) + "-" + pad3(group_2) + "-" + pad3(group_3) + "-" + pad3(group_4)
 ```
 
-1 billion possible values. Uniqueness guaranteed by the contract.
+1 trillion possible values. Uniqueness guaranteed by the contract.
 
 ### Full public identity
 
 Every participant has two identity formats:
 
 ```
-Short:  C-482-930-174
-Full:   C-482-930-174 / Artist Name / 0x742d...f2c8
+Short:  C-482-930-174-005
+Full:   C-482-930-174-005 / Artist Name / 0x742d...f2c8
 ```
 
 The full identity includes:
-- Short Creator ID
-- Name or organization name
-- Full wallet address (0x... — 42 characters)
+- Short Creator ID (**required**)
+- Full wallet address (0x... — 42 characters, **required**)
+- Name or organization name (**optional**)
 
-The wallet address is the cryptographic anchor of identity.
-The name is a human-readable label. The wallet address is the unforgeable proof.
+The full wallet address is the cryptographic anchor of identity and uniqueness.
+The name is only a human-readable label. The wallet address is the unforgeable proof.
 
 ### Public identity requirement
 
 **All participants — creators (C), brands (B), and institutions (P) —
-must publish both identity formats publicly.**
+must publish the short Creator ID together with the full wallet address publicly.**
 
 This is a fundamental requirement of the protocol, not merely a recommendation.
 The system works only when anyone can verify who stands behind every object
 and every attestation.
 
-Participants must publish their identity:
+Participants should publish their identity transparently, with priority on places a regular user checks first:
 
 - On their official website — prominently, not buried in menus
-- In all public social media profiles and bios
-- On physical objects, packaging, and certificates they issue
-- In all official communications and press releases
+- In public social media profiles and bios
+- On physical objects, packaging, and certificates when applicable
+- In any other public channels they control where verification context is expected
 
 **Both formats must be easy to find:**
 
 ```
 Artist on artist.com:
-  Short:  C-482-930-174
-  Full:   C-482-930-174 / Artist Name / 0x742d...f2c8
+  Short:  C-482-930-174-005
+  Full:   C-482-930-174-005 / Artist Name / 0x742d...f2c8
 
 Museum on museum.com:
-  Short:  P-029-384-751
-  Full:   P-029-384-751 / Institution Name / 0xB3F9...
+  Short:  P-029-384-751-224
+  Full:   P-029-384-751-224 / Institution Name / 0xB3F9...
 ```
 
 **Important:** Institution names are not stored in the protocol and are not shown
@@ -240,8 +242,8 @@ on a trusted public website.
 ### On packaging and physical objects
 
 ```
-ODP-2026-03-4829301
-C-482-930-174
+ODP-2026-03-004829301
+C-482-930-174-005
 ```
 
 The short format is intentionally compact — easy to type, read aloud, or print.
@@ -269,11 +271,11 @@ institution's existing real-world reputation — provides the basis for trust.
 Verifiers display only the Creator ID, never a self-declared name.
 
 ```
-ODP-2026-03-4829301  (original passport, 2026)
-  └── Proof from P-029-384-751  2031
-  └── Proof from P-482-930-174  2038
-  └── Proof from P-001-293-847  2044
-  └── Proof from P-774-002-391  2051
+ODP-2026-03-004829301  (original passport, 2026)
+  └── Proof from P-029-384-751-224  04-2031
+  └── Proof from P-482-930-174-005  09-2038
+  └── Proof from P-001-293-847-119  01-2044
+  └── Proof from P-774-002-391-888  12-2051
 ```
 
 ### Proof ID format
@@ -298,7 +300,7 @@ Example: `PRF-2031-03-7392018`
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `proofId` | `string` | yes | Auto-generated: `PRF-2031-03-7392018` |
-| `prover` | `string` | yes | Creator ID of the institution (e.g. `P-029-384-751`) |
+| `prover` | `string` | yes | Creator ID of the institution (e.g. `P-029-384-751-224`) |
 | `humanId` | `string` | yes | Human ID of the attested object |
 | `noteHash` | `bytes32` | no | SHA-256 of an attached document. `bytes32(0)` if none |
 | `noteUrl` | `string` | no | URL of the attached document (max 512 chars) |
@@ -319,22 +321,23 @@ carries no verifiable value.
 
 ## 5. Verification Label
 
-The verification label is the physical carrier placed on the object.
-It contains all data needed for verification and physically retains the seal.
+The verification label is an **optional** convenience layer.
+Primary trust comes from on-chain records plus the seal state (NFC/numbered seal).
+If used, the label helps end users verify faster.
 
-### Required elements
+### If a label is used: required elements
 
 | Element | Description | Example |
 |---------|-------------|---------|
-| QR code | Encodes `odp://ODP-YYYY-MM-NNNNNNN`. Error correction level Q (25%) minimum | `odp://ODP-2026-03-4829301` |
-| Human ID | Full object identifier in human-readable text | `ODP-2026-03-4829301` |
-| Creator ID | Short creator identifier | `C-482-930-174` |
+| QR code | Encodes `odp://ODP-YYYY-MM-NNNNNNNNN`. Error correction level Q (25%) minimum | `odp://ODP-2026-03-004829301` |
+| Human ID | Full object identifier in human-readable text | `ODP-2026-03-004829301` |
 | Protocol mark | Protocol name or abbreviation | `ODP` or `Object Digital Passport` |
 
 ### Optional elements
 
 Implementations may add any of the following — the protocol does not restrict them:
 
+- Creator ID in text (informational only; do not treat as trust anchor)
 - Object title
 - Creator name
 - Year of creation
@@ -343,9 +346,11 @@ Implementations may add any of the following — the protocol does not restrict 
 - NFC chip (embedded in or under the label)
 - Seal number (printed on the label or on a separate element)
 
-### Seal retention requirement
+**Trust note (normative):** Creator ID printed on packaging/labels is **not** a trusted source by itself and is **not required** on the label. Verifiers should obtain Creator ID from verified public sources (official website and public social profiles), then compare with on-chain data.
 
-The label must physically cover or retain the seal:
+### If a label is used: seal retention requirement
+
+The label should physically cover or retain the seal:
 
 - If an NFC crypto chip (NTAG 424 DNA TagTamper) is used — it should be positioned
   under or within the label. The TagTamper chip permanently records removal electronically.
@@ -405,7 +410,7 @@ Verification:
      No match → wrong or cloned chip
 ```
 
-**NTAG 424 DNA TagTamper variant:**
+**NTAG 424 DNA TagTamper behavior (the only supported NFC mode):**
 
 Adds a tamper-detection antenna loop.
 Physical removal permanently registers as a tamper event.
@@ -493,7 +498,7 @@ Using a different address means operating a separate, incompatible registry.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `humanId` | `string` | yes | `ODP-2026-03-4829301` |
+| `humanId` | `string` | yes | `ODP-2026-03-004829301` |
 | `creator` | `address` | yes | Wallet that minted |
 | `creatorId` | `string` | yes | Creator ID (mandatory — wallet must be registered) |
 | `year` | `uint16` | yes | Registration year |
@@ -508,6 +513,7 @@ Using a different address means operating a separate, incompatible registry.
 | `dataUrl` | `string` | yes | URL where `passport.json` is hosted (max 512 chars) |
 | `imageUrl` | `string` | no | Image URL hint. Informational only |
 | `timestamp` | `uint256` | yes | Set by the contract at mint time |
+| `timestampTimeZone` | derived | yes | Fixed protocol interpretation: **`UTC` (GMT+0)**. Not stored separately on-chain; timezone is always offset 0. |
 
 ---
 
@@ -515,7 +521,7 @@ Using a different address means operating a separate, incompatible registry.
 
 ### Hosting `dataUrl` (third-party sites)
 
-`dataUrl` may point to any public HTTPS host (object storage, CDN, static site, Git forge, etc.). The last path segment SHOULD be `<humanId>.json` using the **exact** Human ID string from the contract (e.g. `ODP-2026-03-4829301.json` — same casing as on-chain). Implementations that fetch the file MUST satisfy:
+`dataUrl` may point to any public HTTPS host (object storage, CDN, static site, Git forge, etc.). The last path segment SHOULD be `<humanId>.json` using the **exact** Human ID string from the contract (e.g. `ODP-2026-03-004829301.json` — same casing as on-chain). Implementations that fetch the file MUST satisfy:
 
 1. **HTTPS** — The URL uses TLS; the server returns HTTP **200** with a response body that is **only** the passport JSON octets (not an HTML page, login prompt, or repository browser UI).
 2. **Raw file on Git forges** — For GitHub, GitLab, and similar hosts, use the **raw** file URL (e.g. `raw.githubusercontent.com/.../passport.json`), not the HTML blob page.
@@ -545,19 +551,20 @@ These fields are part of the hashed `passport.json`; changing them changes `data
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `registeredAt` | yes | `number` (integer) | **Unix time in seconds** (UTC instant) at registration — same instant as the on-chain `timestamp` intent. |
-| `registration` | yes | `object` | Same instant as `registeredAt`: explicit **UTC** string plus **local** wall time + IANA zone. |
+| `registration` | yes | `object` | Same instant as `registeredAt`, represented in privacy-safe UTC-only form. |
 | `registration.utcIso8601` | yes | `string` | Same instant as `registeredAt`, in **UTC** with **`Z`** suffix and **second** precision (e.g. `2026-03-22T18:45:30Z`). Aligns with how chain / block time is interpreted (offset 0). |
-| `registration.localIso8601` | yes | `string` | ISO 8601 **date-time with numeric offset**, **second** precision (e.g. `2026-03-22T21:45:30+03:00`). No sub-second fractional digits in the reference UI. |
-| `registration.ianaTimeZone` | yes | `string` | [IANA time zone name](https://www.iana.org/time-zones) for the environment where the passport JSON was built (e.g. `Europe/Moscow`, `America/New_York`). Use `UTC` if unknown. |
+| `registration.localIso8601` | yes | `string` | UTC-normalized ISO 8601 with numeric offset **`+00:00`**, **second** precision (e.g. `2026-03-22T18:45:30+00:00`). |
+| `registration.ianaTimeZone` | yes | `string` | Always **`UTC`** in v0.2 privacy mode (no device-local IANA zone is recorded). |
 
-Implementations MUST use the **same** UTC instant for `registeredAt`, `registration.utcIso8601`, and the instant encoded in `registration.localIso8601` (only the representation differs).
+Implementations MUST use the **same** UTC instant for `registeredAt`, `registration.utcIso8601`, and `registration.localIso8601`.
+If local device time is shown to users, implementations MUST normalize that instant to **UTC (GMT+0)** before writing `passport.json`.
 
 ### Minimal valid passport — physical object
 
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-4829301",
+  "humanId": "ODP-2026-03-004829301",
   "objectType": "physical",
   "type": "artwork",
   "title": "Object Community #1",
@@ -565,7 +572,7 @@ Implementations MUST use the **same** UTC instant for `registeredAt`, `registrat
   "creator": {
     "name": "Artist Name",
     "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174"
+    "creatorId": "C-482-930-174-005"
   },
   "year": 2026,
   "month": 3,
@@ -591,7 +598,7 @@ Implementations MUST use the **same** UTC instant for `registeredAt`, `registrat
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-0193847",
+  "humanId": "ODP-2026-03-000193847",
   "objectType": "digital",
   "type": "digital",
   "title": "Untitled #7",
@@ -599,7 +606,7 @@ Implementations MUST use the **same** UTC instant for `registeredAt`, `registrat
   "creator": {
     "name": "Artist Name",
     "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174"
+    "creatorId": "C-482-930-174-005"
   },
   "year": 2026,
   "month": 3,
@@ -623,7 +630,7 @@ Implementations MUST use the **same** UTC instant for `registeredAt`, `registrat
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-4829301",
+  "humanId": "ODP-2026-03-004829301",
   "objectType": "physical",
   "type": "artwork",
   "title": "Object Community #1",
@@ -631,15 +638,15 @@ Implementations MUST use the **same** UTC instant for `registeredAt`, `registrat
   "creator": {
     "name": "Artist Name",
     "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174",
+    "creatorId": "C-482-930-174-005",
     "url": "https://artist.com"
   },
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
   "registration": {
-    "ianaTimeZone": "Europe/Moscow",
-    "localIso8601": "2026-03-22T21:30:45+03:00",
+    "ianaTimeZone": "UTC",
+    "localIso8601": "2026-03-22T18:30:45+00:00",
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
   "medium": "mixed media, Polaroid",
@@ -696,7 +703,7 @@ Implementations MUST use the **same** UTC instant for `registeredAt`, `registrat
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-0193847",
+  "humanId": "ODP-2026-03-000193847",
   "objectType": "digital",
   "type": "digital",
   "title": "Untitled #7",
@@ -704,14 +711,14 @@ Implementations MUST use the **same** UTC instant for `registeredAt`, `registrat
   "creator": {
     "name": "Artist Name",
     "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174",
+    "creatorId": "C-482-930-174-005",
     "url": "https://artist.com"
   },
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
   "registration": {
-    "ianaTimeZone": "America/New_York",
+    "ianaTimeZone": "UTC",
     "localIso8601": "2026-03-22T16:30:45-05:00",
     "utcIso8601": "2026-03-22T21:30:45Z"
   },
@@ -798,6 +805,22 @@ If the creator wishes to make the C2PA manifest explicitly verifiable,
 they may record its hash separately in `digital.c2pa.manifestHash`.
 Verifiers that support C2PA can use this to display the full C2PA
 provenance chain alongside the ODP verification result.
+
+Recommended structure:
+
+```json
+"digital": {
+  "subtype": "image",
+  "fileHash": "sha256:...",
+  "c2pa": {
+    "manifestHash": "sha256:...",
+    "activeManifest": "optional label"
+  }
+}
+```
+
+C2PA presence should be determined by a C2PA parser/validator (active manifest or manifest store found), not by ad-hoc byte signatures.
+If no C2PA metadata is found, `digital.c2pa` should be omitted.
 
 **Level 3 — ODP Creator ID as C2PA assertion (future):**
 C2PA allows custom assertions inside a manifest. A future extension of
@@ -1016,12 +1039,12 @@ If chip is NTAG424DNA_TT:
 ## 12. QR Code
 
 ```
-odp://ODP-2026-03-4829301
+odp://ODP-2026-03-004829301
 ```
 
 - Error correction: **Q** (25%) minimum
 - Encoding: UTF-8
-- Fallback: `https://verify.example.com/ODP-2026-03-4829301`
+- Fallback: `https://verify.example.com/ODP-2026-03-004829301`
 
 ---
 
@@ -1078,7 +1101,52 @@ computeImageHash(imageBytes) → bytes32
 
 ---
 
-## 15. What this protocol does NOT define
+## 15. `.odp` bundle (offline container)
+
+An optional **`.odp` file** is a portable offline container for distributing and backing up an ODP passport.
+It is designed to enable offline verifiers to recompute hashes and validate them against on-chain records.
+The on-chain fields remain the cryptographic source of truth.
+
+### 15.1 Format
+
+`.odp` is a ZIP container (use the `.odp` extension; entries inside are UTF-8 filenames).
+
+Expected ZIP entries:
+
+- Mandatory:
+  - `passport.json` — the canonical ODP `passport.json` document bytes (UTF-8 text).
+  - `manifest.json` — bundle metadata for UX (not a trust anchor).
+- Optional:
+  - `original/<filename>` — original digital asset bytes corresponding to the on-chain `fileHash` (for digital passports).
+  - `image/<filename>` — image bytes corresponding to the on-chain `imageHash` (when available).
+
+### 15.2 Verification rules
+
+An offline verifier of an `.odp` bundle MUST:
+
+1. Extract `passport.json`.
+2. Recompute `localDataHash` as SHA-256 of ODP canonical JSON (same canonicalization rules as the protocol verifier),
+   using the bundle `humanId` normalization for chain-hash comparison (i.e. treat the bundle human ID as `humanId: null`
+   when recomputing the chain-hash input).
+3. Compare `localDataHash` to the on-chain `dataHash` for the claimed `Human ID`.
+
+If the on-chain record contains non-zero `fileHash` and the bundle contains `original/*`, a verifier SHOULD also:
+
+- recompute SHA-256 of `original/*` bytes and compare it to `fileHash`.
+
+Likewise, if the on-chain record contains non-zero `imageHash` and the bundle contains `image/*`, a verifier SHOULD also:
+
+- recompute SHA-256 of `image/*` bytes and compare it to `imageHash`.
+
+### 15.3 Trust model and limitations
+
+- `.odp` is untrusted input and MUST be treated as data only (no code execution).
+- `.odp` does not replace on-chain truth. Verification is always anchored by on-chain hashes (`dataHash`, and optionally `fileHash` / `imageHash`).
+- In this v0.2 draft, no extra contract fields are required: existing on-chain hash fields are sufficient to validate the bundle.
+
+---
+
+## 16. What this protocol does NOT define
 
 - Who hosts `passport.json` or digital files — the creator's responsibility
 - What happens when `dataUrl` goes offline — the on-chain hash remains valid indefinitely
@@ -1092,7 +1160,7 @@ computeImageHash(imageBytes) → bytes32
 
 ---
 
-## 16. Wallet & Key Management
+## 17. Wallet & Key Management
 
 ODP does not define how users manage their cryptographic keys.
 The protocol only requires a valid Ethereum-compatible wallet address

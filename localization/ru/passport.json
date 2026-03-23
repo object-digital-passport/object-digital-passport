@@ -87,7 +87,7 @@
       "useFolder": "Папка на моём сайте — после минта приложение зарегистрирует …/YourHumanID.json (ещё одно подтверждение в кошельке)",
       "folderUrlLabel": "HTTPS-папка для файлов паспорта",
       "folderUrlPh": "https://art.com/passport",
-      "folderHint": "Без имени файла — только папка. После минта загрузите один файл с именем ODP-YYYY-MM-NNNNNNN.json (ваш Human ID с экрана успеха, тот же регистр). В сети dataUrl будет ваша-папка/ODP-….json.",
+      "folderHint": "Без имени файла — только папка. После минта загрузите один файл с именем ODP-YYYY-MM-NNNNNNNNN.json (ваш Human ID с экрана успеха, тот же регистр). В сети dataUrl будет ваша-папка/ODP-….json.",
       "fullUrlLabel": "Полный URL к passport.json",
       "fullUrlPh": "https://example.com/odp/passport-001.json",
       "fullUrlHint": "Точный публичный HTTPS URL файла после загрузки. Если уже знаете полный путь без варианта с папкой выше.",
