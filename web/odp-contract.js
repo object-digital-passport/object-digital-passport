@@ -42,13 +42,20 @@
 
   /** Short neutral banner HTML when the site build has no registry address (GitHub Pages / local). */
   function odpRegistryMisconfiguredBannerHtml(isLocal) {
+    var readmeUrl = "https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md";
+    try {
+      var loc = window.localStorage && window.localStorage.getItem("odp_locale");
+      if (loc === "ru") {
+        readmeUrl = "https://github.com/object-digital-passport/object-digital-passport/blob/main/localization/ru/README.md";
+      }
+    } catch (eLoc) {}
     if (isLocal) {
       return (
         '<div class="info neutral" style="line-height:1.55">Set <code>NET.contract</code>, add <code>registry-config.json</code>, or open once with <code>?contract=0x…</code> (40 hex chars).</div>'
       );
     }
     return (
-      '<div class="info neutral" style="line-height:1.55">Set repository <strong>secret</strong> or <strong>variable</strong> <code>ODP_CONTRACT_ADDRESS</code> under <strong>Settings → Secrets and variables → Actions</strong>, then redeploy. Or open this page once with <code>?contract=0x…</code> in the URL. <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">See README</a>.</div>'
+      '<div class="info neutral" style="line-height:1.55">Set repository <strong>secret</strong> or <strong>variable</strong> <code>ODP_CONTRACT_ADDRESS</code> under <strong>Settings → Secrets and variables → Actions</strong>, then redeploy. Or open this page once with <code>?contract=0x…</code> in the URL. <a href="' + readmeUrl + '" target="_blank" rel="noopener noreferrer">See README</a>.</div>'
     );
   }
 

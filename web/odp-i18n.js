@@ -123,6 +123,23 @@
     el.appendChild(wrap);
   }
 
+  function odpReadmeUrlForLocale(locale) {
+    var loc = locale === "ru" ? "ru" : "en";
+    if (loc === "ru") {
+      return "https://github.com/object-digital-passport/object-digital-passport/blob/main/localization/ru/README.md";
+    }
+    return "https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md";
+  }
+
+  function odpApplyReadmeLinks(root) {
+    var doc = root || global.document;
+    if (!doc || !doc.querySelectorAll) return;
+    var href = odpReadmeUrlForLocale(_locale);
+    doc.querySelectorAll("[data-readme-link]").forEach(function (el) {
+      el.setAttribute("href", href);
+    });
+  }
+
   /** Registry banner HTML (replaces odpRegistryMisconfiguredBannerHtml when i18n loaded). */
   function odpRegistryBannerHtml(isLocal) {
     if (isLocal) {
@@ -131,7 +148,9 @@
     return (
       '<div class="info neutral" style="line-height:1.55">' +
       t("registry.hintProduction") +
-      ' <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer">' +
+      ' <a href="' +
+      odpReadmeUrlForLocale(_locale) +
+      '" target="_blank" rel="noopener noreferrer" data-readme-link>' +
       t("registry.readmeLink") +
       "</a></div>"
     );
@@ -228,6 +247,7 @@
         }
         odpRenderLangSwitch("odpLangSwitch");
         odpApplyDataI18n(global.document.body);
+        odpApplyReadmeLinks(global.document.body);
       })
       .catch(function (err) {
         console.warn("[ODP i18n] init failed — language switch uses fallback labels", err);

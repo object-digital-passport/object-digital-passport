@@ -23,8 +23,8 @@
 
 Русская версия приводится для удобства и может содержать ошибки. Рассматривайте её как **informational only**.
 
-Ссылка на оригинал:
-- [`SPEC.md` (English)](../SPEC.md)
+Локализованные спецификации:
+- [`localization/ru/SPEC.md`](localization/ru/SPEC.md)
 
 ---
 

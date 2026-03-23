@@ -12,6 +12,11 @@ In this repo we ship **0.X** deployments as proof-of-concept. During 0.X the **o
 - After a new 0.X deployment, you **won’t be able to “add” your old information into the new contract** (new registry = new creator registration / new records). The data you wrote remains available on-chain in the old registry, but it will not automatically carry over to the next deployment.
 - If you want **only one wallet + one persistent `creatorId`** to be your main long-term storage, **please wait for the stable `v1`** and use that deployment for your canonical records.
 
+## Translated versions (informational)
+
+Localized READMEs:
+- [`localization/ru/README.md`](localization/ru/README.md)
+
 ## Terms (read this first)
 
 Blockchain apps reuse words from NFTs and finance — here is what they mean **in ODP**:

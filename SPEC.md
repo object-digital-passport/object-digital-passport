@@ -19,9 +19,8 @@ If you want **one wallet and one persistent `creatorId`** for your canonical lon
 ---
 ## Translated versions (informational)
 
-Russian (RU) translation:
+Localized specifications:
 - [`localization/ru/SPEC.md`](localization/ru/SPEC.md)
-- [`localization/ru/README.md`](localization/ru/README.md)
 
 **Warning (normative source):** `SPEC.md` in English is the only normative specification in this repository. Translations are provided for convenience and can contain mistakes; treat them as **informational only**.
 
