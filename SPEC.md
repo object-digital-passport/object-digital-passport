@@ -17,6 +17,15 @@ Even with the same wallet address, a new deployment may generate a **different**
 If you want **one wallet and one persistent `creatorId`** for your canonical long-term storage, please wait for the stable **v1** deployment.
 
 ---
+## Translated versions (informational)
+
+Russian (RU) translation:
+- [`localization/ru/SPEC.md`](localization/ru/SPEC.md)
+- [`localization/ru/README.md`](localization/ru/README.md)
+
+**Warning (normative source):** `SPEC.md` in English is the only normative specification in this repository. Translations are provided for convenience and can contain mistakes; treat them as **informational only**.
+
+---
 
 ## 1. Overview
 
