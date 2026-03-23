@@ -133,6 +133,9 @@ function render() {
     if (typeof odpSupportsExternalDocAttest === "function" && odpSupportsExternalDocAttest(odpContractGeneration)) {
       bindDocAttestHandlers();
     }
+    if (creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2 && contract && typeof contract.getPAffiliatedChildren === "function") {
+      bindPAffiliationHandlers();
+    }
     return;
   }
 
@@ -561,6 +564,111 @@ async function attestPdfDocument() {
   }
 }
 
+function bindPAffiliationHandlers() {
+  const activeParentVal = document.getElementById("pAffActiveParentVal");
+  const parentInput = document.getElementById("pAffParentInput");
+  const proposeBtn = document.getElementById("pAffProposeBtn");
+  const proposeResult = document.getElementById("pAffProposeResult");
+  const childInput = document.getElementById("pAffChildInput");
+  const confirmBtn = document.getElementById("pAffConfirmBtn");
+  const confirmResult = document.getElementById("pAffConfirmResult");
+  const childrenList = document.getElementById("pAffChildrenList");
+  if (!contract || !activeParentVal || !parentInput || !proposeBtn || !childInput || !confirmBtn || !childrenList) return;
+
+  proposeBtn.disabled = true;
+  confirmBtn.disabled = false;
+  proposeResult.innerHTML = "";
+  confirmResult.innerHTML = "";
+
+  async function refresh() {
+    try {
+      proposeResult.innerHTML = "";
+      confirmResult.innerHTML = "";
+      activeParentVal.textContent = "…";
+      childrenList.textContent = "…";
+
+      const parentPId = await contract.getPAffiliatedParent(creatorId);
+      const hasParent = parentPId && String(parentPId).trim().length > 0;
+      activeParentVal.textContent = hasParent ? parentPId : "—";
+      proposeBtn.disabled = hasParent;
+
+      const children = await contract.getPAffiliatedChildren(creatorId);
+      if (!children || children.length === 0) {
+        childrenList.textContent = "—";
+      } else {
+        childrenList.textContent = children.join(", ");
+      }
+    } catch (e) {
+      const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      activeParentVal.textContent = "Error";
+      childrenList.textContent = m;
+    }
+  }
+
+  refresh();
+
+  parentInput.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    proposeBtn.click();
+  });
+  childInput.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    confirmBtn.click();
+  });
+
+  proposeBtn.addEventListener("click", async () => {
+    if (!contract) return;
+    const parentPId = parentInput.value ? String(parentInput.value).trim() : "";
+    proposeResult.innerHTML = "";
+    if (!parentPId) {
+      proposeResult.innerHTML = `<div class="info warn">${esc(t("creator.pAff.parentRequired"))}</div>`;
+      return;
+    }
+    proposeBtn.disabled = true;
+    proposeResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.sending"))}</div>`;
+    try {
+      const tx = await contract.proposePAffiliation(parentPId);
+      await tx.wait();
+      proposeResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.proposed"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+      await refresh();
+    } catch (e) {
+      const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      proposeResult.innerHTML = `<div class="info error">${esc(m)}</div>`;
+      proposeBtn.disabled = false;
+    }
+  });
+
+  confirmBtn.addEventListener("click", async () => {
+    if (!contract) return;
+    const childPId = childInput.value ? String(childInput.value).trim() : "";
+    confirmResult.innerHTML = "";
+    if (!childPId) {
+      confirmResult.innerHTML = `<div class="info warn">${esc(t("creator.pAff.childRequired"))}</div>`;
+      return;
+    }
+    confirmBtn.disabled = true;
+    confirmResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.checkingPending"))}</div>`;
+    try {
+      const pending = await contract.isPAffiliationPending(creatorId, childPId);
+      if (!pending) {
+        confirmResult.innerHTML = `<div class="info warn">${esc(t("creator.pAff.noPending"))}</div>`;
+        confirmBtn.disabled = false;
+        return;
+      }
+      const tx = await contract.confirmPAffiliation(childPId);
+      await tx.wait();
+      confirmResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.confirmed"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+      await refresh();
+    } catch (e) {
+      const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      confirmResult.innerHTML = `<div class="info error">${esc(m)}</div>`;
+      confirmBtn.disabled = false;
+    }
+  });
+}
+
 // ── Already registered ────────────────────────────────────────────────────────
 
 function renderAlready() {
@@ -648,7 +756,47 @@ function renderAlready() {
       </div>
     </div>`
         : ""
-    }`;
+    }
+
+    ${
+      creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2
+        ? `
+    <div class="card" style="margin-top:20px">
+      <div class="card-head">${esc(t("creator.pAff.cardTitle"))}</div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text2);margin:0 0 12px;line-height:1.6">
+          ${esc(t("creator.pAff.body"))}
+        </p>
+
+        <div class="info neutral" style="margin-bottom:12px;font-size:12px">
+          ${esc(t("creator.pAff.activeParentLabel"))} <span id="pAffActiveParentVal" class="mono"></span>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <label class="search-label" for="pAffParentInput">${esc(t("creator.pAff.parentInputLabel"))}</label>
+          <input type="text" id="pAffParentInput" placeholder="P-…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn" id="pAffProposeBtn">${esc(t("creator.pAff.proposeBtn"))}</button>
+          <div id="pAffProposeResult" style="margin-top:10px;font-size:12px"></div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <label class="search-label" for="pAffChildInput">${esc(t("creator.pAff.childInputLabel"))}</label>
+          <input type="text" id="pAffChildInput" placeholder="P-…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" spellcheck="false">
+          <button type="button" class="btn btn-sec" id="pAffConfirmBtn">${esc(t("creator.pAff.confirmBtn"))}</button>
+          <div id="pAffConfirmResult" style="margin-top:10px;font-size:12px"></div>
+        </div>
+
+        <div class="info neutral">
+          <div style="font-size:11px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">
+            ${esc(t("creator.pAff.childrenTitle"))}
+          </div>
+          <div id="pAffChildrenList" class="mono" style="font-size:12px;word-break:break-word"></div>
+        </div>
+      </div>
+    </div>`
+        : ""
+    }
+    `;
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────

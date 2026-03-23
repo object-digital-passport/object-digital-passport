@@ -109,6 +109,23 @@
       "sent": "Sent…",
       "recorded": "Recorded on-chain. Hash"
     },
+    "pAff": {
+      "cardTitle": "Institution structure (P affiliation)",
+      "body": "For large organizations, you can link a child Proof Institution (school) to a parent Proof Institution (university) with a spam-resistant two-step handshake.",
+      "activeParentLabel": "Active parent",
+      "parentInputLabel": "Parent P (propose)",
+      "proposeBtn": "Propose link",
+      "childInputLabel": "Child P (confirm)",
+      "confirmBtn": "Confirm link",
+      "childrenTitle": "Active affiliated schools (children)",
+      "parentRequired": "Enter a parent P Creator ID first.",
+      "sending": "Sending…",
+      "proposed": "Proposed. Waiting for parent confirmation.",
+      "childRequired": "Enter a child P Creator ID first.",
+      "checkingPending": "Checking pending request…",
+      "noPending": "No pending request for this child under your parent affiliation.",
+      "confirmed": "Confirmed. Link is now active."
+    },
     "multiAccount": "Multiple accounts connected"
   }
 }

@@ -272,6 +272,17 @@ Proof records не изменяют исходный паспорт. Они на
 вместе с реальной репутацией институции.
 Верификаторы показывают только Creator ID, а не самоназванное имя.
 
+### Опциональная P-аффилиация (один parent на child)
+
+Чтобы поддержать крупные организации (например, университет → школа),
+протокол допускает опциональную одноуровневую аффилиацию между `P`:
+
+- child `P` предлагает parent `P`
+- parent `P` подтверждает on-chain
+- child `P` может иметь **не более одного активного parent `P`**
+
+Такой двухшаговый handshake снижает спам и исключает односторонние claims доверия.
+
 ```
 ODP-2026-03-004829301  (original passport, 2026)
   └── Proof from P-029-384-751-224  04-2031
@@ -1079,6 +1090,13 @@ registerCreator(type) → creatorId
 
 submitProof(humanId, noteHash?, noteUrl?) → proofId
   // caller must be registered as type P or M
+
+proposePAffiliation(parentPId)
+confirmPAffiliation(childPId)
+cancelPAffiliationRequest(parentPId)
+isPAffiliationPending(parentPId, childPId) → bool
+getPAffiliatedParent(childPId) → string
+getPAffiliatedChildren(parentPId) → string[]
 
 getCreator(creatorId) → CreatorRecord
 getProofsForPassport(humanId) → ProofRecord[]

@@ -109,6 +109,23 @@
       "sent": "Отправлено…",
       "recorded": "Записано в сети. Хэш"
     },
+    "pAff": {
+      "cardTitle": "Структура институций (P-аффилиация)",
+      "body": "Для крупных организаций можно связать child Proof Institution (школу) с parent Proof Institution (университет) через спам-устойчивый двухшаговый handshake.",
+      "activeParentLabel": "Активный parent",
+      "parentInputLabel": "Parent P (предложить)",
+      "proposeBtn": "Предложить связь",
+      "childInputLabel": "Child P (подтвердить)",
+      "confirmBtn": "Подтвердить связь",
+      "childrenTitle": "Активные affiliated школы (children)",
+      "parentRequired": "Сначала укажите parent P Creator ID.",
+      "sending": "Отправляем…",
+      "proposed": "Предложено. Ожидаем подтверждения parent.",
+      "childRequired": "Сначала укажите child P Creator ID.",
+      "checkingPending": "Проверяем pending запрос…",
+      "noPending": "Нет pending запроса для этого child под вашей parent-аффилиацией.",
+      "confirmed": "Подтверждено. Связь активна."
+    },
     "multiAccount": "Подключено несколько аккаунтов"
   }
 }

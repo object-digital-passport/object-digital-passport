@@ -81,6 +81,7 @@ contract ObjectDigitalPassport {
 
     string constant OBJECT_PHYSICAL = "physical";
     string constant OBJECT_DIGITAL  = "digital";
+    bytes32 constant NFC_NTAG424DNA_TT_HASH = keccak256("NTAG424DNA_TT");
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     uint8 public constant SPEC_MAJOR = 0;
@@ -104,7 +105,7 @@ contract ObjectDigitalPassport {
     }
 
     struct Passport {
-        string  humanId;       // "ODP-2026-03-04829301"
+        string  humanId;       // "ODP-2026-03-004829301"
         uint8   contractVersion; // packed SPEC_MAJOR/SPEC_MINOR (see CONTRACT_VERSION) at mint
         address creator;
         string  creatorId;     // mandatory
@@ -171,6 +172,13 @@ contract ObjectDigitalPassport {
     // External document attestations — key = keccak256(abi.encodePacked(wallet, documentHash))
     mapping(bytes32 => ExternalDocAttestation) private _externalDocAttest;
 
+    // P-affiliation (one-level): child P -> exactly one parent P.
+    // Handshake is two-step to reduce spam:
+    // 1) child proposes parent, 2) parent confirms.
+    mapping(bytes32 => bool)      private _pendingPAffiliation; // key = keccak256(parentId, childId)
+    mapping(string  => string)    private _pParentOf;           // childPId -> parentPId (active)
+    mapping(string  => string[])  private _pChildrenOf;         // parentPId -> childPId[]
+
     // ── Extension Registry (v1 architecture) ─────────────────────────────────
     // Maps type bytes1 → extension contract address.
     // In v0 this is empty — all types are handled natively.
@@ -233,6 +241,18 @@ contract ObjectDigitalPassport {
         bytes32         documentHash,
         string          documentUri,
         uint256         timestamp
+    );
+
+    event PAffiliationProposed(
+        string indexed parentPId,
+        string indexed childPId,
+        uint256 timestamp
+    );
+
+    event PAffiliationConfirmed(
+        string indexed parentPId,
+        string indexed childPId,
+        uint256 timestamp
     );
 
     // ─── Constructor ──────────────────────────────────────────────────────────
@@ -354,6 +374,90 @@ contract ObjectDigitalPassport {
         return (true, a.creatorId, a.timestamp, a.documentUri);
     }
 
+    /**
+     * Propose P-affiliation: caller (child P) requests linking to parent P.
+     * One child P can have at most one active parent P.
+     */
+    function proposePAffiliation(string calldata parentPId)
+        external
+        notFrozen
+    {
+        string memory childPId = _requireRegistered();
+        _requireTypeP(childPId, "Only P-type child can propose affiliation");
+        require(bytes(parentPId).length > 0, "parentPId required");
+        require(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)), "Self-link not allowed");
+        _requireTypeP(parentPId, "Parent must be P-type");
+        require(bytes(_pParentOf[childPId]).length == 0, "Child already has parent P");
+
+        bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
+        require(!_pendingPAffiliation[k], "Affiliation already pending");
+        _pendingPAffiliation[k] = true;
+
+        emit PAffiliationProposed(parentPId, childPId, block.timestamp);
+    }
+
+    /**
+     * Confirm P-affiliation: caller (parent P) confirms a pending child request.
+     * Activates one-level link parent P -> child P.
+     */
+    function confirmPAffiliation(string calldata childPId)
+        external
+        notFrozen
+    {
+        string memory parentPId = _requireRegistered();
+        _requireTypeP(parentPId, "Only P-type parent can confirm affiliation");
+        _requireTypeP(childPId, "Child must be P-type");
+        require(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)), "Self-link not allowed");
+        require(bytes(_pParentOf[childPId]).length == 0, "Child already has parent P");
+
+        bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
+        require(_pendingPAffiliation[k], "No pending affiliation request");
+        delete _pendingPAffiliation[k];
+
+        _pParentOf[childPId] = parentPId;
+        _pChildrenOf[parentPId].push(childPId);
+
+        emit PAffiliationConfirmed(parentPId, childPId, block.timestamp);
+    }
+
+    /**
+     * Child can cancel its own pending request for a given parent.
+     */
+    function cancelPAffiliationRequest(string calldata parentPId)
+        external
+        notFrozen
+    {
+        string memory childPId = _requireRegistered();
+        _requireTypeP(childPId, "Only P-type child can cancel affiliation request");
+        bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
+        require(_pendingPAffiliation[k], "No pending affiliation request");
+        delete _pendingPAffiliation[k];
+    }
+
+    function isPAffiliationPending(string calldata parentPId, string calldata childPId)
+        external
+        view
+        returns (bool)
+    {
+        return _pendingPAffiliation[keccak256(abi.encodePacked(parentPId, childPId))];
+    }
+
+    function getPAffiliatedParent(string calldata childPId)
+        external
+        view
+        returns (string memory)
+    {
+        return _pParentOf[childPId];
+    }
+
+    function getPAffiliatedChildren(string calldata parentPId)
+        external
+        view
+        returns (string[] memory)
+    {
+        return _pChildrenOf[parentPId];
+    }
+
     // ─── Passport Registry — Physical ─────────────────────────────────────────
 
     /**
@@ -398,7 +502,7 @@ contract ObjectDigitalPassport {
         if (sealType == 1 || sealType == 3) {
             require(nfcPublicKey.length > 0, "nfcPublicKey required for NFC seal");
             require(
-                keccak256(bytes(nfcModel)) == keccak256("NTAG424DNA_TT"),
+                keccak256(bytes(nfcModel)) == NFC_NTAG424DNA_TT_HASH,
                 "Only NTAG424DNA_TT (TagTamper) is supported for NFC seals"
             );
         } else {
@@ -790,6 +894,12 @@ contract ObjectDigitalPassport {
         return t == TYPE_C || t == TYPE_B || t == TYPE_P || t == TYPE_M;
     }
 
+    function _requireTypeP(string memory creatorId, string memory err) internal view {
+        CreatorRecord storage c = _creators[creatorId];
+        require(bytes(c.creatorId).length > 0, "Creator not found");
+        require(c.typePrefix == TYPE_P, err);
+    }
+
     /**
      * Check monthly mint limit and increment counter (C/B only; P and M are unlimited).
      * Resets on calendar month boundary (yearMonth key changes).
@@ -843,7 +953,7 @@ contract ObjectDigitalPassport {
 
     /**
      * Generate a unique Creator ID number (0–999,999,999,999).
-     * Uses keccak256 entropy with nonce. Retries on collision (max 10 attempts).
+     * Uses keccak256 entropy with nonce. Retries on collision (max 25 attempts).
      */
     function _generateCreatorNumber() internal returns (uint64) {
         uint256 baseNonce = _creatorNonce;
@@ -868,7 +978,7 @@ contract ObjectDigitalPassport {
 
     /**
      * Generate a unique Passport ID number (0–999,999,999) for year+month.
-     * Uses keccak256 entropy with nonce. Retries on collision (max 10 attempts).
+     * Uses keccak256 entropy with nonce. Retries on collision (max 25 attempts).
      */
     function _generatePassportId(uint32 year, uint8 month)
         internal returns (string memory)

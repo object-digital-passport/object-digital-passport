@@ -639,6 +639,51 @@
     if (generation >= 2) {
       abi.push(
         {
+          name: "proposePAffiliation",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "parentPId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "confirmPAffiliation",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "cancelPAffiliationRequest",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "parentPId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "isPAffiliationPending",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "parentPId", type: "string" },
+            { name: "childPId", type: "string" },
+          ],
+          outputs: [{ name: "", type: "bool" }],
+        },
+        {
+          name: "getPAffiliatedParent",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [{ name: "", type: "string" }],
+        },
+        {
+          name: "getPAffiliatedChildren",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "parentPId", type: "string" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
           name: "attestExternalDocument",
           type: "function",
           stateMutability: "nonpayable",
@@ -798,6 +843,30 @@
             ],
           },
         ],
+      },
+      {
+        name: "isPAffiliationPending",
+        type: "function",
+        stateMutability: "view",
+        inputs: [
+          { name: "parentPId", type: "string" },
+          { name: "childPId", type: "string" },
+        ],
+        outputs: [{ name: "", type: "bool" }],
+      },
+      {
+        name: "getPAffiliatedParent",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "childPId", type: "string" }],
+        outputs: [{ name: "", type: "string" }],
+      },
+      {
+        name: "getPAffiliatedChildren",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "parentPId", type: "string" }],
+        outputs: [{ name: "", type: "string[]" }],
       },
     ];
     abi.push({

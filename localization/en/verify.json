@@ -60,11 +60,13 @@
     },
     "doc": {
       "sectionTitle": "Anchored document (PDF) — check hash",
-      "lead": "If a creator recorded a file hash on a v0.2 contract (generation ≥ 2), drop the same file here. The page hashes it locally and checks the registry — no upload.",
-      "idLabel": "Creator ID (C-…) or wallet 0x…",
+      "lead": "Drop a file to compute SHA-256 locally and check who has already anchored this hash on-chain (v0.2 generation ≥ 2). Optional fields allow one-sided or two-sided checks.",
+      "idLabel": "Optional Creator ID / wallet (side A)",
       "idPlaceholder": "C-482-930-174-005 or 0x…",
+      "id2Label": "Optional Creator ID / wallet (side B)",
+      "id2Placeholder": "P-482-930-174-005 or 0x…",
       "fileLabel": "File",
-      "checkBtn": "Check on-chain"
+      "checkBtn": "Check hash on-chain"
     },
     "qr": {
       "title": "Scan QR",

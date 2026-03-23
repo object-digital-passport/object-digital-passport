@@ -148,13 +148,15 @@
 <section class="card odp-doc-card" id="docVerifySection" style="margin-top:20px" hidden>
   <div class="section-title" data-i18n="verify.doc.sectionTitle">Anchored document (PDF) — check hash</div>
   <p class="fhint" style="margin:0 0 14px;max-width:48rem;line-height:1.55" data-i18n="verify.doc.lead">
-    If a creator recorded a file hash on a v0.2 contract (generation ≥ 2), drop the same file here. The page hashes it locally and checks the registry — no upload.
+    Drop a file to compute SHA-256 locally and check who has already anchored this hash on-chain (v0.2 generation ≥ 2). Optional fields below can enforce one-sided or two-sided checks.
   </p>
-  <label class="search-label" for="docVerifyId" data-i18n="verify.doc.idLabel">Creator ID (C-…) or wallet 0x…</label>
+  <label class="search-label" for="docVerifyId" data-i18n="verify.doc.idLabel">Optional Creator ID / wallet (side A)</label>
   <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.idPlaceholder" placeholder="C-482-930-174-005 or 0x…" autocomplete="off" spellcheck="false">
+  <label class="search-label" for="docVerifyId2" data-i18n="verify.doc.id2Label">Optional Creator ID / wallet (side B)</label>
+  <input type="text" id="docVerifyId2" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.id2Placeholder" placeholder="P-482-930-174-005 or 0x…" autocomplete="off" spellcheck="false">
   <label class="search-label" for="docVerifyFile" data-i18n="verify.doc.fileLabel">File</label>
   <input type="file" id="docVerifyFile" style="margin-bottom:12px;font-size:12px">
-  <button type="button" class="btn" id="docVerifyBtn" onclick="verifyDocAttestation()" data-i18n="verify.doc.checkBtn">Check on-chain</button>
+  <button type="button" class="btn" id="docVerifyBtn" onclick="verifyDocAttestation()" data-i18n="verify.doc.checkBtn">Check hash on-chain</button>
   <div id="docVerifyResult" style="margin-top:14px"></div>
 </section>
 
@@ -1867,39 +1869,80 @@ async function verifyDocAttestation() {
     out.innerHTML = `<div class="err-box">RPC not ready.</div>`;
     return;
   }
-  const raw = document.getElementById("docVerifyId").value.trim();
+  const rawOffer = document.getElementById("docVerifyId").value.trim();
+  const rawVerify = document.getElementById("docVerifyId2").value.trim();
   const fileEl = document.getElementById("docVerifyFile");
   const f = fileEl && fileEl.files && fileEl.files[0];
-  if (!raw) {
-    out.innerHTML = `<div class="err-box">Enter Creator ID or wallet.</div>`;
-    return;
-  }
   if (!f) {
     out.innerHTML = `<div class="err-box">Choose a file.</div>`;
     return;
   }
-  let walletAddr;
-  if (/^0x[a-fA-F0-9]{40}$/.test(raw)) {
-    try {
-      walletAddr = ethers.utils.getAddress(raw);
-    } catch {
-      out.innerHTML = `<div class="err-box">Invalid address.</div>`;
-      return;
+
+  async function resolveWallet(raw) {
+    if (/^0x[a-fA-F0-9]{40}$/.test(raw)) {
+      try {
+        return ethers.utils.getAddress(raw);
+      } catch {
+        throw new Error("Invalid address.");
+      }
     }
-  } else {
     const token = parseVerifyToken(raw);
     if (!token || token.kind !== "creator") {
-      out.innerHTML = `<div class="err-box">Use a Creator ID (C-/B-/P-/M-…) or 0x address.</div>`;
-      return;
+      throw new Error("Use a Creator ID (C-/B-/P-/M-…) or 0x address.");
     }
-    try {
-      const cr = await contract.getCreator(token.id);
-      walletAddr = cr.wallet;
-    } catch (e) {
-      out.innerHTML = `<div class="err-box">${esc(String(e && (e.reason || e.message) || e))}</div>`;
-      return;
+    for (const c of verifyReadContractsOrdered()) {
+      try {
+        const cr = await c.getCreator(token.id);
+        if (cr && cr.wallet && cr.wallet !== ethers.constants.AddressZero) return cr.wallet;
+      } catch {}
     }
+    throw new Error("Creator not found for provided ID.");
   }
+
+  async function collectAttestationsByHash(hash) {
+    const iface = new ethers.utils.Interface([
+      "event ExternalDocumentAttested(string indexed creatorId,address indexed creator,bytes32 documentHash,string documentUri,uint256 timestamp)"
+    ]);
+    const topic0 = iface.getEventTopic("ExternalDocumentAttested");
+    const topicHash = ethers.utils.hexZeroPad(hash, 32);
+    const all = [];
+
+    for (const c of verifyReadContractsOrdered()) {
+      try {
+        const logs = await c.provider.getLogs({
+          address: c.address,
+          fromBlock: 0,
+          toBlock: "latest",
+          topics: [topic0, null, null, topicHash],
+        });
+        if (!logs || logs.length === 0) continue;
+
+        const seen = new Set();
+        for (const lg of logs) {
+          if (!lg.topics || lg.topics.length < 3) continue;
+          const wallet = ethers.utils.getAddress(ethers.utils.hexDataSlice(lg.topics[2], 12));
+          if (seen.has(wallet.toLowerCase())) continue;
+          seen.add(wallet.toLowerCase());
+          try {
+            const a = await c.getExternalDocumentAttestation(wallet, hash);
+            if (a && a.attested) {
+              all.push({
+                wallet,
+                creatorId: a.creatorId,
+                timestamp: Number(a.timestamp || 0),
+                documentUri: a.documentUri || "",
+                contractAddress: c.address,
+              });
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
+    all.sort((x, y) => x.timestamp - y.timestamp);
+    return all;
+  }
+
   out.innerHTML = `<div class="loading"><div class="spin"></div><span>Hashing…</span></div>`;
   let hash;
   try {
@@ -1909,24 +1952,77 @@ async function verifyDocAttestation() {
     return;
   }
   try {
-    const res = await contract.getExternalDocumentAttestation(walletAddr, hash);
-    const exists = res.attested;
-    const cid = res.creatorId;
-    const ts = res.timestamp;
-    const uri = res.documentUri;
-    if (!exists) {
-      out.innerHTML = `<div class="err-box">No on-chain attestation for this wallet + file hash.</div>`;
-      return;
+    const [walletA, walletB, all] = await Promise.all([
+      rawOffer ? resolveWallet(rawOffer) : Promise.resolve(null),
+      rawVerify ? resolveWallet(rawVerify) : Promise.resolve(null),
+      collectAttestationsByHash(hash),
+    ]);
+
+    const byWallet = new Map(all.map((a) => [a.wallet.toLowerCase(), a]));
+    const aRec = walletA ? byWallet.get(walletA.toLowerCase()) : null;
+    const bRec = walletB ? byWallet.get(walletB.toLowerCase()) : null;
+
+    let headerClass = "authentic";
+    let headerIcon = "✓";
+    let headerLabel = "Hash was anchored on-chain";
+    let headerDesc = `${all.length} attestation(s) found for this file hash`;
+
+    if (walletA && !walletB) {
+      if (!aRec) {
+        headerClass = "invalid";
+        headerIcon = "✕";
+        headerLabel = "Side A not found";
+        headerDesc = "Provided side A has no attestation for this hash.";
+      } else {
+        headerDesc = `Side A found (${all.length} total attestation(s) for this hash).`;
+      }
+    } else if (walletA && walletB) {
+      if (aRec && bRec) {
+        headerDesc = "Variant A match: side A and side B both anchored this hash.";
+      } else {
+        headerClass = "invalid";
+        headerIcon = "✕";
+        headerLabel = "Variant A incomplete";
+        headerDesc = "At least one provided side has no attestation for this hash.";
+      }
+    } else if (all.length === 0) {
+      headerClass = "invalid";
+      headerIcon = "✕";
+      headerLabel = "No attestations found";
+      headerDesc = "No wallet has anchored this file hash in the configured registry set.";
     }
-    const when = new Date(Number(ts) * 1000).toLocaleString();
+
+    const itemsHtml = all.length
+      ? all
+          .map((a) => {
+            const when = a.timestamp ? new Date(a.timestamp * 1000).toLocaleString() : "—";
+            return `<div style="padding:8px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.6">
+              <div><strong>${esc(a.creatorId || "—")}</strong></div>
+              <div class="mono">${esc(a.wallet)}</div>
+              <div>${esc(when)} · <code class="mono">${esc(shortAddr(a.contractAddress))}</code></div>
+              ${a.documentUri ? `<div><a class="ext-link" href="${esc(a.documentUri)}" target="_blank" rel="noopener">Linked URL ↗</a></div>` : ""}
+            </div>`;
+          })
+          .join("")
+      : `<div style="font-size:12px;color:var(--text2)">No on-chain attestations for this hash.</div>`;
+
     out.innerHTML = `
-      <div class="status-bar authentic">
-        <div class="status-icon">✓</div>
+      <div class="status-bar ${headerClass}">
+        <div class="status-icon">${headerIcon}</div>
         <div class="status-text">
-          <div class="status-label">Attestation found</div>
-          <div class="status-desc">
-            Creator ID <strong>${esc(cid)}</strong> · ${esc(when)}
-            ${uri ? `<br><a class="ext-link" href="${esc(uri)}" target="_blank" rel="noopener">Linked URL ↗</a>` : ""}
+          <div class="status-label">${esc(headerLabel)}</div>
+          <div class="status-desc">${esc(headerDesc)}</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="card-body">
+          <div class="field full">
+            <div class="fl">Computed SHA-256</div>
+            <div class="fv mono">${esc(hash)}</div>
+          </div>
+          <div style="margin-top:10px">
+            <div class="section-title" style="margin:0 0 8px">Who anchored this hash</div>
+            ${itemsHtml}
           </div>
         </div>
       </div>`;

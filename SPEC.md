@@ -270,6 +270,17 @@ Only the act of publicly publishing the Creator ID on a real website — combine
 institution's existing real-world reputation — provides the basis for trust.
 Verifiers display only the Creator ID, never a self-declared name.
 
+### Optional P-affiliation (one parent per child)
+
+To support large organizations (e.g. university → school), the protocol allows
+an optional one-level affiliation between `P` entities:
+
+- Child `P` proposes a parent `P`
+- Parent `P` confirms on-chain
+- Child `P` can have **at most one active parent `P`**
+
+This two-step handshake reduces spam and prevents unilateral trust claims.
+
 ```
 ODP-2026-03-004829301  (original passport, 2026)
   └── Proof from P-029-384-751-224  04-2031
@@ -1078,6 +1089,13 @@ registerCreator(type) → creatorId
 
 submitProof(humanId, noteHash?, noteUrl?) → proofId
   // caller must be registered as type P or M
+
+proposePAffiliation(parentPId)
+confirmPAffiliation(childPId)
+cancelPAffiliationRequest(parentPId)
+isPAffiliationPending(parentPId, childPId) → bool
+getPAffiliatedParent(childPId) → string
+getPAffiliatedChildren(parentPId) → string[]
 
 getCreator(creatorId) → CreatorRecord
 getProofsForPassport(humanId) → ProofRecord[]

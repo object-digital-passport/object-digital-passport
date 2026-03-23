@@ -244,6 +244,18 @@ Registering a Creator ID and minting passports **submit transactions on Polygon 
 
 The **Current release** table lists the canonical **v0.1** deployment. The demo HTML is already configured for that address.
 
+### 3.1 Compilation requirements (important)
+
+For this contract, compile with optimizer and IR pipeline enabled:
+
+- `optimizer.enabled = true` (recommended `runs = 200`)
+- `viaIR = true`
+
+Without `viaIR`, some environments may fail with `Stack too deep` in `mintPhysical`.
+
+Lifecycle note: the contract includes a **one-time irreversible** `freeze()` action controlled by the deployer.  
+It does not allow changing existing records or rules; it only stops new writes.
+
 **Folder hosting (`passport.html`):** the file on your server must be named exactly **`<Human ID>.json`** (e.g. `ODP-2026-03-004829301.json`), and the registered `dataUrl` must be the **full HTTPS URL** to that file (e.g. `https://example.com/passport/ODP-2026-03-004829301.json`). The Solidity contract in this repository can resolve `folderBase + "/" + HumanID + ".json"` **inside the mint transaction** when redeployed (`dataUrlIsFolderBase`); the **current** public Polygon deployment still uses the older ABI, so the web UI keeps **`NET.supportsFolderBaseMint: false`** and performs a **second** transaction (`updatePassportUrls`) to replace the temporary mint URL — set **`supportsFolderBaseMint: true`** only after you deploy the updated contract and paste its address.
 
 If you need a **separate** deployment (e.g. private test), use the **`deploy/`** stack and wire addresses per **`SPEC.md`** — that workflow is for operators and integrators, not required to try the public demo.
@@ -367,6 +379,10 @@ ODP-2026-03-004829301
 
 Registration is open — no approval required.
 Institutions must publish their ID publicly so anyone can verify their identity.
+
+Optional P-affiliation is supported for institutional structure:
+`P` child proposes, `P` parent confirms on-chain, and each child can have only one parent `P`.
+This gives a spam-resistant, two-party confirmation model.
 
 ---
 
