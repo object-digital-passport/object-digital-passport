@@ -12,7 +12,7 @@
 - Ваш `creatorId` и паспорта привязаны к этому деплойменту.
 - В новом деплойменте 0.X даже тот же кошелёк может получить **другой** `creatorId`.
 - Старые данные остаются в старом деплойменте и читаются, но автоматически не переносятся.
-- **С v0.1 обратной совместимости нет** ни для Creator ID, ни для паспортных записей: v0.1 и v0.2 — это разные реестры.
+- **С v0.1 обратной совместимости нет** ни для ID профиля (`creatorId`), ни для паспортных записей: v0.1 и v0.2 — это разные реестры.
 
 Если вам нужен сценарий **«один кошелёк + один постоянный `creatorId`»** как каноничное долгосрочное хранилище, дождитесь стабильного **v1**.
 
@@ -27,8 +27,8 @@
 
 | Термин | Значение в ODP |
 |:--|:--|
-| **Минт / minting** | Отправка **транзакции**, которая **создаёт** новую on-chain запись. Для паспорта **mint** означает, что смарт-контракт **регистрирует** ваш объект: он назначает **Human ID** и хранит криптографические **хэши** (в v0.2: **только gas сети** — без отдельной протокольной комиссии). Вы всё равно **скачиваете** и можете **хостить** `passport.json` отдельно. |
-| **Register (Creator ID)** | **Одноразовый** on-chain шаг: ваш кошелёк платит **gas** и получает постоянный **Creator ID** (`C-…`, `B-…` или `P-…`). Делать это нужно **до** того, как вы сможете минтачить паспорта. |
+| **Минт / minting** | Отправка **транзакции**, которая **создаёт** новую on-chain запись. Для паспорта **mint** означает, что смарт-контракт **регистрирует** ваш объект: он назначает **Passport ID** (поле `humanId`) и хранит криптографические **хэши** (в v0.2: **только gas сети** — без отдельной протокольной комиссии). Вы всё равно **скачиваете** и можете **хостить** `passport.json` отдельно. |
+| **Register (`registerCreator`)** | **Одноразовый** on-chain шаг: ваш кошелёк платит **gas** и получает постоянный **ID профиля** (`C-…`, `B-…` или `P-…`; on-chain `creatorId`). Делать это нужно **до** того, как вы сможете минтачить паспорта. |
 | **Deployment (деплоймент)** | Один конкретный экземпляр смарт-контракта по одному адресу (один реестр). Ваш `creatorId` и записи привязаны к нему. |
 | **Passport** | **Вся** запись по одному объекту: on-chain строка плюс (если опубликован) файл **passport.json** по адресу `dataUrl`. |
 | **`passport.json`** | Оффчейн JSON-документ с названием, seal, хэшами и т.д. На on-chain хранится только **хэш**; **вы** должны хранить файл. Если вы указываете `dataUrl`, публикуйте файл там, чтобы верификаторы могли его скачать. |
@@ -67,7 +67,7 @@
 | **SemVer сайта — зелёный** | **`1.0.0`** и выше: стабильная линия. UI становится **зелёным**, когда major этой страницы совпадает с `ODP_LATEST_STABLE_MAJOR` (поднимать константу нужно при выпуске нового стабильного major, например `2` после `1.x`). |
 | **SemVer сайта — жёлтый** | Если latest stable major это **N ≥ 2**, то majors **`1 … N−1`** — **жёлтые** (старые stable-линии: нужна проверка миграции). Major страницы, новее `ODP_LATEST_STABLE_MAJOR`, тоже **жёлтый**, пока не совпадёт константа. |
 
-**Канонические live URL** (GitHub Pages проектный сайт): базовый URL — [https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/) — например [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html), [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html), [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
+**Канонические live URL** (GitHub Pages проектный сайт): базовый URL — [https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/) — например [Профиль](https://object-digital-passport.github.io/object-digital-passport/creator.html), [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html), [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
 
 ---
 
@@ -77,8 +77,8 @@
 
 Как части “склеиваются”:
 
-- **Human ID** (`ODP-YYYY-MM-NNNNNNNNN`) — удобный, читаемый и уникальный идентификатор объекта; назначается контрактом, неизменяем.
-- **Creator ID** (`C-482-930-174-005` и т.п.) — постоянная идентичность художника, бренда или института; нужна перед mint’ом.
+- **Passport ID** (`ODP-YYYY-MM-NNNNNNNNN`; в JSON/ABI — `humanId`) — удобный, читаемый и уникальный идентификатор объекта; назначается контрактом, неизменяем.
+- **ID профиля** (`C-482-930-174-005` и т.п.; on-chain `creatorId`) — постоянная идентичность художника, бренда или института; нужна перед mint’ом.
 - **On-chain record** — компактно: хэши, привязка к creator, URL, metadata seal. **Без** больших картинок и полного JSON на on-chain.
 - **Passport JSON** — полный документ, который должен жить по **`dataUrl`**, когда вам нужна публичная веб-верификация (HTTPS); в сети хранится хэш, чтобы любое изменение файла было обнаружено. **`dataUrl` можно не указывать** при mint (v0.2), но тогда подтверждение будет доступно только тем, у кого есть **файл**.
 
@@ -105,7 +105,7 @@
 | Страница | URL | Примечания |
 |:--|:--|:--|
 | **Verify** | [verify.html](https://object-digital-passport.github.io/object-digital-passport/verify.html) | Read-only — **без кошелька** |
-| **Creator ID** | [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html) | Нужен кошелёк + gas |
+| **Профиль** | [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html) | Нужен кошелёк + gas |
 | **Passport** | [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html) | Нужен кошелёк + gas |
 
 *Если корень сайта показывает README-стилевый контент, но `verify.html` отдаёт 404, возможно GitHub Pages всё ещё обслуживает сборку отдельной ветки/Jekyll. Предпочитайте Settings → Pages → Source: GitHub Actions и зеленую успешную сборку Deploy GitHub Pages — смотрите [`.github/workflows/pages.yml`](.github/workflows/pages.yml).*
@@ -146,8 +146,8 @@
 ODP позволяет зарегистрировать любой физический или цифровой объект в блокчейне Polygon и подтвердить его подлинность — используя человекочитаемый ID, криптографический хэш и (для физических объектов) физическую привязку (seal).
 
 ```
-ODP-2026-03-004829301   ← Human ID (на этикетке, упаковке, сайте)
-C-482-930-174-005      ← Creator ID (ваша постоянная идентичность)
+ODP-2026-03-004829301   ← Passport ID (на этикетке, упаковке, сайте)
+C-482-930-174-005      ← ID профиля (ваша постоянная идентичность)
 ```
 
 Любой, у кого есть телефон, может отсканировать QR и проверить:
@@ -162,16 +162,16 @@ C-482-930-174-005      ← Creator ID (ваша постоянная идент�
 ## Как это работает
 
 ```
-1. Регистрируете Creator ID    (~US$0.02 типично, один раз — gas + fee)
+1. Регистрируете профиль    (~US$0.02 типично, один раз — gas + fee)
        ↓
 2. Регистрируете ваш объект        (~US$0.02 типично — gas + fee)
-   → генерируется Human ID
+   → генерируется Passport ID
    → хэш данных сохраняется в on-chain
        ↓
 3. Печатаете метку верификации
    → QR code  odp://ODP-2026-03-004829301
-   → Human ID
-   → Creator ID
+   → Passport ID
+   → ID профиля
    → физический seal (см. ниже)
        ↓
 4. Любой сканирует → верификатор проверяет блокчейн → подлинность ✓
@@ -188,7 +188,10 @@ C-482-930-174-005      ← Creator ID (ваша постоянная идент�
 ├── CONTRIBUTING.md            ← как вносить вклад; labels & PR flow
 ├── CODE_OF_CONDUCT.md         ← Contributor Covenant
 ├── docs/
-│   └── VERSIONING_AND_RELEASES.md  ← теги, main, заморозка v0.1, hotfix'ы
+│   ├── README.md                   ← оглавление docs + ссылка на `.odp`
+│   ├── VERSIONING_AND_RELEASES.md  ← теги, main, заморозка v0.1, hotfix'ы
+│   ├── V0.2-DRAFT.md               ← исторические заметки ранней линии v0.2
+│   └── V0.3-DRAFT.md               ← рабочий черновик backlog для потенциальной линии v0.3
 ├── .github/
 │   ├── workflows/
 │   │   └── pages.yml          ← GitHub Pages: deploy /web (включите “GitHub Actions” в Settings → Pages)
@@ -209,11 +212,11 @@ C-482-930-174-005      ← Creator ID (ваша постоянная идент�
 │       └── deploy.js
 │
 ├── tools/
-│   └── mint.py                ← CLI для mint’инга (Python)
+│   └── mint.py                ← CLI mint; пишет `passports/<Passport ID>.odp` (как веб)
 │
 └── web/
     ├── .nojekyll              ← чтобы статическая загрузка не обрабатывалась как Jekyll (когда нужно)
-    ├── creator.html           ← регистрация Creator ID (пример UI)
+    ├── creator.html           ← регистрация профиля (пример UI)
     ├── passport.html          ← минт паспортов (пример UI)
     └── verify.html            ← проверка паспортов (пример UI)
 ```
@@ -233,7 +236,7 @@ C-482-930-174-005      ← Creator ID (ваша постоянная идент�
 
 ### 2. POL для gas и комиссий
 
-Регистрация Creator ID и минт паспорта происходят через **транзакции** в Polygon PoS. Вы платите только **network gas** в **POL**. В линии v0.2 отдельной протокольной комиссии 0.001 POL нет. Страница **Verify** работает в режиме read-only и **не требует** POL или кошелёк. Обновление URL on-chain — также только **gas**.
+Регистрация профиля и минт паспорта происходят через **транзакции** в Polygon PoS. Вы платите только **network gas** в **POL**. В линии v0.2 отдельной протокольной комиссии 0.001 POL нет. Страница **Verify** работает в режиме read-only и **не требует** POL или кошелёк. Обновление URL on-chain — также только **gas**.
 
 ### 3. Официальный контракт
 
@@ -255,13 +258,13 @@ C-482-930-174-005      ← Creator ID (ваша постоянная идент�
 Примечание по lifecycle: в контракте есть **одноразовое необратимое** действие `freeze()`, доступное deployer-адресу.  
 Оно не меняет существующие записи и правила — только останавливает новые записи.
 
-**Хостинг папкой (`passport.html`):** имя файла на вашем сервере должно строго совпадать с форматом **`<Human ID>.json`** (например `ODP-2026-03-004829301.json`), а зарегистрированный `dataUrl` должен быть **полной HTTPS ссылкой** на этот файл (например `https://example.com/passport/ODP-2026-03-004829301.json`). Solidity-контракт в этом репозитории умеет резолвить `folderBase + "/" + HumanID + ".json"` **внутри транзакции mint** при пере-деплойменте (`dataUrlIsFolderBase`); текущий публичный Polygon-деплой ещё использует более старый ABI, поэтому веб-UI держит **`NET.supportsFolderBaseMint: false`** и делает **вторую** транзакцию (`updatePassportUrls`), чтобы заменить временный mint-URL. Поставьте **`supportsFolderBaseMint: true`** только после деплоймента обновлённого контракта и вставки его адреса.
+**Хостинг папкой (`passport.html`):** имя файла на вашем сервере должно строго совпадать с форматом **`<Passport ID>.json`** (та же строка, что поле `humanId`; например `ODP-2026-03-004829301.json`), а зарегистрированный `dataUrl` должен быть **полной HTTPS ссылкой** на этот файл (например `https://example.com/passport/ODP-2026-03-004829301.json`). Solidity-контракт в этом репозитории умеет резолвить `folderBase + "/" + humanId + ".json"` **внутри транзакции mint** при пере-деплойменте (`dataUrlIsFolderBase`); текущий публичный Polygon-деплой ещё использует более старый ABI, поэтому веб-UI держит **`NET.supportsFolderBaseMint: false`** и делает **вторую** транзакцию (`updatePassportUrls`), чтобы заменить временный mint-URL. Поставьте **`supportsFolderBaseMint: true`** только после деплоймента обновлённого контракта и вставки его адреса.
 
 Если вам нужен **отдельный** деплой (например, приватный тест), используйте stack из `deploy/` и подключайте адреса согласно **`SPEC.md`** — этот workflow предназначен для операторов и интеграторов, и не нужен для попытки публичного демо.
 
-### 4. Регистрируйте ваш Creator ID
+### 4. Регистрируйте профиль
 
-**Пример UI:** откройте **[Creator ID (live demo)](https://object-digital-passport.github.io/object-digital-passport/creator.html)** — **Connect Wallet**, затем пройдите шаги регистрации.
+**Пример UI:** откройте **[Профиль (live demo)](https://object-digital-passport.github.io/object-digital-passport/creator.html)** — **Connect Wallet**, затем пройдите шаги регистрации.
 
 При регистрации выберите тип:
 
@@ -281,10 +284,9 @@ Full:   C-482-930-174-005 / Your Name / 0x742d35Cc...
 
 ### 5. Минтите паспорт
 
-**Пример UI:** откройте **[Passport (live demo)](https://object-digital-passport.github.io/object-digital-passport/passport.html)**, подключите кошелёк, заполните форму и нажмите **Mint Passport**. После mint'инга скачайте `passport.json` и разместите его по **`dataUrl`**, который вы использовали.
-Опционально скачайте **`<Human ID>.odp`** бандл — он упаковывает `passport.json` (а когда вы указали в форме файлы, то и байты оригинала / изображения), чтобы офлайн-инструменты могли пересчитать хэши и проверить запись.
+**Пример UI:** откройте **[Passport (live demo)](https://object-digital-passport.github.io/object-digital-passport/passport.html)**, подключите кошелёк, заполните форму и нажмите **Mint Passport**. После mint'инга вы получаете **`<Passport ID>.odp`** (ZIP по **SPEC §15**): внутри — **`passport.json`** для публикации по **`dataUrl`**, при необходимости **`original/*`** / **`image/*`**, плюс **`manifest.json`** (только для UX, не якорь доверия). Распакуйте архив и загрузите те же байты `passport.json`, что в бандле.
 
-*(Опционально: автоматизацию и CLI-процессы описывает `tools/mint.py` — это не требуется для демо в браузере.)*
+*(CLI: **`tools/mint.py`** после успешного минта сохраняет такой же **`.odp`** в `passports/` — не обязательно для демо в браузере.)*
 
 #### Хостинг `passport.json` на сторонних сайтах
 
@@ -296,13 +298,13 @@ Full:   C-482-930-174-005 / Your Name / 0x742d35Cc...
 - поддерживать **CORS** — хост должен разрешать cross-origin `GET` для страницы верификации (у многих статических хостингов и GitHub Raw это разрешено)
 - загружать **неизменные байты** — файл нужно отправлять без правок с того скачивания, которое даёт mint
 
-Если вам нужен Human ID в пути URL, минтите с “стабильным” URL сначала, загрузите файл, затем используйте **Update hosting URLs** в UI кошелька (gas только — без второго mint fee).
+Если вам нужен Passport ID в пути URL, минтите с “стабильным” URL сначала, загрузите файл, затем используйте **Update hosting URLs** в UI кошелька (gas только — без второго mint fee).
 
 Полное нормативное описание: **SPEC.md §9 — Hosting `dataUrl` (third-party sites)**.
 
 ### 6. Проверка
 
-**Пример UI:** откройте **[Verify (live demo)](https://object-digital-passport.github.io/object-digital-passport/verify.html)** в любом браузере. Введите Human ID или вставьте URI в формате `odp://`. **Кошелёк не нужен.**
+**Пример UI:** откройте **[Verify (live demo)](https://object-digital-passport.github.io/object-digital-passport/verify.html)** в любом браузере. Введите Passport ID или вставьте URI в формате `odp://`. **Кошелёк не нужен.**
 Проверяйте офлайн: загрузите в верификатор **`.odp` бандл** — он сверяет встроенный `passport.json` с on-chain `dataHash` и (если применимо) проверяет байты оригинала/изображения по on-chain `fileHash` / `imageHash`.
 
 **Шаблон прямой ссылки:**
@@ -337,10 +339,10 @@ https://object-digital-passport.github.io/object-digital-passport/verify.html?id
 Если вы используете метку, добавьте:
 
 - QR code (`odp://ODP-YYYY-MM-NNNNNNNNN`)
-- Human ID текстом
+- Passport ID текстом
 - метку протокола (`ODP`)
 
-`Creator ID` на метке — опционален и только справочный. Для доверия используйте Creator ID из верифицированных публичных источников (официальный сайт / публичные профили в соцсетях), затем сверяйте его с проверкой on-chain.
+ID профиля на метке — опционален и только справочный. Для доверия используйте ID профиля из верифицированных публичных источников (официальный сайт / публичные профили в соцсетях), затем сверяйте его с проверкой on-chain.
 
 Если вы используете метку, она должна физически покрывать/удерживать seal так, чтобы при снятии метки seal была повреждена или хотя бы нарушена (см. **`SPEC.md`** правила удержания seal).
 
@@ -378,9 +380,10 @@ ODP-2026-03-004829301
 Регистрация открыта — утверждение не требуется.
 Институции обязаны публиковать свой ID публично, чтобы любой мог проверить их идентичность.
 
-Опциональная P-аффилиация для институциональной структуры поддерживается:
-child `P` предлагает связь, parent `P` подтверждает on-chain, и у каждого child может быть только один parent `P`.
-Это даёт антиспам-модель с подтверждением двумя сторонами.
+Опциональная **P-аффилиация** связывает два ID профиля типа `P` в одноуровневых отношениях parent–child:
+child `P` предлагает связь, parent `P` подтверждает on-chain; у каждого child не более одного parent `P`.
+Реальный смысл связи (головной офис и подразделение, сеть и участник и т.д.) задаётся оффчейн;
+протокол обеспечивает антиспам-модель с подтверждением двумя сторонами.
 
 ---
 
@@ -425,7 +428,7 @@ const proofIds = await contract.getProofsForPassport("ODP-2026-03-004829301");
 
 | Действие | Оценочная стоимость (v0.2) |
 |:--|:--|
-| Register Creator ID | ~US$0.01 (разово) — gas only |
+| Регистрация профиля | ~US$0.01 (разово) — gas only |
 | Mint a passport | ~US$0.01 — gas only |
 | Submit a proof | ~US$0.01 — gas only |
 | Обновлять только URL паспорта (`updatePassportUrls`) | Только gas |
@@ -440,7 +443,7 @@ const proofIds = await contract.getProofsForPassport("ODP-2026-03-004829301");
 Она описывает ровно то, как генерируются ID, как вычисляются хэши,
 как работает верификация и что должен реализовать любой SDK.
 
-Неформальные design notes v0.2 (не нормативные) находятся в [`docs/V0.2-DRAFT.md`](docs/V0.2-DRAFT.md).
+**Оглавление документов:** [`docs/README.md`](docs/README.md). Неформальные / черновые заметки: [`docs/V0.2-DRAFT.md`](docs/V0.2-DRAFT.md), [`docs/V0.3-DRAFT.md`](docs/V0.3-DRAFT.md) (RU: [`localization/ru/V0.3-DRAFT.md`](localization/ru/V0.3-DRAFT.md)).
 
 Любой разработчик может построить совместимую реализацию,
 только по спецификации — не читая код этого репозитория.
@@ -468,6 +471,7 @@ const proofIds = await contract.getProofsForPassport("ODP-2026-03-004829301");
 
 - **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — fork/PR flow, labels, рамки
 - **[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)** — Contributor Covenant (ожидания сообщества)
+- **[`docs/README.md`](docs/README.md)** — что лежит в `docs/` и где описан `.odp`
 - **[`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)** — теги vs `main`, заморозка линии (например v0.1), hotfix tags
 - **[`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md)** — опциональные правила защиты веток (включайте на GitHub, когда будете готовы; в ежедневной работе не обязательно)
 - **[`.github/profile/README.md`](.github/profile/README.md)** — текст для главной страницы **организации**; публикуется отдельным org repo **`.github`** — см. **[`.github/profile/PUBLISH.md`](.github/profile/PUBLISH.md)**
@@ -476,7 +480,7 @@ const proofIds = await contract.getProofsForPassport("ODP-2026-03-004829301");
 
 - Открывайте issue для обсуждения изменений в спецификации
 - PR приветствуются для контракта, туллинга и документации
-- Чтобы предложить новый тип префикса Creator ID — сначала откройте обсуждение в спецификации
+- Чтобы предложить новый префикс типа эмитента (C/B/P/M) — сначала откройте обсуждение в спецификации
 
 ---
 

@@ -3,11 +3,12 @@
     "switchLabel": "Язык"
   },
   "nav": {
-    "creator": "Creator ID",
+    "creator": "Профиль",
     "passport": "Паспорт",
     "verify": "Проверка"
   },
   "footer": {
+    "githubRepo": "GitHub",
     "license": "Лицензия MIT",
     "author": "Андрей Черников"
   },
@@ -16,5 +17,30 @@
     "hintLocal": "Укажите NET.contract, добавьте registry-config.json или откройте страницу один раз с ?contract=0x… (40 hex-символов).",
     "hintProduction": "Задайте секрет или переменную ODP_CONTRACT_ADDRESS в Settings → Secrets and variables → Actions, затем выполните деплой. Или один раз откройте страницу с ?contract=0x… в URL.",
     "readmeLink": "README"
+  },
+  "stack": {
+    "trust": {
+      "redLabel": "Красный флаг",
+      "redTitle": "Версия сайта 0.x — эксперимент, не для продакшена.",
+      "yellowLabel": "Жёлтый флаг",
+      "yellowNewerTitle": "Major версии сайта новее, чем заданный «последний стабильный» major — сверьтесь с примечаниями к релизу.",
+      "yellowOlderTitle": "Стабильный major ниже актуального. Проверьте миграцию и допущения доверия.",
+      "greenLabel": "Стабильно",
+      "greenTitle": "Major версии сайта совпадает с текущей стабильной линией (≥1.0)."
+    },
+    "spec": {
+      "legacy": "устаревший CONTRACT_VERSION 0 — этот интерфейс не поддерживает",
+      "v02": "спецификация ODP (только газ, опциональный dataUrl, якорь PDF/документа; безлимит P/M; proofs P/M)",
+      "unknown": "неизвестное поколение контракта"
+    },
+    "summaryMeta": "Сайт {siteVer} · поколение в сети {gen} — {spec}",
+    "detailsBtn": "Подробнее",
+    "modalTitle": "Версия сайта и доверие",
+    "modalOk": "Понятно",
+    "disclosure": {
+      "readPara": "Read ABI распознаёт прежние значения <strong>contractVersion</strong> в сети. Проверка сначала обращается к <strong>основному</strong> развёртыванию; если записи нет, пробует <strong>previousContracts</strong> (старые развёртывания — отдельные реестры).",
+      "semverLte1": "Релизы сайта <strong>0.x</strong> — <strong>красный флаг</strong> (эксперимент). Стабильный SemVer начинается с <strong>major 1</strong>. Если <strong>стабильных major несколько</strong>, любой major ниже последнего стабильного — <strong>жёлтый флаг</strong> — сверьтесь с заметками об обновлении.",
+      "semverGt1": "<strong>0.x</strong> — красный флаг. <strong>Major {L}</strong> (последний стабильный) — зелёный. <strong>Majors 1…{prevMajorsEnd}</strong> — жёлтый флаг: старые стабильные линии; проверьте миграцию. Патчи <strong>1.x</strong> в рамках того же major остаются зелёными, пока этот major актуален."
+    }
   }
 }

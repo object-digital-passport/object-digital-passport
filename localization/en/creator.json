@@ -1,8 +1,8 @@
 {
   "creator": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Register Creator ID",
-      "h1": "Creator ID",
+      "documentTitle": "ODP v0.2 — Register profile",
+      "h1": "Profile",
       "sub": "Object Digital Passport · Specification v0.2"
     },
     "steps": {
@@ -12,13 +12,13 @@
     },
     "connect": {
       "cardTitle": "Connect your wallet",
-      "lead": "Your wallet address becomes your identity in ODP. The Creator ID is permanently linked to your wallet. Make sure you have a backup of your key before proceeding.",
+      "lead": "Your wallet address becomes your identity in ODP. Your profile (ID) is permanently linked to your wallet. Make sure you have a backup of your key before proceeding.",
       "btnName": "Connect wallet",
       "btnDesc": "Browser extension — MetaMask, Rabby, Brave Wallet, etc."
     },
     "security": {
       "cardTitle": "Before you register",
-      "intro": "Your Creator ID is tied to this wallet permanently. If you lose access to the wallet, the ID cannot be transferred or recovered. Read the following carefully.",
+      "intro": "Your profile is tied to this wallet permanently. If you lose access to the wallet, the ID cannot be transferred or recovered. Read the following carefully.",
       "li1t": "Seed phrase wallets — back up before anything else",
       "li1": "Write the 12–24 words on paper. Verify word order when prompted. Store offline. Keep a second copy in a different location. Never store digitally — no photos, no cloud, no messaging apps.",
       "li2t": "Seed-less hardware wallets — get a backup device now",
@@ -32,7 +32,7 @@
     },
     "register": {
       "cardTitle": "Choose your type",
-      "warn": "⚠ Your type prefix cannot be changed after registration. One Creator ID per wallet. Permanent.",
+      "warn": "⚠ Your type prefix cannot be changed after registration. One profile per wallet. Permanent.",
       "btn": "Register — Polygon gas only (~US$0.01 typ.)",
       "waiting": "Waiting for wallet…",
       "confirming": "Confirming…",
@@ -71,7 +71,7 @@
       "httpsHint": "Use https:// or http://localhost if the wallet still does not appear."
     },
     "already": {
-      "cardTitle": "Your Creator ID",
+      "cardTitle": "Your profile",
       "publish": "Publish this everywhere",
       "shareCaption": "Open Share for a QR, the link, PNG download, or send via your device.",
       "pl1": "On your official website — prominently, not hidden in menus",
@@ -79,13 +79,13 @@
       "pl3": "On physical objects, packaging, and certificates you issue",
       "pl4": "In press releases and official communications",
       "btnPassport": "Create a Passport →",
-      "btnVerify": "Verify Creator ID ↗",
+      "btnVerify": "Verify profile ↗",
       "btnExplorer": "View on Explorer ↗",
       "short": "Short:",
       "full": "Full:"
     },
     "share": {
-      "title": "Share Creator ID",
+      "title": "Share profile",
       "shareBtn": "Share",
       "closeAria": "Close",
       "dl": "Download QR (PNG)",
@@ -99,7 +99,7 @@
     "qrFail": "QR library did not load (network / CDN blocked).",
     "docAttest": {
       "cardTitle": "Anchor a document (PDF, etc.) on-chain",
-      "body": "Upload the file (e.g. contract PDF). The page computes SHA-256 locally and sends only the hash in a transaction — gas only. Counterparties can hash their copy and check it matches this Creator ID on Verify. This is not a qualified e-signature; it records that this wallet anchored this hash at a time.",
+      "body": "Upload the file (e.g. contract PDF). The page computes SHA-256 locally and sends only the hash in a transaction — gas only. Counterparties can hash their copy and check it matches this profile on Verify. This is not a qualified e-signature; it records that this wallet anchored this hash at a time.",
       "uriLabel": "Optional public URL to the same file (HTTPS)",
       "btn": "Record hash on-chain",
       "chooseFile": "Choose a file first.",
@@ -111,18 +111,23 @@
     },
     "pAff": {
       "cardTitle": "Institution structure (P affiliation)",
-      "body": "For large organizations, you can link a child Proof Institution (school) to a parent Proof Institution (university) with a spam-resistant two-step handshake.",
+      "body": "If your organization has multiple units, not every action needs a signature from head-office wallet: a unit registers its own P profile and works from its own wallet — the chain still shows who created each record. A two-step on-chain handshake links that P to a parent P, so units stay autonomous while verifiers can see they belong to a larger institution.",
       "activeParentLabel": "Active parent",
       "parentInputLabel": "Parent P (propose)",
       "proposeBtn": "Propose link",
+      "cancelBtn": "Cancel pending request",
+      "cancelHint": "To withdraw a link request you sent, enter the same parent P ID and cancel — only works before the parent confirms.",
+      "cancelChecking": "Checking pending status…",
+      "cancelNoPending": "There is no pending request to this parent P from your profile.",
+      "cancelDone": "Pending request cancelled.",
       "childInputLabel": "Child P (confirm)",
       "confirmBtn": "Confirm link",
-      "childrenTitle": "Active affiliated schools (children)",
+      "childrenTitle": "Active affiliated child P IDs (children)",
       "loadMoreBtn": "Load more",
-      "parentRequired": "Enter a parent P Creator ID first.",
+      "parentRequired": "Enter a parent P profile ID first.",
       "sending": "Sending…",
       "proposed": "Proposed. Waiting for parent confirmation.",
-      "childRequired": "Enter a child P Creator ID first.",
+      "childRequired": "Enter a child P profile ID first.",
       "checkingPending": "Checking pending request…",
       "noPending": "No pending request for this child under your parent affiliation.",
       "confirmed": "Confirmed. Link is now active."

@@ -11,7 +11,7 @@
 <title>ODP v0.2 — Create Passport</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.2"></script>
+<script src="odp-contract.js?v=0.2.2"></script>
 <script src="odp-i18n.js?v=6"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
@@ -36,7 +36,7 @@
 </header>
 
 <div class="nav">
-  <a href="creator.html" data-i18n="nav.creator">Creator ID</a>
+  <a href="creator.html" data-i18n="nav.creator">Profile</a>
   <a href="passport.html" class="active" data-i18n="nav.passport">Passport</a>
   <a href="verify.html" data-i18n="nav.verify">Verify</a>
 </div>
@@ -47,7 +47,7 @@
 </div>
 
 <footer>
-  <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer" data-i18n="footer.githubRepo">GitHub</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer" data-readme-link>README</a>
   <span id="footerSiteVer"></span>
   <span data-i18n="footer.license">MIT License</span>
@@ -119,6 +119,10 @@ let selectedOriginalFile = null, selectedImageFile = null;
 let walletConnectError = null;
 /** When true, `walletConnectError` is trusted HTML (neutral hint, not escaped). */
 let walletConnectErrorNeutral = false;
+/** Paginated on-chain list in `loadMyPassports`. */
+let myPassportsLoaded = [];
+let myPassportsTotal = 0;
+const MY_PASSPORTS_LIMIT = 20;
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
 
 function passportStackStripHtml() {
@@ -211,13 +215,23 @@ function openInMetaMaskAppUrl() {
 }
 
 async function ensureWalletChain(eth, cfg) {
+  const __chainStart = Date.now();
+  const __chainRunId = "run-" + __chainStart;
   const target = cfg.chainId;
   const hex = await eth.request({ method: "eth_chainId" });
   const cur = parseInt(hex, 16);
-  if (cur === target) return;
+  if (cur === target) {
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__chainRunId,hypothesisId:'H5',location:'web/passport.html:ensureWalletChain:no-switch',message:'Wallet already on target chain',data:{currentChain:cur,targetChain:target,durationMs:Date.now()-__chainStart},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    return;
+  }
   const chainIdHex = "0x" + target.toString(16);
   try {
     await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: chainIdHex }] });
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__chainRunId,hypothesisId:'H5',location:'web/passport.html:ensureWalletChain:switch-ok',message:'Wallet chain switch executed',data:{currentChain:cur,targetChain:target,durationMs:Date.now()-__chainStart},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   } catch (e) {
     if (e.code === 4902) {
       await eth.request({
@@ -230,6 +244,9 @@ async function ensureWalletChain(eth, cfg) {
           blockExplorerUrls: [cfg.explorer],
         }],
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__chainRunId,hypothesisId:'H5',location:'web/passport.html:ensureWalletChain:add-chain',message:'Wallet_addEthereumChain executed',data:{currentChain:cur,targetChain:target,durationMs:Date.now()-__chainStart},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     } else {
       throw e;
     }
@@ -348,30 +365,59 @@ async function _finish(p) {
 
 // ── My passports (on-chain list) ─────────────────────────────────────────────
 
-async function loadMyPassports() {
+async function loadMyPassports(reset) {
   const el = document.getElementById("myPassportsList");
+  const meta = document.getElementById("myPassportsMeta");
+  const btn = document.getElementById("myPassportsLoadMoreBtn");
+  const row = document.getElementById("myPassportsLoadMoreRow");
   if (!el || !contract || !wallet) return;
-  el.innerHTML = `<div class="pl-loading">${esc(t("passport.list.loading"))}</div>`;
+  if (reset) {
+    el.innerHTML = `<div class="pl-loading">${esc(t("passport.list.loading"))}</div>`;
+    myPassportsLoaded = [];
+    myPassportsTotal = 0;
+    if (btn) btn.disabled = true;
+    if (row) row.style.display = "none";
+    if (meta) meta.textContent = "";
+  } else if (btn) {
+    btn.disabled = true;
+  }
   try {
-    const ids = await contract.getPassportsByCreator(wallet);
-    if (!ids || ids.length === 0) {
+    if (typeof contract.getPassportsByCreatorPaged === "function") {
+      const offset = reset ? 0 : myPassportsLoaded.length;
+      const [slice, total] = await contract.getPassportsByCreatorPaged(wallet, offset, MY_PASSPORTS_LIMIT);
+      myPassportsTotal = Number(total || 0);
+      const part = Array.isArray(slice) ? slice : [];
+      myPassportsLoaded = reset ? part.slice() : myPassportsLoaded.concat(part);
+    } else {
+      const ids = await contract.getPassportsByCreator(wallet);
+      myPassportsLoaded = Array.isArray(ids) ? ids.slice() : [];
+      myPassportsTotal = myPassportsLoaded.length;
+    }
+
+    if (myPassportsLoaded.length === 0) {
       el.innerHTML = `<p class="pl-empty">${esc(t("passport.list.empty"))}</p>`;
+      if (row) row.style.display = "none";
       return;
     }
-    const rows = await Promise.all(ids.map(async (hid) => {
-      try {
-        const p = await contract.getPassport(hid);
-        const ts = Number(p.timestamp) * 1000;
-        const dateStr = ts ? new Date(ts).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" }) : "—";
-        return { hid, objectType: p.objectType, dateStr };
-      } catch {
-        return { hid, objectType: "?", dateStr: "—" };
-      }
-    }));
+
+    const rows = await Promise.all(
+      myPassportsLoaded.map(async (hid) => {
+        try {
+          const p = await contract.getPassport(hid);
+          const ts = Number(p.timestamp) * 1000;
+          const dateStr = ts ? new Date(ts).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" }) : "—";
+          return { hid, objectType: p.objectType, dateStr };
+        } catch {
+          return { hid, objectType: "?", dateStr: "—" };
+        }
+      })
+    );
     const vbase = "verify.html?id=";
     el.innerHTML = `
       <div class="pl-table">
-        ${rows.map((r) => `
+        ${rows
+          .map(
+            (r) => `
           <div class="pl-row">
             <div>
               <div class="pl-id">${esc(r.hid)}</div>
@@ -382,10 +428,23 @@ async function loadMyPassports() {
               <button type="button" class="pl-url-btn" onclick='openPassportShareModal(${JSON.stringify(r.hid)})'>${esc(t("passport.list.share"))}</button>
               <button type="button" class="pl-url-btn" onclick='openPassportUrlEditor(${JSON.stringify(r.hid)})'>${esc(t("passport.list.urls"))}</button>
             </div>
-          </div>`).join("")}
+          </div>`
+          )
+          .join("")}
       </div>`;
+
+    if (typeof contract.getPassportsByCreatorPaged === "function" && row && btn && meta) {
+      row.style.display = "flex";
+      meta.textContent = t("passport.list.pageMeta")
+        .replace("{n}", String(myPassportsLoaded.length))
+        .replace("{total}", String(myPassportsTotal));
+      btn.disabled = myPassportsLoaded.length >= myPassportsTotal;
+    } else if (row) {
+      row.style.display = "none";
+    }
   } catch (e) {
     el.innerHTML = `<div class="info e">${esc(e.message || String(e))}</div>`;
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -455,7 +514,7 @@ async function submitPassportUrls() {
     errEl.innerHTML = `<div class="info n">${esc(t("passport.form.urlEdit.confirmWallet"))}</div>`;
     await tx.wait();
     closeUrlModal();
-    await loadMyPassports();
+    await loadMyPassports(true);
   } catch (e) {
     errEl.innerHTML = `<div class="info e">${esc(e.message || String(e))}</div>`;
   } finally {
@@ -478,17 +537,6 @@ function htmlCategoryOptionsPhysical() {
 function htmlCategoryOptionsDigital() {
   return `<option value="digital">${esc(t("passport.form.catDigitalOnly"))}</option>`;
 }
-function htmlIssuerRoleOptions() {
-  return [
-    ["individual", "passport.form.issuerRoleIndividual"],
-    ["brand", "passport.form.issuerRoleBrand"],
-    ["proof_institution", "passport.form.issuerRoleProof"],
-    ["museum", "passport.form.issuerRoleMuseum"],
-  ]
-    .map(([val, key]) => `<option value="${val}">${esc(t(key))}</option>`)
-    .join("");
-}
-
 function defaultIssuerRoleFromCreatorId(cid) {
   const p = String(cid || "")
     .trim()
@@ -500,44 +548,6 @@ function defaultIssuerRoleFromCreatorId(cid) {
   return "individual";
 }
 
-function addExtraMetaRow() {
-  const container = document.getElementById("extraMetaRows");
-  if (!container) return;
-  if (container.querySelectorAll("[data-extra-meta-row]").length >= 12) return;
-  const row = document.createElement("div");
-  row.setAttribute("data-extra-meta-row", "1");
-  row.className = "row2";
-  row.style.marginBottom = "8px";
-  row.innerHTML =
-    `<div class="field"><label>${esc(t("passport.form.extraMetaKey"))}</label><input type="text" class="f-extra-k" placeholder="${esc(
-      t("passport.form.extraMetaKeyPh")
-    )}" autocomplete="off"></div>` +
-    `<div class="field"><label>${esc(t("passport.form.extraMetaValue"))}</label><input type="text" class="f-extra-v" placeholder="${esc(
-      t("passport.form.extraMetaValuePh")
-    )}" autocomplete="off"></div>`;
-  container.appendChild(row);
-}
-
-function seedExtraMetaRows() {
-  const c = document.getElementById("extraMetaRows");
-  if (!c || c.querySelector("[data-extra-meta-row]")) return;
-  addExtraMetaRow();
-  addExtraMetaRow();
-  addExtraMetaRow();
-}
-
-function parseAdditionalMetadata() {
-  const out = {};
-  document.querySelectorAll("[data-extra-meta-row]").forEach(function (row) {
-    const kEl = row.querySelector(".f-extra-k");
-    const vEl = row.querySelector(".f-extra-v");
-    const k = kEl ? kEl.value.trim() : "";
-    const v = vEl ? vEl.value.trim() : "";
-    if (k) out[k] = v;
-  });
-  return Object.keys(out).length ? out : null;
-}
-
 function htmlSubtypeOptions() {
   return [
     ["image", "passport.form.subImage"],
@@ -547,6 +557,271 @@ function htmlSubtypeOptions() {
     ["document", "passport.form.subDocument"],
     ["other", "passport.form.subOther"],
   ].map(([v, k]) => `<option value="${v}">${esc(t(k))}</option>`).join("");
+}
+
+function scrollToPassportSection(el) {
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch {}
+}
+
+function canShowPassportPmProof() {
+  return (
+    creatorId &&
+    (creatorId.charAt(0) === "P" || creatorId.charAt(0) === "M") &&
+    odpContractGeneration >= 2 &&
+    contract &&
+    typeof contract.submitProof === "function"
+  );
+}
+
+function htmlPassportPmProofCard() {
+  if (!canShowPassportPmProof()) return "";
+  return `
+    <div class="card" style="margin-top:16px">
+      <div class="card-head">${esc(t("passport.pmProof.cardTitle"))}</div>
+      <div class="card-body">
+        <div class="pm-proof-layout">
+          <div class="pm-proof-callout info warn">
+            <strong>${esc(t("passport.pmProof.calloutTitle"))}</strong>
+            ${esc(t("passport.pmProof.calloutBody"))}
+          </div>
+          <p class="pm-proof-lead">${esc(t("passport.pmProof.body"))}</p>
+          <p class="pm-proof-mint-note fhint">${esc(t("passport.pmProof.mintFootnote"))}</p>
+
+          <div class="pm-proof-section">
+            <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secPassportTitle"))}</div>
+            <label class="search-label" for="pmProofHumanId">${esc(t("passport.pmProof.humanIdLabel"))}</label>
+            <p class="pm-proof-hint">${esc(t("passport.pmProof.humanIdHint"))}</p>
+            <input type="text" id="pmProofHumanId" class="pm-proof-input" placeholder="ODP-…" autocomplete="off" spellcheck="false">
+          </div>
+
+          <div class="pm-proof-section">
+            <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secAttachTitle"))}</div>
+            <p class="pm-proof-hint" style="margin-bottom:14px">${esc(t("passport.pmProof.noteFileHelp"))}</p>
+            <div class="pm-proof-fdrop-wrap">
+              <div class="fdrop" id="pmProofNoteFileDrop" onclick="document.getElementById('pmProofNoteFile').click()">
+                <input type="file" id="pmProofNoteFile" aria-label="${esc(t("passport.pmProof.secAttachTitle"))}">
+                <div class="fdrop-icon">📎</div>
+                <div class="fdrop-text"><span>${esc(t("passport.pmProof.noteFileDrop1"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(t("passport.pmProof.noteFileDrop2"))}</span></div>
+              </div>
+            </div>
+            <div id="pmProofNoteHash" class="pm-proof-hash-line"></div>
+          </div>
+
+          <div class="pm-proof-section">
+            <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secUrlTitle"))}</div>
+            <label class="search-label" for="pmProofNoteUrl">${esc(t("passport.pmProof.noteUrlLabel"))}</label>
+            <p class="pm-proof-hint">${esc(t("passport.pmProof.noteUrlHint"))}</p>
+            <input type="url" id="pmProofNoteUrl" class="pm-proof-input" placeholder="https://…" autocomplete="off">
+          </div>
+
+          <div class="pm-proof-actions">
+            <button type="button" class="btn" id="pmProofSubmitBtn">${esc(t("passport.pmProof.submitBtn"))}</button>
+            <button type="button" class="btn btn-sec" id="pmProofRefreshBtn">${esc(t("passport.pmProof.refreshBtn"))}</button>
+          </div>
+          <div id="pmProofSubmitResult" style="margin-top:12px;font-size:12px;text-align:center"></div>
+        </div>
+
+        <div class="pm-proof-list-block info neutral" style="padding:14px 16px;border-radius:8px;margin-top:8px">
+          <div class="pm-proof-list-title">${esc(t("passport.pmProof.listTitle"))}</div>
+          <div id="pmProofList" class="mono" style="font-size:12px;word-break:break-word;white-space:pre-wrap;text-align:left"></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function activatePassportTool(tool, updateUrl) {
+  let slug = String(tool ?? "").trim();
+  if (!slug) {
+    const q = new URLSearchParams(window.location.search);
+    if ((q.get("tool") || "").trim() === "mint") slug = "mint";
+  }
+  if (updateUrl) {
+    const u = new URL(window.location.href);
+    if (slug === "mint") u.searchParams.set("tool", "mint");
+    else u.searchParams.delete("tool");
+    try {
+      window.history.replaceState({}, "", u.toString());
+    } catch {}
+  }
+
+  const mintSec = document.getElementById("passportMintWorkspace");
+  const menu = document.getElementById("passportToolsMenu");
+  const subnav = document.getElementById("passportToolSubnav");
+  const subTitle = document.getElementById("passportToolSubnavTitle");
+
+  if (slug !== "mint") {
+    if (subnav) subnav.style.display = "none";
+    if (menu) menu.hidden = false;
+    if (mintSec) mintSec.hidden = true;
+    scrollToPassportSection(document.getElementById("passportToolsMenu") || document.getElementById("passportToolsHeading"));
+    return;
+  }
+  if (menu) menu.hidden = true;
+  if (subnav) subnav.style.display = "";
+  if (subTitle) subTitle.textContent = t("passport.tools.mintSubnavTitle");
+  if (mintSec) mintSec.hidden = false;
+  scrollToPassportSection(mintSec);
+}
+
+const PM_PROOF_ZERO32 = "0x" + "0".repeat(64);
+
+async function pmProofSha256FileToBytes32(file) {
+  const buf = await file.arrayBuffer();
+  const d = await crypto.subtle.digest("SHA-256", buf);
+  return "0x" + [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function bindPMProofHandlers() {
+  const humanIn = document.getElementById("pmProofHumanId");
+  const noteFile = document.getElementById("pmProofNoteFile");
+  const noteFileDrop = document.getElementById("pmProofNoteFileDrop");
+  const noteUrlIn = document.getElementById("pmProofNoteUrl");
+  const noteHashEl = document.getElementById("pmProofNoteHash");
+  const submitBtn = document.getElementById("pmProofSubmitBtn");
+  const refreshBtn = document.getElementById("pmProofRefreshBtn");
+  const submitResult = document.getElementById("pmProofSubmitResult");
+  const listEl = document.getElementById("pmProofList");
+  if (!contract || !creatorId || !humanIn || !submitBtn || !listEl) return;
+
+  function syncPmProofFileDropEmpty() {
+    const drop = noteFileDrop || document.getElementById("pmProofNoteFileDrop");
+    const dropText = drop && drop.querySelector(".fdrop-text");
+    if (noteHashEl) noteHashEl.textContent = "";
+    if (drop) drop.classList.remove("has-file");
+    if (dropText) {
+      dropText.innerHTML =
+        "<span>" +
+        esc(t("passport.pmProof.noteFileDrop1")) +
+        '</span><br><span style="font-size:11px;opacity:0.6">' +
+        esc(t("passport.pmProof.noteFileDrop2")) +
+        "</span>";
+    }
+  }
+
+  async function refreshList() {
+    listEl.textContent = "…";
+    try {
+      const ids = await contract.getProofsByInstitution(creatorId);
+      const arr = Array.isArray(ids) ? ids : [];
+      if (arr.length === 0) {
+        listEl.textContent = t("passport.pmProof.listEmpty");
+        return;
+      }
+      const lines = [];
+      for (const pid of arr) {
+        try {
+          const pr = await contract.getProof(pid);
+          const nh =
+            pr && pr.noteHash != null && typeof ethers !== "undefined"
+              ? ethers.utils.hexlify(pr.noteHash)
+              : String((pr && pr.noteHash) || "");
+          const ts = pr && pr.timestamp != null ? Number(pr.timestamp) * 1000 : 0;
+          const when = ts ? new Date(ts).toLocaleString() : "—";
+          lines.push(
+            `${pid}\n  ${t("passport.pmProof.listPassport")} ${pr.humanId}\n  ${t("passport.pmProof.listWhen")} ${when}\n  noteHash: ${nh}\n  noteUrl: ${(pr && pr.noteUrl) || "—"}\n`
+          );
+        } catch {
+          lines.push(String(pid) + "\n");
+        }
+      }
+      listEl.textContent = lines.join("\n");
+    } catch (e) {
+      const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      listEl.textContent = m;
+    }
+  }
+
+  if (noteFile) {
+    noteFile.addEventListener("change", async () => {
+      const f = noteFile.files && noteFile.files[0];
+      const drop = noteFileDrop || document.getElementById("pmProofNoteFileDrop");
+      const dropText = drop && drop.querySelector(".fdrop-text");
+      if (!f) {
+        syncPmProofFileDropEmpty();
+        return;
+      }
+      try {
+        const h = await pmProofSha256FileToBytes32(f);
+        if (noteHashEl) noteHashEl.textContent = t("passport.pmProof.noteHashComputed") + " " + h;
+        if (drop) drop.classList.add("has-file");
+        if (dropText) {
+          var sz = f.size || 0;
+          var szStr =
+            sz < 1024
+              ? sz + " B"
+              : sz < 1048576
+                ? (sz / 1024).toFixed(1) + " KB"
+                : (sz / 1048576).toFixed(1) + " MB";
+          dropText.innerHTML =
+            "<span>" +
+            esc(f.name || t("passport.pmProof.noteFileLabel")) +
+            '</span><br><span style="font-size:11px;opacity:0.6">' +
+            esc(szStr) +
+            "</span>";
+        }
+      } catch {
+        if (noteFile) noteFile.value = "";
+        syncPmProofFileDropEmpty();
+      }
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", () => {
+      void refreshList();
+    });
+  }
+  void refreshList();
+
+  submitBtn.addEventListener("click", async () => {
+    if (!contract) return;
+    submitResult.innerHTML = "";
+    const humanId = humanIn.value ? String(humanIn.value).trim() : "";
+    const nowPm = new Date();
+    const year = nowPm.getFullYear();
+    const month = nowPm.getMonth() + 1;
+    const noteUrl = noteUrlIn && noteUrlIn.value ? String(noteUrlIn.value).trim() : "";
+    let noteHash = PM_PROOF_ZERO32;
+    const f = noteFile && noteFile.files && noteFile.files[0];
+    if (f) {
+      try {
+        noteHash = await pmProofSha256FileToBytes32(f);
+      } catch (e) {
+        submitResult.innerHTML = `<div class="info error">${esc(e.message || String(e))}</div>`;
+        return;
+      }
+    }
+    if (!humanId || !/^ODP-/i.test(humanId)) {
+      submitResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.needHumanId"))}</div>`;
+      return;
+    }
+    if (noteUrl.length > 512) {
+      submitResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.urlTooLong"))}</div>`;
+      return;
+    }
+    if (noteHash === PM_PROOF_ZERO32 && noteUrl.length > 0) {
+      submitResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.urlNeedsHash"))}</div>`;
+      return;
+    }
+    submitBtn.disabled = true;
+    submitResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.sending"))}</div>`;
+    try {
+      const tx = await contract.submitProof(humanId, noteHash, noteUrl, year, month);
+      await tx.wait();
+      submitResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.done"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+      if (noteFile) noteFile.value = "";
+      if (noteUrlIn) noteUrlIn.value = "";
+      syncPmProofFileDropEmpty();
+      await refreshList();
+    } catch (e) {
+      const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      submitResult.innerHTML = `<div class="info error">${esc(m)}</div>`;
+    }
+    submitBtn.disabled = false;
+  });
 }
 
 function renderForm() {
@@ -562,10 +837,37 @@ function renderForm() {
 
     ${passportStackStripHtml()}
 
+    ${htmlPassportPmProofCard()}
+
+    <div style="margin-top:16px" id="passportToolsHeading">
+      <div class="section-title">${esc(t("passport.tools.sectionTitle"))}</div>
+      <p class="fhint" id="passportToolsLead" style="margin:0 0 12px;line-height:1.55;max-width:52rem">${esc(t("passport.tools.lead"))}</p>
+    </div>
+
+    <section class="card" id="passportToolsMenu">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+        <button type="button" class="btn btn-sec" data-tool="mint" onclick="activatePassportTool('mint', true)">${esc(t("passport.tools.mintBtn"))}</button>
+      </div>
+    </section>
+
+    <section class="card verify-subnav-card" id="passportToolSubnav" style="display:none">
+      <div class="card-head verify-subnav-row">
+        <button type="button" class="btn btn-ghost verify-subnav-back" onclick="activatePassportTool('', true)">${esc(t("passport.tools.backBtn"))}</button>
+        <div id="passportToolSubnavTitle" class="verify-subnav-title"></div>
+      </div>
+    </section>
+
+    <section id="passportMintWorkspace" hidden>
+    <div id="passportMintsRow" style="display:none;margin-bottom:12px;max-width:52rem"></div>
+
     <div class="card passport-list-card">
       <div class="card-head">${esc(t("passport.form.yourPassports"))}</div>
       <div class="card-body" style="padding-top:12px">
         <div id="myPassportsList" class="pl-loading">${esc(t("passport.list.loading"))}</div>
+        <div id="myPassportsLoadMoreRow" style="margin-top:12px;display:none;align-items:center;gap:10px;flex-wrap:wrap">
+          <button type="button" class="btn btn-sec" id="myPassportsLoadMoreBtn">${esc(t("passport.list.loadMore"))}</button>
+          <span id="myPassportsMeta" class="fhint" style="font-size:11px;margin:0"></span>
+        </div>
       </div>
     </div>
 
@@ -630,20 +932,6 @@ function renderForm() {
       </div>
       <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
         <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
-    </div>
-
-    <!-- Issuer role & extra metadata (SPEC v0.2) -->
-    <div class="section">
-      <div class="section-label">${esc(t("passport.form.issuerRoleSection"))}</div>
-      <div class="field">
-        <label>${esc(t("passport.form.labelIssuerRole"))}<span class="req">*</span></label>
-        <select id="f_issuer_role">${htmlIssuerRoleOptions()}</select>
-        <p class="fhint" style="margin-top:8px">${esc(t("passport.form.issuerRoleHint"))}</p>
-      </div>
-      <div class="section-label" style="margin-top:18px">${esc(t("passport.form.extraMetaSection"))}</div>
-      <p class="fhint">${esc(t("passport.form.extraMetaHint"))}</p>
-      <div id="extraMetaRows"></div>
-      <button type="button" class="btn btn-ghost" style="margin-top:10px" onclick="addExtraMetaRow()">${esc(t("passport.form.extraMetaAdd"))}</button>
     </div>
 
     <!-- Passport URL -->
@@ -829,8 +1117,11 @@ function renderForm() {
           <p class="fhint" style="margin-bottom:12px">
             ${esc(t("passport.form.hostingModalP6"))}
           </p>
-          <p class="fhint" style="margin-bottom:0">
+          <p class="fhint" style="margin-bottom:12px">
             ${esc(t("passport.form.hostingModalP7"))}
+          </p>
+          <p class="fhint" style="margin-bottom:0">
+            ${esc(t("passport.form.hostingModalP8"))}
           </p>
           <div class="btn-row" style="margin-top:20px">
             <button type="button" class="btn" onclick="closeHostingJsonInfo()">${esc(t("passport.form.hostingModalClose"))}</button>
@@ -879,15 +1170,95 @@ function renderForm() {
         </div>
       </div>
     </div>
+    </section>
   `;
   queueMicrotask(() => {
-    loadMyPassports();
+    loadMyPassports(true);
+    updatePassportMintsRow();
     bindShareModalCloseHandlers();
+    bindMyPassportsLoadMore();
     syncHostingInputs();
-    const sel = document.getElementById("f_issuer_role");
-    if (sel) sel.value = defaultIssuerRoleFromCreatorId(creatorId);
-    seedExtraMetaRows();
+    if (canShowPassportPmProof()) bindPMProofHandlers();
+    // #region agent log
+    fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+      body: JSON.stringify({
+        sessionId: "7d72c7",
+        runId: "run-passport-mount-" + Date.now(),
+        hypothesisId: "H-pmabi",
+        location: "web/passport.html:renderForm:microtask",
+        message: "Passport form mount state (P/M card needs submitProof on passport ABI)",
+        data: {
+          creatorPrefix: String((creatorId && creatorId.charAt(0)) || ""),
+          generation: odpContractGeneration,
+          hasSubmitProof: !!(contract && typeof contract.submitProof === "function"),
+          showPmCard: canShowPassportPmProof(),
+          hasPmProofHumanIdEl: !!document.getElementById("pmProofHumanId"),
+          hasPassportToolsMenu: !!document.getElementById("passportToolsMenu"),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+    activatePassportTool("", false);
   });
+}
+
+function bindMyPassportsLoadMore() {
+  const btn = document.getElementById("myPassportsLoadMoreBtn");
+  if (!btn) return;
+  btn.onclick = () => {
+    void loadMyPassports(false);
+  };
+}
+
+async function updatePassportMintsRow() {
+  const el = document.getElementById("passportMintsRow");
+  if (!el || !contract || !wallet) return;
+  if (
+    typeof odpSupportsFolderBaseMint !== "function" ||
+    !odpSupportsFolderBaseMint(odpContractGeneration) ||
+    typeof contract.getRemainingMints !== "function"
+  ) {
+    el.style.display = "none";
+    el.innerHTML = "";
+    return;
+  }
+  el.style.display = "block";
+  try {
+    const remBn = await contract.getRemainingMints(wallet);
+    const remN = remBn && typeof remBn.toNumber === "function" ? remBn.toNumber() : Number(remBn);
+    const maxU32 = 4294967295;
+    const prefix = creatorId ? String(creatorId).charAt(0).toUpperCase() : "";
+    if (remN === maxU32 || prefix === "P" || prefix === "M") {
+      el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(t("passport.mints.unlimited"))}</div>`;
+      return;
+    }
+    let limN = null;
+    try {
+      if (prefix === "B" && typeof contract.MONTHLY_LIMIT_B === "function") {
+        const L = await contract.MONTHLY_LIMIT_B();
+        limN = L && typeof L.toNumber === "function" ? L.toNumber() : Number(L);
+      } else if (typeof contract.MONTHLY_LIMIT_C === "function") {
+        const L = await contract.MONTHLY_LIMIT_C();
+        limN = L && typeof L.toNumber === "function" ? L.toNumber() : Number(L);
+      }
+    } catch {
+      limN = null;
+    }
+    if (limN != null && !isNaN(limN)) {
+      el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(
+        t("passport.mints.remaining").replace("{rem}", String(remN)).replace("{limit}", String(limN))
+      )}</div>`;
+    } else {
+      el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(
+        t("passport.mints.remainingSimple").replace("{rem}", String(remN))
+      )}</div>`;
+    }
+  } catch (e) {
+    el.innerHTML = `<div class="info w" style="font-size:12px">${esc(e.message || String(e))}</div>`;
+  }
 }
 
 function syncHostingInputs() {
@@ -1031,8 +1402,11 @@ function buildRegistrationClock(now) {
 
 function buildPassport(humanId) {
   const now = new Date();
-  const roleEl = document.getElementById("f_issuer_role");
-  const issuerRole = roleEl && roleEl.value ? roleEl.value : defaultIssuerRoleFromCreatorId(creatorId);
+  const roleFromCreatorId = defaultIssuerRoleFromCreatorId(creatorId);
+  const issuerRole = roleFromCreatorId;
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-'+Date.now(),hypothesisId:'H11',location:'web/passport.html:buildPassport:issuer-role',message:'Issuer role from creatorId prefix',data:{creatorId:String(creatorId||''),issuerRole:String(issuerRole||''),lockedToCreatorPrefix:true},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const clock = buildRegistrationClock(now);
   const p = {
     version:"0.2", humanId:humanId||null,
@@ -1085,8 +1459,6 @@ function buildPassport(humanId) {
   imageUrl = v("f_imgUrl");
   // JSON field matches mint.py: f"sha256:{hex}"; on-chain still uses 0x bytes32 (imageHash)
   if (imageHash!==ZERO32) p.image = { url:imageUrl, hash: "sha256:"+imageHash.slice(2) };
-  const am = parseAdditionalMetadata();
-  if (am) p.additionalMetadata = am;
   return p;
 }
 
@@ -1221,7 +1593,7 @@ function previewJson() {
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 
-/** Legacy deployments: second tx to fix `dataUrl` after Human ID is known; retry without artificial delay. */
+/** Legacy deployments: second tx to fix `dataUrl` after Passport ID is known; retry without artificial delay. */
 async function updatePassportUrlsWithRetry(humanId, registeredDataUrl, imgU_, dataHash_) {
   let lastErr;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -1239,6 +1611,12 @@ async function updatePassportUrlsWithRetry(humanId, registeredDataUrl, imgU_, da
 }
 
 async function executeMint() {
+  const __mintStart = Date.now();
+  const __mintRunId = "run-" + __mintStart;
+  let __txCreatedAt = null;
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__mintRunId,hypothesisId:'H7',location:'web/passport.html:executeMint:start',message:'Mint flow started',data:{objType:objType,generation:odpContractGeneration},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const errEl = document.getElementById("formErr");
   errEl.innerHTML = "";
   const err = validate();
@@ -1319,6 +1697,10 @@ async function executeMint() {
         mintTxOpts()
       );
     }
+    __txCreatedAt = Date.now();
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__mintRunId,hypothesisId:'H7',location:'web/passport.html:executeMint:tx-created',message:'Mint tx object received from wallet/provider',data:{durationMs:Date.now()-__mintStart,txHash:tx&&tx.hash?String(tx.hash):''},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     document.getElementById("app").innerHTML = `
       <div style="text-align:center;padding:48px 0">
@@ -1329,6 +1711,9 @@ async function executeMint() {
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
 
     const receipt = await tx.wait();
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__mintRunId,hypothesisId:'H8',location:'web/passport.html:executeMint:tx-mined',message:'Mint tx mined',data:{durationMs:Date.now()-__mintStart,waitDurationMs:__txCreatedAt?Date.now()-__txCreatedAt:null,status:receipt&&receipt.status!=null?Number(receipt.status):null,blockNumber:receipt&&receipt.blockNumber?Number(receipt.blockNumber):null},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     // Parse humanId from event
     let humanId = null;
@@ -1381,6 +1766,9 @@ async function executeMint() {
     });
 
   } catch(e) {
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__mintRunId,hypothesisId:'H7',location:'web/passport.html:executeMint:error',message:'Mint flow failed',data:{durationMs:Date.now()-__mintStart,error:e&&e.message?String(e.message):String(e)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     document.getElementById("app").innerHTML = `<div class="info e">${esc(e.message)}</div>`;
     setTimeout(renderForm, 3000);
   }
@@ -1431,7 +1819,7 @@ function bindShareModalCloseHandlers() {
 
 function fillPassportShareModal(humanId) {
   const odpUri = `odp://${humanId}`;
-  const sharePayload = `Object Digital Passport - verify this object\nHuman ID: ${humanId}\n${odpUri}`;
+  const sharePayload = `Object Digital Passport - verify this object\nPassport ID: ${humanId}\n${odpUri}`;
   const vuAbs = getVerifyAbsoluteUrl(humanId);
   const qrEl = document.getElementById("shareModalQr");
   const urlEl = document.getElementById("shareModalUrl");
@@ -1455,7 +1843,7 @@ function fillPassportShareModal(humanId) {
     nat.onclick = () => {
       void shareOdpVerify({
         title: "Object Digital Passport",
-        text: `Verify this object - Human ID: ${humanId}`,
+        text: `Verify this object — Passport ID: ${humanId}`,
         url: vuAbs,
         fullText: sharePayload,
       });
@@ -1588,10 +1976,8 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
       </div>
 
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
-        <button type="button" class="btn" id="successDlJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDlJson"))}</button>
-        <button type="button" class="btn" id="successDlOdpBtn" style="flex:0;padding:13px 20px">Download .odp</button>
-        <button type="button" class="btn btn-sec" id="successShareJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successShareJson"))}</button>
-        <button type="button" class="btn btn-sec" id="successCopyJsonBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successCopyJson"))}</button>
+        <button type="button" class="btn" id="successDlOdpBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDlOdp"))}</button>
+        <button type="button" class="btn btn-sec" id="successShareOdpBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successShareOdp"))}</button>
         <a href="${net.explorer}/tx/${txHash}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn btn-ghost">${esc(t("passport.form.successExplorer"))}</button></a>
         <a href="${esc(rel)}"><button type="button" class="btn btn-ghost">${esc(t("passport.form.successVerify"))}</button></a>
         <button type="button" class="btn btn-ghost" onclick="renderForm()">${esc(t("passport.form.successNewPassport"))}</button>
@@ -1620,66 +2006,31 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
   try {
     sessionStorage.setItem("odp_passport_json_" + humanId, json);
   } catch (e) {}
-  const dl = document.getElementById("successDlJsonBtn");
   const dlOdp = document.getElementById("successDlOdpBtn");
-  const sh = document.getElementById("successShareJsonBtn");
-  const cp = document.getElementById("successCopyJsonBtn");
-  if (dl) dl.onclick = () => downloadPassportJson(humanId, json);
+  const shOdp = document.getElementById("successShareOdpBtn");
   if (dlOdp) dlOdp.onclick = () => void downloadPassportOdp(humanId, json, bundleMeta);
-  if (sh) sh.onclick = () => sharePassportJsonFile(humanId, json);
-  if (cp) cp.onclick = () => copyPassportJsonText(json, cp);
+  if (shOdp) shOdp.onclick = () => void sharePassportOdpFile(humanId, json, bundleMeta);
   void downloadPassportOdp(humanId, json, bundleMeta);
 }
 
-function blobDownloadPassportJson(humanId, json) {
-  const filename = `${safeFilePart(humanId)}.json`;
-  const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 2500);
-}
-
 /** Returns true if the system share sheet completed successfully; false if Web Share with files is unavailable. */
-async function trySharePassportJsonFile(humanId, json) {
-  const filename = `${safeFilePart(humanId)}.json`;
-  const blob = new Blob([json], { type: "application/json;charset=utf-8" });
-  const file = new File([blob], filename, { type: "application/json" });
+async function trySharePassportOdpFile(humanId, json, bundleMeta) {
+  const blob = await createPassportOdpBlob(humanId, json, bundleMeta);
+  const filename = `${safeFilePart(humanId)}.odp`;
+  const file = new File([blob], filename, { type: "application/zip" });
   if (!navigator.canShare || !navigator.canShare({ files: [file] })) return false;
-  await navigator.share({ files: [file], title: "ODP passport.json", text: filename });
+  await navigator.share({ files: [file], title: "ODP bundle", text: filename });
   return true;
 }
 
-/** Download: on mobile, Web Share with File first (Save to Files on iOS); otherwise blob `<a download>`. */
-async function downloadPassportJson(humanId, json) {
-  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  if (mobile) {
-    try {
-      const ok = await trySharePassportJsonFile(humanId, json);
-      if (ok) return;
-    } catch (e) {
-      if (e && e.name === "AbortError") return;
-    }
-  }
-  blobDownloadPassportJson(humanId, json);
-}
-
-/** Share sheet — same as mobile branch of Download; falls back to blob if sharing is unavailable or fails. */
-async function sharePassportJsonFile(humanId, json) {
+async function sharePassportOdpFile(humanId, json, bundleMeta) {
   try {
-    const ok = await trySharePassportJsonFile(humanId, json);
+    const ok = await trySharePassportOdpFile(humanId, json, bundleMeta);
     if (ok) return;
   } catch (e) {
     if (e && e.name === "AbortError") return;
   }
-  blobDownloadPassportJson(humanId, json);
+  await downloadPassportOdp(humanId, json, bundleMeta);
 }
 
 async function sha256HexFromBuffer(buf) {
@@ -1701,6 +2052,7 @@ function blobDownloadOdp(humanId, blob) {
   }, 2500);
 }
 
+/** SPEC §15 + §15.1.1 — keep aligned with `tools/mint.py` (`write_odp_bundle`). */
 async function createPassportOdpBlob(humanId, json, bundleMeta) {
   if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
   const zip = new JSZip();
@@ -1754,17 +2106,6 @@ async function downloadPassportOdp(humanId, json, bundleMeta) {
   blobDownloadOdp(humanId, blob);
 }
 
-async function copyPassportJsonText(json, btnEl) {
-  try {
-    await navigator.clipboard.writeText(json);
-    const prev = btnEl.textContent;
-    btnEl.textContent = t("passport.form.alerts.copiedBtn");
-    setTimeout(() => { btnEl.textContent = prev; }, 2000);
-  } catch (e) {
-    alert(t("passport.form.alerts.copyFailed") + (e.message || String(e)));
-  }
-}
-
 function fmtSz(b) {
   if (b<1024) return b+" B";
   if (b<1048576) return (b/1024).toFixed(1)+" KB";
@@ -1781,6 +2122,11 @@ document.addEventListener("keydown", (e) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const __bootStart = Date.now();
+  const __bootRunId = "run-" + __bootStart;
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__bootRunId,hypothesisId:'H1',location:'web/passport.html:DOMContentLoaded:start',message:'Passport page bootstrap start',data:{path:location.pathname,search:location.search},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   await odpInitI18n({ page: "passport", pageTitleKey: "passport.meta.documentTitle" });
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
@@ -1863,6 +2209,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   connect();
   initNetPill();
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__bootRunId,hypothesisId:'H1',location:'web/passport.html:DOMContentLoaded:end',message:'Passport page bootstrap end',data:{durationMs:Date.now()-__bootStart,hasWallet:!!wallet,hasCreatorId:!!creatorId},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 });
 </script>
 </body>

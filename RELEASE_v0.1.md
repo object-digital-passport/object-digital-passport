@@ -10,7 +10,7 @@ Static pages preconfigured for the official v0.1 contract below (illustration on
 
 - **Site:** https://object-digital-passport.github.io/object-digital-passport/
 - **Verify** (read-only, no wallet): https://object-digital-passport.github.io/object-digital-passport/verify.html  
-- **Creator ID:** https://object-digital-passport.github.io/object-digital-passport/creator.html  
+- **Profile:** https://object-digital-passport.github.io/object-digital-passport/creator.html  
 - **Passport:** https://object-digital-passport.github.io/object-digital-passport/passport.html  
 
 ## Deployment

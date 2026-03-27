@@ -3,11 +3,12 @@
     "switchLabel": "Language"
   },
   "nav": {
-    "creator": "Creator ID",
+    "creator": "Profile",
     "passport": "Passport",
     "verify": "Verify"
   },
   "footer": {
+    "githubRepo": "GitHub",
     "license": "MIT License",
     "author": "Andrei Chernikov"
   },
@@ -16,5 +17,30 @@
     "hintLocal": "Set NET.contract, add registry-config.json, or open once with ?contract=0x… (40 hex chars).",
     "hintProduction": "Set repository secret or variable ODP_CONTRACT_ADDRESS under Settings → Secrets and variables → Actions, then redeploy. Or open this page once with ?contract=0x… in the URL.",
     "readmeLink": "See README"
+  },
+  "stack": {
+    "trust": {
+      "redLabel": "Red flag",
+      "redTitle": "Site version 0.x — proof-of-concept; not production-stable.",
+      "yellowLabel": "Yellow flag",
+      "yellowNewerTitle": "Site major is newer than the configured latest stable major — confirm release notes before trusting.",
+      "yellowOlderTitle": "Older stable major (not the latest). Review migration and trust assumptions.",
+      "greenLabel": "Stable",
+      "greenTitle": "Site major matches the current stable line (≥1.0)."
+    },
+    "spec": {
+      "legacy": "legacy CONTRACT_VERSION 0 — not supported by this UI",
+      "v02": "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)",
+      "unknown": "unknown generation"
+    },
+    "summaryMeta": "Site {siteVer} · on-chain gen {gen} — {spec}",
+    "detailsBtn": "Details",
+    "modalTitle": "Site release & trust",
+    "modalOk": "Got it",
+    "disclosure": {
+      "readPara": "The read ABI decodes prior <strong>contractVersion</strong> values on-chain. The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries).",
+      "semverLte1": "<strong>0.x</strong> site releases are <strong>red-flag</strong> (experimental). Stable SemVer starts at <strong>major 1</strong>. When <strong>several stable majors</strong> exist, any major below the latest stable is <strong>yellow-flag</strong> — verify upgrade notes.",
+      "semverGt1": "<strong>0.x</strong> = red-flag. <strong>Major {L}</strong> (latest stable) = green. <strong>Majors 1…{prevMajorsEnd}</strong> = yellow-flag — older stable lines; review migration. <strong>1.x</strong> patch releases under the same major stay green when that major is current."
+    }
   }
 }

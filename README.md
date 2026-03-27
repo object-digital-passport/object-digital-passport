@@ -12,7 +12,7 @@ In plain terms:
 - Your `creatorId` and passports belong to that deployment.
 - A later 0.X deployment may issue a **different** `creatorId`, even for the same wallet.
 - Older data stays in the older deployment and remains readable, but it does not migrate automatically.
-- There is **no backward compatibility with v0.1** for creator IDs or passport records: v0.1 and v0.2 are separate registries.
+- There is **no backward compatibility with v0.1** for profile IDs (`creatorId`) or passport records: v0.1 and v0.2 are separate registries.
 
 If you want **one wallet + one persistent `creatorId`** for canonical long-term storage, wait for stable **v1**.
 
@@ -32,8 +32,8 @@ Blockchain apps reuse words from NFTs and finance — here is what they mean **i
 
 | Term | Meaning here |
 |:--|:--|
-| **Mint / minting** | Sending a **transaction** that **creates** a new on-chain record. For a passport, **mint** means the smart contract **registers** your object: it assigns a **Human ID** and stores cryptographic **hashes** (v0.2: **network gas only** — no separate protocol fee). You still **download** and may **host** `passport.json` separately. |
-| **Register (Creator ID)** | A **one-time** on-chain step: your wallet pays **gas** and receives a permanent **Creator ID** (`C-…`, `B-…`, or `P-…`). You must do this **before** you can mint passports. |
+| **Mint / minting** | Sending a **transaction** that **creates** a new on-chain record. For a passport, **mint** means the smart contract **registers** your object: it assigns a **Passport ID** (JSON/ABI field `humanId`) and stores cryptographic **hashes** (v0.2: **network gas only** — no separate protocol fee). You still **download** and may **host** `passport.json` separately. |
+| **Register (`registerCreator`)** | A **one-time** on-chain step: your wallet pays **gas** and receives a permanent **profile ID** (`C-…`, `B-…`, or `P-…`; on-chain `creatorId`). You must do this **before** you can mint passports. |
 | **Deployment** | One specific smart-contract instance at one address (one registry). Your `creatorId` and records are tied to it. |
 | **Passport** | The **whole record** for one object: the on-chain row **plus** (when published) the **passport.json** file at **`dataUrl`**. |
 | **`passport.json`** | The **off-chain JSON document** with title, seal, hashes, etc. Only a **hash** of it lives on-chain; **you** must keep the file. If you register a **`dataUrl`**, publish the file there so verifiers can fetch it. |
@@ -72,7 +72,7 @@ The pages under `web/` show a **stack panel** (see `odpFormatStackBlockHtml` in 
 | **Site SemVer — green** | **`1.0.0`** and up: **stable** line. The UI is **green** when this site’s **major** matches **`ODP_LATEST_STABLE_MAJOR`** (bump that constant when you ship a new stable major, e.g. `2` after `1.x`). |
 | **Site SemVer — yellow** | If the latest stable **major** is **N ≥ 2**, **majors `1 … N−1`** are **yellow** (older stable lines — review migration). A site **major newer** than `ODP_LATEST_STABLE_MAJOR` is also **yellow** until you align the constant. |
 
-**Canonical live URLs** (GitHub Pages project site): base **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)** — e.g. [Creator ID](https://object-digital-passport.github.io/object-digital-passport/creator.html), [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html), [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
+**Canonical live URLs** (GitHub Pages project site): base **[https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)** — e.g. [Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html), [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html), [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
 
 ---
 
@@ -82,8 +82,8 @@ The pages under `web/` show a **stack panel** (see `odpFormatStackBlockHtml` in 
 
 **How the pieces fit together:**
 
-- **Human ID** (`ODP-YYYY-MM-NNNNNNNNN`) — a readable, unique handle for the object; minted by the contract, immutable.
-- **Creator ID** (`C-482-930-174-005`, etc.) — a permanent identity for the artist, brand, or institution; required before minting.
+- **Passport ID** (`ODP-YYYY-MM-NNNNNNNNN`; JSON/ABI `humanId`) — a readable, unique handle for the object; minted by the contract, immutable.
+- **Profile ID** (`C-482-930-174-005`, etc.; on-chain `creatorId`) — a permanent identity for the artist, brand, or institution; required before minting.
 - **On-chain record** — compact: hashes, creator binding, URLs, seal metadata. **No** large images or full JSON on-chain.
 - **Passport JSON** — the full document should live at **`dataUrl`** when you want public web verification (HTTPS); the chain stores a hash so any change to the file is detected. **`dataUrl` may be omitted** at mint (v0.2), but then only people with the **file** can verify.
 
@@ -110,7 +110,7 @@ The pages below are **example** front ends. Set **`NET.contract`** in `web/creat
 | Page | URL | Notes |
 |:--|:--|:--|
 | **Verify** | [verify.html](https://object-digital-passport.github.io/object-digital-passport/verify.html) | Read-only — **no wallet** |
-| **Creator ID** | [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html) | Needs wallet + gas |
+| **Profile** | [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html) | Needs wallet + gas |
 | **Passport** | [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html) | Needs wallet + gas |
 
 *If the site root loads README-style content but `verify.html` returns 404, GitHub Pages may still be serving a branch/Jekyll build. Prefer **Settings → Pages → Source: GitHub Actions** and a green **Deploy GitHub Pages** run — see [`.github/workflows/pages.yml`](.github/workflows/pages.yml).*
@@ -152,8 +152,8 @@ and prove its authenticity — using a human-readable ID, a cryptographic hash,
 and (for physical objects) a physical seal.
 
 ```
-ODP-2026-03-004829301   ← Human ID (on the label, packaging, website)
-C-482-930-174-005      ← Creator ID (your permanent identity)
+ODP-2026-03-004829301   ← Passport ID (on the label, packaging, website)
+C-482-930-174-005      ← Profile ID (your permanent identity)
 ```
 
 Anyone with a phone can scan the QR code and verify:
@@ -168,16 +168,16 @@ Anyone with a phone can scan the QR code and verify:
 ## How it works
 
 ```
-1. Register your Creator ID    (~US$0.02 typ., one time — gas + fee)
+1. Register your profile    (~US$0.02 typ., one time — gas + fee)
        ↓
 2. Register your object        (~US$0.02 typ. — gas + fee)
-   → generates Human ID
+   → generates Passport ID
    → stores data hash on-chain
        ↓
 3. Print the verification label
    → QR code  odp://ODP-2026-03-004829301
-   → Human ID
-   → Creator ID
+   → Passport ID
+   → Profile ID
    → physical seal (see below)
        ↓
 4. Anyone scans → verifier checks blockchain → authentic ✓
@@ -194,7 +194,10 @@ Anyone with a phone can scan the QR code and verify:
 ├── CONTRIBUTING.md            ← How to contribute; labels & PR flow
 ├── CODE_OF_CONDUCT.md         ← Contributor Covenant
 ├── docs/
-│   └── VERSIONING_AND_RELEASES.md  ← Tags, main, freezing v0.1, hotfixes
+│   ├── README.md                   ← Index of docs + `.odp` pointer
+│   ├── VERSIONING_AND_RELEASES.md  ← Tags, main, freezing v0.1, hotfixes
+│   ├── V0.2-DRAFT.md               ← Historical notes from earlier v0.2 exploration
+│   └── V0.3-DRAFT.md               ← Working draft backlog for potential v0.3 changes
 ├── .github/
 │   ├── workflows/
 │   │   └── pages.yml          ← GitHub Pages: deploy /web (enable “GitHub Actions” in Settings → Pages)
@@ -215,11 +218,11 @@ Anyone with a phone can scan the QR code and verify:
 │       └── deploy.js
 │
 ├── tools/
-│   └── mint.py                ← CLI for minting (Python)
+│   └── mint.py                ← CLI mint; writes `passports/<Passport ID>.odp` (same layout as web)
 │
 └── web/
     ├── .nojekyll              ← Ensures static upload is not processed as Jekyll when needed
-    ├── creator.html           ← Register Creator ID (example UI)
+    ├── creator.html           ← Register profile (example UI)
     ├── passport.html          ← Mint passports (example UI)
     └── verify.html            ← Verify passports (example UI)
 ```
@@ -239,7 +242,7 @@ Create a wallet, back up your seed phrase, and add **Polygon PoS** if prompted.
 
 ### 2. POL for gas and fees
 
-Registering a Creator ID and minting passports **submit transactions on Polygon PoS**. You pay **network gas** in **POL**, and each of those actions also burns a fixed **0.001 POL** protocol fee — in practice often **~US$0.02 total per transaction** (gas + fee; varies). The **Verify** page is read-only and does **not** need POL or a wallet. **Updating URLs** on-chain is **gas only** (no extra protocol fee).
+Registering a profile and minting passports **submit transactions on Polygon PoS**. You pay **network gas** in **POL**, and each of those actions also burns a fixed **0.001 POL** protocol fee — in practice often **~US$0.02 total per transaction** (gas + fee; varies). The **Verify** page is read-only and does **not** need POL or a wallet. **Updating URLs** on-chain is **gas only** (no extra protocol fee).
 
 ### 3. Official contract
 
@@ -261,13 +264,13 @@ If you compile via CLI, prefer Remix “viaIR” or compile via standard JSON wi
 Lifecycle note: the contract includes a **one-time irreversible** `freeze()` action controlled by the deployer.  
 It does not allow changing existing records or rules; it only stops new writes.
 
-**Folder hosting (`passport.html`):** the file on your server must be named exactly **`<Human ID>.json`** (e.g. `ODP-2026-03-004829301.json`), and the registered `dataUrl` must be the **full HTTPS URL** to that file (e.g. `https://example.com/passport/ODP-2026-03-004829301.json`). The Solidity contract in this repository can resolve `folderBase + "/" + HumanID + ".json"` **inside the mint transaction** when redeployed (`dataUrlIsFolderBase`); the **current** public Polygon deployment still uses the older ABI, so the web UI keeps **`NET.supportsFolderBaseMint: false`** and performs a **second** transaction (`updatePassportUrls`) to replace the temporary mint URL — set **`supportsFolderBaseMint: true`** only after you deploy the updated contract and paste its address.
+**Folder hosting (`passport.html`):** the file on your server must be named exactly **`<Passport ID>.json`** (same string as field `humanId`; e.g. `ODP-2026-03-004829301.json`), and the registered `dataUrl` must be the **full HTTPS URL** to that file (e.g. `https://example.com/passport/ODP-2026-03-004829301.json`). The Solidity contract in this repository can resolve `folderBase + "/" + humanId + ".json"` **inside the mint transaction** when redeployed (`dataUrlIsFolderBase`); the **current** public Polygon deployment still uses the older ABI, so the web UI keeps **`NET.supportsFolderBaseMint: false`** and performs a **second** transaction (`updatePassportUrls`) to replace the temporary mint URL — set **`supportsFolderBaseMint: true`** only after you deploy the updated contract and paste its address.
 
 If you need a **separate** deployment (e.g. private test), use the **`deploy/`** stack and wire addresses per **`SPEC.md`** — that workflow is for operators and integrators, not required to try the public demo.
 
-### 4. Register your Creator ID
+### 4. Register your profile
 
-**Example UI:** open **[Creator ID (live demo)](https://object-digital-passport.github.io/object-digital-passport/creator.html)** — **Connect Wallet**, then follow the registration flow.
+**Example UI:** open **[Profile (live demo)](https://object-digital-passport.github.io/object-digital-passport/creator.html)** — **Connect Wallet**, then follow the registration flow.
 
 Choose your type when registering:
 
@@ -287,8 +290,7 @@ Full:   C-482-930-174-005 / Your Name / 0x742d35Cc...
 
 ### 5. Mint a passport
 
-**Example UI:** open **[Passport (live demo)](https://object-digital-passport.github.io/object-digital-passport/passport.html)**, connect wallet, complete the form, **Mint Passport**. After minting, download **`passport.json`** and host it at the **`dataUrl`** you used.
-Optionally, download the **`<Human ID>.odp`** bundle — it packages `passport.json` (and when you provided them in the form, also the original file bytes / image bytes) so offline tools can recompute and verify hashes.
+**Example UI:** open **[Passport (live demo)](https://object-digital-passport.github.io/object-digital-passport/passport.html)**, connect wallet, complete the form, **Mint Passport**. After minting you get a **`<Passport ID>.odp`** ZIP bundle (same layout as **SPEC §15**): inside it, **`passport.json`** is the file to host at **`dataUrl`** when you use a public URL — unzip once and upload those exact bytes. The bundle may also include **`original/*`** / **`image/*`** when you attached files in the form, plus **`manifest.json`** (UX metadata only; not a trust anchor).
 
 *(Optional: automation and CLI flows are described in **`tools/mint.py`** — not required for the browser demo.)*
 
@@ -302,13 +304,13 @@ The verifier loads your `dataUrl` in the browser. The URL must:
 - **CORS** — the host must allow cross-origin `GET` from the verifier page (many static hosts and GitHub Raw do).
 - **Unchanged bytes** — upload the file from the mint download without edits.
 
-If you need the Human ID in the URL path, mint with a stable URL first, upload the file, then use **Update hosting URLs** in the wallet UI (gas only — no second mint fee).
+If you need the Passport ID in the URL path, mint with a stable URL first, upload the file, then use **Update hosting URLs** in the wallet UI (gas only — no second mint fee).
 
 Full normative wording: **SPEC.md §9 — Hosting `dataUrl` (third-party sites)**.
 
 ### 6. Verify
 
-**Example UI:** open **[Verify (live demo)](https://object-digital-passport.github.io/object-digital-passport/verify.html)** in any browser. Enter a Human ID or paste an `odp://` URI. **No wallet.**
+**Example UI:** open **[Verify (live demo)](https://object-digital-passport.github.io/object-digital-passport/verify.html)** in any browser. Enter a Passport ID or paste an `odp://` URI. **No wallet.**
 You can also verify offline by dropping a **`.odp` bundle** into the verifier — it checks the embedded `passport.json` against on-chain `dataHash` and (when applicable) validates the bundled original/image bytes against on-chain `fileHash` / `imageHash`.
 
 **Direct link pattern:**
@@ -343,10 +345,10 @@ Verification labels are optional and mainly improve end-user convenience. Core t
 If you use a label, include:
 
 - QR code (`odp://ODP-YYYY-MM-NNNNNNNNN`)
-- Human ID in text
+- Passport ID in text
 - Protocol mark (`ODP`)
 
-`Creator ID` on the label is optional and informational only. For trust, use Creator ID from verified public sources (official website / public social profiles), then match it against on-chain verification.
+Profile ID on the label is optional and informational only. For trust, obtain the Profile ID from verified public sources (official website / public social profiles), then match it against on-chain verification.
 
 If you use a label, it should physically cover or retain the seal so that removing the label damages or disturbs the seal (see **`SPEC.md`** seal retention rules).
 
@@ -385,9 +387,10 @@ ODP-2026-03-004829301
 Registration is open — no approval required.
 Institutions must publish their ID publicly so anyone can verify their identity.
 
-Optional P-affiliation is supported for institutional structure:
-`P` child proposes, `P` parent confirms on-chain, and each child can have only one parent `P`.
-This gives a spam-resistant, two-party confirmation model.
+Optional **P-affiliation** links two `P` Profile IDs in a one-level parent–child relationship:
+the child `P` proposes, the parent `P` confirms on-chain; each child can have at most one parent `P`.
+The real-world meaning of the link (head office vs unit, network vs member, etc.) is off-chain;
+the protocol provides a spam-resistant, two-party confirmation model.
 
 ---
 
@@ -432,7 +435,7 @@ Older **v0.1** deployments used a separate burned fee on some actions; this refe
 
 | Action | Typical cost (v0.2) |
 |--------|----------------|
-| Register Creator ID | ~US$0.01 (once) — gas only |
+| Register profile | ~US$0.01 (once) — gas only |
 | Mint a passport | ~US$0.01 — gas only |
 | Submit a proof | ~US$0.01 — gas only |
 | Update passport URLs only (`updatePassportUrls`) | Gas only |
@@ -447,7 +450,7 @@ The full protocol specification is in [`SPEC.md`](SPEC.md).
 It defines exactly how IDs are generated, how hashes are computed,
 how verification works, and what any SDK must implement.
 
-Informal v0.2 design notes (not normative) live in [`docs/V0.2-DRAFT.md`](docs/V0.2-DRAFT.md).
+**Docs index:** [`docs/README.md`](docs/README.md). Informal / draft notes (not normative): [`docs/V0.2-DRAFT.md`](docs/V0.2-DRAFT.md), [`docs/V0.3-DRAFT.md`](docs/V0.3-DRAFT.md) (RU: [`localization/ru/V0.3-DRAFT.md`](localization/ru/V0.3-DRAFT.md)).
 
 Any developer can build a compatible implementation from the spec alone,
 without reading this code.
@@ -475,6 +478,7 @@ This is a draft specification (v0.1). Feedback is the goal.
 
 - **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — fork/PR flow, labels, scope
 - **[`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)** — Contributor Covenant (community expectations)
+- **[`docs/README.md`](docs/README.md)** — what lives under `docs/` and where `.odp` is specified
 - **[`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)** — tags vs `main`, freezing a version line (e.g. v0.1), hotfix tags
 - **[`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md)** — optional GitHub branch rules (enable on GitHub when you are ready; not required for day-to-day work)
 - **[`.github/profile/README.md`](.github/profile/README.md)** — text for the **organization** homepage; publish via a separate org repo **`.github`** — see **[`.github/profile/PUBLISH.md`](.github/profile/PUBLISH.md)**
@@ -483,7 +487,7 @@ Quick pointers:
 
 - Open an issue to discuss changes to the spec
 - Pull requests welcome for contract, tooling, and documentation
-- To propose a new Creator ID type prefix, open a spec discussion first
+- To propose a new issuer type prefix (C/B/P/M), open a spec discussion first
 
 ---
 

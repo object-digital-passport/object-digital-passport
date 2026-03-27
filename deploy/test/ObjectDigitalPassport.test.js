@@ -146,7 +146,7 @@ describe("ObjectDigitalPassport", function () {
   });
 
   describe("_resolveMintDataUrl (via mintDigital + getPassport)", function () {
-    it("stores folderBase/HumanID.json and strips trailing slashes", async function () {
+    it("stores folderBase/humanId.json and strips trailing slashes", async function () {
       const c = await deployFixture();
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);

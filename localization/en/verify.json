@@ -4,7 +4,7 @@
       "documentTitle": "ODP v0.2 — Verify",
       "h1": "Verify",
       "sub": "Object Digital Passport · Specification v0.2",
-      "hint": "Check that a passport or creator ID is registered."
+      "hint": "Check that a passport or profile ID is registered."
     },
     "search": {
       "label": "Paste an ID or link, or scan a QR code",
@@ -12,7 +12,10 @@
       "verifyBtn": "Verify",
       "scanTitle": "Scan QR code",
       "scanAria": "Scan QR code",
-      "hint": "Passport IDs start with ODP-. Creator IDs look like C-123-456-789-012 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code."
+      "hint": "Passport IDs (ODP-…) and profile IDs (C-123-456-789-012, or B-, P-, M-) can be pasted from a label, a site link, or the square QR button.",
+      "existsChecking": "Checking registry…",
+      "existsYes": "This Passport ID is registered on the primary contract.",
+      "existsNo": "This Passport ID is not registered on the primary contract (full verify may still try older deployments)."
     },
     "net": {
       "connecting": "Connecting...",
@@ -23,50 +26,154 @@
       "offline": "offline"
     },
     "result": {
-      "badToken": "That doesn’t look like a passport ID, creator ID, or a link from this site. Passport IDs start with ODP-. Creator IDs look like C-123-456-789-012.",
+      "badToken": "That doesn’t look like a Passport ID, profile ID, or a link from this site. Passport IDs start with ODP-. Profile IDs look like C-123-456-789-012 (also B-, P-, M-).",
       "loadFail": "Can’t load registration data right now. Check your internet connection and try again.",
       "checking": "Checking registration…",
       "notRegisteredLabel": "Not Registered",
       "notRegisteredDesc": "No record found for {id}",
       "notRegisteredBody": "This ID does not exist in the registry. The object may not be registered, or the ID may be incorrect.",
-      "creatorNotFoundLabel": "Creator Not Found",
-      "creatorNotFoundDesc": "No creator record for {id}",
-      "creatorNotFoundBody": "This Creator ID does not exist in the registry, or the ID may be incorrect.",
+      "creatorNotFoundLabel": "Profile Not Found",
+      "creatorNotFoundDesc": "No profile record for {id}",
+      "creatorNotFoundBody": "This profile ID does not exist in the registry, or the ID may be incorrect.",
       "errorPrefix": "Error:"
     },
     "loading": {
       "fetchPassport": "Fetching passport record…",
       "fetchData": "Fetching passport data…",
-      "fetchCreator": "Fetching creator record…"
+      "fetchCreator": "Fetching profile record…"
     },
     "proof": {
-      "sectionTitle": "Creator wallet proof (EIP-191)",
-      "lead": "Separate tool from registry verify above: prove control of the creator wallet for a passport — no gas. The recovered signer must match passport.creator on-chain. This is key control, not legal authorship.",
-      "tabSign": "Creator: sign",
+      "sectionTitle": "Wallet proof — passport issuer (EIP-191)",
+      "lead": "Separate tool from registry verify above: prove control of the issuer wallet for a passport — no gas. The recovered signer must match passport.creator on-chain. This is key control, not legal authorship.",
+      "tabSign": "Issuer: sign",
       "tabVerify": "Anyone: verify",
-      "panelSignHint": "Connect the creator wallet, enter the passport Human ID, then sign. Copy the message + signature or the JSON bundle for the verifier.",
-      "humanId": "Human ID",
+      "panelSignHint": "Use the issuer wallet, enter Passport ID, pick a file, and sign canonical proof of file possession.",
+      "humanId": "Passport ID",
       "connectWallet": "Connect wallet",
-      "signMessage": "Sign message",
-      "signedText": "Signed text (send to verifier)",
+      "connectedLabel": "Connected",
+      "signMessage": "Sign proof",
+      "signedText": "Canonical signed text (read-only)",
       "signature": "Signature",
       "copyBundle": "Copy JSON bundle",
-      "tablistAria": "Creator proof steps",
-      "panelVerifyHint": "Paste the exact message and signature from the creator. The page checks EIP-191 recovery against the passport’s on-chain creator (needs RPC + NET.contract).",
+      "tablistAria": "Issuer proof steps",
+      "panelVerifyHint": "Upload the same file and paste the JSON bundle. The page rebuilds canonical message and verifies EIP-191 signer against on-chain passport.creator.",
       "verifySignatureBtn": "Verify signature",
       "labelMessage": "Message",
       "humanIdPlaceholder": "ODP-2026-03-123456789",
-      "optionalHumanIdSuffix": "(optional if the message includes humanId:)"
+      "optionalHumanIdSuffix": "(optional if Passport ID is inside JSON bundle)",
+      "fileLabel": "File",
+      "fileDropLine1": "Choose file",
+      "fileDropLine2": "Only this file can be proven",
+      "fileDropLine3": "Upload the same file as in proof bundle",
+      "bundleInLabel": "Proof JSON bundle",
+      "bundleOutLabel": "Proof JSON bundle"
+    },
+    "instProof": {
+      "sectionTitle": "Proofs (P / M institution attestations)",
+      "verifyManuallyBadge": "Verify manually",
+      "trustTitle": "How to trust a Proof",
+      "trustBody": "Anyone can register as a P-type institution — names are self-declared and unverified. Only the profile ID (P-NNN-NNN-NNN-NNN) is on-chain. Find this exact ID published on the institution's official website to confirm identity.",
+      "onChainNoteHash": "On-chain noteHash (SHA-256 of file)",
+      "noNoteHash": "No noteHash was stored for this proof — you cannot compare a file hash on-chain for this entry.",
+      "checkLead": "Drop or choose the same file the institution attested. The page hashes it locally and compares to noteHash above.",
+      "checkTitle": "Choose file to compare with on-chain noteHash",
+      "dropLine1": "Drop file here or click to select",
+      "dropLine2": "SHA-256 computed in your browser — not uploaded",
+      "computing": "Computing hash…",
+      "match": "Hash matches on-chain noteHash",
+      "mismatch": "Hash does not match",
+      "mismatchDetail": "The file you chose produces a different SHA-256 than the on-chain noteHash for this proof.",
+      "expectedLabel": "Expected (on-chain)",
+      "findProverLead": "Find",
+      "findProverTail": "on the institution's official website to verify identity. No human-readable name is shown here — names are self-declared.",
+      "documentLink": "Document ↗"
+    },
+    "tools": {
+      "sectionTitle": "Verify tools menu",
+      "lead": "Choose a tool to open it in this Verify workspace.",
+      "backBtn": "← Back to Verify",
+      "proofSign": "Issuer proof: sign",
+      "proofVerify": "Issuer proof: verify",
+      "docAttest": "Document attest (I own this doc)",
+      "docCheck": "Document hash check"
+    },
+    "dataUrl": {
+      "odpHostedBanner": "Hosted dataUrl returned an .odp ZIP — passport.json was taken from inside the bundle and hashed the same way as raw JSON.",
+      "noPassportInZip": "Hosted URL looks like a ZIP/.odp, but passport.json is missing inside."
+    },
+    "odpQuick": {
+      "label": "Or drop an .odp bundle",
+      "lead": "Reads passport.json inside the file, detects Passport ID, loads the on-chain record, and compares hashes in your browser. If the JSON was edited, you still see what is in the file — it will not verify as authentic.",
+      "dropLine1": "Drop .odp here or click to select",
+      "dropLine2": "Processed locally — not uploaded",
+      "reading": "Reading .odp bundle…",
+      "banner": "Source: {name} — passport.json from this bundle was hashed here and compared to the chain. The hosted dataUrl was not used.",
+      "unregisteredHint": "Contents below come from your file ({name}). This registry has no matching passport — the bundle is not confirmed on-chain.",
+      "noPassportJson": "passport.json not found inside the bundle.",
+      "badJson": "passport.json is not valid JSON.",
+      "badHumanId": "passport.json must contain a valid Passport ID (ODP-…).",
+      "jszipMissing": "JSZip failed to load. Check your network and reload the page."
+    },
+    "fields": {
+      "passportId": "Passport ID",
+      "profile": "Profile"
+    },
+    "creatorResult": {
+      "registeredTitle": "Profile registered",
+      "registeredDesc": "This wallet is linked to a profile on-chain."
+    },
+    "passportJson": {
+      "humanIdRow": "Passport ID (humanId in JSON)"
+    },
+    "localPreview": {
+      "passportIdInFile": "Passport ID in file (humanId)"
+    },
+    "detail": {
+      "localOdpTitle": "Verify with your .odp file",
+      "localOdpLead": "Drop the .odp bundle you saved after mint. The page reads passport.json inside it and compares canonical SHA-256 to on-chain dataHash — same rules as fetching from dataUrl — processed only in your browser.",
+      "localOdpDrop1": "Drop .odp here or click to select",
+      "localOdpDrop2": "Canonical minify + hash — not uploaded"
+    },
+    "walletBar": {
+      "disconnect": "Disconnect"
+    },
+    "docAttest": {
+      "sectionTitle": "Anchor my document hash on-chain",
+      "lead": "Connect your wallet, choose a file, and submit attestExternalDocument. This proves your wallet anchored this hash.",
+      "connectBtn": "Connect wallet",
+      "fileLabel": "File",
+      "fileDropLine1": "Choose file",
+      "fileDropLine2": "Hash is computed locally before submit",
+      "txPreviewTitle": "Will be sent to blockchain",
+      "previewWhat": "You will record on-chain that you have this file",
+      "previewHow": "Another person with the same file can compute the same hash and verify that you confirmed this file",
+      "previewHash": "File hash (SHA-256)",
+      "previewUri": "documentUri (optional, on-chain)",
+      "previewFrom": "Wallet",
+      "previewTo": "Contract",
+      "uriLabel": "Optional public URL for the same file (HTTPS)",
+      "uriPlaceholder": "https://example.com/my-file.pdf",
+      "uriPreview": "Link preview:",
+      "uriTooLong": "URL is too long (max 512 characters).",
+      "uriNotHttp": "Use an http:// or https:// URL.",
+      "uriInvalid": "That URL could not be parsed.",
+      "genUnsupported": "This registry generation does not support document attestation.",
+      "chooseFile": "Choose a file.",
+      "hashing": "Hashing…",
+      "confirmWallet": "Confirm in wallet…",
+      "txSent": "Transaction sent:",
+      "successTitle": "Attestation recorded",
+      "successDesc": "Hash {hash} is now anchored by your wallet.",
+      "successDescWithUri": "Hash {hash} is anchored; documentUri {uri} was stored on-chain.",
+      "submitBtn": "Submit attestation"
     },
     "doc": {
       "sectionTitle": "Anchored document (PDF) — check hash",
-      "lead": "Drop a file to compute SHA-256 locally and check who has already anchored this hash on-chain (v0.2 generation ≥ 2). Optional fields allow one-sided or two-sided checks.",
-      "idLabel": "Optional Creator ID / wallet (side A)",
-      "idPlaceholder": "C-482-930-174-005 or 0x…",
-      "id2Label": "Optional Creator ID / wallet (side B)",
-      "id2Placeholder": "P-482-930-174-005 or 0x…",
+      "lead": "Upload a file to compute SHA-256 locally and immediately check on-chain who already anchored this hash.",
       "fileLabel": "File",
-      "checkBtn": "Check hash on-chain"
+      "checkBtn": "Check hash on-chain",
+      "fileDropLine1": "Choose file",
+      "fileDropLine2": "On-chain search starts automatically after hashing"
     },
     "qr": {
       "title": "Scan QR",
@@ -78,7 +185,7 @@
       "onChainUtcHint": "The chain stores a Unix timestamp in seconds; the registry treats it as a UTC instant.",
       "localFromJson": "Local time (from passport.json)",
       "localFromJsonHint": "Wall-clock time and IANA zone as recorded when the passport file was built — the same instant as above.",
-      "creatorRegisteredUtc": "Registered (UTC)"
+      "creatorRegisteredUtc": "Profile registered (UTC)"
     }
   }
 }

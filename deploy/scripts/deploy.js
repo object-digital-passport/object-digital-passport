@@ -50,13 +50,13 @@ async function main() {
     console.log(`  Packed byte: ${deployedVersion} (v0.2 = 2: M prefix, unlimited P/M, proofs P/M, optional dataUrl, external docs)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
-    console.log("\n  1. Registering Creator ID (type C)...");
+    console.log("\n  1. Registering profile (type C)...");
     const regTx = await contract.registerCreator(
       ethers.hexlify(ethers.toUtf8Bytes("C")) // bytes1 "C"
     );
     const regReceipt = await regTx.wait();
     const creatorId = await contract.getCreatorByWallet(deployer.address);
-    console.log(`     ✅ Creator ID: ${creatorId}`);
+    console.log(`     ✅ Profile ID: ${creatorId}`);
 
     // 2. Mint a digital passport (no seal required)
     console.log("\n  2. Minting digital passport...");
@@ -88,7 +88,7 @@ async function main() {
         }
       } catch {}
     }
-    console.log(`     ✅ Human ID: ${humanId}`);
+    console.log(`     ✅ Passport ID: ${humanId}`);
 
     // 3. Verify resolvePassport works
     console.log("\n  3. Resolving passport...");

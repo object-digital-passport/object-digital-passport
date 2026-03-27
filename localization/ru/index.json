@@ -1,14 +1,14 @@
 {
   "index": {
     "meta": {
-      "documentTitle": "ODP v0.1 — веб-демо",
+      "documentTitle": "ODP v0.2 — веб-демо",
       "h1": "Object Digital Passport",
-      "sub": "Эталонный веб-интерфейс (v0.1) · те же файлы, что в репозитории"
+      "sub": "Эталонный веб-интерфейс (v0.2) · те же файлы, что в репозитории"
     },
     "cardTitle": "Открыть страницу",
     "lead": "Статические страницы; где нужно — подключите кошелёк. Для чтения сети нужен RPC Polygon PoS.",
     "btnVerify": "Проверка — без кошелька",
-    "btnCreator": "Регистрация Creator ID",
+    "btnCreator": "Зарегистрировать профиль",
     "btnPassport": "Выпустить паспорт",
     "source": "Исходники на GitHub",
     "readme": "README"

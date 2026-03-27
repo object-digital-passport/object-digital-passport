@@ -580,6 +580,112 @@ select option { background: var(--bg2); }
 .fdrop.has-file { border-style: solid; border-color: var(--green); background: var(--green-bg); }
 .finfo { font-size: 11px; color: var(--green); margin-top: 8px; font-family: var(--mono); word-break: break-all; }
 
+/* Passport — P/M passport attestation (pmProof); also used on Creator if reintroduced */
+.pm-proof-layout { max-width: 36rem; margin: 0 auto; }
+.pm-proof-callout {
+  text-align: left;
+  margin-bottom: 14px;
+  line-height: 1.55;
+  font-size: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+.pm-proof-callout strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.pm-proof-lead {
+  text-align: center;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.65;
+}
+.pm-proof-mint-note {
+  text-align: center;
+  margin: 0 0 4px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text3);
+}
+.pm-proof-section {
+  margin-top: 1.1rem;
+  padding-top: 1.05rem;
+  border-top: 1px solid var(--line);
+}
+.pm-proof-sec-title {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent2);
+  margin: 0 0 12px;
+  text-align: center;
+}
+.pm-proof-layout .search-label {
+  display: block;
+  text-align: center;
+  margin-bottom: 6px;
+}
+.pm-proof-hint {
+  text-align: center;
+  margin: 0 auto 12px;
+  max-width: 32rem;
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text3);
+}
+.pm-proof-input {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.pm-proof-fdrop-wrap {
+  max-width: 28rem;
+  margin: 0 auto 8px;
+}
+.pm-proof-fdrop-wrap .fdrop { margin-bottom: 0; }
+.pm-proof-hash-line {
+  text-align: center;
+  font-size: 11px;
+  word-break: break-all;
+  margin-bottom: 4px;
+  color: var(--text3);
+  font-family: var(--mono, ui-monospace, monospace);
+}
+.pm-proof-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.pm-proof-list-block {
+  margin-top: 1.25rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+}
+.pm-proof-list-title {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
 .seal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
 .seal-opt {
   padding: 12px 8px; border: 1.5px solid var(--border); border-radius: 3px;
@@ -841,6 +947,146 @@ select option { background: var(--bg2); }
   margin-bottom: 8px;
 }
 
+/* ID / QR row + .odp drop as one visual block; long hint below */
+.odp-quick-verify-wrap--tight {
+  margin-top: 12px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.odp-quick-verify-label {
+  margin-bottom: 8px;
+}
+
+.odp-quick-verify-lead {
+  margin: 0 0 12px;
+  max-width: 42rem;
+  line-height: 1.55;
+}
+
+/* Air gap before secondary tools (doc attest / hash check) */
+.verify-tools-region {
+  margin-top: 3rem;
+  padding-top: 2.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.verify-tools-region > .section-title {
+  margin-top: 0;
+}
+
+.verify-tools-region-lead {
+  margin: 0 0 12px;
+  line-height: 1.55;
+  max-width: 52rem;
+}
+
+/* Verify tool panels (doc attest / hash check) — same chrome as tools menu card */
+.verify-tool-card {
+  margin-bottom: 16px;
+}
+
+.verify-tool-card-pad {
+  padding: 18px 20px;
+}
+
+.verify-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.verify-tool-workspace {
+  margin-top: 12px;
+}
+
+.verify-tool-workspace > .section-title:first-of-type {
+  margin-top: 0;
+}
+
+.verify-tool-workspace-lead {
+  margin: 0 0 12px;
+  line-height: 1.55;
+  max-width: 52rem;
+}
+
+.verify-tool-wallet-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.verify-tool-wallet-addr {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.verify-tool-field-label {
+  margin-top: 2px;
+}
+
+.verify-tool-hash-line {
+  font-size: 11px;
+  word-break: break-all;
+  margin: 0 0 12px;
+  min-height: 1.2em;
+  color: var(--ink3);
+}
+
+.verify-tool-input {
+  width: 100%;
+  max-width: 36rem;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.verify-tool-uri-preview {
+  margin: 0 0 12px;
+  min-height: 1.2em;
+  max-width: 48rem;
+  line-height: 1.5;
+}
+
+.verify-tool-inset-card {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg3);
+}
+
+.verify-tool-inset-title {
+  font-size: 10px;
+}
+
+.verify-tool-preview-mono {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--text2);
+}
+
+.verify-tool-result {
+  margin-top: 12px;
+}
+
+.verify-tool-result--doc-check {
+  margin-top: 14px;
+}
+
+.drop-zone.json-drop.has-file {
+  border-style: solid;
+  border-color: var(--green);
+  background: var(--green-bg);
+}
+
 .odp-verify-signature-divider {
   border: none;
   height: 0;
@@ -854,8 +1100,7 @@ select option { background: var(--bg2); }
   margin-top: 0;
 }
 
-.odp-proof-card > .section-title:first-of-type,
-.odp-doc-card > .section-title:first-of-type {
+.odp-proof-card > .section-title:first-of-type {
   margin-top: 0;
 }
 
@@ -1121,10 +1366,10 @@ button.btn.btn-ghost.qr-scan-cancel {
 }
 
 .search-hint {
-  font-size: 13px;
-  color: var(--text2);
+  font-size: 12px;
+  color: var(--text3);
   margin-top: 12px;
-  font-family: var(--serif);
+  font-family: var(--mono);
   font-weight: 300;
   line-height: 1.55;
   max-width: 36em;
@@ -1285,6 +1530,10 @@ button.btn.btn-ghost.qr-scan-cancel {
   text-transform: uppercase;
   color: var(--text3);
   margin: 20px 0 10px;
+}
+
+.verify-tool-inset-card > .section-title {
+  margin: 0 0 8px;
 }
 
 .vrow {
@@ -1620,6 +1869,37 @@ a, button, .btn, label[for], select {
 .odp-passport-stack-strip {
   margin: 0 0 16px;
   max-width: 42rem;
+}
+
+/* Verify tool sub-navigation (back + current tool label) */
+.verify-subnav-card {
+  margin-top: 12px;
+  border: 1px solid var(--border2);
+}
+.verify-subnav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 54px;
+  padding: 10px 14px;
+  flex-wrap: wrap;
+}
+.verify-subnav-back {
+  padding: 7px 11px;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.verify-subnav-title {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text2);
+  line-height: 1.35;
+  text-align: right;
+  white-space: nowrap;
+  margin-left: auto;
 }
 
 /* First-visit site trust modal (0.x red-flag disclosure) */

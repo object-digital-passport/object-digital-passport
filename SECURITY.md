@@ -11,7 +11,7 @@ This document describes the threat model, known limitations, and recommendations
 
 - A record exists in the blockchain at a specific timestamp
 - The data at `dataUrl` matches the hash recorded at mint time
-- The Creator ID is tied to a specific wallet address
+- The profile ID (`creatorId`) is tied to a specific wallet address
 - All hashes are immutable after minting
 - No one — including the deployer — can delete or modify records
 
@@ -35,9 +35,9 @@ Links in `dataUrl` or `noteUrl` pointing to malicious content.
 **Mitigation:**
 - The verifier computes SHA-256 of fetched content and compares to on-chain hash.
   Content substitution is detected automatically.
-- Verifiers show only the Creator ID (P-NNN-NNN-NNN-NNN) — no institution name.
+- Verifiers show only the profile ID (P-NNN-NNN-NNN-NNN) — no institution name.
   Names are self-declared and not stored in the protocol.
-- To trust a Proof, find the exact Creator ID on the institution's official website.
+- To trust a Proof, find the exact profile ID on the institution's official website.
 - Never click links from `noteUrl` without checking the domain.
 
 ---
@@ -181,9 +181,9 @@ If the deployer key is compromised:
 
 When verifying an object:
 
-- [ ] Human ID matches QR code exactly
+- [ ] Passport ID matches QR code exactly (same value as JSON/ABI field `humanId`)
 - [ ] Status shows **AUTHENTIC** (data hash verified)
-- [ ] Creator ID matches what is published on the creator's official website
+- [ ] Profile ID (`creatorId`) matches what is published on the creator's official website
 - [ ] If Proof records exist — each P-type ID is findable on the institution's website
 - [ ] For NFC seal — use a compatible app to run challenge-response verification
 - [ ] For numbered seal — visually compare number on object to number in passport

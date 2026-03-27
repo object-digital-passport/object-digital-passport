@@ -8,10 +8,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<title>ODP v0.2 — Register Creator ID</title>
+<title>ODP v0.2 — Register profile</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.2"></script>
+<script src="odp-contract.js?v=0.2.1"></script>
 <script src="odp-i18n.js?v=6"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -21,7 +21,7 @@
 
 <header class="header-row">
   <div class="header-left">
-    <h1 data-i18n="creator.meta.h1">Creator ID</h1>
+    <h1 data-i18n="creator.meta.h1">Profile</h1>
     <p class="sub" data-i18n="creator.meta.sub">Object Digital Passport · Specification v0.2</p>
     <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
@@ -35,7 +35,7 @@
 </header>
 
 <div class="nav">
-  <a href="creator.html" class="active" data-i18n="nav.creator">Creator ID</a>
+  <a href="creator.html" class="active" data-i18n="nav.creator">Profile</a>
   <a href="passport.html" data-i18n="nav.passport">Passport</a>
   <a href="verify.html" data-i18n="nav.verify">Verify</a>
 </div>
@@ -44,7 +44,7 @@
 <div id="app"></div>
 
 <footer>
-  <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer" data-i18n="footer.githubRepo">GitHub</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer" data-readme-link>README</a>
   <span id="footerSiteVer"></span>
   <span data-i18n="footer.license">MIT License</span>
@@ -130,9 +130,6 @@ function render() {
   if (creatorId) {
     app.innerHTML = renderAlready();
     bindCreatorShare();
-    if (typeof odpSupportsExternalDocAttest === "function" && odpSupportsExternalDocAttest(odpContractGeneration)) {
-      bindDocAttestHandlers();
-    }
     if (creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2 && contract && typeof contract.getPAffiliatedChildren === "function") {
       bindPAffiliationHandlers();
     }
@@ -328,7 +325,7 @@ function renderForm() {
     </div>`;
 }
 
-// ── QR + share modal (Creator ID) ───────────────────────────────────────────
+// ── QR + share modal (profile) ───────────────────────────────────────────
 
 function safeFilePart(s) {
   return String(s).replace(/[^\w.-]+/g, "_").slice(0, 96);
@@ -460,7 +457,7 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
 function fillCreatorShareModal() {
   if (!creatorId) return;
   const odpcUri = `odpc://${creatorId}`;
-  const sharePayload = `Object Digital Passport - verify this Creator ID\nCreator ID: ${creatorId}\n${odpcUri}`;
+  const sharePayload = `Object Digital Passport - verify this profile\nProfile ID: ${creatorId}\n${odpcUri}`;
   const vuAbs = getVerifyAbsoluteUrl(creatorId);
   const qrEl = document.getElementById("shareModalQr");
   const urlEl = document.getElementById("shareModalUrl");
@@ -483,8 +480,8 @@ function fillCreatorShareModal() {
   if (nat) {
     nat.onclick = () => {
       void shareOdpVerify({
-        title: "Object Digital Passport - Creator ID",
-        text: `Verify this Creator ID: ${creatorId}`,
+        title: "Object Digital Passport — profile",
+        text: `Verify this profile: ${creatorId}`,
         url: vuAbs,
         fullText: sharePayload,
       });
@@ -499,87 +496,25 @@ function bindCreatorShare() {
   shareBtn.addEventListener("click", () => fillCreatorShareModal());
 }
 
-async function sha256FileToBytes32Hex(file) {
-  const buf = await file.arrayBuffer();
-  const digest = await crypto.subtle.digest("SHA-256", buf);
-  return ethers.utils.hexlify(new Uint8Array(digest));
-}
-
-function bindDocAttestHandlers() {
-  const fileEl = document.getElementById("docAttestFile");
-  const hashEl = document.getElementById("docAttestHash");
-  const btn = document.getElementById("docAttestBtn");
-  if (!fileEl || !btn) return;
-  fileEl.addEventListener("change", async () => {
-    if (!hashEl) return;
-    const f = fileEl.files && fileEl.files[0];
-    if (!f) {
-      hashEl.textContent = "";
-      return;
-    }
-    try {
-      const h = await sha256FileToBytes32Hex(f);
-      hashEl.textContent = "SHA-256: " + h;
-    } catch (e) {
-      hashEl.textContent = "Hash error: " + (e.message || e);
-    }
-  });
-  btn.addEventListener("click", attestPdfDocument);
-}
-
-async function attestPdfDocument() {
-  const out = document.getElementById("docAttestResult");
-  const fileEl = document.getElementById("docAttestFile");
-  const uriEl = document.getElementById("docAttestUri");
-  if (!contract || !fileEl || !out) return;
-  const f = fileEl.files && fileEl.files[0];
-  if (!f) {
-    out.innerHTML = `<div class="info warn">${esc(t("creator.docAttest.chooseFile"))}</div>`;
-    return;
-  }
-  out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.computingHash"))}</div>`;
-  let hash;
-  try {
-    hash = await sha256FileToBytes32Hex(f);
-  } catch (e) {
-    out.innerHTML = `<div class="info error">${esc(e.message || String(e))}</div>`;
-    return;
-  }
-  const uri = uriEl && uriEl.value ? String(uriEl.value).trim() : "";
-  if (uri.length > 512) {
-    out.innerHTML = `<div class="info error">${esc(t("creator.docAttest.urlTooLong"))}</div>`;
-    return;
-  }
-  out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.confirmWallet"))}</div>`;
-  try {
-    const tx = await contract.attestExternalDocument(hash, uri);
-    out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.sent"))} ${esc(tx.hash)}</div>`;
-    await tx.wait();
-    out.innerHTML = `<div class="info neutral">${esc(t("creator.docAttest.recorded"))} <code class="mono">${esc(
-      hash
-    )}</code></div>`;
-  } catch (e) {
-    const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
-    out.innerHTML = `<div class="info error">${esc(m)}</div>`;
-  }
-}
-
 function bindPAffiliationHandlers() {
   const activeParentVal = document.getElementById("pAffActiveParentVal");
   const parentInput = document.getElementById("pAffParentInput");
   const proposeBtn = document.getElementById("pAffProposeBtn");
   const proposeResult = document.getElementById("pAffProposeResult");
+  const cancelBtn = document.getElementById("pAffCancelBtn");
+  const cancelResult = document.getElementById("pAffCancelResult");
   const childInput = document.getElementById("pAffChildInput");
   const confirmBtn = document.getElementById("pAffConfirmBtn");
   const confirmResult = document.getElementById("pAffConfirmResult");
   const childrenList = document.getElementById("pAffChildrenList");
   const childrenMeta = document.getElementById("pAffChildrenMeta");
   const loadMoreBtn = document.getElementById("pAffLoadMoreBtn");
-  if (!contract || !activeParentVal || !parentInput || !proposeBtn || !childInput || !confirmBtn || !childrenList || !childrenMeta || !loadMoreBtn) return;
+  if (!contract || !activeParentVal || !parentInput || !proposeBtn || !cancelBtn || !cancelResult || !childInput || !confirmBtn || !childrenList || !childrenMeta || !loadMoreBtn) return;
 
   proposeBtn.disabled = true;
   confirmBtn.disabled = false;
   proposeResult.innerHTML = "";
+  cancelResult.innerHTML = "";
   confirmResult.innerHTML = "";
 
   const limit = 12;
@@ -589,6 +524,7 @@ function bindPAffiliationHandlers() {
   async function refresh() {
     try {
       proposeResult.innerHTML = "";
+      cancelResult.innerHTML = "";
       confirmResult.innerHTML = "";
       activeParentVal.textContent = "…";
       childrenList.textContent = "…";
@@ -657,6 +593,35 @@ function bindPAffiliationHandlers() {
       proposeResult.innerHTML = `<div class="info error">${esc(m)}</div>`;
       proposeBtn.disabled = false;
     }
+  });
+
+  cancelBtn.addEventListener("click", async () => {
+    if (!contract) return;
+    const parentPId = parentInput.value ? String(parentInput.value).trim() : "";
+    cancelResult.innerHTML = "";
+    if (!parentPId) {
+      cancelResult.innerHTML = `<div class="info warn">${esc(t("creator.pAff.parentRequired"))}</div>`;
+      return;
+    }
+    cancelBtn.disabled = true;
+    cancelResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.cancelChecking"))}</div>`;
+    try {
+      const pending = await contract.isPAffiliationPending(parentPId, creatorId);
+      if (!pending) {
+        cancelResult.innerHTML = `<div class="info warn">${esc(t("creator.pAff.cancelNoPending"))}</div>`;
+        cancelBtn.disabled = false;
+        return;
+      }
+      cancelResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.sending"))}</div>`;
+      const tx = await contract.cancelPAffiliationRequest(parentPId);
+      await tx.wait();
+      cancelResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.cancelDone"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+      await refresh();
+    } catch (e) {
+      const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      cancelResult.innerHTML = `<div class="info error">${esc(m)}</div>`;
+    }
+    cancelBtn.disabled = false;
   });
 
   confirmBtn.addEventListener("click", async () => {
@@ -777,26 +742,6 @@ function renderAlready() {
       </div>
     </div>
     ${
-      typeof odpSupportsExternalDocAttest === "function" && odpSupportsExternalDocAttest(odpContractGeneration)
-        ? `
-    <div class="card" style="margin-top:20px">
-      <div class="card-head">${esc(t("creator.docAttest.cardTitle"))}</div>
-      <div class="card-body">
-        <p style="font-size:12px;color:var(--text2);margin:0 0 12px;line-height:1.6">
-          ${esc(t("creator.docAttest.body"))}
-        </p>
-        <input type="file" id="docAttestFile" style="margin-bottom:10px;font-size:12px" />
-        <div id="docAttestHash" class="mono" style="font-size:11px;word-break:break-all;margin-bottom:10px;color:var(--ink3)"></div>
-        <label class="search-label" for="docAttestUri">${esc(t("creator.docAttest.uriLabel"))}</label>
-        <input type="text" id="docAttestUri" placeholder="https://…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" />
-        <button type="button" class="btn" id="docAttestBtn">${esc(t("creator.docAttest.btn"))}</button>
-        <div id="docAttestResult" style="margin-top:12px;font-size:12px"></div>
-      </div>
-    </div>`
-        : ""
-    }
-
-    ${
       creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2
         ? `
     <div class="card" style="margin-top:20px">
@@ -814,7 +759,10 @@ function renderAlready() {
           <label class="search-label" for="pAffParentInput">${esc(t("creator.pAff.parentInputLabel"))}</label>
           <input type="text" id="pAffParentInput" placeholder="P-…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" spellcheck="false">
           <button type="button" class="btn" id="pAffProposeBtn">${esc(t("creator.pAff.proposeBtn"))}</button>
+          <button type="button" class="btn btn-sec" id="pAffCancelBtn" style="margin-left:8px">${esc(t("creator.pAff.cancelBtn"))}</button>
           <div id="pAffProposeResult" style="margin-top:10px;font-size:12px"></div>
+          <div id="pAffCancelResult" style="margin-top:8px;font-size:12px"></div>
+          <p style="font-size:11px;color:var(--text3);margin:10px 0 0;line-height:1.45">${esc(t("creator.pAff.cancelHint"))}</p>
         </div>
 
         <div style="margin-bottom:12px">
@@ -930,13 +878,23 @@ function openInMetaMaskAppUrl() {
 
 /** Ask MetaMask to use Polygon (NET.chainId) before any contract calls. */
 async function ensureWalletChain(eth, cfg) {
+  const __chainStart = Date.now();
+  const __chainRunId = "run-" + __chainStart;
   const target = cfg.chainId;
   const hex = await eth.request({ method: "eth_chainId" });
   const cur = parseInt(hex, 16);
-  if (cur === target) return;
+  if (cur === target) {
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__chainRunId,hypothesisId:'H5',location:'web/creator.html:ensureWalletChain:no-switch',message:'Wallet already on target chain',data:{currentChain:cur,targetChain:target,durationMs:Date.now()-__chainStart},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    return;
+  }
   const chainIdHex = "0x" + target.toString(16);
   try {
     await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: chainIdHex }] });
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__chainRunId,hypothesisId:'H5',location:'web/creator.html:ensureWalletChain:switch-ok',message:'Wallet chain switch executed',data:{currentChain:cur,targetChain:target,durationMs:Date.now()-__chainStart},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
   } catch (e) {
     if (e.code === 4902) {
       await eth.request({
@@ -949,6 +907,9 @@ async function ensureWalletChain(eth, cfg) {
           blockExplorerUrls: [cfg.explorer],
         }],
       });
+      // #region agent log
+      fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__chainRunId,hypothesisId:'H5',location:'web/creator.html:ensureWalletChain:add-chain',message:'Wallet_addEthereumChain executed',data:{currentChain:cur,targetChain:target,durationMs:Date.now()-__chainStart},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
     } else {
       throw e;
     }
@@ -1129,6 +1090,11 @@ document.addEventListener("keydown", (e) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  const __bootStart = Date.now();
+  const __bootRunId = "run-" + __bootStart;
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__bootRunId,hypothesisId:'H1',location:'web/creator.html:DOMContentLoaded:start',message:'Creator page bootstrap start',data:{path:location.pathname,search:location.search},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   await odpInitI18n({ page: "creator", pageTitleKey: "creator.meta.documentTitle" });
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
@@ -1200,6 +1166,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   render();
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__bootRunId,hypothesisId:'H1',location:'web/creator.html:DOMContentLoaded:end',message:'Creator page bootstrap end',data:{durationMs:Date.now()-__bootStart,hasWallet:!!wallet,hasCreatorId:!!creatorId},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
 });
 </script>
 </body>

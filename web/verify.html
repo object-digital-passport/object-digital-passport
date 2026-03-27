@@ -26,7 +26,7 @@
 
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.2"></script>
+<script src="odp-contract.js?v=0.2.1"></script>
 <script src="odp-i18n.js?v=6"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
@@ -39,8 +39,8 @@
   <div class="header-left">
     <h1 data-i18n="verify.meta.h1">Verify</h1>
     <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.2</p>
-    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:42rem;line-height:1.5"></div>
-    <p class="fhint" style="margin-top:6px;max-width:42rem" data-i18n="verify.meta.hint">Check that a passport or creator ID is registered.</p>
+    <div id="odpStackLabelHeader" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
+    <p class="fhint" style="margin-top:6px;max-width:42rem" data-i18n="verify.meta.hint">Check that a passport or profile ID is registered.</p>
   </div>
   <div class="header-toolbar">
     <div id="odpLangSwitch"></div>
@@ -52,13 +52,21 @@
 </header>
 
 <div class="nav">
-  <a href="creator.html" data-i18n="nav.creator">Creator ID</a>
+  <a href="creator.html" data-i18n="nav.creator">Profile</a>
   <a href="passport.html" data-i18n="nav.passport">Passport</a>
   <a href="verify.html" class="active" data-i18n="nav.verify">Verify</a>
 </div>
 
+<div class="wallet-bar" id="verifyWalletBar" style="display:none;margin-bottom:16px">
+  <div class="wdot on"></div>
+  <div class="wbar-addr" id="verifyWalletAddr">—</div>
+  <div class="wbar-id" id="verifyWalletCreatorId">—</div>
+  <div class="w-switch" id="verifyWalletDisconnect" onclick="disconnectVerifyWallet()" data-i18n="verify.walletBar.disconnect">Disconnect</div>
+</div>
 
-<div class="odp-verify-primary">
+<div id="odpStackLabel" class="fhint odp-stack-wrap odp-passport-stack-strip" style="display:none;max-width:42rem;line-height:1.5" hidden aria-hidden="true"></div>
+
+<div class="odp-verify-primary" id="verifyIdSection">
 <div class="search-wrap">
   <label class="search-label" for="idInput" data-i18n="verify.search.label">Paste an ID or link, or scan a QR code</label>
   <div class="search-row">
@@ -81,84 +89,104 @@
     </button>
     <button class="btn" onclick="verify()" id="verifyBtn" data-i18n="verify.search.verifyBtn">Verify</button>
   </div>
-  <p class="search-hint" data-i18n="verify.search.hint">Passport IDs start with ODP-. Creator IDs look like C-123-456-789-012 (also B-, P-, or M-). You can paste text from a label, a link from this site, or tap the square button to scan a QR code.</p>
+
+  <div class="odp-quick-verify-wrap odp-quick-verify-wrap--tight">
+    <label class="search-label odp-quick-verify-label" for="odpQuickInput" data-i18n="verify.odpQuick.label">Or drop an .odp bundle</label>
+    <p class="fhint odp-quick-verify-lead" data-i18n="verify.odpQuick.lead">
+      Reads passport.json from the bundle, detects Passport ID, loads the on-chain record, and compares hashes in your browser. If the JSON was edited, you still see what is in the file — it will not match as authentic.
+    </p>
+    <div class="drop-zone json-drop" id="odpQuickDrop">
+      <input type="file" id="odpQuickInput" accept=".odp,application/zip,application/octet-stream,.zip">
+      <p><span data-i18n="verify.odpQuick.dropLine1">Drop .odp here or click to select</span><br>
+      <span style="opacity:0.6" data-i18n="verify.odpQuick.dropLine2">Processed locally — not uploaded</span></p>
+    </div>
+  </div>
+
+  <p class="search-hint" data-i18n="verify.search.hint">Passport IDs (ODP-…) and profile IDs (C-123-456-789-012, or B-, P-, M-) can be pasted from a label, a site link, or the square QR button.</p>
+  <p class="fhint" id="idExistsHint" style="min-height:1.25em;margin-top:8px;font-size:12px;color:var(--text3);max-width:42rem;line-height:1.5" aria-live="polite"></p>
 </div>
 
 <div id="result"></div>
 </div>
 
-<hr class="odp-verify-signature-divider" />
-
-<section class="card odp-proof-card" id="creatorProofSection" aria-labelledby="creatorProofHeading">
-  <h2 class="section-title" id="creatorProofHeading" data-i18n="verify.proof.sectionTitle">Creator wallet proof (EIP-191)</h2>
-  <p class="fhint odp-proof-lead" data-i18n="verify.proof.lead">
-    Separate tool from registry verify above: prove control of the creator wallet for a passport — no gas. The recovered signer must match passport.creator on-chain. This is key control, not legal authorship.
+<div class="verify-tools-region">
+  <div class="section-title" data-i18n="verify.tools.sectionTitle">Verify tools menu</div>
+  <p class="fhint verify-tools-region-lead" data-i18n="verify.tools.lead">
+    Choose a tool to open it in this Verify workspace.
   </p>
 
-  <div class="odp-proof-tablist" role="tablist" data-i18n-aria="verify.proof.tablistAria" aria-label="Creator proof steps">
-    <button type="button" class="odp-proof-tab is-active" role="tab" id="proofTabSign" aria-selected="true" aria-controls="proofPanelSign" onclick="proofSetTab('sign')" data-i18n="verify.proof.tabSign">Creator: sign</button>
-    <button type="button" class="odp-proof-tab" role="tab" id="proofTabVerify" aria-selected="false" aria-controls="proofPanelVerify" onclick="proofSetTab('verify')" data-i18n="verify.proof.tabVerify">Anyone: verify</button>
-  </div>
-
-  <div id="proofPanelSign" class="odp-proof-panel" role="tabpanel" aria-labelledby="proofTabSign">
-    <p class="fhint odp-proof-panel-hint" data-i18n="verify.proof.panelSignHint">Connect the creator wallet, enter the passport Human ID, then sign. Copy the message + signature or the JSON bundle for the verifier.</p>
-    <div class="odp-proof-stack">
-      <div>
-        <label class="search-label" for="proofHumanIdSign" data-i18n="verify.proof.humanId">Human ID</label>
-        <input type="text" id="proofHumanIdSign" class="odp-proof-input" data-i18n-placeholder="verify.proof.humanIdPlaceholder" placeholder="ODP-2026-03-123456789" autocomplete="off" spellcheck="false">
-      </div>
-      <div class="odp-proof-actions">
-        <button type="button" class="btn btn-ghost" id="proofConnectBtn" onclick="proofConnectWallet()" data-i18n="verify.proof.connectWallet">Connect wallet</button>
-        <button type="button" class="btn" id="proofSignBtn" onclick="proofSignMessage()" data-i18n="verify.proof.signMessage">Sign message</button>
-      </div>
-      <p id="proofWalletLabel" class="odp-proof-wallet-label"></p>
-      <div>
-        <label class="search-label" for="proofMessageOut" data-i18n="verify.proof.signedText">Signed text (send to verifier)</label>
-        <textarea id="proofMessageOut" class="odp-proof-textarea odp-proof-textarea--readonly" readonly rows="8" spellcheck="false"></textarea>
-      </div>
-      <div>
-        <label class="search-label" for="proofSigOut" data-i18n="verify.proof.signature">Signature</label>
-        <textarea id="proofSigOut" class="odp-proof-textarea odp-proof-textarea--readonly" readonly rows="3" spellcheck="false"></textarea>
-      </div>
-      <button type="button" class="btn btn-ghost odp-proof-copy-btn" onclick="proofCopyBundle()" data-i18n="verify.proof.copyBundle">Copy JSON bundle</button>
-    </div>
-  </div>
-
-  <div id="proofPanelVerify" class="odp-proof-panel" role="tabpanel" aria-labelledby="proofTabVerify" hidden>
-    <p class="fhint odp-proof-panel-hint" data-i18n="verify.proof.panelVerifyHint">Paste the exact message and signature from the creator. The page checks EIP-191 recovery against the passport’s on-chain creator (needs RPC + NET.contract).</p>
-    <div class="odp-proof-stack">
-      <div>
-        <label class="search-label" for="proofHumanIdVerifier"><span data-i18n="verify.proof.humanId">Human ID</span> <span class="odp-proof-optional" data-i18n="verify.proof.optionalHumanIdSuffix">(optional if the message includes humanId:)</span></label>
-        <input type="text" id="proofHumanIdVerifier" class="odp-proof-input" placeholder="ODP-…" autocomplete="off" spellcheck="false">
-      </div>
-      <div>
-        <label class="search-label" for="proofMsgIn" data-i18n="verify.proof.labelMessage">Message</label>
-        <textarea id="proofMsgIn" class="odp-proof-textarea" rows="8" spellcheck="false"></textarea>
-      </div>
-      <div>
-        <label class="search-label" for="proofSigIn"><span data-i18n="verify.proof.signature">Signature</span> <span class="odp-proof-optional">(0x…)</span></label>
-        <textarea id="proofSigIn" class="odp-proof-textarea" rows="3" spellcheck="false"></textarea>
-      </div>
-      <button type="button" class="btn" onclick="proofVerifyMessage()" data-i18n="verify.proof.verifySignatureBtn">Verify signature</button>
-      <div id="proofVerifyResult" class="odp-proof-verify-result"></div>
+<section class="card verify-tool-card" id="verifyToolsMenu">
+  <div class="verify-tool-card-pad">
+    <div class="verify-tool-grid">
+    <button type="button" class="btn btn-sec" data-tool="doc-attest" onclick="activateVerifyTool('doc-attest', true)" data-i18n="verify.tools.docAttest">Document attest (I own this doc)</button>
+    <button type="button" class="btn btn-sec" data-tool="doc-check" onclick="activateVerifyTool('doc-check', true)" data-i18n="verify.tools.docCheck">Document hash check</button>
     </div>
   </div>
 </section>
+</div>
 
-<section class="card odp-doc-card" id="docVerifySection" style="margin-top:20px" hidden>
+<section class="card verify-subnav-card" id="verifyToolSubnav" style="display:none">
+  <div class="card-head verify-subnav-row">
+    <button type="button" class="btn btn-ghost verify-subnav-back" onclick="activateVerifyTool('', true)" data-i18n="verify.tools.backBtn">← Back to Verify</button>
+    <div id="verifyToolSubnavTitle" class="verify-subnav-title"></div>
+  </div>
+</section>
+
+<div class="verify-tool-workspace" id="docAttestSection" hidden>
+  <div class="section-title" data-i18n="verify.docAttest.sectionTitle">Anchor my document hash on-chain</div>
+  <p class="fhint verify-tool-workspace-lead" data-i18n="verify.docAttest.lead">
+    Connect your wallet, choose a file, and submit <code class="mono">attestExternalDocument</code>. This proves your wallet anchored this hash.
+  </p>
+  <section class="card verify-tool-card">
+    <div class="verify-tool-card-pad">
+      <div class="verify-tool-wallet-row">
+        <button type="button" class="btn btn-sec" id="docAttestConnectBtn" onclick="connectDocAttestWallet()" data-i18n="verify.docAttest.connectBtn">Connect wallet</button>
+        <span id="docAttestWallet" class="mono verify-tool-wallet-addr"></span>
+      </div>
+      <label class="search-label verify-tool-field-label" for="docAttestFile" data-i18n="verify.docAttest.fileLabel">File</label>
+      <div class="drop-zone json-drop" id="docAttestFileDrop">
+        <input type="file" id="docAttestFile">
+        <p class="doc-tool-drop-lines"><span data-i18n="verify.docAttest.fileDropLine1">Choose file</span><br>
+        <span style="opacity:0.6;font-size:11px" data-i18n="verify.docAttest.fileDropLine2">Hash is computed locally before submit</span></p>
+      </div>
+      <div id="docAttestHash" class="mono verify-tool-hash-line"></div>
+      <label class="search-label verify-tool-field-label" for="docAttestDocumentUri" data-i18n="verify.docAttest.uriLabel">Optional public URL for the same file (HTTPS)</label>
+      <input
+        type="url"
+        id="docAttestDocumentUri"
+        class="verify-tool-input"
+        data-i18n-placeholder="verify.docAttest.uriPlaceholder"
+        placeholder="https://…"
+        autocomplete="off"
+      />
+      <div id="docAttestUriPreview" class="fhint verify-tool-uri-preview"></div>
+      <div class="verify-tool-inset-card">
+        <div class="section-title verify-tool-inset-title" data-i18n="verify.docAttest.txPreviewTitle">Will be sent to blockchain</div>
+        <div id="docAttestPreview" class="mono verify-tool-preview-mono"></div>
+      </div>
+      <button type="button" class="btn" id="docAttestBtn" onclick="attestDocumentFromVerify()" data-i18n="verify.docAttest.submitBtn">Submit attestation</button>
+      <div id="docAttestResult" class="verify-tool-result"></div>
+    </div>
+  </section>
+</div>
+
+<div class="verify-tool-workspace" id="docVerifySection" hidden>
   <div class="section-title" data-i18n="verify.doc.sectionTitle">Anchored document (PDF) — check hash</div>
-  <p class="fhint" style="margin:0 0 14px;max-width:48rem;line-height:1.55" data-i18n="verify.doc.lead">
-    Drop a file to compute SHA-256 locally and check who has already anchored this hash on-chain (v0.2 generation ≥ 2). Optional fields below can enforce one-sided or two-sided checks.
+  <p class="fhint verify-tool-workspace-lead" data-i18n="verify.doc.lead">
+    Upload a file to compute SHA-256 locally and immediately check on-chain who already anchored this hash.
   </p>
-  <label class="search-label" for="docVerifyId" data-i18n="verify.doc.idLabel">Optional Creator ID / wallet (side A)</label>
-  <input type="text" id="docVerifyId" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.idPlaceholder" placeholder="C-482-930-174-005 or 0x…" autocomplete="off" spellcheck="false">
-  <label class="search-label" for="docVerifyId2" data-i18n="verify.doc.id2Label">Optional Creator ID / wallet (side B)</label>
-  <input type="text" id="docVerifyId2" style="width:100%;max-width:28rem;margin-bottom:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:13px" data-i18n-placeholder="verify.doc.id2Placeholder" placeholder="P-482-930-174-005 or 0x…" autocomplete="off" spellcheck="false">
-  <label class="search-label" for="docVerifyFile" data-i18n="verify.doc.fileLabel">File</label>
-  <input type="file" id="docVerifyFile" style="margin-bottom:12px;font-size:12px">
-  <button type="button" class="btn" id="docVerifyBtn" onclick="verifyDocAttestation()" data-i18n="verify.doc.checkBtn">Check hash on-chain</button>
-  <div id="docVerifyResult" style="margin-top:14px"></div>
-</section>
+  <section class="card verify-tool-card">
+    <div class="verify-tool-card-pad">
+      <label class="search-label verify-tool-field-label" for="docVerifyFile" data-i18n="verify.doc.fileLabel">File</label>
+      <div class="drop-zone json-drop" id="docVerifyFileDrop">
+        <input type="file" id="docVerifyFile">
+        <p class="doc-tool-drop-lines"><span data-i18n="verify.doc.fileDropLine1">Choose file</span><br>
+        <span style="opacity:0.6;font-size:11px" data-i18n="verify.doc.fileDropLine2">Search starts automatically after hashing</span></p>
+      </div>
+      <div id="docVerifyResult" class="verify-tool-result verify-tool-result--doc-check"></div>
+    </div>
+  </section>
+</div>
 
 <div id="qrScanOverlay" class="qr-scan-overlay" hidden>
   <div class="qr-scan-panel">
@@ -173,7 +201,7 @@
 </div>
 
 <footer>
-  <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer">object-digital-passport/object-digital-passport</a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer" data-i18n="footer.githubRepo">GitHub</a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer" data-readme-link>README</a>
   <span id="footerSiteVer"></span>
   <span data-i18n="footer.license">MIT License</span>
@@ -207,6 +235,18 @@ const NET = {
 };
 
 const ABI = odpBuildVerifyReadAbi();
+const DOC_ATTEST_WRITE_ABI = [
+  {
+    name: "attestExternalDocument",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "documentHash", type: "bytes32" },
+      { name: "documentUri", type: "string" },
+    ],
+    outputs: [],
+  },
+];
 
 let odpContractGeneration = null;
 /** Set when primary `NET.contract` probes as legacy (byte 0). */
@@ -218,6 +258,11 @@ const ZERO32 = "0x" + "0".repeat(64);
 
 let provider = null;
 let contract = null;
+let docAttestWeb3Provider = null;
+let docAttestSigner = null;
+let docAttestContract = null;
+const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
+let verifyWalletCreatorId = "";
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -234,10 +279,163 @@ async function init() {
     document.getElementById("idInput").value = id;
     await verify();
   }
+  await initVerifyWalletBar();
+  activateVerifyTool("", false);
+  }
+
+function injectedEthereum() {
+  const w = window.ethereum;
+  if (!w) return null;
+  if (w.providers && w.providers.length) {
+    return w.providers.find((p) => p.isMetaMask) || w.providers[0];
+  }
+  return w;
+}
+
+async function revokeSiteWalletPermission(eth) {
+  if (!eth) return false;
   try {
-    const pt = sessionStorage.getItem("odp_proof_tab");
-    if (pt === "verify" || pt === "sign") proofSetTab(pt);
+    await eth.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function resolveCreatorIdByWallet(address) {
+  const a = String(address || "").trim();
+  if (!a || !/^0x[a-fA-F0-9]{40}$/.test(a)) return "";
+  for (const c of verifyReadContractsOrdered()) {
+    try {
+      const cid = await c.getCreatorByWallet(a);
+      if (cid && String(cid).trim()) return String(cid).trim();
+    } catch {}
+  }
+  return "";
+}
+
+function setVerifyWalletBar(address) {
+  const bar = document.getElementById("verifyWalletBar");
+  const addrEl = document.getElementById("verifyWalletAddr");
+  const creatorEl = document.getElementById("verifyWalletCreatorId");
+  if (!bar || !addrEl || !creatorEl) return;
+  if (!address) {
+    bar.style.display = "none";
+    addrEl.textContent = "—";
+    creatorEl.textContent = "—";
+    return;
+  }
+  const a = String(address);
+  addrEl.textContent = a.length > 14 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a;
+  creatorEl.textContent = verifyWalletCreatorId || "—";
+  bar.style.display = "";
+}
+
+function setDocAttestWalletLabel(address) {
+  const lab = document.getElementById("docAttestWallet");
+  const btn = document.getElementById("docAttestConnectBtn");
+  if (lab) lab.textContent = address ? ("Connected: " + address) : "";
+  if (btn) {
+    btn.hidden = !!address;
+    btn.disabled = !!address;
+  }
+}
+
+function renderDocAttestPreview(hash, walletAddr, documentUri) {
+  const el = document.getElementById("docAttestPreview");
+  if (!el) return;
+  const addr = walletAddr ? String(walletAddr) : "—";
+  const h = hash ? String(hash) : "—";
+  const uri = documentUri != null && String(documentUri).trim() ? String(documentUri).trim() : "";
+  const lineWhat = typeof t === "function" ? t("verify.docAttest.previewWhat") : "A confirmation that this wallet anchored the file hash";
+  const lineHow = typeof t === "function" ? t("verify.docAttest.previewHow") : "Anyone with the same file can compute the same hash and verify this attestation on-chain";
+  const lineHash = typeof t === "function" ? t("verify.docAttest.previewHash") : "File hash (SHA-256)";
+  const lineFrom = typeof t === "function" ? t("verify.docAttest.previewFrom") : "Wallet";
+  const lineTo = typeof t === "function" ? t("verify.docAttest.previewTo") : "Contract";
+  const lineUri = typeof t === "function" ? t("verify.docAttest.previewUri") : "documentUri (on-chain)";
+  el.innerHTML = `${esc(lineWhat)}<br>${esc(lineHow)}<br>${esc(lineHash)}: ${esc(h)}<br>${esc(lineUri)}: ${uri ? esc(uri) : "—"}<br>${esc(lineFrom)}: ${esc(addr)}<br>${esc(lineTo)}: ${esc(NET.contract)}`;
+}
+
+function renderDocAttestUriPreview() {
+  const el = document.getElementById("docAttestUriPreview");
+  const uriIn = document.getElementById("docAttestDocumentUri");
+  if (!el) return;
+  const u = uriIn && uriIn.value ? String(uriIn.value).trim() : "";
+  if (!u) {
+    el.innerHTML = "";
+    return;
+  }
+  if (u.length > 512) {
+    el.innerHTML = `<span class="info warn" style="font-size:12px">${esc(t("verify.docAttest.uriTooLong"))}</span>`;
+    return;
+  }
+  try {
+    const parsed = new URL(u);
+    const ok = parsed.protocol === "https:" || parsed.protocol === "http:";
+    if (!ok) {
+      el.innerHTML = `<span class="info warn" style="font-size:12px">${esc(t("verify.docAttest.uriNotHttp"))}</span>`;
+      return;
+    }
+    el.innerHTML = `${esc(t("verify.docAttest.uriPreview"))} <a class="ext-link" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>`;
+  } catch {
+    el.innerHTML = `<span class="info warn" style="font-size:12px">${esc(t("verify.docAttest.uriInvalid"))}</span>`;
+  }
+}
+
+function currentDocAttestDocumentUri() {
+  const uriIn = document.getElementById("docAttestDocumentUri");
+  return uriIn && uriIn.value ? String(uriIn.value).trim() : "";
+}
+
+function syncDocAttestPreviews() {
+  const hashEl = document.getElementById("docAttestHash");
+  const walletLab = document.getElementById("docAttestWallet");
+  const h = (hashEl && hashEl.textContent ? hashEl.textContent : "").replace(/^SHA-256:\s*/i, "").trim();
+  const addr = walletLab ? String(walletLab.textContent || "").replace(/^Connected:\s*/i, "").trim() : "";
+  renderDocAttestUriPreview();
+  renderDocAttestPreview(h, addr, currentDocAttestDocumentUri());
+}
+
+async function initVerifyWalletBar() {
+  const eth = injectedEthereum();
+  if (!eth) return;
+  let skip = false;
+  try { skip = sessionStorage.getItem(ODP_SKIP_WALLET_AUTOCONNECT) === "1"; } catch {}
+  if (skip) return;
+  let acc = [];
+  try {
+    acc = await eth.request({ method: "eth_accounts" });
   } catch {}
+  const connected = Array.isArray(acc) && acc[0] ? String(acc[0]) : "";
+  verifyWalletCreatorId = connected ? await resolveCreatorIdByWallet(connected) : "";
+  setVerifyWalletBar(connected);
+  setDocAttestWalletLabel(connected);
+  if (connected) {
+    try {
+      docAttestWeb3Provider = new ethers.providers.Web3Provider(eth, "any");
+      docAttestSigner = docAttestWeb3Provider.getSigner();
+      docAttestContract = new ethers.Contract(NET.contract, DOC_ATTEST_WRITE_ABI, docAttestSigner);
+    } catch {}
+  }
+  syncDocAttestPreviews();
+}
+
+async function disconnectVerifyWallet() {
+  const eth = injectedEthereum();
+  let revoked = false;
+  if (eth) {
+    revoked = await revokeSiteWalletPermission(eth);
+  }
+  try { sessionStorage.setItem(ODP_SKIP_WALLET_AUTOCONNECT, "1"); } catch {}
+  docAttestWeb3Provider = null;
+  docAttestSigner = null;
+  docAttestContract = null;
+  verifyWalletCreatorId = "";
+  setDocAttestWalletLabel("");
+  const uriIn = document.getElementById("docAttestDocumentUri");
+  if (uriIn) uriIn.value = "";
+  syncDocAttestPreviews();
+  setVerifyWalletBar("");
 }
 
 async function connect() {
@@ -269,22 +467,34 @@ async function connect() {
             : "Legacy contract (CONTRACT_VERSION 0) is not supported by this verifier.";
         contract = null;
         if (lbl) {
-          lbl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
+          lbl.innerHTML = odpFormatStackSummaryHtml(odpContractGeneration);
           lbl.style.display = "";
+          lbl.hidden = false;
+          lbl.setAttribute("aria-hidden", "false");
         }
         const docSec = document.getElementById("docVerifySection");
+        const docAttestSec = document.getElementById("docAttestSection");
         if (docSec) docSec.hidden = true;
+        if (docAttestSec) docAttestSec.hidden = true;
         setNet("warn", `${c.name} — ${t("verify.net.legacyNotSupported")}`);
         return;
       }
       contract = new ethers.Contract(c.contract, ABI, provider);
       if (lbl) {
-        lbl.innerHTML = odpFormatStackBlockHtml(odpContractGeneration);
+        lbl.innerHTML = odpFormatStackSummaryHtml(odpContractGeneration);
         lbl.style.display = "";
+        lbl.hidden = false;
+        lbl.setAttribute("aria-hidden", "false");
       }
       const docSec = document.getElementById("docVerifySection");
+      const docAttestSec = document.getElementById("docAttestSection");
       if (docSec) {
         docSec.hidden =
+          odpContractGeneration == null ||
+          (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration));
+      }
+      if (docAttestSec) {
+        docAttestSec.hidden =
           odpContractGeneration == null ||
           (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration));
       }
@@ -300,10 +510,14 @@ async function connect() {
   contract = null;
   odpContractGeneration = null;
   const docSec = document.getElementById("docVerifySection");
+  const docAttestSec = document.getElementById("docAttestSection");
   if (docSec) docSec.hidden = true;
+  if (docAttestSec) docAttestSec.hidden = true;
   if (lbl) {
     lbl.style.display = "none";
     lbl.innerHTML = "";
+    lbl.hidden = true;
+    lbl.setAttribute("aria-hidden", "true");
   }
 }
 
@@ -327,9 +541,136 @@ function verifyReadContractsOrdered() {
   return uniq.map((addr) => new ethers.Contract(addr, ABI, provider));
 }
 
+/** Collect all proof IDs using paged reads when available (avoids huge single RPC responses). */
+async function fetchProofIdsForPassport(readContract, humanId) {
+  const page = 40;
+  if (readContract && typeof readContract.getProofsForPassportPaged === "function") {
+    const ids = [];
+    let offset = 0;
+    let total = 1;
+    while (offset < total) {
+      const [slice, t] = await readContract.getProofsForPassportPaged(humanId, offset, page);
+      total = Number(t || 0);
+      const arr = Array.isArray(slice) ? slice : [];
+      for (let i = 0; i < arr.length; i++) ids.push(arr[i]);
+      offset += arr.length;
+      if (arr.length === 0) break;
+    }
+    return ids;
+  }
+  const all = await readContract.getProofsForPassport(humanId);
+  return Array.isArray(all) ? all : [];
+}
+
+let idExistsHintTimer = null;
+
+function schedulePassportExistsHint() {
+  const hint = document.getElementById("idExistsHint");
+  if (!hint) return;
+  if (idExistsHintTimer) clearTimeout(idExistsHintTimer);
+  hint.textContent = "";
+  const raw = document.getElementById("idInput") ? document.getElementById("idInput").value : "";
+  const token = parseVerifyToken(raw);
+  if (!token || token.kind !== "passport" || !provider) return;
+  idExistsHintTimer = setTimeout(async () => {
+    idExistsHintTimer = null;
+    const elHint = document.getElementById("idExistsHint");
+    const idIn = document.getElementById("idInput");
+    if (!elHint || !idIn) return;
+    const tok = parseVerifyToken(idIn.value);
+    if (!tok || tok.kind !== "passport") {
+      elHint.textContent = "";
+      return;
+    }
+    const c0 = verifyReadContractsOrdered()[0];
+    if (!c0 || typeof c0.exists !== "function") return;
+    elHint.textContent = t("verify.search.existsChecking");
+    try {
+      const ex = await c0.exists(tok.id);
+      elHint.textContent = ex ? t("verify.search.existsYes") : t("verify.search.existsNo");
+    } catch {
+      elHint.textContent = "";
+    }
+  }, 450);
+}
+
 function shortAddr(a) {
   const s = String(a || "");
   return s.length > 14 ? s.slice(0, 6) + "…" + s.slice(-4) : s;
+}
+
+function scrollToVerifySection(el) {
+  if (!el) return;
+  try {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch {}
+}
+
+function activateVerifyTool(tool, updateUrl) {
+  const t = String(tool || "").trim();
+  if (updateUrl) {
+    const u = new URL(window.location.href);
+    if (t) u.searchParams.set("tool", t);
+    else u.searchParams.delete("tool");
+    try {
+      window.history.replaceState({}, "", u.toString());
+    } catch {}
+  }
+  const menuEl = document.getElementById("verifyToolsMenu");
+  if (menuEl) {
+    const all = menuEl.querySelectorAll("button.btn");
+    all.forEach((b) => b.classList.remove("active"));
+  }
+  function markActive(toolKey) {
+    if (!menuEl) return;
+    const all = menuEl.querySelectorAll("button.btn");
+    all.forEach((b) => {
+      if (String(b.getAttribute("data-tool") || "") === String(toolKey || "")) b.classList.add("active");
+    });
+  }
+  const toolElAttest = document.getElementById("docAttestSection");
+  const toolElCheck = document.getElementById("docVerifySection");
+  const subnav = document.getElementById("verifyToolSubnav");
+  const subnavTitle = document.getElementById("verifyToolSubnavTitle");
+  const toolsMenu = document.getElementById("verifyToolsMenu");
+  if (toolElAttest) toolElAttest.hidden = true;
+  if (toolElCheck) toolElCheck.hidden = true;
+  const idSec = document.getElementById("verifyIdSection");
+  if (idSec) idSec.hidden = false;
+
+  const q = new URLSearchParams(window.location.search);
+  let selectedTool = t || (q.get("tool") || "").trim();
+  if (selectedTool === "proof-sign") selectedTool = "doc-attest";
+  if (selectedTool === "proof-verify") selectedTool = "doc-check";
+  if (!selectedTool) {
+    if (subnav) subnav.style.display = "none";
+    if (toolsMenu) toolsMenu.hidden = false;
+    if (idSec) idSec.hidden = false;
+    scrollToVerifySection(document.getElementById("verifyIdSection"));
+    document.getElementById("idInput")?.focus();
+    return;
+  }
+  if (selectedTool === "doc-attest") {
+    if (toolElAttest) toolElAttest.hidden = false;
+    if (idSec) idSec.hidden = true;
+    if (toolsMenu) toolsMenu.hidden = true;
+    if (subnav) subnav.style.display = "";
+    if (subnavTitle) subnavTitle.textContent = typeof window.odpT === "function" ? window.odpT("verify.tools.docAttest") : "Document attest";
+    scrollToVerifySection(document.getElementById("docAttestSection"));
+    document.getElementById("docAttestFile")?.focus();
+    markActive("doc-attest");
+    return;
+  }
+  if (selectedTool === "doc-check") {
+    if (toolElCheck) toolElCheck.hidden = false;
+    if (idSec) idSec.hidden = true;
+    if (toolsMenu) toolsMenu.hidden = true;
+    if (subnav) subnav.style.display = "";
+    if (subnavTitle) subnavTitle.textContent = typeof window.odpT === "function" ? window.odpT("verify.tools.docCheck") : "Document hash check";
+    scrollToVerifySection(document.getElementById("docVerifySection"));
+    document.getElementById("docVerifyFile")?.focus();
+    markActive("doc-check");
+  }
 }
 
 // ── Parse ─────────────────────────────────────────────────────────────────────
@@ -358,7 +699,7 @@ function normalizeVerifyInput(raw) {
   return raw;
 }
 
-/** Passport Human ID or Creator ID (C-/B-/P-/M-…), or null. */
+/** Passport ID (ODP-…) or profile ID (C-/B-/P-/M-…), or null. */
 function parseVerifyToken(raw) {
   raw = normalizeVerifyInput(raw);
   if (!raw) return null;
@@ -376,7 +717,7 @@ function parseVerifyToken(raw) {
   return null;
 }
 
-/** Multiline QR (ODP share): use first line that parses as Human ID / Creator ID / URL. */
+/** Multiline QR (ODP share): use first line that parses as Passport ID / profile ID / URL. */
 function pickVerifiableLine(text) {
   const full = String(text ?? "").trim();
   if (full && parseVerifyToken(full)) return full;
@@ -471,6 +812,131 @@ function decodeTypePrefix(tp) {
 
 // ── Verify ────────────────────────────────────────────────────────────────────
 
+async function verifyFromOdpBundleQuick(file) {
+  const el = document.getElementById("result");
+  const btn = document.getElementById("verifyBtn");
+  if (!file || !el) return;
+  if (!contract) {
+    const msg = verifyContractError ? verifyContractError : t("verify.result.loadFail");
+    el.innerHTML = `<div class="err-box">${esc(msg)}</div>`;
+    return;
+  }
+  if (btn) btn.disabled = true;
+  el.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.odpQuick.reading"))}</span></div>`;
+  try {
+    if (typeof JSZip === "undefined") throw new Error(t("verify.odpQuick.jszipMissing"));
+    const zip = await JSZip.loadAsync(file);
+    const passportEntry = zip.file("passport.json");
+    if (!passportEntry) throw new Error(t("verify.odpQuick.noPassportJson"));
+    const raw = await passportEntry.async("text");
+    let p;
+    try {
+      p = JSON.parse(raw);
+    } catch {
+      throw new Error(t("verify.odpQuick.badJson"));
+    }
+    const humanId = parseId(String(p && p.humanId != null ? p.humanId : ""));
+    if (!humanId) throw new Error(t("verify.odpQuick.badHumanId"));
+    const idIn = document.getElementById("idInput");
+    if (idIn) idIn.value = humanId;
+
+    setLoading(el, t("verify.loading.fetchPassport"));
+    let res = null;
+    let readContract = null;
+    for (const c of verifyReadContractsOrdered()) {
+      try {
+        res = await c.resolvePassport(humanId);
+        readContract = c;
+        break;
+      } catch (e) {
+        const m = String(e && (e.reason || e.message) || "");
+        if (m.includes("Passport not found")) continue;
+        throw e;
+      }
+    }
+    if (!res || !readContract) {
+      renderInvalidWithLocalPassport(humanId, p, file.name);
+      return;
+    }
+
+    const rec = res.passport;
+    let creator = null;
+    try {
+      const rawC = res.creator;
+      const tp = rawC.typePrefix;
+      const typeChar =
+        typeof tp === "string" && tp.startsWith("0x")
+          ? String.fromCharCode(parseInt(tp.slice(2, 4), 16))
+          : typeof tp === "string"
+            ? tp
+            : "?";
+      creator = { ...rawC, typePrefix: typeChar };
+    } catch {}
+
+    let proofIds = [];
+    let proofs = [];
+    try {
+      proofIds = await fetchProofIdsForPassport(readContract, humanId);
+      proofs = await Promise.all(proofIds.map((id) => readContract.getProof(id).catch(() => null)));
+      proofs = proofs.filter(Boolean);
+    } catch {}
+
+    let dataHashHex;
+    try {
+      dataHashHex =
+        typeof ethers !== "undefined" && rec.dataHash != null
+          ? ethers.utils.hexlify(rec.dataHash).toLowerCase()
+          : String(rec.dataHash || "").toLowerCase();
+    } catch {
+      dataHashHex = String(rec.dataHash || "").toLowerCase();
+    }
+
+    const canon = minify(raw, humanId);
+    const localHash = (await sha256text(canon)).toLowerCase();
+    const dataStatus = localHash === dataHashHex ? "authentic" : "tampered";
+
+    render(humanId, rec, creator, p, proofs, dataStatus, readContract.address, { odpFileName: file.name });
+    queueMicrotask(() => {
+      attachOdpVerifyHandlers(humanId, dataHashHex, rec.fileHash, rec.imageHash);
+    });
+  } catch (e) {
+    const m = e && (e.message || String(e));
+    el.innerHTML = `<div class="err-box">${esc(m)}</div>`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function attachOdpQuickVerifyHandlers() {
+  const drop = document.getElementById("odpQuickDrop");
+  const input = document.getElementById("odpQuickInput");
+  if (!drop || !input) return;
+  const onDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    drop.classList.add("drop-zone-over");
+  };
+  const onDragLeave = (e) => {
+    const rel = e.relatedTarget;
+    if (!rel || !drop.contains(rel)) drop.classList.remove("drop-zone-over");
+  };
+  const onDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    drop.classList.remove("drop-zone-over");
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) void verifyFromOdpBundleQuick(f);
+  };
+  drop.addEventListener("dragover", onDragOver, true);
+  drop.addEventListener("dragleave", onDragLeave, true);
+  drop.addEventListener("drop", onDrop, true);
+  input.addEventListener("change", (e) => {
+    const f = e.target && e.target.files && e.target.files[0];
+    if (f) void verifyFromOdpBundleQuick(f);
+    e.target.value = "";
+  });
+}
+
 async function verify() {
   const raw   = document.getElementById("idInput").value;
   const el    = document.getElementById("result");
@@ -478,6 +944,8 @@ async function verify() {
 
   if (!token) {
     el.innerHTML = `<div class="err-box">${esc(t("verify.result.badToken"))}</div>`;
+    const hint = document.getElementById("idExistsHint");
+    if (hint) hint.textContent = "";
     return;
   }
   if (!contract) {
@@ -490,6 +958,8 @@ async function verify() {
 
   el.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.result.checking"))}</span></div>`;
   document.getElementById("verifyBtn").disabled = true;
+  const existsHint = document.getElementById("idExistsHint");
+  if (existsHint) existsHint.textContent = "";
 
   try {
     if (token.kind === "creator") {
@@ -534,7 +1004,7 @@ async function verify() {
     let proofIds = [];
     let proofs   = [];
     try {
-      proofIds = await readContract.getProofsForPassport(humanId);
+      proofIds = await fetchProofIdsForPassport(readContract, humanId);
       proofs = await Promise.all(
         proofIds.map(id => readContract.getProof(id).catch(() => null))
       );
@@ -544,6 +1014,7 @@ async function verify() {
     setLoading(el, t("verify.loading.fetchData"));
     let passport   = null;
     let dataStatus = "unverifiable";
+    let verifyRenderOpts = null;
 
     const publicDataUrl = (rec.dataUrl || "").trim();
     if (!publicDataUrl) {
@@ -552,16 +1023,17 @@ async function verify() {
       try {
         const resp = await fetch(publicDataUrl, { cache: "no-cache" });
         if (resp.ok) {
-          const rawJ  = await resp.text();
-          const hash  = await sha256text(minify(rawJ, humanId));
+          const { rawJ, hostedAs } = await passportJsonTextFromDataUrlResponse(resp, publicDataUrl);
+          const hash = await sha256text(minify(rawJ, humanId));
           const onchain = rec.dataHash.toLowerCase();
-          dataStatus  = hash === onchain ? "authentic" : "tampered";
-          passport    = JSON.parse(rawJ);
+          dataStatus = hash === onchain ? "authentic" : "tampered";
+          passport = JSON.parse(rawJ);
+          if (hostedAs === "odp") verifyRenderOpts = { dataUrlHostedAsOdp: true };
         }
       } catch {}
     }
 
-    render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOn);
+    render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOn, verifyRenderOpts);
 
   } catch (e) {
     el.innerHTML = `<div class="err-box">${esc(t("verify.result.errorPrefix"))} ${esc(e.message)}</div>`;
@@ -614,6 +1086,29 @@ function renderInvalid(humanId) {
     </div>`;
 }
 
+/** No on-chain row — still show passport.json from .odp so the user can inspect the file. */
+function renderInvalidWithLocalPassport(humanId, passportObj, bundleFileName) {
+  const preview = passportObj ? renderLocalPassportPreview(passportObj) : "";
+  const hint = t("verify.odpQuick.unregisteredHint").replace("{name}", String(bundleFileName || "bundle"));
+  document.getElementById("result").innerHTML = `
+    <div class="card">
+      <div class="status-bar invalid">
+        <div class="status-icon">✕</div>
+        <div class="status-text">
+          <div class="status-label">${esc(t("verify.result.notRegisteredLabel"))}</div>
+          <div class="status-desc">${esc(t("verify.result.notRegisteredDesc").replace("{id}", humanId))}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <p style="font-size:13px;color:var(--text2)">
+          ${esc(t("verify.result.notRegisteredBody"))}
+        </p>
+        <p class="fhint" style="font-size:12px;margin:12px 0 0;line-height:1.55">${esc(hint)}</p>
+        ${preview}
+      </div>
+    </div>`;
+}
+
 function renderCreatorNotFound(creatorId) {
   document.getElementById("result").innerHTML = `
     <div class="card">
@@ -645,13 +1140,13 @@ function renderCreatorResult(creatorId, c, deploymentAddress) {
       <div class="status-bar authentic">
         <div class="status-icon">✓</div>
         <div class="status-text">
-          <div class="status-label">Creator ID Registered</div>
+          <div class="status-label">${esc(t("verify.creatorResult.registeredTitle"))}</div>
           <div class="status-desc">${esc(typeLabel)} · ${esc(creatorId)}</div>
         </div>
       </div>
       <div class="card-body">
         ${showPrior ? `<p class="odp-prior-deploy-note">Resolved on a <strong>prior deployment</strong> (<code class="mono">${esc(shortAddr(deploymentAddress))}</code>). Treat trust separately from the primary registry.</p>` : ""}
-        <div class="field"><div class="fl">Creator ID</div><div class="fv"><span class="creator-id-val">${esc(creatorId)}</span></div></div>
+        <div class="field"><div class="fl">${esc(t("verify.fields.profile"))}</div><div class="fv"><span class="creator-id-val">${esc(creatorId)}</span></div></div>
         <div class="field"><div class="fl">Type</div><div class="fv">${esc(c.typePrefix)} (${esc(typeLabel)})</div></div>
         <div class="field full"><div class="fl">Wallet</div><div class="fv mono">${esc(wallet)}</div></div>
         <div class="field full"><div class="fl">${esc(t("verify.time.creatorRegisteredUtc"))}</div><div class="fv">${
@@ -705,7 +1200,7 @@ function renderPassportJsonExtras(passport, isDigital) {
   if ("humanId" in p) {
     const hj = p.humanId === null ? "null" : String(p.humanId);
     rows.push(
-      `<div class="field"><div class="fl">humanId (in JSON)</div><div class="fv"><span class="human-id-val">${esc(hj)}</span></div></div>`
+      `<div class="field"><div class="fl">${esc(t("verify.passportJson.humanIdRow"))}</div><div class="fv"><span class="human-id-val">${esc(hj)}</span></div></div>`
     );
   }
   if (p.year != null || p.month != null) {
@@ -853,7 +1348,93 @@ function formatOdpProtocolBadge(contractVersion) {
   return `ODP spec ${Math.floor(v / 16)}.${v % 16}`;
 }
 
-function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnAddress) {
+/** Normalized 0x + 64 hex for P/M proof `noteHash` (bytes32). */
+function proofRecordNoteHashHex(p) {
+  const raw = p && p.noteHash;
+  if (raw == null) return "";
+  try {
+    if (typeof ethers !== "undefined" && ethers.utils && typeof ethers.utils.hexlify === "function") {
+      return String(ethers.utils.hexlify(raw)).toLowerCase();
+    }
+  } catch {
+    /* fall through */
+  }
+  const s = String(raw);
+  if (/^0x[0-9a-fA-F]{64}$/.test(s)) return s.toLowerCase();
+  return "";
+}
+
+function attachInstitutionProofVerifyHandlers() {
+  document.querySelectorAll(".proof-note-verify-wrap").forEach((wrap) => {
+    const expected = wrap.getAttribute("data-expected-hash") || "";
+    const drop = wrap.querySelector(".proof-note-drop");
+    const input = wrap.querySelector(".proof-note-input");
+    const out = wrap.querySelector(".proof-note-result");
+    if (!drop || !input || !out || !expected || expected.toLowerCase() === ZERO32.toLowerCase()) return;
+
+    const run = async (file) => {
+      if (!file) return;
+      out.innerHTML = `<div class="loading" style="margin-top:8px"><div class="spin"></div><span>${esc(t("verify.instProof.computing"))}</span></div>`;
+      try {
+        const buf = await file.arrayBuffer();
+        const hash = await crypto.subtle.digest("SHA-256", buf);
+        const hex = "0x" + Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+        const match = hex.toLowerCase() === expected.toLowerCase();
+        drop.style.borderStyle = "solid";
+        out.innerHTML = `
+          <div class="vrow" style="margin-top:8px;border-radius:4px;border-bottom:1px solid var(--border)">
+            <span class="vbadge ${match ? "ok" : "bad"}">${esc(match ? t("verify.instProof.match") : t("verify.instProof.mismatch"))}</span>
+            <div class="vinfo">
+              <div class="vinfo-label">${esc(file.name)}</div>
+              <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(hex)}</div>
+            </div>
+          </div>
+          ${
+            match
+              ? ""
+              : `<div class="err-box" style="margin-top:6px;font-size:11px;line-height:1.5">
+              ${esc(t("verify.instProof.mismatchDetail"))}<br>
+              <span class="mono">${esc(t("verify.instProof.expectedLabel"))}: ${esc(expected)}</span>
+            </div>`
+          }`;
+      } catch (e) {
+        out.innerHTML = `<div class="err-box" style="margin-top:6px;font-size:11px">${esc(e.message || String(e))}</div>`;
+      }
+    };
+
+    drop.addEventListener("click", (e) => {
+      if (e.target === input || (input && input.contains(e.target))) return;
+      input.click();
+    });
+    const onDragOver = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      drop.classList.add("drop-zone-over");
+    };
+    const onDragLeave = (e) => {
+      const rel = e.relatedTarget;
+      if (!rel || !drop.contains(rel)) drop.classList.remove("drop-zone-over");
+    };
+    const onDrop = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      drop.classList.remove("drop-zone-over");
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) void run(f);
+    };
+    drop.addEventListener("dragover", onDragOver, true);
+    drop.addEventListener("dragleave", onDragLeave, true);
+    drop.addEventListener("drop", onDrop, true);
+    input.addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) void run(f);
+      e.target.value = "";
+    });
+  });
+}
+
+function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnAddress, renderOpts) {
+  renderOpts = renderOpts && typeof renderOpts === "object" ? renderOpts : null;
   const net_     = NET;
   const showPrior =
     resolvedOnAddress &&
@@ -895,6 +1476,42 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
 
   const short = a => a.slice(0, 6) + "…" + a.slice(-4);
 
+  const proofItemsHtml =
+    proofs.length === 0
+      ? ""
+      : proofs
+          .map((p, idx) => {
+            const nh = proofRecordNoteHashHex(p);
+            const hasNoteHash = nh && nh !== ZERO32.toLowerCase();
+            const noteHashRow = hasNoteHash
+              ? `<div class="vinfo" style="margin-top:8px">
+              <div class="vinfo-label">${esc(t("verify.instProof.onChainNoteHash"))}</div>
+              <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(nh)}</div>
+            </div>
+            <div class="proof-note-verify-wrap" data-proof-index="${idx}" data-expected-hash="${esc(nh)}">
+              <div style="font-size:11px;color:var(--text2);margin:10px 0 6px;line-height:1.5">${esc(t("verify.instProof.checkLead"))}</div>
+              <div class="drop-zone json-drop proof-note-drop" style="padding:12px;margin-bottom:4px">
+                <input type="file" class="proof-note-input" aria-label="${esc(t("verify.instProof.checkTitle"))}">
+                <p style="margin:0;font-size:12px">${esc(t("verify.instProof.dropLine1"))}<br>
+                <span style="opacity:0.6;font-size:11px">${esc(t("verify.instProof.dropLine2"))}</span></p>
+              </div>
+              <div class="proof-note-result" data-proof-result="${idx}"></div>
+            </div>`
+              : `<p class="fhint" style="margin-top:8px;line-height:1.55">${esc(t("verify.instProof.noNoteHash"))}</p>`;
+            return `
+          <div class="proof-item" style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)">
+            <div class="proof-id" style="font-family:var(--mono);font-size:11px;color:var(--ink3)">${esc(p.proofId)}</div>
+            <div style="font-family:var(--mono);font-size:16px;font-weight:600;margin:6px 0 4px;letter-spacing:0.04em">${esc(p.prover)}</div>
+            <div style="font-size:11px;color:var(--ink3);font-family:var(--mono)">${new Date(Number(p.timestamp) * 1000).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}</div>
+            <div style="font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.6">
+              ${esc(t("verify.instProof.findProverLead"))} <strong style="font-family:var(--mono)">${esc(p.prover)}</strong> ${esc(t("verify.instProof.findProverTail"))}
+            </div>
+            ${p.noteUrl ? `<div style="margin-top:6px"><a class="ext-link" href="${esc(p.noteUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("verify.instProof.documentLink"))}</a></div>` : ""}
+            ${noteHashRow}
+          </div>`;
+          })
+          .join("");
+
   document.getElementById("result").innerHTML = `
     <div class="card">
       <div class="status-bar ${statusClass}">
@@ -909,18 +1526,29 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
 
         ${showPrior ? `<p class="odp-prior-deploy-note">Record found on a <strong>prior deployment</strong> (<code class="mono">${esc(shortAddr(resolvedOnAddress))}</code>). Compare trust to the primary contract in config.</p>` : ""}
 
+        ${
+          renderOpts && renderOpts.odpFileName
+            ? `<p class="info neutral" style="font-size:12px;margin:0 0 14px;line-height:1.55;border-left:3px solid var(--accent);padding-left:10px">${esc(t("verify.odpQuick.banner").replace("{name}", String(renderOpts.odpFileName)))}</p>`
+            : ""
+        }
+        ${
+          renderOpts && renderOpts.dataUrlHostedAsOdp
+            ? `<p class="info neutral" style="font-size:12px;margin:0 0 14px;line-height:1.55;border-left:3px solid var(--accent);padding-left:10px">${esc(t("verify.dataUrl.odpHostedBanner"))}</p>`
+            : ""
+        }
+
         <div class="obj-title">${esc(title)}</div>
         <div class="obj-creator">${esc(cname)}</div>
 
         <div class="fields">
 
           <div class="field full">
-            <div class="fl">Human ID</div>
+            <div class="fl">${esc(t("verify.fields.passportId"))}</div>
             <div class="fv"><span class="human-id-val">${esc(humanId)}</span></div>
           </div>
 
           <div class="field">
-            <div class="fl">Creator ID</div>
+            <div class="fl">${esc(t("verify.fields.profile"))}</div>
             <div class="fv">
               <span class="creator-id-val">${esc(rec.creatorId)}</span>
               ${creator ? `<div style="font-size:11px;color:var(--ink3);font-family:var(--mono);margin-top:3px">${esc(creator.typePrefix)} · ${short(creator.wallet)}</div>` : ""}
@@ -1024,26 +1652,14 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>
 
-        <div class="section-title">Verify passport.json (local file)</div>
+        <div class="section-title">${esc(t("verify.detail.localOdpTitle"))}</div>
         <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
-          Drop your copy of <code>passport.json</code> to compare its canonical SHA-256 to the on-chain <code>dataHash</code>.
-          Useful when the hosted URL is slow or you want to double-check a file — everything runs in your browser.
-        </p>
-        <div class="drop-zone json-drop" id="jsonDrop">
-          <input type="file" id="jsonInput" accept=".json,application/json,text/plain,*/*">
-          <p>Drop JSON here or click to select<br>
-          <span style="opacity:0.6">Canonical minify + hash — same rules as URL fetch — not uploaded</span></p>
-        </div>
-        <div id="jsonResult"></div>
-
-        <div class="section-title" style="margin-top:16px">Verify .odp bundle</div>
-        <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
-          Drop a <code>.odp</code> file. The verifier reads <code>passport.json</code> inside the bundle and checks it against on-chain <code>dataHash</code>.
+          ${esc(t("verify.detail.localOdpLead"))}
         </p>
         <div class="drop-zone json-drop" id="odpDrop">
           <input type="file" id="odpInput" accept=".odp,application/zip,application/octet-stream,.zip">
-          <p>Drop .odp here or click to select<br>
-          <span style="opacity:0.6">Processed locally in browser — not uploaded</span></p>
+          <p>${esc(t("verify.detail.localOdpDrop1"))}<br>
+          <span style="opacity:0.6">${esc(t("verify.detail.localOdpDrop2"))}</span></p>
         </div>
         <div id="odpResult"></div>
 
@@ -1168,34 +1784,17 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>` : ""}
 
-        <!-- Proofs -->
+        <!-- Proofs (P / M institution attestations) -->
         ${proofs.length > 0 ? `
-        <div class="section-title">Proofs (${proofs.length})</div>
+        <div class="section-title">${esc(t("verify.instProof.sectionTitle"))} (${proofs.length})</div>
         <div class="vrow" style="margin-bottom:8px">
-          <span class="vbadge warn">Verify manually</span>
+          <span class="vbadge warn">${esc(t("verify.instProof.verifyManuallyBadge"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">How to trust a Proof</div>
-            <div class="vinfo-val">
-              Anyone can register as a P-type institution — names are self-declared and unverified.
-              Only the Creator ID (P-NNN-NNN-NNN-NNN) is on-chain.
-              Find this exact ID published on the institution's official website to confirm identity.
-            </div>
+            <div class="vinfo-label">${esc(t("verify.instProof.trustTitle"))}</div>
+            <div class="vinfo-val">${esc(t("verify.instProof.trustBody"))}</div>
           </div>
         </div>
-        ${proofs.slice(0, 3).map(p => `
-          <div class="proof-item">
-            <div class="proof-id" style="font-family:var(--mono);font-size:11px;color:var(--ink3)">${esc(p.proofId)}</div>
-            <div style="font-family:var(--mono);font-size:16px;font-weight:600;margin:6px 0 4px;letter-spacing:0.04em">${esc(p.prover)}</div>
-            <div style="font-size:11px;color:var(--ink3);font-family:var(--mono)">${new Date(Number(p.timestamp) * 1000).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}</div>
-            <div style="font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.6">
-              ↗ Find <strong style="font-family:var(--mono)">${esc(p.prover)}</strong> on the institution's official website to verify identity.
-              No name is shown here — names are self-declared.
-            </div>
-            ${p.noteUrl ? `<div style="margin-top:6px"><a class="ext-link" href="${esc(p.noteUrl)}" target="_blank">Document ↗</a></div>` : ""}
-          </div>`).join("")}
-        ${proofs.length > 3 ? `<div style="font-size:11px;color:var(--ink3);padding:8px 0;font-family:var(--mono)">
-          + ${proofs.length - 3} more proof${proofs.length - 3 > 1 ? 's' : ''} — each requires independent verification
-        </div>` : ""}` : ""}
+        ${proofItemsHtml}` : ""}
 
         <!-- Links -->
         <div class="links">
@@ -1208,49 +1807,13 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
       </div>
     </div>`;
   queueMicrotask(() => {
-    attachJsonVerifyHandlers(humanId, dataHashHex);
     attachOdpVerifyHandlers(humanId, dataHashHex, rec.fileHash, rec.imageHash);
+    attachInstitutionProofVerifyHandlers();
     const c2paDeclared =
       passport && passport.digital && passport.digital.c2pa && passport.digital.c2pa.manifestHash
         ? String(passport.digital.c2pa.manifestHash)
         : "";
     attachC2paHashCheck(c2paDeclared);
-    syncLastHumanIdToProof(humanId);
-  });
-}
-
-/** Wire drag/drop + file picker after render (inline handlers are brittle with long hex strings). */
-function attachJsonVerifyHandlers(expectedHumanId, dataHashHex) {
-  const drop = document.getElementById("jsonDrop");
-  const input = document.getElementById("jsonInput");
-  if (!drop || !input) return;
-
-  const onDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    drop.classList.add("drop-zone-over");
-  };
-  const onDragLeave = (e) => {
-    const rel = e.relatedTarget;
-    if (!rel || !drop.contains(rel)) drop.classList.remove("drop-zone-over");
-  };
-  const onDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    drop.classList.remove("drop-zone-over");
-    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) void runPassportJsonVerify(f, dataHashHex, expectedHumanId);
-  };
-
-  /* Capture: transparent file input sits on top — catch drag on container first */
-  drop.addEventListener("dragover", onDragOver, true);
-  drop.addEventListener("dragleave", onDragLeave, true);
-  drop.addEventListener("drop", onDrop, true);
-
-  input.addEventListener("change", (e) => {
-    const f = e.target.files && e.target.files[0];
-    if (f) void runPassportJsonVerify(f, dataHashHex, expectedHumanId);
-    e.target.value = "";
   });
 }
 
@@ -1299,8 +1862,8 @@ function renderLocalPassportPreview(p) {
     `<div class="field"><div class="fl">Spec version</div><div class="fv">${esc(ver)}</div></div>`,
     `<div class="field full"><div class="fl">Title</div><div class="fv" style="font-family:var(--serif);font-size:15px;font-style:italic">${esc(title)}</div></div>`,
     `<div class="field"><div class="fl">Creator</div><div class="fv">${esc(cname)}</div></div>`,
-    `<div class="field"><div class="fl">Creator ID</div><div class="fv"><span class="creator-id-val">${esc(cid)}</span></div></div>`,
-    `<div class="field"><div class="fl">humanId in file</div><div class="fv"><span class="human-id-val">${esc(humanJson)}</span></div></div>`,
+    `<div class="field"><div class="fl">${esc(t("verify.fields.profile"))}</div><div class="fv"><span class="creator-id-val">${esc(cid)}</span></div></div>`,
+    `<div class="field"><div class="fl">${esc(t("verify.localPreview.passportIdInFile"))}</div><div class="fv"><span class="human-id-val">${esc(humanJson)}</span></div></div>`,
     `<div class="field"><div class="fl">Object / type</div><div class="fv"><span class="type-badge ${isDigital ? "digital" : ""}">${esc(objType)}</span></div></div>`
   );
 
@@ -1351,47 +1914,6 @@ function renderLocalPassportPreview(p) {
       <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;font-family:var(--mono)">Passport contents (this file)</div>
       <div class="fields" style="grid-template-columns:1fr 1fr;gap:10px 16px">${parts.join("")}</div>
     </div>`;
-}
-
-async function runPassportJsonVerify(file, onchainHash, expectedHumanId) {
-  const el = document.getElementById("jsonResult");
-  const drop = document.getElementById("jsonDrop");
-  if (!el) return;
-  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Reading and hashing JSON…</span></div>`;
-  const want = String(onchainHash).toLowerCase();
-  try {
-    const raw = await file.text();
-    const canon = minify(raw, expectedHumanId);
-    const hash = await sha256text(canon);
-    const match = hash.toLowerCase() === want;
-    if (drop) drop.style.borderStyle = "solid";
-    let previewHtml = "";
-    if (match) {
-      try {
-        previewHtml = renderLocalPassportPreview(JSON.parse(raw));
-      } catch {
-        previewHtml = "";
-      }
-    }
-    el.innerHTML = `
-      <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
-        <span class="vbadge ${match ? "ok" : "bad"}">${match ? "Authentic" : "Mismatch"}</span>
-        <div class="vinfo">
-          <div class="vinfo-label">${esc(file.name)}</div>
-          <div class="vinfo-val">${hash}</div>
-        </div>
-      </div>
-      ${!match ? `<div class="err-box" style="margin-top:8px;font-size:11px">
-        This file does not match the on-chain <code>dataHash</code> for <code>${esc(expectedHumanId)}</code>.
-        Expected: ${esc(want)}
-      </div>` : previewHtml}`;
-  } catch (err) {
-    const m = err && (err.message || String(err));
-    if (drop) drop.style.borderStyle = "solid";
-    el.innerHTML = `<div class="err-box" style="margin-top:10px;font-size:12px">
-      <strong>Invalid JSON or hash step failed.</strong> ${esc(m)}
-    </div>`;
-  }
 }
 
 function attachOdpVerifyHandlers(expectedHumanId, dataHashHex, onchainFileHash, onchainImageHash) {
@@ -1476,6 +1998,14 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, onchai
     }
 
     if (drop) drop.style.borderStyle = "solid";
+    let bundlePreview = "";
+    if (!dataMatch) {
+      try {
+        bundlePreview = renderLocalPassportPreview(JSON.parse(raw));
+      } catch {
+        bundlePreview = "";
+      }
+    }
     out.innerHTML = `
       <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
         <span class="vbadge ${dataMatch ? "ok" : "bad"}">${dataMatch ? "Authentic" : "Mismatch"}</span>
@@ -1487,6 +2017,7 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, onchai
       ${!dataMatch ? `<div class="err-box" style="margin-top:8px;font-size:11px">
         Bundle passport.json does not match on-chain <code>dataHash</code> for <code>${esc(expectedHumanId)}</code>.
       </div>` : ""}
+      ${bundlePreview}
       ${sidecarCheckHtml}
     `;
   } catch (e) {
@@ -1587,6 +2118,42 @@ function sortKeysDeep(obj) {
   return obj;
 }
 
+function urlPathIndicatesOdp(u) {
+  try {
+    return /\.odp$/i.test(new URL(u).pathname);
+  } catch {
+    return /\.odp(\?|#|$)/i.test(String(u || ""));
+  }
+}
+
+/** ZIP local file header signature (PK\x03\x04). */
+function bodyLooksLikeZipStart(buf) {
+  if (!buf || buf.byteLength < 4) return false;
+  const a = new Uint8Array(buf.slice(0, 4));
+  return a[0] === 0x50 && a[1] === 0x4b && a[2] === 0x03 && a[3] === 0x04;
+}
+
+/**
+ * HTTP 200 body from `dataUrl`: raw `passport.json` text, or extract `passport.json` from hosted `.odp` (SPEC §15).
+ * @returns {Promise<{ rawJ: string, hostedAs: "json" | "odp" }>}
+ */
+async function passportJsonTextFromDataUrlResponse(resp, publicDataUrl) {
+  const buf = await resp.arrayBuffer();
+  const treatAsOdpBundle = urlPathIndicatesOdp(publicDataUrl) || bodyLooksLikeZipStart(buf);
+
+  if (treatAsOdpBundle) {
+    if (typeof JSZip === "undefined") throw new Error(t("verify.odpQuick.jszipMissing"));
+    const zip = await JSZip.loadAsync(buf);
+    const pe = zip.file("passport.json");
+    if (!pe) throw new Error(t("verify.dataUrl.noPassportInZip"));
+    const rawJ = await pe.async("text");
+    return { rawJ, hostedAs: "odp" };
+  }
+
+  const rawJ = new TextDecoder("utf-8").decode(buf);
+  return { rawJ, hostedAs: "json" };
+}
+
 /**
  * Canonical JSON for hash compare (must match mint).
  * Mint hashes buildPassport(null) with humanId null. We accept:
@@ -1630,236 +2197,87 @@ function fmtSize(bytes) {
   return (bytes / 1073741824).toFixed(2) + " GB";
 }
 
-// ── Creator wallet proof (EIP-191, off-chain) ────────────────────────────────
-
-let proofWeb3Provider = null;
-let proofSigner = null;
-
-/** Tabs: sign vs verify (single column each — avoids cluttered two-column layout). */
-function proofSetTab(tab) {
-  const signP = document.getElementById("proofPanelSign");
-  const verP = document.getElementById("proofPanelVerify");
-  const tSign = document.getElementById("proofTabSign");
-  const tVer = document.getElementById("proofTabVerify");
-  const isSign = tab === "sign";
-  if (signP) {
-    signP.hidden = !isSign;
-  }
-  if (verP) {
-    verP.hidden = isSign;
-  }
-  if (tSign) {
-    tSign.setAttribute("aria-selected", isSign ? "true" : "false");
-    tSign.classList.toggle("is-active", isSign);
-  }
-  if (tVer) {
-    tVer.setAttribute("aria-selected", isSign ? "false" : "true");
-    tVer.classList.toggle("is-active", !isSign);
-  }
-  try {
-    sessionStorage.setItem("odp_proof_tab", isSign ? "sign" : "verify");
-  } catch {}
-}
-
-function syncLastHumanIdToProof(humanId) {
-  const el = document.getElementById("proofHumanIdSign");
-  if (el && humanId) el.value = humanId;
-}
-
-async function proofConnectWallet() {
-  if (!window.ethereum) {
-    alert("Install a wallet (e.g. MetaMask) to sign.");
-    return;
-  }
-  proofWeb3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-  await proofWeb3Provider.send("eth_requestAccounts", []);
-  proofSigner = proofWeb3Provider.getSigner();
-  const addr = await proofSigner.getAddress();
-  const lab = document.getElementById("proofWalletLabel");
-  if (lab) lab.textContent = "Connected: " + addr;
-}
-
-async function proofEnsurePolygon() {
-  if (!proofWeb3Provider) return false;
-  const net = await proofWeb3Provider.getNetwork();
-  if (Number(net.chainId) === Number(NET.chainId)) return true;
-  const hex = "0x" + Number(NET.chainId).toString(16);
-  try {
-    await proofWeb3Provider.send("wallet_switchEthereumChain", [{ chainId: hex }]);
-    return true;
-  } catch (e) {
-    alert("Switch to " + NET.name + " (chain " + NET.chainId + ") in your wallet, then try again.");
-    return false;
-  }
-}
-
-async function proofSignMessage() {
-  await odpMergeRegistryConfigAsync(NET);
-  if (!NET.contract) {
-    alert("Set NET.contract in this page script first, or deploy registry-config.json with the address.");
-    return;
-  }
-  const raw = document.getElementById("proofHumanIdSign").value.trim();
-  const humanId = parseId(raw);
-  if (!humanId) {
-    alert("Enter a valid Human ID (ODP-…).");
-    return;
-  }
-  if (!proofSigner) await proofConnectWallet();
-  if (!proofSigner) return;
-  if (!(await proofEnsurePolygon())) return;
-  const nonce = odpGenerateCreatorProofNonce();
-  const checksummed = ethers.utils.getAddress(NET.contract);
-  const msg = odpBuildCreatorProofMessageV1(humanId, NET.chainId, checksummed, nonce);
-  let sig;
-  try {
-    sig = await proofSigner.signMessage(msg);
-  } catch (e) {
-    alert("Sign cancelled or failed: " + (e.message || String(e)));
-    return;
-  }
-  const mo = document.getElementById("proofMessageOut");
-  const so = document.getElementById("proofSigOut");
-  if (mo) mo.value = msg;
-  if (so) so.value = sig;
-}
-
-function proofCopyBundle() {
-  const msg = document.getElementById("proofMessageOut") && document.getElementById("proofMessageOut").value;
-  const sig = document.getElementById("proofSigOut") && document.getElementById("proofSigOut").value;
-  if (!msg || !sig) {
-    alert("Sign a message first.");
-    return;
-  }
-  const j = JSON.stringify(
-    { format: "odp-creator-proof-v1", chainId: NET.chainId, message: msg, signature: sig },
-    null,
-    2
-  );
-  navigator.clipboard.writeText(j).then(
-    () => alert("Copied JSON to clipboard."),
-    () => alert("Clipboard failed — copy manually.")
-  );
-}
-
-function extractHumanIdFromProofMessage(msg) {
-  for (const line of String(msg).split(/\r?\n/)) {
-    const m = line.match(/^humanId:\s*(.+)$/i);
-    if (m) return parseId(m[1].trim());
-  }
-  return null;
-}
-
-function extractContractFromProofMessage(msg) {
-  for (const line of String(msg).split(/\r?\n/)) {
-    const m = line.match(/^contract:\s*(0x[a-fA-F0-9]{40})$/i);
-    if (m) return m[1];
-  }
-  return null;
-}
-
-function extractChainIdFromProofMessage(msg) {
-  for (const line of String(msg).split(/\r?\n/)) {
-    const m = line.match(/^chainId:\s*(\d+)$/i);
-    if (m) return parseInt(m[1], 10);
-  }
-  return null;
-}
-
-async function proofVerifyMessage() {
-  await odpMergeRegistryConfigAsync(NET);
-  const resultEl = document.getElementById("proofVerifyResult");
-  if (!resultEl) return;
-  if (!provider || !NET.contract) {
-    resultEl.innerHTML = `<div class="err-box">RPC not ready — set <code class="mono">NET.contract</code> and reload.</div>`;
-    return;
-  }
-  const msg = document.getElementById("proofMsgIn").value.trim();
-  const sig = document.getElementById("proofSigIn").value.trim();
-  const humanInput = document.getElementById("proofHumanIdVerifier").value.trim();
-  if (!msg || !sig) {
-    resultEl.innerHTML = `<div class="err-box">Paste message and signature.</div>`;
-    return;
-  }
-  if (!msg.startsWith(ODP_CREATOR_PROOF_PREFIX)) {
-    resultEl.innerHTML = `<div class="err-box">Message must start with the v1 proof line (same format as in <strong>Creator: sign</strong>).</div>`;
-    return;
-  }
-  let recovered;
-  try {
-    recovered = ethers.utils.verifyMessage(msg, sig);
-  } catch (e) {
-    resultEl.innerHTML = `<div class="err-box">Invalid signature: ${esc(e.message || String(e))}</div>`;
-    return;
-  }
-  let humanId = parseId(humanInput);
-  if (!humanId) humanId = extractHumanIdFromProofMessage(msg);
-  if (!humanId) {
-    resultEl.innerHTML = `<div class="err-box">Enter Human ID or include <code>humanId:</code> in the message.</div>`;
-    return;
-  }
-  const msgChain = extractChainIdFromProofMessage(msg);
-  if (msgChain !== null && msgChain !== NET.chainId) {
-    resultEl.innerHTML = `<div class="err-box">Message is for chainId <strong>${esc(
-      String(msgChain)
-    )}</strong> but this page is configured for <strong>${NET.chainId}</strong>.</div>`;
-    return;
-  }
-
-  let passport = null;
-  let resolvedAddr = null;
-  for (const c of verifyReadContractsOrdered()) {
-    try {
-      const p = await c.getPassport(humanId);
-      if (p && p.creator && p.creator !== ethers.constants.AddressZero) {
-        passport = p;
-        resolvedAddr = c.address;
-        break;
-      }
-    } catch (e) {
-      const m = String(e && (e.reason || e.message) || "");
-      if (m.includes("Passport not found")) continue;
-      resultEl.innerHTML = `<div class="err-box">${esc(m)}</div>`;
-      return;
-    }
-  }
-  if (!passport) {
-    resultEl.innerHTML = `<div class="err-box">No passport found for ${esc(humanId)}</div>`;
-    return;
-  }
-  const ok = recovered.toLowerCase() === String(passport.creator).toLowerCase();
-  const msgContract = extractContractFromProofMessage(msg);
-  let contractWarn = "";
-  if (msgContract && resolvedAddr && msgContract.toLowerCase() !== String(resolvedAddr).toLowerCase()) {
-    contractWarn = `<p class="fhint" style="margin-top:10px">Message names contract <code class="mono">${esc(
-      msgContract
-    )}</code>; this passport was loaded from <code class="mono">${esc(shortAddr(resolvedAddr))}</code>.</p>`;
-  }
-  if (ok) {
-    resultEl.innerHTML = `
-      <div class="status-bar authentic">
-        <div class="status-icon">✓</div>
-        <div class="status-text">
-          <div class="status-label">Signature matches creator wallet</div>
-          <div class="status-desc">Recovered ${esc(recovered)} — matches on-chain <code class="mono">passport.creator</code></div>
-        </div>
-      </div>${contractWarn}`;
-  } else {
-    resultEl.innerHTML = `
-      <div class="status-bar tampered">
-        <div class="status-icon">✗</div>
-        <div class="status-text">
-          <div class="status-label">Mismatch</div>
-          <div class="status-desc">Recovered ${esc(recovered)} — on-chain creator is ${esc(passport.creator)}</div>
-        </div>
-      </div>${contractWarn}`;
-  }
-}
-
 async function sha256FileToBytes32HexVerify(file) {
   const buf = await file.arrayBuffer();
   const digest = await crypto.subtle.digest("SHA-256", buf);
   return ethers.utils.hexlify(new Uint8Array(digest));
+}
+
+async function connectDocAttestWallet() {
+  const lab = document.getElementById("docAttestWallet");
+  const out = document.getElementById("docAttestResult");
+  if (!window.ethereum) {
+    if (out) out.innerHTML = `<div class="err-box">No injected wallet found.</div>`;
+    return;
+  }
+  try {
+    docAttestWeb3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+    await docAttestWeb3Provider.send("eth_requestAccounts", []);
+    const net = await docAttestWeb3Provider.getNetwork();
+    if (Number(net.chainId) !== Number(NET.chainId)) {
+      const hex = "0x" + Number(NET.chainId).toString(16);
+      await docAttestWeb3Provider.send("wallet_switchEthereumChain", [{ chainId: hex }]);
+    }
+    docAttestSigner = docAttestWeb3Provider.getSigner();
+    const addr = await docAttestSigner.getAddress();
+    docAttestContract = new ethers.Contract(NET.contract, DOC_ATTEST_WRITE_ABI, docAttestSigner);
+    verifyWalletCreatorId = await resolveCreatorIdByWallet(addr);
+    try { sessionStorage.removeItem(ODP_SKIP_WALLET_AUTOCONNECT); } catch {}
+    setVerifyWalletBar(addr);
+    setDocAttestWalletLabel(addr);
+    const hashNow = (document.getElementById("docAttestHash") && document.getElementById("docAttestHash").textContent || "").replace(/^SHA-256:\s*/i, "").trim();
+    syncDocAttestPreviews();
+    if (out) out.innerHTML = "";
+  } catch (e) {
+    if (out) out.innerHTML = `<div class="err-box">${esc(e && (e.reason || e.message) ? String(e.reason || e.message) : String(e))}</div>`;
+  }
+}
+
+async function attestDocumentFromVerify() {
+  const out = document.getElementById("docAttestResult");
+  const fileEl = document.getElementById("docAttestFile");
+  const hashEl = document.getElementById("docAttestHash");
+  if (!out || !fileEl) return;
+  if (odpContractGeneration == null || (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration))) {
+    out.innerHTML = `<div class="err-box">${esc(t("verify.docAttest.genUnsupported"))}</div>`;
+    return;
+  }
+  const f = fileEl.files && fileEl.files[0];
+  if (!f) {
+    out.innerHTML = `<div class="err-box">${esc(t("verify.docAttest.chooseFile"))}</div>`;
+    return;
+  }
+  const uri = currentDocAttestDocumentUri();
+  if (uri.length > 512) {
+    out.innerHTML = `<div class="err-box">${esc(t("verify.docAttest.uriTooLong"))}</div>`;
+    return;
+  }
+  if (!docAttestSigner || !docAttestContract) {
+    await connectDocAttestWallet();
+    if (!docAttestSigner || !docAttestContract) return;
+  }
+  out.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.docAttest.hashing"))}</span></div>`;
+  let hash;
+  try {
+    hash = await sha256FileToBytes32HexVerify(f);
+    if (hashEl) hashEl.textContent = "SHA-256: " + hash;
+    syncDocAttestPreviews();
+  } catch (e) {
+    out.innerHTML = `<div class="err-box">${esc(e.message || String(e))}</div>`;
+    return;
+  }
+  out.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.docAttest.confirmWallet"))}</span></div>`;
+  try {
+    const tx = await docAttestContract.attestExternalDocument(hash, uri);
+    out.innerHTML = `<div class="info neutral">${esc(t("verify.docAttest.txSent"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+    await tx.wait();
+    const desc = uri
+      ? t("verify.docAttest.successDescWithUri").replace("{hash}", hash).replace("{uri}", uri)
+      : t("verify.docAttest.successDesc").replace("{hash}", hash);
+    out.innerHTML = `<div class="status-bar authentic"><div class="status-icon">✓</div><div class="status-text"><div class="status-label">${esc(t("verify.docAttest.successTitle"))}</div><div class="status-desc">${esc(desc)}</div></div></div>`;
+  } catch (e) {
+    out.innerHTML = `<div class="err-box">${esc(e && (e.reason || e.message) ? String(e.reason || e.message) : String(e))}</div>`;
+  }
 }
 
 async function verifyDocAttestation() {
@@ -1869,34 +2287,11 @@ async function verifyDocAttestation() {
     out.innerHTML = `<div class="err-box">RPC not ready.</div>`;
     return;
   }
-  const rawOffer = document.getElementById("docVerifyId").value.trim();
-  const rawVerify = document.getElementById("docVerifyId2").value.trim();
   const fileEl = document.getElementById("docVerifyFile");
   const f = fileEl && fileEl.files && fileEl.files[0];
   if (!f) {
     out.innerHTML = `<div class="err-box">Choose a file.</div>`;
     return;
-  }
-
-  async function resolveWallet(raw) {
-    if (/^0x[a-fA-F0-9]{40}$/.test(raw)) {
-      try {
-        return ethers.utils.getAddress(raw);
-      } catch {
-        throw new Error("Invalid address.");
-      }
-    }
-    const token = parseVerifyToken(raw);
-    if (!token || token.kind !== "creator") {
-      throw new Error("Use a Creator ID (C-/B-/P-/M-…) or 0x address.");
-    }
-    for (const c of verifyReadContractsOrdered()) {
-      try {
-        const cr = await c.getCreator(token.id);
-        if (cr && cr.wallet && cr.wallet !== ethers.constants.AddressZero) return cr.wallet;
-      } catch {}
-    }
-    throw new Error("Creator not found for provided ID.");
   }
 
   async function collectAttestationsByHash(hash) {
@@ -1952,46 +2347,19 @@ async function verifyDocAttestation() {
     return;
   }
   try {
-    const [walletA, walletB, all] = await Promise.all([
-      rawOffer ? resolveWallet(rawOffer) : Promise.resolve(null),
-      rawVerify ? resolveWallet(rawVerify) : Promise.resolve(null),
-      collectAttestationsByHash(hash),
-    ]);
-
-    const byWallet = new Map(all.map((a) => [a.wallet.toLowerCase(), a]));
-    const aRec = walletA ? byWallet.get(walletA.toLowerCase()) : null;
-    const bRec = walletB ? byWallet.get(walletB.toLowerCase()) : null;
+    const all = await collectAttestationsByHash(hash);
 
     let headerClass = "authentic";
     let headerIcon = "✓";
     let headerLabel = "Hash was anchored on-chain";
     let headerDesc = `${all.length} attestation(s) found for this file hash`;
-
-    if (walletA && !walletB) {
-      if (!aRec) {
-        headerClass = "invalid";
-        headerIcon = "✕";
-        headerLabel = "Side A not found";
-        headerDesc = "Provided side A has no attestation for this hash.";
-      } else {
-        headerDesc = `Side A found (${all.length} total attestation(s) for this hash).`;
-      }
-    } else if (walletA && walletB) {
-      if (aRec && bRec) {
-        headerDesc = "Variant A match: side A and side B both anchored this hash.";
-      } else {
-        headerClass = "invalid";
-        headerIcon = "✕";
-        headerLabel = "Variant A incomplete";
-        headerDesc = "At least one provided side has no attestation for this hash.";
-      }
-    } else if (all.length === 0) {
+    if (all.length === 0) {
       headerClass = "invalid";
       headerIcon = "✕";
       headerLabel = "No attestations found";
       headerDesc = "No wallet has anchored this file hash in the configured registry set.";
     }
-
+    
     const itemsHtml = all.length
       ? all
           .map((a) => {
@@ -2042,6 +2410,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("idInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") verify();
   });
+  document.getElementById("idInput").addEventListener("input", () => {
+    schedulePassportExistsHint();
+  });
+  const docUriEl = document.getElementById("docAttestDocumentUri");
+  if (docUriEl) {
+    docUriEl.addEventListener("input", () => {
+      syncDocAttestPreviews();
+    });
+  }
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       const o = document.getElementById("qrScanOverlay");
@@ -2049,6 +2426,60 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
   await init();
+  attachOdpQuickVerifyHandlers();
+  const docFileEl = document.getElementById("docAttestFile");
+  const docDropEl = document.getElementById("docAttestFileDrop");
+  if (docFileEl) {
+    docFileEl.addEventListener("change", async () => {
+      const f = docFileEl.files && docFileEl.files[0];
+      const hashEl = document.getElementById("docAttestHash");
+      const dropText = docDropEl && docDropEl.querySelector(".doc-tool-drop-lines");
+      if (!f) {
+        if (hashEl) hashEl.textContent = "";
+        if (docDropEl) docDropEl.classList.remove("has-file");
+        if (dropText) dropText.innerHTML = `<span>${esc(t("verify.docAttest.fileDropLine1"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(t("verify.docAttest.fileDropLine2"))}</span>`;
+        syncDocAttestPreviews();
+        return;
+      }
+      try {
+        const h = await sha256FileToBytes32HexVerify(f);
+        if (hashEl) hashEl.textContent = "SHA-256: " + h;
+        if (docDropEl) docDropEl.classList.add("has-file");
+        if (dropText) dropText.innerHTML = `<span>${esc(f.name || t("verify.docAttest.fileLabel"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(fmtSize(f.size || 0))}</span>`;
+        syncDocAttestPreviews();
+      } catch {
+        if (hashEl) hashEl.textContent = "";
+      }
+    });
+  }
+  const eth = injectedEthereum();
+  if (eth && typeof eth.on === "function") {
+    eth.on("accountsChanged", (accounts) => {
+      const addr = Array.isArray(accounts) && accounts[0] ? String(accounts[0]) : "";
+      Promise.resolve(resolveCreatorIdByWallet(addr)).then((cid) => {
+        verifyWalletCreatorId = cid || "";
+        setVerifyWalletBar(addr);
+        setDocAttestWalletLabel(addr);
+        syncDocAttestPreviews();
+      });
+    });
+  }
+  const docVerifyFileEl = document.getElementById("docVerifyFile");
+  const docVerifyDropEl = document.getElementById("docVerifyFileDrop");
+  if (docVerifyFileEl) {
+    docVerifyFileEl.addEventListener("change", async () => {
+      const f = docVerifyFileEl.files && docVerifyFileEl.files[0];
+      const dropText = docVerifyDropEl && docVerifyDropEl.querySelector(".doc-tool-drop-lines");
+      if (!f) {
+        if (docVerifyDropEl) docVerifyDropEl.classList.remove("has-file");
+        if (dropText) dropText.innerHTML = `<span>${esc(t("verify.doc.fileDropLine1"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(t("verify.doc.fileDropLine2"))}</span>`;
+        return;
+      }
+      if (docVerifyDropEl) docVerifyDropEl.classList.add("has-file");
+      if (dropText) dropText.innerHTML = `<span>${esc(f.name || t("verify.doc.fileLabel"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(fmtSize(f.size || 0))}</span>`;
+      await verifyDocAttestation();
+    });
+  }
 });
 </script>
 </body>

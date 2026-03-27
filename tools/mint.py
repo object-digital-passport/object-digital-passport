@@ -5,9 +5,9 @@ Author: Andrei Chernikov
 Specification v0.2
 
 Usage:
-    python mint.py                  # interactive mint
-    python mint.py --register       # register Creator ID first
-    python mint.py --check          # check your Creator ID
+    python mint.py                  # interactive mint → saves passports/<Passport ID>.odp (SPEC §15)
+    python mint.py --register       # register profile (on-chain creatorId) first
+    python mint.py --check          # check your profile ID
 
 Requirements:
     pip install web3 qrcode[pil] pillow python-dotenv
@@ -19,6 +19,7 @@ import json
 import hashlib
 import unicodedata
 import argparse
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -128,6 +129,23 @@ CONTRACT_ABI = [
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
     },
+    {
+        "anonymous": False,
+        "name": "PassportMinted",
+        "type": "event",
+        "inputs": [
+            {"indexed": True, "name": "humanId", "type": "string"},
+            {"indexed": True, "name": "creator", "type": "address"},
+            {"indexed": False, "name": "creatorId", "type": "string"},
+            {"indexed": False, "name": "objectType", "type": "string"},
+            {"indexed": False, "name": "year", "type": "uint32"},
+            {"indexed": False, "name": "month", "type": "uint8"},
+            {"indexed": False, "name": "dataHash", "type": "bytes32"},
+            {"indexed": False, "name": "sealType", "type": "uint8"},
+            {"indexed": False, "name": "nfcModel", "type": "string"},
+            {"indexed": False, "name": "timestamp", "type": "uint256"},
+        ],
+    },
     # Read
     {
         "name": "getPassport",
@@ -160,6 +178,8 @@ CONTRACT_ABI = [
 ]
 
 ZERO_BYTES32 = b"\x00" * 32
+ZERO_HEX32 = "0x" + "0" * 64
+
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -259,13 +279,74 @@ def send_tx(w3, account, fn_call, net, value=0):
         print(f"  {net['explorer']}/tx/{tx_hash.hex()}")
         sys.exit(1)
     print(f"  ✅ Confirmed in block {receipt.blockNumber}")
-    return tx_hash
+    return tx_hash, receipt
 
-# ─── Register Creator ─────────────────────────────────────────────────────────
+
+def bytes32_to_hex0x(b: bytes) -> str:
+    return "0x" + b.hex()
+
+
+def human_id_from_mint_receipt(contract, receipt):
+    """Decode Passport ID (event arg humanId) from PassportMinted in the mint receipt."""
+    try:
+        ev = contract.events.PassportMinted()
+    except Exception:
+        return None
+    proc = getattr(ev, "process_receipt", None) or getattr(ev, "processReceipt", None)
+    if callable(proc):
+        try:
+            entries = proc(receipt)
+            if entries:
+                a = entries[0]["args"] if isinstance(entries[0], dict) else entries[0].args
+                hid = a.get("humanId") if isinstance(a, dict) else getattr(a, "humanId", None)
+                if hid:
+                    return str(hid)
+        except Exception:
+            pass
+    plog = getattr(ev, "process_log", None) or getattr(ev, "processLog", None)
+    if callable(plog):
+        for log in receipt.logs:
+            try:
+                parsed = plog(log)
+                a = parsed["args"] if isinstance(parsed, dict) else parsed.args
+                hid = a.get("humanId") if isinstance(a, dict) else getattr(a, "humanId", None)
+                if hid:
+                    return str(hid)
+            except Exception:
+                continue
+    return None
+
+
+def odp_created_at_utc_iso() -> str:
+    """Match web `passport.html` (no milliseconds): 2026-03-22T12:00:00Z"""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def safe_odp_basename(human_id: str) -> str:
+    s = "".join(c if (c.isalnum() or c in ".-_") else "_" for c in (human_id or "").strip())
+    return (s or "passport")[:96]
+
+
+def write_odp_bundle(out_path, passport_json_str, manifest, original_path=None, image_path=None):
+    """
+    ODP bundle per SPEC.md §15 — same layout as `createPassportOdpBlob` in web/passport.html:
+    passport.json, manifest.json, optional original/* and image/*.
+    """
+    with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        zf.writestr("passport.json", passport_json_str.encode("utf-8"))
+        if original_path and Path(original_path).is_file():
+            p = Path(original_path)
+            zf.write(p, arcname=f"original/{p.name}")
+        if image_path and Path(image_path).is_file():
+            p = Path(image_path)
+            zf.write(p, arcname=f"image/{p.name}")
+        zf.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8"))
+
+# ─── Register profile ─────────────────────────────────────────────────────────
 
 def cmd_register(args):
     print()
-    print("  ODP — Register Creator ID")
+    print("  ODP — Register profile")
     divider()
 
     network_key, private_key, contract_address = _load_config()
@@ -300,7 +381,7 @@ def cmd_register(args):
     # bytes1 encoding: "C"→b"C", "B"→b"B", "P"→b"P"
     type_bytes = t.encode('ascii')
     print("  v0.2: gas only (no protocol fee)")
-    tx_hash = send_tx(
+    tx_hash, _ = send_tx(
         w3, account,
         contract.functions.registerCreator(type_bytes),
         net,
@@ -310,7 +391,7 @@ def cmd_register(args):
     print()
     print(f"  ✅ Registered successfully")
     print()
-    print(f"  Creator ID (short):  {creator_id}")
+    print(f"  Profile ID (short):  {creator_id}")
     print(f"  Wallet:              {account.address}")
     print()
     print(f"  Full identity:")
@@ -320,7 +401,7 @@ def cmd_register(args):
     print(f"  {net['explorer']}/tx/{tx_hash.hex()}")
     divider()
 
-# ─── Check Creator ID ─────────────────────────────────────────────────────────
+# ─── Check profile ───────────────────────────────────────────────────────────
 
 def cmd_check(args):
     print()
@@ -333,7 +414,7 @@ def cmd_check(args):
         print(f"  Run: python mint.py --register")
     else:
         rec = contract.functions.getCreator(creator_id).call()
-        print(f"\n  Creator ID:  {rec[0]}")
+        print(f"\n  Profile ID:  {rec[0]}")
         raw_type = rec[2]
         # typePrefix comes back as bytes1 — decode for display
         if isinstance(raw_type, (bytes, bytearray)):
@@ -351,7 +432,7 @@ def cmd_check(args):
 # ─── Passport JSON helpers ───────────────────────────────────────────────────
 
 def issuer_role_from_creator_id(cid: str) -> str:
-    """Maps Creator ID prefix (C/B/P/M) to canonical issuerRole in passport.json."""
+    """Maps profile ID prefix (C/B/P/M) to canonical issuerRole in passport.json."""
     p = (cid or "").strip()[:1].upper()
     return {"C": "individual", "B": "brand", "P": "proof_institution", "M": "museum"}.get(p, "individual")
 
@@ -375,7 +456,7 @@ def cmd_mint(args):
     network_key, private_key, contract_address = _load_config()
     w3, account, contract, net = connect(network_key, private_key, contract_address)
 
-    # Check Creator ID
+    # Check profile ID (on-chain creatorId)
     creator_id = contract.functions.getCreatorByWallet(account.address).call()
     if not creator_id:
         print(f"\n  ERROR: Wallet {account.address} is not registered.")
@@ -383,7 +464,7 @@ def cmd_mint(args):
         sys.exit(1)
 
     print(f"\n  Wallet:     {account.address}")
-    print(f"  Creator ID: {creator_id}")
+    print(f"  Profile ID: {creator_id}")
     balance = w3.from_wei(w3.eth.get_balance(account.address), "ether")
     print(f"  Balance:    {balance:.4f} POL")
 
@@ -437,6 +518,8 @@ def cmd_mint(args):
         image_path = ""
 
     # Digital file hash
+    file_path = ""
+    file_size = 0
     file_hash_bytes = ZERO_BYTES32
     if not is_physical:
         print()
@@ -578,7 +661,7 @@ def cmd_mint(args):
     divider()
     print(f"  Title:       {title}")
     print(f"  Type:        {'physical' if is_physical else 'digital'} / {obj_type}")
-    print(f"  Creator ID:  {creator_id}")
+    print(f"  Profile ID:  {creator_id}")
     print(f"  Year/Month:  {reg_year}-{reg_month:02d}")
     print(f"  Data URL:    {data_url}")
     print(f"  Data hash:   {data_hash_bytes.hex()}")
@@ -628,44 +711,87 @@ def cmd_mint(args):
             False,           # dataUrlIsFolderBase
         )
 
-    tx_hash = send_tx(w3, account, fn, net)
+    tx_hash, receipt = send_tx(w3, account, fn, net)
 
-    # Read back
-    # We need to get the humanId from the event or by scanning creator's passports
-    # For simplicity, we look it up by checking the latest passport for this wallet
-    # In production SDK this would parse the transaction receipt event
-    print("  Reading passport from chain...")
-    passports = contract.functions.getPassportsByCreator(account.address).call() \
-        if hasattr(contract.functions, 'getPassportsByCreator') else []
+    human_id = human_id_from_mint_receipt(contract, receipt)
+    if not human_id:
+        print("\n  ERROR: Could not read Passport ID from PassportMinted event.")
+        print(f"  Transaction: {net['explorer']}/tx/{Web3.to_hex(tx_hash)}")
+        sys.exit(1)
 
-    # Fill humanId into passport JSON — we'll use a placeholder approach
-    # The actual humanId comes from the transaction event
-    # For now we save with placeholder and update after reading
-    human_id = f"ODP-{reg_year}-{reg_month:02d}-PENDING"
+    passport["humanId"] = human_id
+    passport_json_str = json.dumps(
+        normalize_nfc(passport), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
 
-    # Save files
+    tx_hex = Web3.to_hex(tx_hash)
+    contract_cs = Web3.to_checksum_address(contract_address)
+
+    def b32h(b):
+        return ZERO_HEX32 if b == ZERO_BYTES32 else bytes32_to_hex0x(b)
+
+    files_meta = [{"path": "passport.json", "role": "passport", "mime": "application/json"}]
+    orig_for_zip = file_path if (not is_physical and file_path and Path(file_path).is_file()) else None
+    img_for_zip = image_path if (image_path and Path(image_path).is_file()) else None
+
+    if orig_for_zip:
+        p = Path(orig_for_zip)
+        files_meta.append({
+            "path": f"original/{p.name}",
+            "role": "original",
+            "mime": "application/octet-stream",
+            "sizeBytes": int(p.stat().st_size),
+            "sha256": bytes32_to_hex0x(sha256_file(str(p))),
+        })
+    if img_for_zip:
+        p = Path(img_for_zip)
+        files_meta.append({
+            "path": f"image/{p.name}",
+            "role": "imageOriginal",
+            "mime": "application/octet-stream",
+            "sizeBytes": int(p.stat().st_size),
+            "sha256": bytes32_to_hex0x(sha256_file(str(p))),
+        })
+
+    manifest = {
+        "format": "odp-bundle",
+        "bundleVersion": "0.1",
+        "humanId": human_id,
+        "createdAtUtc": odp_created_at_utc_iso(),
+        "mode": "full",
+        "onChain": {
+            "dataHash": bytes32_to_hex0x(to_bytes32(data_hash_bytes)),
+            "imageHash": b32h(image_hash_bytes),
+            "fileHash": b32h(file_hash_bytes),
+            "txHash": tx_hex,
+            "chainId": int(net["chain_id"]),
+            "contract": contract_cs,
+        },
+        "files": files_meta,
+    }
+
     output_dir = Path("passports")
     output_dir.mkdir(exist_ok=True)
-
-    # Save passport JSON with tx hash as reference until humanId confirmed
-    passport["_txHash"] = tx_hash.hex()
-    passport_path = output_dir / f"passport-{tx_hash.hex()[:12]}.json"
-    with open(passport_path, "w", encoding="utf-8") as f:
-        f.write(json.dumps(passport, separators=(",", ":"), ensure_ascii=False))
+    odp_path = output_dir / (safe_odp_basename(human_id) + ".odp")
+    write_odp_bundle(odp_path, passport_json_str, manifest, orig_for_zip, img_for_zip)
 
     print()
     divider()
     print(f"  ✅ Minted successfully")
     print()
-    print(f"  Transaction:  {net['explorer']}/tx/{tx_hash.hex()}")
+    print(f"  Passport ID:  {human_id}")
+    print(f"  Transaction:  {net['explorer']}/tx/{tx_hex}")
     print()
-    print(f"  Saved: {passport_path}")
+    print(f"  Saved bundle: {odp_path}")
+    print(f"  (Same .odp layout as web Passport: SPEC.md §15, manifest bundleVersion 0.1.)")
     print()
     print(f"  Next steps:")
-    print(f"  1. Find your Human ID on the explorer (PassportMinted event)")
-    print(f"  2. Upload passport.json to {data_url} unchanged — dataHash was computed with humanId null;")
-    print(f"     do not substitute the real Human ID into the JSON file or the content hash will not match.")
-    print(f"  3. Generate QR: python mint.py --qr <human_id>")
+    if data_url:
+        print(f"  1. Unzip the .odp and upload passport.json to your dataUrl — use the exact bytes from the bundle.")
+    else:
+        print(f"  1. Keep the .odp safe; without a public dataUrl only holders can verify against the chain.")
+    print(f"  2. Drop the .odp on Verify or enter Passport ID {human_id}")
+    print(f"  3. QR: python mint.py --qr {human_id}")
     divider()
 
 # ─── Generate QR ──────────────────────────────────────────────────────────────
@@ -715,14 +841,14 @@ def main():
         epilog="""
 Commands:
   python mint.py                  Mint a new passport (interactive)
-  python mint.py --register       Register your Creator ID
-  python mint.py --check          Check your Creator ID
-  python mint.py --qr ODP-2026-03-004829301  Generate QR for a Human ID
+  python mint.py --register       Register your profile (on-chain creatorId)
+  python mint.py --check          Check your profile ID
+  python mint.py --qr ODP-2026-03-004829301  Generate QR for a Passport ID
         """
     )
-    parser.add_argument("--register", action="store_true", help="Register Creator ID")
-    parser.add_argument("--check",    action="store_true", help="Check Creator ID")
-    parser.add_argument("--qr",       metavar="HUMAN_ID",  help="Generate QR code")
+    parser.add_argument("--register", action="store_true", help="Register profile (on-chain creatorId)")
+    parser.add_argument("--check",    action="store_true", help="Check profile ID")
+    parser.add_argument("--qr",       metavar="PASSPORT_ID", help="Generate QR code (odp://…)")
     args = parser.parse_args()
 
     if args.register:

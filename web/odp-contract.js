@@ -1,6 +1,8 @@
 /**
  * ODP — shared helpers for contract generation detection and ABI selection.
  * README: site semver 0.X.Y vs on-chain deployment generation (CONTRACT_VERSION uint8).
+ *
+ * Naming: ABI / Solidity use `humanId` for the Passport ID string (`ODP-…`) and `creatorId` for the profile ID (`C-…` / `B-…` / `P-…` / `M-…`). Do not rename ABI `name` fields unless the contract and JSON schema change to match.
  */
 (function (global) {
   "use strict";
@@ -184,6 +186,7 @@
 
   /**
    * Canonical text signed with the creator wallet (EIP-191 `personal_sign`).
+   * @param {string} humanId Passport ID (`ODP-…`; message line still labeled `humanId:` per SPEC).
    * @param {string} contractAddress — registry contract (checksum recommended; verifier binds to this line)
    */
   function odpBuildCreatorProofMessageV1(humanId, chainId, contractAddress, nonce) {
@@ -228,6 +231,31 @@
     return odpEscHtml(s).replace(/'/g, "&#39;");
   }
 
+  /** Use after `odpInitI18n` sets `window.odpT` (common.json `stack.*`). */
+  function odpStackT(key, fallback) {
+    try {
+      if (typeof global.odpT === "function") {
+        var v = global.odpT(key);
+        if (typeof v === "string" && v !== key) return v;
+      }
+    } catch (eT) {}
+    return fallback;
+  }
+
+  function odpStackTpl(key, fallbackTpl, vars) {
+    var tpl = odpStackT(key, fallbackTpl);
+    if (typeof tpl !== "string") tpl = fallbackTpl;
+    var out = tpl;
+    if (vars) {
+      for (var k in vars) {
+        if (Object.prototype.hasOwnProperty.call(vars, k)) {
+          out = out.split("{" + k + "}").join(String(vars[k]));
+        }
+      }
+    }
+    return out;
+  }
+
   function odpParseSiteSemverMajor(siteVer) {
     var parts = String(siteVer || "0.0.0").split(".");
     var m = parseInt(parts[0], 10);
@@ -240,28 +268,34 @@
     if (maj === 0) {
       return {
         level: "red",
-        label: "Red flag",
-        title: "Site version 0.x — proof-of-concept; not production-stable.",
+        label: odpStackT("stack.trust.redLabel", "Red flag"),
+        title: odpStackT("stack.trust.redTitle", "Site version 0.x — proof-of-concept; not production-stable."),
       };
     }
     if (maj > L) {
       return {
         level: "yellow",
-        label: "Yellow flag",
-        title: "Site major is newer than ODP_LATEST_STABLE_MAJOR — confirm release notes before trusting.",
+        label: odpStackT("stack.trust.yellowLabel", "Yellow flag"),
+        title: odpStackT(
+          "stack.trust.yellowNewerTitle",
+          "Site major is newer than the configured latest stable major — confirm release notes before trusting."
+        ),
       };
     }
     if (maj >= 1 && maj < L) {
       return {
         level: "yellow",
-        label: "Yellow flag",
-        title: "Older stable major (not the latest). Review migration and trust assumptions.",
+        label: odpStackT("stack.trust.yellowLabel", "Yellow flag"),
+        title: odpStackT(
+          "stack.trust.yellowOlderTitle",
+          "Older stable major (not the latest). Review migration and trust assumptions."
+        ),
       };
     }
     return {
       level: "green",
-      label: "Stable",
-      title: "Site major matches the current stable line (≥1.0).",
+      label: odpStackT("stack.trust.greenLabel", "Stable"),
+      title: odpStackT("stack.trust.greenTitle", "Site major matches the current stable line (≥1.0)."),
     };
   }
 
@@ -285,22 +319,24 @@
     var L = ODP_LATEST_STABLE_MAJOR;
     var noteSemver;
     if (L <= 1) {
-      noteSemver =
+      noteSemver = odpStackT(
+        "stack.disclosure.semverLte1",
         "<strong>0.x</strong> site releases are <strong>red-flag</strong> (experimental). " +
-        "Stable SemVer starts at <strong>major 1</strong>. When <strong>several stable majors</strong> exist, " +
-        "any major below the latest stable is <strong>yellow-flag</strong> — verify upgrade notes.";
+          "Stable SemVer starts at <strong>major 1</strong>. When <strong>several stable majors</strong> exist, " +
+          "any major below the latest stable is <strong>yellow-flag</strong> — verify upgrade notes."
+      );
     } else {
-      noteSemver =
-        "<strong>0.x</strong> = red-flag. <strong>Major " +
-        L +
-        "</strong> (latest stable) = green. <strong>Majors 1…" +
-        (L - 1) +
-        "</strong> = yellow-flag — older stable lines; review migration. " +
-        "<strong>1.x</strong> patch releases under the same major stay green when that major is current.";
+      noteSemver = odpStackTpl(
+        "stack.disclosure.semverGt1",
+        "<strong>0.x</strong> = red-flag. <strong>Major {L}</strong> (latest stable) = green. <strong>Majors 1…{prevMajorsEnd}</strong> = yellow-flag — older stable lines; review migration. <strong>1.x</strong> patch releases under the same major stay green when that major is current.",
+        { L: String(L), prevMajorsEnd: String(L - 1) }
+      );
     }
-    var noteRead =
+    var noteRead = odpStackT(
+      "stack.disclosure.readPara",
       "The read ABI decodes prior <strong>contractVersion</strong> values on-chain. " +
-      "The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries).";
+        "The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries)."
+    );
     return (
       '<p class="odp-stack-note">' + noteRead + "</p>" + '<p class="odp-stack-note">' + noteSemver + "</p>"
     );
@@ -310,15 +346,26 @@
    * Compact stack line (header + under-step strips): flag + meta + Details link. Long text only in modal / `odp-site-trust-disclosure.html`.
    */
   function odpFormatStackSummaryHtml(generation) {
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-'+Date.now(),hypothesisId:'H14',location:'web/odp-contract.js:odpFormatStackSummaryHtml',message:'Stack summary html rendered',data:{path:(typeof global.location!=="undefined"&&global.location)?String(global.location.pathname||''):'',generation:generation},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     var g = generation == null ? "?" : String(generation);
     var spec =
       generation === 0
-        ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
+        ? odpStackT("stack.spec.legacy", "legacy CONTRACT_VERSION 0 — not supported by this UI")
         : generation >= 2
-          ? "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
-          : "unknown generation";
+          ? odpStackT(
+              "stack.spec.v02",
+              "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
+            )
+          : odpStackT("stack.spec.unknown", "unknown generation");
     var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
     var flagClass = "odp-stack-flag--" + trust.level;
+    var metaLine = odpStackTpl("stack.summaryMeta", "Site {siteVer} · on-chain gen {gen} — {spec}", {
+      siteVer: ODP_SITE_VERSION,
+      gen: g,
+      spec: spec,
+    });
     return (
       '<div class="odp-stack-block odp-stack-block--compact">' +
       '<div class="odp-stack-row">' +
@@ -329,14 +376,12 @@
       '">' +
       odpEscHtml(trust.label) +
       "</span>" +
-      '<span class="odp-stack-meta"> Site <strong>' +
-      odpEscHtml(ODP_SITE_VERSION) +
-      "</strong> · on-chain gen <strong>" +
-      odpEscHtml(g) +
-      "</strong> — " +
-      odpEscHtml(spec) +
+      '<span class="odp-stack-meta"> ' +
+      odpEscHtml(metaLine) +
       "</span>" +
-      '<button type="button" class="odp-stack-details-btn">Details</button>' +
+      '<button type="button" class="odp-stack-details-btn">' +
+      odpEscHtml(odpStackT("stack.detailsBtn", "Details")) +
+      "</button>" +
       "</div></div>"
     );
   }
@@ -356,6 +401,15 @@
     } catch (e0) {}
   }
 
+  function odpRefreshSiteTrustModalChrome() {
+    var doc = global.document;
+    if (!doc) return;
+    var titleEl = doc.getElementById("odpSiteTrustModalTitle");
+    var okEl = doc.getElementById("odpSiteTrustModalOk");
+    if (titleEl) titleEl.textContent = odpStackT("stack.modalTitle", "Site release & trust");
+    if (okEl) okEl.textContent = odpStackT("stack.modalOk", "Got it");
+  }
+
   function odpOpenSiteTrustModal() {
     var doc = global.document;
     if (!doc || !doc.body) return;
@@ -367,16 +421,19 @@
       backdrop.setAttribute("role", "presentation");
       backdrop.innerHTML =
         '<div class="odp-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="odpSiteTrustModalTitle">' +
-        '<h3 id="odpSiteTrustModalTitle" class="odp-modal-title">Site release &amp; trust</h3>' +
+        '<h3 id="odpSiteTrustModalTitle" class="odp-modal-title"></h3>' +
         '<div id="odpSiteTrustModalBody" class="odp-modal-body"></div>' +
-        '<div class="odp-modal-actions"><button type="button" class="btn" id="odpSiteTrustModalOk">Got it</button></div></div>';
+        '<div class="odp-modal-actions"><button type="button" class="btn" id="odpSiteTrustModalOk"></button></div></div>';
       doc.body.appendChild(backdrop);
+      odpRefreshSiteTrustModalChrome();
       doc.getElementById("odpSiteTrustModalOk").onclick = function () {
         odpCloseSiteTrustModal();
       };
       backdrop.addEventListener("click", function (ev) {
         if (ev.target === backdrop) odpCloseSiteTrustModal();
       });
+    } else {
+      odpRefreshSiteTrustModalChrome();
     }
     var body = doc.getElementById("odpSiteTrustModalBody");
     function fillBody(html) {
@@ -385,7 +442,10 @@
     function fillFallback() {
       fillBody(odpStackDisclosureParagraphsHtml());
     }
-    if (typeof global.location !== "undefined" && global.location && global.location.href) {
+    var localeRu = typeof global.odpGetLocale === "function" && global.odpGetLocale() === "ru";
+    if (localeRu) {
+      fillFallback();
+    } else if (typeof global.location !== "undefined" && global.location && global.location.href) {
       var url = new URL("odp-site-trust-disclosure.html", global.location.href);
       url.searchParams.set("_", String(Date.now()));
       global
@@ -496,7 +556,17 @@
         var provider = new E.providers.JsonRpcProvider(rpcFallbacks[i], { name: "polygon", chainId: chainId });
         await provider.getBlockNumber();
         var ctr = new E.Contract(address, CV_ABI, provider);
-        gen = (await ctr.CONTRACT_VERSION()).toNumber();
+        var cvRaw = await ctr.CONTRACT_VERSION();
+        if (cvRaw && typeof cvRaw.toNumber === "function") {
+          gen = cvRaw.toNumber();
+        } else if (cvRaw && typeof cvRaw.toString === "function") {
+          gen = Number(cvRaw.toString());
+        } else {
+          gen = Number(cvRaw);
+        }
+        if (!isFinite(gen)) {
+          throw new Error("Invalid CONTRACT_VERSION value");
+        }
         try {
           sessionStorage.setItem(key, String(gen));
         } catch (e1) {}
@@ -630,6 +700,61 @@
           stateMutability: "view",
           inputs: [],
           outputs: [{ name: "", type: "uint32" }],
+        },
+        {
+          name: "getPassportsByCreatorPaged",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "creator", type: "address" },
+            { name: "offset", type: "uint256" },
+            { name: "limit", type: "uint256" },
+          ],
+          outputs: [
+            { name: "result", type: "string[]" },
+            { name: "total", type: "uint256" },
+          ],
+        },
+        {
+          name: "submitProof",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "humanId", type: "string" },
+            { name: "noteHash", type: "bytes32" },
+            { name: "noteUrl", type: "string" },
+            { name: "year", type: "uint32" },
+            { name: "month", type: "uint8" },
+          ],
+          outputs: [{ name: "proofId", type: "string" }],
+        },
+        {
+          name: "getProofsByInstitution",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorId", type: "string" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
+          name: "getProof",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "proofId", type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: [
+                { name: "proofId", type: "string" },
+                { name: "contractVersion", type: "uint8" },
+                { name: "prover", type: "string" },
+                { name: "humanId", type: "string" },
+                { name: "noteHash", type: "bytes32" },
+                { name: "noteUrl", type: "string" },
+                { name: "timestamp", type: "uint256" },
+              ],
+            },
+          ],
         }
       );
     }
@@ -757,6 +882,47 @@
             { name: "timestamp", type: "uint256" },
             { name: "documentUri", type: "string" },
           ],
+        },
+        {
+          name: "submitProof",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "humanId", type: "string" },
+            { name: "noteHash", type: "bytes32" },
+            { name: "noteUrl", type: "string" },
+            { name: "year", type: "uint32" },
+            { name: "month", type: "uint8" },
+          ],
+          outputs: [{ name: "proofId", type: "string" }],
+        },
+        {
+          name: "getProofsByInstitution",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorId", type: "string" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
+          name: "getProof",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "proofId", type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: [
+                { name: "proofId", type: "string" },
+                { name: "contractVersion", type: "uint8" },
+                { name: "prover", type: "string" },
+                { name: "humanId", type: "string" },
+                { name: "noteHash", type: "bytes32" },
+                { name: "noteUrl", type: "string" },
+                { name: "timestamp", type: "uint256" },
+              ],
+            },
+          ],
         }
       );
     }
@@ -867,11 +1033,32 @@
         ],
       },
       {
+        name: "getCreatorByWallet",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "wallet", type: "address" }],
+        outputs: [{ name: "", type: "string" }],
+      },
+      {
         name: "getProofsForPassport",
         type: "function",
         stateMutability: "view",
         inputs: [{ name: "humanId", type: "string" }],
         outputs: [{ name: "", type: "string[]" }],
+      },
+      {
+        name: "getProofsForPassportPaged",
+        type: "function",
+        stateMutability: "view",
+        inputs: [
+          { name: "humanId", type: "string" },
+          { name: "offset", type: "uint256" },
+          { name: "limit", type: "uint256" },
+        ],
+        outputs: [
+          { name: "result", type: "string[]" },
+          { name: "total", type: "uint256" },
+        ],
       },
       {
         name: "getProof",

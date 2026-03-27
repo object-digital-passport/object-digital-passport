@@ -1,14 +1,14 @@
 {
   "index": {
     "meta": {
-      "documentTitle": "ODP v0.1 — Web demo",
+      "documentTitle": "ODP v0.2 — Web demo",
       "h1": "Object Digital Passport",
-      "sub": "Reference web UI (v0.1) · same files as in the repo"
+      "sub": "Reference web UI (v0.2) · same files as in the repo"
     },
     "cardTitle": "Open a page",
     "lead": "These are static pages; connect a wallet where needed. Polygon PoS RPC is required for chain reads.",
     "btnVerify": "Verify — no wallet",
-    "btnCreator": "Register Creator ID",
+    "btnCreator": "Register profile",
     "btnPassport": "Mint a passport",
     "source": "Source on GitHub",
     "readme": "README"

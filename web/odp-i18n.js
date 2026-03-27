@@ -176,17 +176,26 @@
     }
 
     var i18nPath = "localization/";
+    var pathForLog = "";
     try {
-      var pathname = global.location && global.location.pathname ? String(global.location.pathname) : "";
-      if (/\/web\/[^/]+\.html?$/i.test(pathname)) {
+      pathForLog = global.location && global.location.pathname ? String(global.location.pathname) : "";
+      if (/\/web\/[^/]+\.html?$/i.test(pathForLog)) {
         i18nPath = "../localization/";
       }
     } catch (ePath) {}
     var base = new URL(i18nPath, global.location.href);
+    var firstCommonUrl = new URL("en/common.json", base).toString();
+    var __i18nRunId = "run-" + Date.now();
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__i18nRunId,hypothesisId:'H-B',location:'web/odp-i18n.js:odpInitI18n:base',message:'i18n base resolved',data:{pathname:pathForLog,webPathRegexMatch:/\/web\/[^/]+\.html?$/i.test(pathForLog),href:(global.location&&global.location.href)||'',i18nPath:i18nPath,base:String(base),firstCommonUrl:firstCommonUrl,page:page,locale:_locale},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     return global
-      .fetch(new URL("en/common.json", base).toString(), { cache: "no-store" })
+      .fetch(firstCommonUrl, { cache: "no-store" })
       .then(function (r) {
+        // #region agent log
+        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__i18nRunId,hypothesisId:'H-A',location:'web/odp-i18n.js:firstCommonFetch',message:'en/common.json response',data:{url:firstCommonUrl,ok:r.ok,status:r.status,pathname:pathForLog},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         if (!r.ok) throw new Error("i18n fetch failed: " + r.status);
         return r.json();
       })
@@ -248,9 +257,15 @@
         odpRenderLangSwitch("odpLangSwitch");
         odpApplyDataI18n(global.document.body);
         odpApplyReadmeLinks(global.document.body);
+        // #region agent log
+        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__i18nRunId,hypothesisId:'H6',location:'web/odp-i18n.js:odpInitI18n:success',message:'i18n loaded successfully',data:{page:page,locale:_locale},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
       })
       .catch(function (err) {
         console.warn("[ODP i18n] init failed — language switch uses fallback labels", err);
+        // #region agent log
+        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__i18nRunId,hypothesisId:'H-E',location:'web/odp-i18n.js:odpInitI18n:failure',message:'i18n load failed; fallback to keys',data:{page:page,locale:_locale,base:String(base),firstCommonUrl:firstCommonUrl,pathname:pathForLog,error:err&&err.message?String(err.message):String(err)},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         _merged = { lang: { switchLabel: "Language" } };
         global.odpT = t;
         global.odpGetLocale = function () {

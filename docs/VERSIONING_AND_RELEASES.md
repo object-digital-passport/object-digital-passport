@@ -2,6 +2,8 @@
 
 *Author: Andrei Chernikov*
 
+See also **[`docs/README.md`](README.md)** for an index of all docs in this folder and pointers to **`SPEC.md`**.
+
 This document explains how **product versions** (e.g. **v0.1**), **`main`**, and **git tags** work together — and what “I don’t want to change v0.1 anymore” means in practice.
 
 ## What is immutable by design
