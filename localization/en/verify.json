@@ -116,7 +116,10 @@
     },
     "fields": {
       "passportId": "Passport ID",
-      "profile": "Profile"
+      "profile": "Profile",
+      "owner": "Current owner (on-chain)",
+      "delegation": "Publishing agent (issuer)",
+      "delegationExpires": "Expires"
     },
     "creatorResult": {
       "registeredTitle": "Profile registered",

@@ -31,6 +31,7 @@
     "spec": {
       "legacy": "legacy CONTRACT_VERSION 0 — not supported by this UI",
       "v02": "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)",
+      "v03": "ODP v0.3 — ownership, revocation, three image hashes, P/M counterfeit concern, P-affiliation detach",
       "unknown": "unknown generation"
     },
     "summaryMeta": "Site {siteVer} · on-chain gen {gen} — {spec}",

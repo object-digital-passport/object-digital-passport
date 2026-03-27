@@ -47,7 +47,7 @@ async function main() {
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
-    console.log(`  Packed byte: ${deployedVersion} (v0.2 = 2: M prefix, unlimited P/M, proofs P/M, optional dataUrl, external docs)`);
+    console.log(`  Packed byte: ${deployedVersion} (v0.3 = 3: ownership, revocation, extra image hashes, P-affiliation detach, counterfeit flag)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering profile (type C)...");
@@ -65,6 +65,7 @@ async function main() {
     const fakeImageHash = ethers.keccak256(ethers.toUtf8Bytes("test-preview-image"));
     const now = new Date();
 
+    const z = ethers.ZeroHash;
     const mintTx = await contract.mintDigital(
       now.getFullYear(),                  // year (uint32)
       now.getMonth() + 1,                 // month (uint8)
@@ -72,6 +73,10 @@ async function main() {
       "https://example.com/passport.json",// dataUrl
       fakeImageHash,                      // imageHash (bytes32)
       "https://example.com/preview.jpg",  // imageUrl
+      z,                                  // imageHash2 (v0.3)
+      "",                                 // imageUrl2
+      z,                                  // imageHash3
+      "",                                 // imageUrl3
       fakeFileHash,                       // fileHash (bytes32) — required for digital
       false                               // dataUrlIsFolderBase — full URL, not folder root
     );

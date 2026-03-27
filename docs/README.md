@@ -7,9 +7,7 @@
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odp` bundle**. |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix branches vs feature lines. |
 | **[`V0.2-DRAFT.md`](V0.2-DRAFT.md)** | Historical / exploratory notes (folder-first hosting, hash boundaries). Several items have since landed in **SPEC v0.2**; read **SPEC** for what is binding. |
-| **[`V0.3-DRAFT.md`](V0.3-DRAFT.md)** | Working backlog for potential v0.3: classification sync, multi-image passport options, P-affiliation lifecycle (join/detach dates), and carried-over open ideas from v0.2 draft. |
-
-Russian translation of the v0.3 draft: **[`localization/ru/V0.3-DRAFT.md`](../localization/ru/V0.3-DRAFT.md)**.
+| **[`V0.3.md`](V0.3.md)** | Pointer to **[`RELEASE_v0.3.md`](../RELEASE_v0.3.md)** and **SPEC**. |
 
 ## `.odp` bundle (quick pointer)
 

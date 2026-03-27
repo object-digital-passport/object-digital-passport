@@ -1,4 +1,4 @@
-# Object Digital Passport · v0.2
+# Object Digital Passport · v0.3 (черновик протокола / инструментов)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -28,7 +28,7 @@ ODP — открытый стандарт для регистрации физи
 
 1. Прочитайте этот README для общего понимания.
 2. Откройте [`SPEC.md`](SPEC.md) для строгих правил протокола.
-3. Откройте [`RELEASE_v0.2.md`](RELEASE_v0.2.md) как сводку актуального состояния.
+3. Откройте [`RELEASE_v0.3.md`](RELEASE_v0.3.md) для операторской сводки v0.3. Линия **v0.2** в mainnet — в таблице [**Текущий релиз**](#текущий-релиз) ниже и в [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md).
 
 Важно про версии:
 - линия `0.x` — это proof-of-concept;
@@ -42,6 +42,7 @@ ODP — открытый стандарт для регистрации физи
 
 - Нужен EIP-1193 кошелёк (MetaMask, Rabby, Coinbase Wallet, Brave Wallet и т.д.).
 - Нужен небольшой баланс POL для gas.
+- **Лучше отдельный кошелёк только под ODP** — не для сбережений, DeFi и трейдинга (меньше ущерб при вредоносном dapp).
 
 ### 2) Регистрация профиля
 
@@ -52,7 +53,7 @@ ODP — открытый стандарт для регистрации физи
 
 - Откройте [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html).
 - Заполните форму и выполните mint.
-- Скачайте `.odp`-бандл (`passport.json` + `manifest.json` + опциональные файлы).
+- Скачайте бандл **`.odpass`** (`passport.json` + `manifest.json` + опциональные файлы). Расширение **`.odp`** — тот же ZIP, Verify принимает оба.
 
 ### 4) Публикация `passport.json` (опционально, но желательно)
 
@@ -62,7 +63,7 @@ ODP — открытый стандарт для регистрации физи
 ### 5) Проверка
 
 - Откройте [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
-- Введите Passport ID, вставьте `odp://...` или перетащите `.odp`.
+- Введите Passport ID, вставьте `odp://...` или перетащите `.odpass` / `.odp`.
 
 ## Как работает ODP
 
@@ -93,12 +94,12 @@ ODP — открытый стандарт для регистрации физи
 
 | Пункт | Значение |
 |:--|:--|
-| Рекомендуемая PoC-линия | v0.2 |
-| Mainnet контракт (v0.2) | [`0x6c83c8C2e18c183a2776431a23187832b42FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) |
+| Рекомендуемая PoC-линия | **v0.3** (этот репозиторий) / **v0.2** (деплой mainnet ниже) |
+| Mainnet контракт (линия v0.2) | [`0x6c83c8C2e18c183a2776431a23187832b42FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) — *байткод v0.3 в репозитории; нужен новый деплой для функций нового ABI* |
 | Legacy контракт (v0.1, не поддерживается текущим UI) | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
 
-Короткая релизная заметка:
-- [`RELEASE_v0.2.md`](RELEASE_v0.2.md)
+Операторская заметка:
+- [`RELEASE_v0.3.md`](RELEASE_v0.3.md)
 
 ## Коротко о терминах
 
@@ -146,19 +147,25 @@ WalletConnect-подобные сценарии по умолчанию в ст�
 /
 ├── SPEC.md
 ├── SECURITY.md
-├── RELEASE_v0.2.md
+├── RELEASE_v0.3.md
 ├── docs/
 │   ├── README.md
 │   ├── VERSIONING_AND_RELEASES.md
 │   ├── V0.2-DRAFT.md
-│   └── V0.3-DRAFT.md
+│   └── V0.3.md
+├── e2e/
+│   ├── README.md
+│   ├── package.json
+│   ├── playwright.config.cjs
+│   └── smoke.spec.ts
 ├── contracts/
 │   └── ObjectDigitalPassport.sol
 ├── deploy/
 │   ├── hardhat.config.js
 │   └── scripts/deploy.js
 ├── tools/
-│   └── mint.py
+│   ├── mint.py
+│   └── README.md
 └── web/
     ├── creator.html
     ├── passport.html
@@ -198,8 +205,7 @@ Threat model и рекомендации:
 
 Подробнее:
 - [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)
-- [`docs/V0.3-DRAFT.md`](docs/V0.3-DRAFT.md)
-- RU draft: [`localization/ru/V0.3-DRAFT.md`](localization/ru/V0.3-DRAFT.md)
+- [`docs/V0.3.md`](docs/V0.3.md)
 
 ## Как вносить вклад
 

@@ -1,0 +1,11 @@
+{
+  "name": "odp-e2e-smoke",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test smoke.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  }
+}

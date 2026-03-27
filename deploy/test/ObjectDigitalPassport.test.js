@@ -22,6 +22,9 @@ function nonZeroFileHash(n) {
   return ethers.keccak256(ethers.toUtf8Bytes(`file-${n}`));
 }
 
+/** v0.3: optional second/third image hashes + URLs before fileHash */
+const NO_EXTRA_IMAGES = [ethers.ZeroHash, "", ethers.ZeroHash, ""];
+
 describe("ObjectDigitalPassport", function () {
   async function deployFixture() {
     const Factory = await ethers.getContractFactory("ObjectDigitalPassport");
@@ -60,6 +63,7 @@ describe("ObjectDigitalPassport", function () {
         "",
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(1),
         false
       );
@@ -79,6 +83,7 @@ describe("ObjectDigitalPassport", function () {
         "",
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(2),
         false
       );
@@ -98,6 +103,7 @@ describe("ObjectDigitalPassport", function () {
         "",
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(3),
         false
       );
@@ -117,6 +123,7 @@ describe("ObjectDigitalPassport", function () {
         "",
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(31),
         false
       );
@@ -134,6 +141,7 @@ describe("ObjectDigitalPassport", function () {
         "",
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(41),
         false,
       ]);
@@ -158,6 +166,7 @@ describe("ObjectDigitalPassport", function () {
         base,
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(10),
         true,
       ]);
@@ -178,6 +187,7 @@ describe("ObjectDigitalPassport", function () {
         base,
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(12),
         true,
       ]);
@@ -195,8 +205,9 @@ describe("ObjectDigitalPassport", function () {
       expect(r.attested).to.equal(true);
       expect(r.creatorId).to.match(/^C-/);
       expect(r.timestamp > 0n).to.equal(true);
-      await expect(c.connect(w).attestExternalDocument(docHash, "")).to.be.revertedWith(
-        "Already attested"
+      await expect(c.connect(w).attestExternalDocument(docHash, "")).to.be.revertedWithCustomError(
+        c,
+        "EC"
       );
     });
 
@@ -211,6 +222,7 @@ describe("ObjectDigitalPassport", function () {
         "https://a.com/folder/",
         zeroHash(),
         "",
+        ...NO_EXTRA_IMAGES,
         nonZeroFileHash(11),
         true,
       ]);
@@ -219,6 +231,102 @@ describe("ObjectDigitalPassport", function () {
       await c.connect(w).updatePassportUrls(humanId, full, "", dh);
       const p = await c.getPassport(humanId);
       expect(p.dataUrl).to.equal(full);
+    });
+  });
+
+  describe("v0.3 ownership and lifecycle", function () {
+    it("owner starts as creator; transferPassport moves owner", async function () {
+      const c = await deployFixture();
+      const [wA, wB] = await ethers.getSigners();
+      await c.connect(wA).registerCreator(TYPE_C);
+      const humanId = await mintDigitalAndId(c, wA, [
+        2026,
+        3,
+        nonZeroDataHash(501),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(501),
+        false,
+      ]);
+      let p = await c.getPassport(humanId);
+      expect(p.owner).to.equal(wA.address);
+      await c.connect(wA).transferPassport(humanId, wB.address);
+      p = await c.getPassport(humanId);
+      expect(p.owner).to.equal(wB.address);
+      expect(p.creator).to.equal(wA.address);
+    });
+
+    it("governance or creator can revokePassport; submitProof fails when revoked", async function () {
+      const c = await deployFixture();
+      const [wA, wP] = await ethers.getSigners();
+      await c.connect(wA).registerCreator(TYPE_C);
+      const humanId = await mintDigitalAndId(c, wA, [
+        2026,
+        3,
+        nonZeroDataHash(502),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(502),
+        false,
+      ]);
+      const reason = ethers.keccak256(ethers.toUtf8Bytes("test-revoke"));
+      await c.connect(wA).revokePassport(humanId, reason);
+      const p = await c.getPassport(humanId);
+      expect(p.revoked).to.equal(true);
+      await c.connect(wP).registerCreator(TYPE_P);
+      await expect(c.connect(wP).submitProof(humanId, zeroHash(), "", 2031, 1)).to.be.revertedWithCustomError(
+        c,
+        "EC"
+      );
+    });
+
+    it("detachPAffiliation sets audit timestamps and clears active parent", async function () {
+      const c = await deployFixture();
+      const [_, __, wChild, wParent] = await ethers.getSigners();
+      await c.connect(wChild).registerCreator(TYPE_P);
+      await c.connect(wParent).registerCreator(TYPE_P);
+      const childId = await c.getCreatorByWallet(wChild.address);
+      const parentId = await c.getCreatorByWallet(wParent.address);
+      await c.connect(wChild).proposePAffiliation(parentId);
+      await c.connect(wParent).confirmPAffiliation(childId);
+      expect(await c.getPAffiliatedParent(childId)).to.equal(parentId);
+      let a = await c.getPAffiliationAudit(childId);
+      expect(a.joinedAt > 0n).to.equal(true);
+      expect(a.detachedAt).to.equal(0n);
+      await c.connect(wParent).detachPAffiliation(childId);
+      expect(await c.getPAffiliatedParent(childId)).to.equal("");
+      a = await c.getPAffiliationAudit(childId);
+      expect(a.detachedAt > 0n).to.equal(true);
+      expect(a.lastDetachedFromParent).to.equal(parentId);
+    });
+
+    it("P raises counterfeit concern; clear by same prover", async function () {
+      const c = await deployFixture();
+      const [wC, wP] = await ethers.getSigners();
+      await c.connect(wC).registerCreator(TYPE_C);
+      await c.connect(wP).registerCreator(TYPE_P);
+      const humanId = await mintDigitalAndId(c, wC, [
+        2026,
+        3,
+        nonZeroDataHash(503),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(503),
+        false,
+      ]);
+      const rh = ethers.keccak256(ethers.toUtf8Bytes("fake"));
+      await c.connect(wP).raiseCounterfeitConcern(humanId, rh);
+      let cc = await c.getCounterfeitConcern(humanId);
+      expect(cc.active).to.equal(true);
+      await c.connect(wP).clearCounterfeitConcern(humanId);
+      cc = await c.getCounterfeitConcern(humanId);
+      expect(cc.active).to.equal(false);
     });
   });
 });

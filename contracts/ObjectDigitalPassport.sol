@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
- * Specification v0.2
+ * Specification v0.3
  * License: MIT
  *
  * Deployed on: Polygon PoS (chain ID 137)
@@ -22,7 +22,10 @@ pragma solidity ^0.8.20;
  *   This contract is not upgradeable by design.
  *   No owner. No admin. No pause function. No selfdestruct.
  *   Rules cannot change after deployment.
- *   Protocol updates require a new contract (v0.2, v0.3, etc.)
+ *   Protocol updates require a new contract (v0.2, v0.3, etc.).
+ *   v0.3 adds: owner/transfer, account-scoped publishing agent for hosted URLs, revocation,
+ *   extra image hashes, P-affiliation detach + timestamps, P/M counterfeit concern flag,
+ *   governance (revocation). Type-definition governance is off-chain / SPEC (saves bytecode).
  *
  * SECURITY NOTES:
  *   - v0.2+: no protocol fee — native token only pays network gas (no POL routed to fee burn)
@@ -72,6 +75,8 @@ interface IODPExtension {
 
 contract ObjectDigitalPassport {
 
+    error EC(uint16 code);
+
     // ─── Constants ────────────────────────────────────────────────────────────
 
     bytes1 constant TYPE_C = "C";
@@ -85,10 +90,11 @@ contract ObjectDigitalPassport {
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     uint8 public constant SPEC_MAJOR = 0;
-    uint8 public constant SPEC_MINOR = 2;
+    uint8 public constant SPEC_MINOR = 3;
 
     /// Packed byte stored in Passport.contractVersion: `SPEC_MAJOR * 16 + SPEC_MINOR` (each must stay < 16).
-    /// Spec line **0.2** → packed **2** (gas-only, optional dataUrl, external docs, **M** museum prefix, unlimited P/M mints, proofs by P/M).
+    /// Spec line **0.3** → packed **3**: ownership/revocation/images/P-affiliation/counterfeit/governance, plus
+    /// **account-scoped publishing agent** for `updatePassportUrls`.
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows profile ID prefix (C/B/P/M).
@@ -105,15 +111,18 @@ contract ObjectDigitalPassport {
     }
 
     struct Passport {
-        string  humanId;       // Passport ID (SPEC); ODP-… string; JSON key humanId
+        string  humanId;       // Passport ID (SPEC); ODP-… string; ABI name humanId
         uint8   contractVersion; // packed SPEC_MAJOR/SPEC_MINOR (see CONTRACT_VERSION) at mint
-        address creator;
+        address creator;       // immutable issuer wallet at mint
+        address owner;         // current holder; starts as creator; changes via transferPassport
         string  creatorId;     // Profile ID (SPEC); mandatory
         uint32  year;          // uint32 supports any year from 1 to 4,294,967,295
         uint8   month;
         string  objectType;    // "physical" or "digital"
         bytes32 dataHash;      // SHA-256 of minified passport.json
-        bytes32 imageHash;     // SHA-256 of image. bytes32(0) = none
+        bytes32 imageHash;     // SHA-256 of primary image. bytes32(0) = none
+        bytes32 imageHash2;    // optional 2nd image (max 3 on-chain hashes total)
+        bytes32 imageHash3;    // optional 3rd image
         bytes32 fileHash;      // SHA-256 of digital file. bytes32(0) if physical
         uint8   sealType;      // 1=NFC, 2=numbered, 3=both. 0 if digital
         bytes32 sealHash;      // SHA-256 of seal object. bytes32(0) if digital
@@ -121,7 +130,12 @@ contract ObjectDigitalPassport {
         string  nfcModel;      // "NTAG424DNA_TT" if NFC. empty if no NFC seal
         string  dataUrl;
         string  imageUrl;
+        string  imageUrl2;     // optional URL hints for extra images
+        string  imageUrl3;
         uint256 timestamp;
+        bool    revoked;       // passport revoked (creator or governance)
+        uint256 revokedAt;
+        bytes32 revocationReasonHash; // keccak256 of UTF-8 reason; 0 if not revoked
     }
 
     struct ProofRecord {
@@ -185,6 +199,32 @@ contract ObjectDigitalPassport {
     mapping(string => uint16) private _pActiveChildrenCountByParent; // parentPId -> active children count
     mapping(string => uint16) private _pPendingParentsCountByChild;   // childPId -> pending parent requests count
 
+    /// When affiliation became active (parent confirmed). 0 if never linked.
+    mapping(string => uint256) private _pAffiliationJoinedAt;
+    /// Non-zero after detach while child has no active parent (cleared on new confirm).
+    mapping(string => uint256) private _pAffiliationDetachedAt;
+    /// Parent P id at time of last detach (for verifier audit when active parent is empty).
+    mapping(string => string)  private _pLastDetachedParent;
+
+    struct DelegationInfo {
+        address agent;
+        uint256 expiresAt;
+    }
+
+    /// One optional publishing agent per **registered creator wallet** (the issuer account). When active, that
+    /// agent may call `updatePassportUrls` for any passport with `p.creator == creatorWallet` (hash check unchanged).
+    mapping(address => DelegationInfo) private _creatorPublishDelegation;
+
+    /// Latest counterfeit / authenticity concern raised by P or M (prover is institution profile id).
+    mapping(string => bool)    private _counterfeitActive;
+    mapping(string => string)  private _counterfeitProverId;
+    mapping(string => bytes32) private _counterfeitReasonHash;
+    mapping(string => uint256) private _counterfeitTimestamp;
+
+    /// Governance address (multisig / DAO): may revoke passports alongside creator.
+    /// Type-definition governance is documented in SPEC; on-chain timelock registry was omitted for bytecode size.
+    address public governance;
+
     // ── Extension Registry (v1 architecture) ─────────────────────────────────
     // Maps type bytes1 → extension contract address.
     // In v0 this is empty — all types are handled natively.
@@ -200,7 +240,7 @@ contract ObjectDigitalPassport {
     bool    public frozen;
 
     modifier notFrozen() {
-        require(!frozen, "Contract is frozen - use v1");
+        if (!(!frozen)) revert EC(59);
         _;
     }
 
@@ -261,10 +301,50 @@ contract ObjectDigitalPassport {
         uint256 timestamp
     );
 
+    event PAffiliationDetached(
+        string indexed parentPId,
+        string indexed childPId,
+        uint256 timestamp
+    );
+
+    event PassportTransferred(
+        string  indexed humanId,
+        address indexed from,
+        address indexed to,
+        uint256 timestamp
+    );
+
+    event CreatorPublishingDelegated(address indexed creator, address indexed agent, uint256 expiresAt);
+
+    event CreatorPublishingDelegationRevoked(address indexed creator, uint256 timestamp);
+
+    event PassportRevoked(
+        string  indexed humanId,
+        address indexed revokedBy,
+        bytes32 reasonHash,
+        uint256 timestamp
+    );
+
+    event CounterfeitConcernRaised(
+        string indexed humanId,
+        string indexed proverCreatorId,
+        bytes32 reasonHash,
+        uint256 timestamp
+    );
+
+    event CounterfeitConcernCleared(
+        string indexed humanId,
+        string indexed proverCreatorId,
+        uint256 timestamp
+    );
+
+    event GovernanceTransferred(address indexed previous, address indexed next, uint256 timestamp);
+
     // ─── Constructor ──────────────────────────────────────────────────────────
 
     constructor() {
         deployer = msg.sender;
+        governance = msg.sender;
     }
 
     // ─── Freeze ───────────────────────────────────────────────────────────────
@@ -276,10 +356,19 @@ contract ObjectDigitalPassport {
      * Only the original deployer can freeze.
      */
     function freeze() external {
-        require(msg.sender == deployer, "Only deployer can freeze");
-        require(!frozen, "Already frozen");
+        if (!(msg.sender == deployer)) revert EC(58);
+        if (!(!frozen)) revert EC(57);
         frozen = true;
         emit ContractFrozen(block.timestamp);
+    }
+
+    /// Governance may be a multisig or DAO-controlled address off-chain.
+    function transferGovernance(address newGovernance) external {
+        if (!(msg.sender == governance)) revert EC(56);
+        if (!(newGovernance != address(0))) revert EC(55);
+        address prev = governance;
+        governance = newGovernance;
+        emit GovernanceTransferred(prev, newGovernance, block.timestamp);
     }
 
     // ─── Creator Registry ─────────────────────────────────────────────────────
@@ -297,8 +386,8 @@ contract ObjectDigitalPassport {
         notFrozen
         returns (string memory creatorId)
     {
-        require(_isValidType(typePrefix),                          "Invalid type prefix");
-        require(bytes(_walletToCreatorId[msg.sender]).length == 0, "Already registered");
+        if (!(_isValidType(typePrefix))) revert EC(54);
+        if (!(bytes(_walletToCreatorId[msg.sender]).length == 0)) revert EC(53);
 
         uint64 number = _generateCreatorNumber();
         creatorId     = _buildCreatorId(typePrefix, number);
@@ -320,7 +409,7 @@ contract ObjectDigitalPassport {
     function getCreator(string calldata creatorId)
         external view returns (CreatorRecord memory)
     {
-        require(bytes(_creators[creatorId].creatorId).length > 0, "Creator not found");
+        if (!(bytes(_creators[creatorId].creatorId).length > 0)) revert EC(2);
         return _creators[creatorId];
     }
 
@@ -342,11 +431,11 @@ contract ObjectDigitalPassport {
         external
         notFrozen
     {
-        require(documentHash != bytes32(0), "documentHash required");
-        require(bytes(documentUri).length <= 512, "documentUri too long");
+        if (!(documentHash != bytes32(0))) revert EC(52);
+        if (!(bytes(documentUri).length <= 512)) revert EC(51);
         string memory creatorId = _requireRegistered();
         bytes32 key = keccak256(abi.encodePacked(msg.sender, documentHash));
-        require(_externalDocAttest[key].creator == address(0), "Already attested");
+        if (!(_externalDocAttest[key].creator == address(0))) revert EC(50);
 
         _externalDocAttest[key] = ExternalDocAttestation({
             creator:      msg.sender,
@@ -390,14 +479,14 @@ contract ObjectDigitalPassport {
     {
         string memory childPId = _requireRegistered();
         _requireTypeP(childPId, "Only P-type child can propose affiliation");
-        require(bytes(parentPId).length > 0, "parentPId required");
-        require(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)), "Self-link not allowed");
+        if (!(bytes(parentPId).length > 0)) revert EC(49);
+        if (!(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)))) revert EC(46);
         _requireTypeP(parentPId, "Parent must be P-type");
-        require(bytes(_pParentOf[childPId]).length == 0, "Child already has parent P");
-        require(_pPendingParentsCountByChild[childPId] < MAX_P_PENDING_PARENTS_PER_CHILD, "Pending limit reached for this child P");
+        if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
+        if (!(_pPendingParentsCountByChild[childPId] < MAX_P_PENDING_PARENTS_PER_CHILD)) revert EC(48);
 
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
-        require(!_pendingPAffiliation[k], "Affiliation already pending");
+        if (!(!_pendingPAffiliation[k])) revert EC(47);
         _pendingPAffiliation[k] = true;
         _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] + 1;
 
@@ -415,21 +504,80 @@ contract ObjectDigitalPassport {
         string memory parentPId = _requireRegistered();
         _requireTypeP(parentPId, "Only P-type parent can confirm affiliation");
         _requireTypeP(childPId, "Child must be P-type");
-        require(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)), "Self-link not allowed");
-        require(bytes(_pParentOf[childPId]).length == 0, "Child already has parent P");
+        if (!(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)))) revert EC(46);
+        if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
 
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
-        require(_pendingPAffiliation[k], "No pending affiliation request");
+        if (!(_pendingPAffiliation[k])) revert EC(42);
         delete _pendingPAffiliation[k];
         _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] - 1;
 
-        require(_pActiveChildrenCountByParent[parentPId] < MAX_P_ACTIVE_CHILDREN_PER_PARENT, "Parent P active children limit reached");
+        if (!(_pActiveChildrenCountByParent[parentPId] < MAX_P_ACTIVE_CHILDREN_PER_PARENT)) revert EC(44);
 
         _pParentOf[childPId] = parentPId;
         _pChildrenOf[parentPId].push(childPId);
         _pActiveChildrenCountByParent[parentPId] = _pActiveChildrenCountByParent[parentPId] + 1;
 
+        _pAffiliationJoinedAt[childPId] = block.timestamp;
+        delete _pAffiliationDetachedAt[childPId];
+        delete _pLastDetachedParent[childPId];
+
         emit PAffiliationConfirmed(parentPId, childPId, block.timestamp);
+    }
+
+    /**
+     * Parent P terminates an active affiliation (detach). Red-flag semantics for verifiers.
+     * On-chain records detachedAt; active parent pointer is cleared (child may propose a new parent later).
+     */
+    function detachPAffiliation(string calldata childPId)
+        external
+        notFrozen
+    {
+        string memory parentPId = _requireRegistered();
+        _requireTypeP(parentPId, "Only P-type parent can detach");
+        _requireTypeP(childPId, "Child must be P-type");
+        if (!(keccak256(bytes(_pParentOf[childPId])) == keccak256(bytes(parentPId)))) revert EC(43);
+
+        _removeChildFromParentList(parentPId, childPId);
+        delete _pParentOf[childPId];
+        _pActiveChildrenCountByParent[parentPId] = _pActiveChildrenCountByParent[parentPId] - 1;
+
+        _pAffiliationDetachedAt[childPId] = block.timestamp;
+        _pLastDetachedParent[childPId] = parentPId;
+
+        emit PAffiliationDetached(parentPId, childPId, block.timestamp);
+    }
+
+    function _removeChildFromParentList(string memory parentPId, string memory childPId) internal {
+        string[] storage ch = _pChildrenOf[parentPId];
+        for (uint256 i = 0; i < ch.length; i++) {
+            if (keccak256(bytes(ch[i])) == keccak256(bytes(childPId))) {
+                ch[i] = ch[ch.length - 1];
+                ch.pop();
+                return;
+            }
+        }
+        revert EC(63);
+    }
+
+    /**
+     * Affiliation audit: active parent (if any), joinedAt from last confirmation, detachedAt if currently detached,
+     * and last parent id recorded at detach (for history when active parent is empty).
+     */
+    function getPAffiliationAudit(string calldata childPId)
+        external
+        view
+        returns (
+            string memory activeParent,
+            uint256 joinedAt,
+            uint256 detachedAt,
+            string memory lastDetachedFromParent
+        )
+    {
+        activeParent = _pParentOf[childPId];
+        joinedAt = _pAffiliationJoinedAt[childPId];
+        detachedAt = _pAffiliationDetachedAt[childPId];
+        lastDetachedFromParent = _pLastDetachedParent[childPId];
     }
 
     /**
@@ -442,7 +590,7 @@ contract ObjectDigitalPassport {
         string memory childPId = _requireRegistered();
         _requireTypeP(childPId, "Only P-type child can cancel affiliation request");
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
-        require(_pendingPAffiliation[k], "No pending affiliation request");
+        if (!(_pendingPAffiliation[k])) revert EC(42);
         delete _pendingPAffiliation[k];
         _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] - 1;
     }
@@ -500,6 +648,25 @@ contract ObjectDigitalPassport {
 
     // ─── Passport Registry — Physical ─────────────────────────────────────────
 
+    function _validateOptionalImageSlots(
+        bytes32 imageHash2,
+        string calldata imageUrl2,
+        bytes32 imageHash3,
+        string calldata imageUrl3
+    ) internal pure {
+        if (imageHash2 == bytes32(0)) {
+            if (!(bytes(imageUrl2).length == 0)) revert EC(41);
+        } else {
+            if (!(bytes(imageUrl2).length <= 512)) revert EC(40);
+        }
+        if (imageHash3 == bytes32(0)) {
+            if (!(bytes(imageUrl3).length == 0)) revert EC(39);
+        } else {
+            if (!(bytes(imageUrl3).length <= 512)) revert EC(38);
+            if (!(imageHash2 != bytes32(0))) revert EC(37);
+        }
+    }
+
     /**
      * Register a PHYSICAL object.
      *
@@ -518,6 +685,7 @@ contract ObjectDigitalPassport {
      * @param nfcModel      Must be "NTAG424DNA_TT" if using NFC seal. "" = no NFC seal.
      *                      Only TagTamper variant accepted — standard NTAG424DNA is rejected.
      *                      TagTamper permanently records if seal is physically removed.
+     * @param imageHash2/3  Optional additional image SHA-256 (max 3 hashes total including primary imageHash).
      */
     function _validatePhysical(
         uint32 year,
@@ -529,29 +697,32 @@ contract ObjectDigitalPassport {
         uint8 sealType,
         bytes32 sealHash,
         bytes calldata nfcPublicKey,
-        string calldata nfcModel
+        string calldata nfcModel,
+        bytes32 imageHash2,
+        string calldata imageUrl2,
+        bytes32 imageHash3,
+        string calldata imageUrl3
     ) internal pure {
-        require(year > 0, "Invalid year");
-        require(month >= 1 && month <= 12, "Invalid month");
-        require(dataHash != bytes32(0), "dataHash required");
-        require(bytes(dataUrl).length <= 512, "dataUrl too long");
-        require(bytes(imageUrl).length <= 512, "imageUrl too long");
-        require(sealType >= 1 && sealType <= 3, "Invalid sealType");
-        require(sealHash != bytes32(0), "sealHash required");
+        if (!(year > 0)) revert EC(9);
+        if (!(month >= 1 && month <= 12)) revert EC(8);
+        if (!(dataHash != bytes32(0))) revert EC(30);
+        if (!(bytes(dataUrl).length <= 512)) revert EC(24);
+        if (!(bytes(imageUrl).length <= 512)) revert EC(23);
+        if (!(sealType >= 1 && sealType <= 3)) revert EC(36);
+        if (!(sealHash != bytes32(0))) revert EC(35);
 
         if (sealType == 1 || sealType == 3) {
-            require(nfcPublicKey.length > 0, "nfcPublicKey required for NFC seal");
-            require(
-                keccak256(bytes(nfcModel)) == NFC_NTAG424DNA_TT_HASH,
-                "Only NTAG424DNA_TT (TagTamper) is supported for NFC seals"
-            );
+            if (!(nfcPublicKey.length > 0)) revert EC(34);
+            if (!(keccak256(bytes(nfcModel)) == NFC_NTAG424DNA_TT_HASH)) revert EC(33);
         } else {
-            require(bytes(nfcModel).length == 0, "nfcModel requires NFC sealType");
+            if (!(bytes(nfcModel).length == 0)) revert EC(32);
         }
 
         if (imageHash == bytes32(0)) {
-            require(bytes(imageUrl).length == 0, "imageUrl requires imageHash");
+            if (!(bytes(imageUrl).length == 0)) revert EC(28);
         }
+
+        _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
     }
 
     /// @dev Strip trailing ASCII `/` only (repeated). Does not normalize `//` in the middle of the path;
@@ -581,7 +752,7 @@ contract ObjectDigitalPassport {
         string memory humanId
     ) internal pure returns (string memory) {
         if (bytes(dataUrl).length == 0) {
-            require(!dataUrlIsFolderBase, "Folder base requires non-empty base URL");
+            if (!(!dataUrlIsFolderBase)) revert EC(31);
             return "";
         }
         if (!dataUrlIsFolderBase) {
@@ -602,6 +773,10 @@ contract ObjectDigitalPassport {
         bytes32 sealHash,
         bytes   calldata nfcPublicKey,
         string  calldata nfcModel,
+        bytes32 imageHash2,
+        string  calldata imageUrl2,
+        bytes32 imageHash3,
+        string  calldata imageUrl3,
         bool dataUrlIsFolderBase
     ) external notFrozen returns (string memory humanId) {
         string memory creatorId = _beginMint();
@@ -616,24 +791,31 @@ contract ObjectDigitalPassport {
             sealType,
             sealHash,
             nfcPublicKey,
-            nfcModel
+            nfcModel,
+            imageHash2,
+            imageUrl2,
+            imageHash3,
+            imageUrl3
         );
 
         humanId = _generatePassportId(year, month);
 
         string memory resolvedDataUrl = _resolveMintDataUrl(dataUrl, dataUrlIsFolderBase, humanId);
-        require(bytes(resolvedDataUrl).length <= 512, "Resolved dataUrl too long");
+        if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
 
         _passports[humanId] = Passport({
             humanId:         humanId,
             contractVersion: CONTRACT_VERSION,
             creator:         msg.sender,
+            owner:           msg.sender,
             creatorId:       creatorId,
             year:            year,
             month:           month,
             objectType:      OBJECT_PHYSICAL,
             dataHash:     dataHash,
             imageHash:    imageHash,
+            imageHash2:   imageHash2,
+            imageHash3:   imageHash3,
             fileHash:     bytes32(0),
             sealType:     sealType,
             sealHash:     sealHash,
@@ -641,7 +823,12 @@ contract ObjectDigitalPassport {
             nfcModel:     nfcModel,
             dataUrl:      resolvedDataUrl,
             imageUrl:     imageUrl,
-            timestamp:    block.timestamp
+            imageUrl2:    imageUrl2,
+            imageUrl3:    imageUrl3,
+            timestamp:    block.timestamp,
+            revoked:      false,
+            revokedAt:    0,
+            revocationReasonHash: bytes32(0)
         });
 
         _creatorPassports[msg.sender].push(humanId);
@@ -675,37 +862,45 @@ contract ObjectDigitalPassport {
         string  calldata dataUrl,
         bytes32 imageHash,
         string  calldata imageUrl,
+        bytes32 imageHash2,
+        string  calldata imageUrl2,
+        bytes32 imageHash3,
+        string  calldata imageUrl3,
         bytes32 fileHash,
         bool dataUrlIsFolderBase
     ) external notFrozen returns (string memory humanId) {
         string memory creatorId = _beginMint();
 
-        require(year > 0,       "Invalid year");
-        require(month >= 1   && month <= 12,   "Invalid month");
-        require(dataHash != bytes32(0),         "dataHash required");
-        require(bytes(dataUrl).length <= 512,   "dataUrl too long");
-        require(bytes(imageUrl).length <= 512,  "imageUrl too long");
-        require(fileHash != bytes32(0),         "fileHash required for digital objects");
+        if (!(year > 0)) revert EC(9);
+        if (!(month >= 1   && month <= 12)) revert EC(8);
+        if (!(dataHash != bytes32(0))) revert EC(30);
+        if (!(bytes(dataUrl).length <= 512)) revert EC(24);
+        if (!(bytes(imageUrl).length <= 512)) revert EC(23);
+        if (!(fileHash != bytes32(0))) revert EC(29);
 
         if (imageHash == bytes32(0)) {
-            require(bytes(imageUrl).length == 0, "imageUrl requires imageHash");
+            if (!(bytes(imageUrl).length == 0)) revert EC(28);
         }
+        _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
 
         humanId = _generatePassportId(year, month);
 
         string memory resolvedDataUrl = _resolveMintDataUrl(dataUrl, dataUrlIsFolderBase, humanId);
-        require(bytes(resolvedDataUrl).length <= 512, "Resolved dataUrl too long");
+        if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
 
         _passports[humanId] = Passport({
             humanId:         humanId,
             contractVersion: CONTRACT_VERSION,
             creator:         msg.sender,
+            owner:           msg.sender,
             creatorId:       creatorId,
             year:            year,
             month:           month,
             objectType:      OBJECT_DIGITAL,
             dataHash:     dataHash,
             imageHash:    imageHash,
+            imageHash2:   imageHash2,
+            imageHash3:   imageHash3,
             fileHash:     fileHash,
             sealType:     0,
             sealHash:     bytes32(0),
@@ -713,7 +908,12 @@ contract ObjectDigitalPassport {
             nfcModel:     "",
             dataUrl:      resolvedDataUrl,
             imageUrl:     imageUrl,
-            timestamp:    block.timestamp
+            imageUrl2:    imageUrl2,
+            imageUrl3:    imageUrl3,
+            timestamp:    block.timestamp,
+            revoked:      false,
+            revokedAt:    0,
+            revocationReasonHash: bytes32(0)
         });
 
         _creatorPassports[msg.sender].push(humanId);
@@ -724,6 +924,36 @@ contract ObjectDigitalPassport {
     }
 
     // ─── Passport — Update ────────────────────────────────────────────────────
+
+    function _canUpdatePassportUrls(Passport storage p) internal view returns (bool) {
+        if (msg.sender == p.creator || msg.sender == p.owner) return true;
+        DelegationInfo storage d = _creatorPublishDelegation[p.creator];
+        return d.agent == msg.sender && d.expiresAt > block.timestamp;
+    }
+
+    /// Registered creator (`msg.sender`) designates a single wallet that may update hosted URLs for **all** their passports.
+    function delegateCreatorPublishing(address agent, uint256 expiresAt) external notFrozen {
+        if (!(agent != address(0))) revert EC(21);
+        _requireRegistered();
+        if (!(expiresAt > block.timestamp)) revert EC(20);
+        _creatorPublishDelegation[msg.sender] = DelegationInfo({ agent: agent, expiresAt: expiresAt });
+        emit CreatorPublishingDelegated(msg.sender, agent, expiresAt);
+    }
+
+    function revokeCreatorPublishing() external notFrozen {
+        _requireRegistered();
+        delete _creatorPublishDelegation[msg.sender];
+        emit CreatorPublishingDelegationRevoked(msg.sender, block.timestamp);
+    }
+
+    function getCreatorPublishingDelegation(address creatorWallet)
+        external
+        view
+        returns (address agent, uint256 expiresAt)
+    {
+        DelegationInfo storage d = _creatorPublishDelegation[creatorWallet];
+        return (d.agent, d.expiresAt);
+    }
 
     /**
      * Update hosting URLs only — dataUrl and imageUrl.
@@ -740,7 +970,8 @@ contract ObjectDigitalPassport {
      * on-chain, so anyone with wallet access can read and pass it. This is a
      * UX safeguard, not a security mechanism.
      *
-     * Only the original creator can update URLs.
+     * Authorized callers: passport **creator** or **owner**, or the **creator’s active publishing agent**
+     * (`delegateCreatorPublishing` / `getCreatorPublishingDelegation`).
      *
      * Folder-base mint (`dataUrlIsFolderBase` on mint) only affects the **initial** stored URL.
      * This function always sets **literal** `newDataUrl` / `newImageUrl` (no folder resolution here).
@@ -755,17 +986,90 @@ contract ObjectDigitalPassport {
         bytes32          confirmedDataHash
     ) external notFrozen {
         Passport storage p = _passports[humanId];
-        require(p.creator != address(0),              "Passport not found");
-        require(p.creator == msg.sender,              "Not creator");
-        require(p.dataHash == confirmedDataHash,      "Hash mismatch - wrong content or wrong passport");
-        require(bytes(newDataUrl).length <= 512,      "dataUrl too long");
-        require(bytes(newImageUrl).length <= 512,     "imageUrl too long");
+        if (!(p.creator != address(0))) revert EC(12);
+        if (!(!p.revoked)) revert EC(11);
+        if (!_canUpdatePassportUrls(p)) revert EC(26);
+        if (!(p.dataHash == confirmedDataHash)) revert EC(25);
+        if (!(bytes(newDataUrl).length <= 512)) revert EC(24);
+        if (!(bytes(newImageUrl).length <= 512)) revert EC(23);
 
-        // Only URLs change — hashes are the source of truth and never move.
+        // Only primary JSON + primary image URLs — hashes are immutable (extra image URLs unchanged here).
         p.dataUrl  = newDataUrl;
         p.imageUrl = newImageUrl;
 
         emit PassportUrlsUpdated(humanId, newDataUrl, newImageUrl);
+    }
+
+    /// Current owner (starts as creator) may transfer the passport record to a new wallet.
+    function transferPassport(string calldata humanId, address newOwner) external notFrozen {
+        if (!(newOwner != address(0))) revert EC(22);
+        Passport storage p = _passports[humanId];
+        if (!(p.creator != address(0))) revert EC(12);
+        if (!(!p.revoked)) revert EC(11);
+        if (!(p.owner == msg.sender)) revert EC(19);
+        p.owner = newOwner;
+        emit PassportTransferred(humanId, msg.sender, newOwner, block.timestamp);
+    }
+
+    /**
+     * Irreversible passport revocation. Creator or governance may revoke.
+     * reasonHash should be keccak256(utf8(reason)) for verifiers; full text may live off-chain.
+     */
+    function revokePassport(string calldata humanId, bytes32 reasonHash) external notFrozen {
+        Passport storage p = _passports[humanId];
+        if (!(p.creator != address(0))) revert EC(12);
+        if (!(!p.revoked)) revert EC(18);
+        if (!(msg.sender == p.creator || msg.sender == governance)) revert EC(17);
+        if (!(reasonHash != bytes32(0))) revert EC(16);
+        p.revoked = true;
+        p.revokedAt = block.timestamp;
+        p.revocationReasonHash = reasonHash;
+        emit PassportRevoked(humanId, msg.sender, reasonHash, block.timestamp);
+    }
+
+    /**
+     * P or M institution raises an authenticity / counterfeit concern (institutional opinion, not a legal finding).
+     */
+    function raiseCounterfeitConcern(string calldata humanId, bytes32 reasonHash) external notFrozen {
+        if (!(reasonHash != bytes32(0))) revert EC(16);
+        Passport storage p = _passports[humanId];
+        if (!(p.creator != address(0))) revert EC(12);
+
+        string memory callerId = _walletToCreatorId[msg.sender];
+        if (!(bytes(callerId).length > 0)) revert EC(7);
+        bytes1 tp = _creators[callerId].typePrefix;
+        if (!(tp == TYPE_P || tp == TYPE_M)) revert EC(15);
+
+        _counterfeitActive[humanId] = true;
+        _counterfeitProverId[humanId] = callerId;
+        _counterfeitReasonHash[humanId] = reasonHash;
+        _counterfeitTimestamp[humanId] = block.timestamp;
+        emit CounterfeitConcernRaised(humanId, callerId, reasonHash, block.timestamp);
+    }
+
+    /// Only the institution that raised the concern may clear it (v0.3 minimal policy).
+    function clearCounterfeitConcern(string calldata humanId) external notFrozen {
+        if (!(_counterfeitActive[humanId])) revert EC(14);
+        string memory callerId = _requireRegistered();
+        if (!(keccak256(bytes(_counterfeitProverId[humanId])) == keccak256(bytes(callerId)))) revert EC(13);
+        _counterfeitActive[humanId] = false;
+        emit CounterfeitConcernCleared(humanId, callerId, block.timestamp);
+    }
+
+    function getCounterfeitConcern(string calldata humanId)
+        external
+        view
+        returns (
+            bool active,
+            string memory proverCreatorId,
+            bytes32 reasonHash,
+            uint256 ts
+        )
+    {
+        active = _counterfeitActive[humanId];
+        proverCreatorId = _counterfeitProverId[humanId];
+        reasonHash = _counterfeitReasonHash[humanId];
+        ts = _counterfeitTimestamp[humanId];
     }
 
     // ─── Passport — Read ──────────────────────────────────────────────────────
@@ -773,7 +1077,7 @@ contract ObjectDigitalPassport {
     function getPassport(string calldata humanId)
         external view returns (Passport memory)
     {
-        require(_passports[humanId].creator != address(0), "Passport not found");
+        if (!(_passports[humanId].creator != address(0))) revert EC(12);
         return _passports[humanId];
     }
 
@@ -801,7 +1105,7 @@ contract ObjectDigitalPassport {
         )
     {
         passport   = _passports[humanId];
-        require(passport.creator != address(0), "Passport not found");
+        if (!(passport.creator != address(0))) revert EC(12);
         creator    = _creators[passport.creatorId];
         proofCount = _passportProofs[humanId].length;
         version    = CONTRACT_VERSION;
@@ -864,18 +1168,20 @@ contract ObjectDigitalPassport {
         uint32           year,
         uint8            month
     ) external notFrozen returns (string memory proofId) {
-        require(_passports[humanId].creator != address(0), "Passport not found");
-        require(bytes(noteUrl).length <= 512,              "noteUrl too long");
-        require(year > 0,                                  "Invalid year");
-        require(month >= 1 && month <= 12,                 "Invalid month");
+        Passport storage pPass = _passports[humanId];
+        if (!(pPass.creator != address(0))) revert EC(12);
+        if (!(!pPass.revoked)) revert EC(11);
+        if (!(bytes(noteUrl).length <= 512)) revert EC(10);
+        if (!(year > 0)) revert EC(9);
+        if (!(month >= 1 && month <= 12)) revert EC(8);
 
         string memory callerId = _walletToCreatorId[msg.sender];
-        require(bytes(callerId).length > 0, "Not registered");
+        if (!(bytes(callerId).length > 0)) revert EC(7);
         bytes1 tp = _creators[callerId].typePrefix;
-        require(tp == TYPE_P || tp == TYPE_M, "Only P- or M-type institutions can submit proofs");
+        if (!(tp == TYPE_P || tp == TYPE_M)) revert EC(6);
 
         if (noteHash == bytes32(0)) {
-            require(bytes(noteUrl).length == 0, "noteUrl requires noteHash");
+            if (!(bytes(noteUrl).length == 0)) revert EC(5);
         }
 
         proofId = _generateProofId(year, month, humanId);
@@ -906,7 +1212,7 @@ contract ObjectDigitalPassport {
     function getProof(string calldata proofId)
         external view returns (ProofRecord memory)
     {
-        require(bytes(_proofs[proofId].proofId).length > 0, "Proof not found");
+        if (!(bytes(_proofs[proofId].proofId).length > 0)) revert EC(4);
         return _proofs[proofId];
     }
 
@@ -920,8 +1226,7 @@ contract ObjectDigitalPassport {
 
     function _requireRegistered() internal view returns (string memory creatorId) {
         creatorId = _walletToCreatorId[msg.sender];
-        require(bytes(creatorId).length > 0,
-            "Profile required - call registerCreator first");
+        if (!(bytes(creatorId).length > 0)) revert EC(3);
     }
 
     /** Enforce registration and monthly limit (no protocol fee). */
@@ -936,7 +1241,7 @@ contract ObjectDigitalPassport {
 
     function _requireTypeP(string memory creatorId, string memory err) internal view {
         CreatorRecord storage c = _creators[creatorId];
-        require(bytes(c.creatorId).length > 0, "Creator not found");
+        if (!(bytes(c.creatorId).length > 0)) revert EC(2);
         require(c.typePrefix == TYPE_P, err);
     }
 
@@ -952,7 +1257,7 @@ contract ObjectDigitalPassport {
         uint32 limit = (t == TYPE_B) ? MONTHLY_LIMIT_B : MONTHLY_LIMIT_C;
         uint32 ym = _currentYearMonth();
         uint32 count = _mintCount[msg.sender][ym];
-        require(count < limit, "Monthly mint limit reached for this creator tier");
+        if (!(count < limit)) revert EC(1);
         _mintCount[msg.sender][ym] = count + 1;
     }
 
@@ -1013,7 +1318,7 @@ contract ObjectDigitalPassport {
                 return n;
             }
         }
-        revert("Profile ID generation failed after 25 attempts - retry transaction");
+        revert EC(62);
     }
 
     /**
@@ -1045,7 +1350,7 @@ contract ObjectDigitalPassport {
                 ));
             }
         }
-        revert("Passport ID generation failed after 25 attempts - retry transaction");
+        revert EC(61);
     }
 
     /**
@@ -1078,7 +1383,7 @@ contract ObjectDigitalPassport {
                 ));
             }
         }
-        revert("Proof ID generation failed after 25 attempts - retry transaction");
+        revert EC(60);
     }
 
     // ─── Internal: string builders ────────────────────────────────────────────

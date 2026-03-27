@@ -8,7 +8,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.2";
+  var ODP_SITE_VERSION = "0.3";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -29,6 +29,68 @@
 
   function odpSupportsOptionalDataUrl(generation) {
     return generation >= 2;
+  }
+
+  function odpSupportsV03(generation) {
+    return generation >= 3;
+  }
+
+  /** getPassport / resolvePassport passport tuple — v0.2 layout (CONTRACT_VERSION packed < 3). */
+  function odpPassportTupleComponentsV02() {
+    return [
+      { name: "humanId", type: "string" },
+      { name: "contractVersion", type: "uint8" },
+      { name: "creator", type: "address" },
+      { name: "creatorId", type: "string" },
+      { name: "year", type: "uint32" },
+      { name: "month", type: "uint8" },
+      { name: "objectType", type: "string" },
+      { name: "dataHash", type: "bytes32" },
+      { name: "imageHash", type: "bytes32" },
+      { name: "fileHash", type: "bytes32" },
+      { name: "sealType", type: "uint8" },
+      { name: "sealHash", type: "bytes32" },
+      { name: "nfcPublicKey", type: "bytes" },
+      { name: "nfcModel", type: "string" },
+      { name: "dataUrl", type: "string" },
+      { name: "imageUrl", type: "string" },
+      { name: "timestamp", type: "uint256" },
+    ];
+  }
+
+  /** v0.3+: owner, extra image hashes/URLs, revocation fields. */
+  function odpPassportTupleComponentsV03() {
+    return [
+      { name: "humanId", type: "string" },
+      { name: "contractVersion", type: "uint8" },
+      { name: "creator", type: "address" },
+      { name: "owner", type: "address" },
+      { name: "creatorId", type: "string" },
+      { name: "year", type: "uint32" },
+      { name: "month", type: "uint8" },
+      { name: "objectType", type: "string" },
+      { name: "dataHash", type: "bytes32" },
+      { name: "imageHash", type: "bytes32" },
+      { name: "imageHash2", type: "bytes32" },
+      { name: "imageHash3", type: "bytes32" },
+      { name: "fileHash", type: "bytes32" },
+      { name: "sealType", type: "uint8" },
+      { name: "sealHash", type: "bytes32" },
+      { name: "nfcPublicKey", type: "bytes" },
+      { name: "nfcModel", type: "string" },
+      { name: "dataUrl", type: "string" },
+      { name: "imageUrl", type: "string" },
+      { name: "imageUrl2", type: "string" },
+      { name: "imageUrl3", type: "string" },
+      { name: "timestamp", type: "uint256" },
+      { name: "revoked", type: "bool" },
+      { name: "revokedAt", type: "uint256" },
+      { name: "revocationReasonHash", type: "bytes32" },
+    ];
+  }
+
+  function odpPassportTupleComponents(generation) {
+    return odpSupportsV03(generation) ? odpPassportTupleComponentsV03() : odpPassportTupleComponentsV02();
   }
 
   function odpRegistrySessionKey(chainId) {
@@ -112,17 +174,9 @@
    * next to the page. First `no-store`, then `reload` if still empty (bypasses some CDN/browser caches).
    */
   function odpMergeRegistryConfigAsync(net) {
-    var __odpMergeStart = Date.now();
-    var __odpMergeRunId = "run-" + __odpMergeStart;
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H1',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:start',message:'Registry merge start',data:{hasNet:!!net,hasValidBefore:!!(net && odpHasValidRegistryAddress(net)),contractBefore:net && net.contract ? String(net.contract) : ''},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     odpApplyInlineRegistryOverrides(net);
     if (!net) return Promise.resolve();
     if (odpHasValidRegistryAddress(net)) {
-      // #region agent log
-      fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H2',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:short-circuit',message:'Registry merge skipped due valid inline/session address',data:{durationMs:Date.now()-__odpMergeStart,contractAfter:String(net.contract||'')},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       return Promise.resolve();
     }
     if (typeof global.location === "undefined" || !global.location || !global.location.href) {
@@ -130,7 +184,6 @@
     }
 
     function fetchAndMerge(cacheMode) {
-      var __fetchStart = Date.now();
       var url = new URL("registry-config.json", global.location.href);
       url.searchParams.set("_", String(Date.now()) + "_" + Math.random().toString(16).slice(2));
       return global
@@ -152,9 +205,6 @@
               if (global.localStorage) global.localStorage.setItem(k, c);
             } catch (e2) {}
           }
-          // #region agent log
-          fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H2',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:fetchAndMerge',message:'Registry config fetch completed',data:{cacheMode:cacheMode||'no-store',durationMs:Date.now()-__fetchStart,resolvedValid:odpHasValidRegistryAddress(net),resolvedContract:String((net&&net.contract)||'')},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
         });
     }
 
@@ -163,11 +213,6 @@
       .then(function () {
         if (odpHasValidRegistryAddress(net)) return;
         return fetchAndMerge("reload").catch(function () {});
-      })
-      .then(function () {
-        // #region agent log
-        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__odpMergeRunId,hypothesisId:'H2',location:'web/odp-contract.js:odpMergeRegistryConfigAsync:end',message:'Registry merge end',data:{durationMs:Date.now()-__odpMergeStart,hasValidAfter:odpHasValidRegistryAddress(net),contractAfter:String((net&&net.contract)||'')},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
       });
   }
 
@@ -302,11 +347,13 @@
   function odpFormatStackLabel(generation) {
     var g = generation;
     var spec =
-      g >= 2
-        ? "ODP spec v0.2 (gas-only, optional dataUrl, PDF/doc hash anchor)"
-        : g === 0
-          ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
-          : "unknown generation";
+      g >= 3
+        ? "ODP spec v0.3 (owner/transfer, account publishing agent for URLs, revocation, extra image hashes, P-affiliation, counterfeit)"
+        : g >= 2
+          ? "ODP spec v0.2 (gas-only, optional dataUrl, PDF/doc hash anchor)"
+          : g === 0
+            ? "legacy CONTRACT_VERSION 0 — not supported by this UI"
+            : "unknown generation";
     return "Site " + ODP_SITE_VERSION + " · on-chain generation " + g + " — " + spec;
   }
 
@@ -346,19 +393,26 @@
    * Compact stack line (header + under-step strips): flag + meta + Details link. Long text only in modal / `odp-site-trust-disclosure.html`.
    */
   function odpFormatStackSummaryHtml(generation) {
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-'+Date.now(),hypothesisId:'H14',location:'web/odp-contract.js:odpFormatStackSummaryHtml',message:'Stack summary html rendered',data:{path:(typeof global.location!=="undefined"&&global.location)?String(global.location.pathname||''):'',generation:generation},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     var g = generation == null ? "?" : String(generation);
     var spec =
       generation === 0
         ? odpStackT("stack.spec.legacy", "legacy CONTRACT_VERSION 0 — not supported by this UI")
-        : generation >= 2
-          ? odpStackT(
-              "stack.spec.v02",
-              "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
-            )
-          : odpStackT("stack.spec.unknown", "unknown generation");
+          : generation >= 4
+            ? odpStackT(
+                "stack.spec.v04",
+                "ODP v0.4 — v0.3 features + account-scoped publishing agent (may updatePassportUrls for issuer’s passports)"
+              )
+            : generation >= 3
+              ? odpStackT(
+                  "stack.spec.v03",
+                  "ODP v0.3 — ownership, per-passport delegate, revocation, 3 image hashes, P/M counterfeit, P-affiliation detach"
+                )
+              : generation >= 2
+            ? odpStackT(
+                "stack.spec.v02",
+                "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
+              )
+            : odpStackT("stack.spec.unknown", "unknown generation");
     var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
     var flagClass = "odp-stack-flag--" + trust.level;
     var metaLine = odpStackTpl("stack.summaryMeta", "Site {siteVer} · on-chain gen {gen} — {spec}", {
@@ -533,25 +587,16 @@
   async function odpProbeContractGenerationCached(address, chainId, rpcFallbacks, ethersRef) {
     var E = ethersRef || global.ethers;
     if (!address || !E) return null;
-    var __probeStart = Date.now();
-    var __probeRunId = "run-" + __probeStart;
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H3',location:'web/odp-contract.js:odpProbeContractGenerationCached:start',message:'Generation probe start',data:{address:String(address||''),chainId:chainId,rpcCount:Array.isArray(rpcFallbacks)?rpcFallbacks.length:0},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     var key = "odp_cv_" + String(address).toLowerCase();
     try {
       var cached = sessionStorage.getItem(key);
       if (cached !== null && cached !== "") {
-        // #region agent log
-        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H4',location:'web/odp-contract.js:odpProbeContractGenerationCached:cache-hit',message:'Generation probe cache hit',data:{durationMs:Date.now()-__probeStart,cached:String(cached)},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         return parseInt(cached, 10);
       }
     } catch (e0) {}
 
     var gen = null;
     for (var i = 0; i < rpcFallbacks.length; i++) {
-      var __rpcStart = Date.now();
       try {
         var provider = new E.providers.JsonRpcProvider(rpcFallbacks[i], { name: "polygon", chainId: chainId });
         await provider.getBlockNumber();
@@ -570,14 +615,8 @@
         try {
           sessionStorage.setItem(key, String(gen));
         } catch (e1) {}
-        // #region agent log
-        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H3',location:'web/odp-contract.js:odpProbeContractGenerationCached:rpc-success',message:'Generation probe rpc success',data:{rpcUrl:String(rpcFallbacks[i]||''),attempt:i+1,durationMs:Date.now()-__rpcStart,generation:gen,totalDurationMs:Date.now()-__probeStart},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         break;
       } catch (e2) {
-        // #region agent log
-        fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__probeRunId,hypothesisId:'H3',location:'web/odp-contract.js:odpProbeContractGenerationCached:rpc-fail',message:'Generation probe rpc failed',data:{rpcUrl:String(rpcFallbacks[i]||''),attempt:i+1,durationMs:Date.now()-__rpcStart,error:e2&&e2.message?String(e2.message):String(e2),totalDurationMs:Date.now()-__probeStart},timestamp:Date.now()})}).catch(()=>{});
-        // #endregion
         continue;
       }
     }
@@ -608,8 +647,22 @@
       { name: "dataUrl", type: "string" },
       { name: "imageHash", type: "bytes32" },
       { name: "imageUrl", type: "string" },
-      { name: "fileHash", type: "bytes32" },
     ];
+    if (odpSupportsV03(generation)) {
+      mintPhysicalInputs.push(
+        { name: "imageHash2", type: "bytes32" },
+        { name: "imageUrl2", type: "string" },
+        { name: "imageHash3", type: "bytes32" },
+        { name: "imageUrl3", type: "string" }
+      );
+      mintDigitalInputs.push(
+        { name: "imageHash2", type: "bytes32" },
+        { name: "imageUrl2", type: "string" },
+        { name: "imageHash3", type: "bytes32" },
+        { name: "imageUrl3", type: "string" }
+      );
+    }
+    mintDigitalInputs.push({ name: "fileHash", type: "bytes32" });
     if (folder) {
       mintPhysicalInputs.push({ name: "dataUrlIsFolderBase", type: "bool" });
       mintDigitalInputs.push({ name: "dataUrlIsFolderBase", type: "bool" });
@@ -639,25 +692,7 @@
           {
             name: "",
             type: "tuple",
-            components: [
-              { name: "humanId", type: "string" },
-              { name: "contractVersion", type: "uint8" },
-              { name: "creator", type: "address" },
-              { name: "creatorId", type: "string" },
-              { name: "year", type: "uint32" },
-              { name: "month", type: "uint8" },
-              { name: "objectType", type: "string" },
-              { name: "dataHash", type: "bytes32" },
-              { name: "imageHash", type: "bytes32" },
-              { name: "fileHash", type: "bytes32" },
-              { name: "sealType", type: "uint8" },
-              { name: "sealHash", type: "bytes32" },
-              { name: "nfcPublicKey", type: "bytes" },
-              { name: "nfcModel", type: "string" },
-              { name: "dataUrl", type: "string" },
-              { name: "imageUrl", type: "string" },
-              { name: "timestamp", type: "uint256" },
-            ],
+            components: odpPassportTupleComponents(generation),
           },
         ],
       },
@@ -755,6 +790,120 @@
               ],
             },
           ],
+        }
+      );
+    }
+
+    if (odpSupportsV03(generation) && folder) {
+      passportAbi.push(
+        {
+          name: "transferPassport",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "humanId", type: "string" },
+            { name: "newOwner", type: "address" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "delegateCreatorPublishing",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "agent", type: "address" },
+            { name: "expiresAt", type: "uint256" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "revokeCreatorPublishing",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [],
+          outputs: [],
+        },
+        {
+          name: "getCreatorPublishingDelegation",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorWallet", type: "address" }],
+          outputs: [
+            { name: "agent", type: "address" },
+            { name: "expiresAt", type: "uint256" },
+          ],
+        },
+        {
+          name: "revokePassport",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "humanId", type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "raiseCounterfeitConcern",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "humanId", type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "clearCounterfeitConcern",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "humanId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "detachPAffiliation",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "getCounterfeitConcern",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "humanId", type: "string" }],
+          outputs: [
+            { name: "active", type: "bool" },
+            { name: "proverCreatorId", type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+            { name: "ts", type: "uint256" },
+          ],
+        },
+        {
+          name: "getPAffiliationAudit",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [
+            { name: "activeParent", type: "string" },
+            { name: "joinedAt", type: "uint256" },
+            { name: "detachedAt", type: "uint256" },
+            { name: "lastDetachedFromParent", type: "string" },
+          ],
+        },
+        {
+          name: "governance",
+          type: "function",
+          stateMutability: "view",
+          inputs: [],
+          outputs: [{ name: "", type: "address" }],
+        },
+        {
+          name: "transferGovernance",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "newGovernance", type: "address" }],
+          outputs: [],
         }
       );
     }
@@ -926,11 +1075,39 @@
         }
       );
     }
+    if (odpSupportsV03(generation)) {
+      abi.push(
+        {
+          name: "detachPAffiliation",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "getPAffiliationAudit",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [
+            { name: "activeParent", type: "string" },
+            { name: "joinedAt", type: "uint256" },
+            { name: "detachedAt", type: "uint256" },
+            { name: "lastDetachedFromParent", type: "string" },
+          ],
+        }
+      );
+    }
     return abi;
   }
 
-  /** Read-only ABI for verify.html + deployment generation probe. */
-  function odpBuildVerifyReadAbi() {
+  /**
+   * Read-only ABI for verify.html. Pass probed **generation** (CONTRACT_VERSION uint8) so `getPassport` tuple matches chain.
+   * @param {number} [generation] defaults to 2 (v0.2-shaped) when unknown — prefer RPC probe first.
+   */
+  function odpBuildVerifyReadAbi(generation) {
+    var gen = generation == null || generation === undefined ? 2 : generation;
+    var passComps = odpPassportTupleComponents(gen);
     var abi = [
       CV_ABI[0],
       {
@@ -942,25 +1119,7 @@
           {
             name: "",
             type: "tuple",
-            components: [
-              { name: "humanId", type: "string" },
-              { name: "contractVersion", type: "uint8" },
-              { name: "creator", type: "address" },
-              { name: "creatorId", type: "string" },
-              { name: "year", type: "uint32" },
-              { name: "month", type: "uint8" },
-              { name: "objectType", type: "string" },
-              { name: "dataHash", type: "bytes32" },
-              { name: "imageHash", type: "bytes32" },
-              { name: "fileHash", type: "bytes32" },
-              { name: "sealType", type: "uint8" },
-              { name: "sealHash", type: "bytes32" },
-              { name: "nfcPublicKey", type: "bytes" },
-              { name: "nfcModel", type: "string" },
-              { name: "dataUrl", type: "string" },
-              { name: "imageUrl", type: "string" },
-              { name: "timestamp", type: "uint256" },
-            ],
+            components: passComps,
           },
         ],
       },
@@ -973,25 +1132,7 @@
           {
             name: "passport",
             type: "tuple",
-            components: [
-              { name: "humanId", type: "string" },
-              { name: "contractVersion", type: "uint8" },
-              { name: "creator", type: "address" },
-              { name: "creatorId", type: "string" },
-              { name: "year", type: "uint32" },
-              { name: "month", type: "uint8" },
-              { name: "objectType", type: "string" },
-              { name: "dataHash", type: "bytes32" },
-              { name: "imageHash", type: "bytes32" },
-              { name: "fileHash", type: "bytes32" },
-              { name: "sealType", type: "uint8" },
-              { name: "sealHash", type: "bytes32" },
-              { name: "nfcPublicKey", type: "bytes" },
-              { name: "nfcModel", type: "string" },
-              { name: "dataUrl", type: "string" },
-              { name: "imageUrl", type: "string" },
-              { name: "timestamp", type: "uint256" },
-            ],
+            components: passComps,
           },
           {
             name: "creator",
@@ -1120,6 +1261,51 @@
         ],
       },
     ];
+    if (odpSupportsV03(gen)) {
+      abi.push(
+        {
+          name: "getCounterfeitConcern",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "humanId", type: "string" }],
+          outputs: [
+            { name: "active", type: "bool" },
+            { name: "proverCreatorId", type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+            { name: "ts", type: "uint256" },
+          ],
+        },
+        {
+          name: "getPAffiliationAudit",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [
+            { name: "activeParent", type: "string" },
+            { name: "joinedAt", type: "uint256" },
+            { name: "detachedAt", type: "uint256" },
+            { name: "lastDetachedFromParent", type: "string" },
+          ],
+        },
+        {
+          name: "governance",
+          type: "function",
+          stateMutability: "view",
+          inputs: [],
+          outputs: [{ name: "", type: "address" }],
+        },
+        {
+          name: "getCreatorPublishingDelegation",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorWallet", type: "address" }],
+          outputs: [
+            { name: "agent", type: "address" },
+            { name: "expiresAt", type: "uint256" },
+          ],
+        }
+      );
+    }
     abi.push({
       name: "getExternalDocumentAttestation",
       type: "function",
@@ -1162,7 +1348,9 @@
   global.odpProtocolFeeWei = odpProtocolFeeWei;
   global.odpSupportsFolderBaseMint = odpSupportsFolderBaseMint;
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
+  global.odpSupportsV03 = odpSupportsV03;
   global.odpSupportsExternalDocAttest = odpSupportsExternalDocAttest;
+  global.odpPassportTupleComponents = odpPassportTupleComponents;
   global.odpResolveGeneration = odpResolveGeneration;
   global.odpMergeRegistryConfigAsync = odpMergeRegistryConfigAsync;
   global.odpHasValidRegistryAddress = odpHasValidRegistryAddress;

@@ -26,7 +26,7 @@
 
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.2.1"></script>
+<script src="odp-contract.js?v=0.3.0"></script>
 <script src="odp-i18n.js?v=6"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
@@ -96,7 +96,7 @@
       Reads passport.json from the bundle, detects Passport ID, loads the on-chain record, and compares hashes in your browser. If the JSON was edited, you still see what is in the file — it will not match as authentic.
     </p>
     <div class="drop-zone json-drop" id="odpQuickDrop">
-      <input type="file" id="odpQuickInput" accept=".odp,application/zip,application/octet-stream,.zip">
+      <input type="file" id="odpQuickInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
       <p><span data-i18n="verify.odpQuick.dropLine1">Drop .odp here or click to select</span><br>
       <span style="opacity:0.6" data-i18n="verify.odpQuick.dropLine2">Processed locally — not uploaded</span></p>
     </div>
@@ -234,7 +234,11 @@ const NET = {
   previousContracts: [],
 };
 
-const ABI = odpBuildVerifyReadAbi();
+/** Filled in `connect()` after RPC probe sets `odpContractGeneration` (tuple layout differs v0.2 vs v0.3). */
+let verifyReadAbi = null;
+function currentVerifyReadAbi() {
+  return verifyReadAbi || odpBuildVerifyReadAbi(odpContractGeneration != null ? odpContractGeneration : 2);
+}
 const DOC_ATTEST_WRITE_ABI = [
   {
     name: "attestExternalDocument",
@@ -253,6 +257,50 @@ let odpContractGeneration = null;
 let verifyContractError = null;
 
 const ZERO32 = "0x" + "0".repeat(64);
+
+function odpBytes32HexLower(x) {
+  if (x == null || x === undefined) return "";
+  try {
+    if (typeof ethers !== "undefined" && ethers.utils != null) {
+      return ethers.utils.hexlify(x).toLowerCase();
+    }
+  } catch (e) {}
+  const s = String(x).trim().toLowerCase();
+  return /^0x[a-f0-9]{64}$/.test(s) ? s : s;
+}
+
+function odpNonZeroBytes32(h) {
+  const x = odpBytes32HexLower(h);
+  return Boolean(x && x !== ZERO32.toLowerCase());
+}
+
+/** @returns {{ fileHash: string, imageHash: string, imageHash2: string, imageHash3: string }} */
+function odpPassportSidecarHashes(rec) {
+  if (!rec || typeof rec !== "object") {
+    return {
+      fileHash: "",
+      imageHash: "",
+      imageHash2: "",
+      imageHash3: "",
+    };
+  }
+  return {
+    fileHash: odpBytes32HexLower(rec.fileHash),
+    imageHash: odpBytes32HexLower(rec.imageHash),
+    imageHash2: odpBytes32HexLower(rec.imageHash2),
+    imageHash3: odpBytes32HexLower(rec.imageHash3),
+  };
+}
+
+function firstZipFileInFolder(zip, folderName) {
+  const prefix = folderName.endsWith("/") ? folderName : folderName + "/";
+  for (const z of Object.values(zip.files)) {
+    if (!z || z.dir || !z.name || !z.name.startsWith(prefix)) continue;
+    if (z.name.slice(prefix.length).includes("/")) continue;
+    return z;
+  }
+  return null;
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -479,7 +527,8 @@ async function connect() {
         setNet("warn", `${c.name} — ${t("verify.net.legacyNotSupported")}`);
         return;
       }
-      contract = new ethers.Contract(c.contract, ABI, provider);
+      verifyReadAbi = odpBuildVerifyReadAbi(odpContractGeneration);
+      contract = new ethers.Contract(c.contract, verifyReadAbi, provider);
       if (lbl) {
         lbl.innerHTML = odpFormatStackSummaryHtml(odpContractGeneration);
         lbl.style.display = "";
@@ -538,7 +587,7 @@ function verifyReadContractsOrdered() {
     seen[a] = true;
     uniq.push(addrs[i]);
   }
-  return uniq.map((addr) => new ethers.Contract(addr, ABI, provider));
+  return uniq.map((addr) => new ethers.Contract(addr, currentVerifyReadAbi(), provider));
 }
 
 /** Collect all proof IDs using paged reads when available (avoids huge single RPC responses). */
@@ -896,9 +945,20 @@ async function verifyFromOdpBundleQuick(file) {
     const localHash = (await sha256text(canon)).toLowerCase();
     const dataStatus = localHash === dataHashHex ? "authentic" : "tampered";
 
-    render(humanId, rec, creator, p, proofs, dataStatus, readContract.address, { odpFileName: file.name });
+    let quickOpts = { odpFileName: file.name };
+    try {
+      if (readContract.getCounterfeitConcern) {
+        const cc = await readContract.getCounterfeitConcern(humanId);
+        if (cc && cc.active) {
+          quickOpts.counterfeitActive = true;
+          quickOpts.counterfeitProver = cc.proverCreatorId;
+        }
+      }
+    } catch {}
+    Object.assign(quickOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
+    render(humanId, rec, creator, p, proofs, dataStatus, readContract.address, quickOpts);
     queueMicrotask(() => {
-      attachOdpVerifyHandlers(humanId, dataHashHex, rec.fileHash, rec.imageHash);
+      attachOdpVerifyHandlers(humanId, dataHashHex, rec);
     });
   } catch (e) {
     const m = e && (e.message || String(e));
@@ -1015,7 +1075,7 @@ async function verify() {
     setLoading(el, t("verify.loading.fetchData"));
     let passport   = null;
     let dataStatus = "unverifiable";
-    let verifyRenderOpts = null;
+    const verifyRenderOpts = {};
 
     const publicDataUrl = (rec.dataUrl || "").trim();
     if (!publicDataUrl) {
@@ -1029,11 +1089,22 @@ async function verify() {
           const onchain = rec.dataHash.toLowerCase();
           dataStatus = hash === onchain ? "authentic" : "tampered";
           passport = JSON.parse(rawJ);
-          if (hostedAs === "odp") verifyRenderOpts = { dataUrlHostedAsOdp: true };
+          if (hostedAs === "odp") verifyRenderOpts.dataUrlHostedAsOdp = true;
         }
       } catch {}
     }
 
+    try {
+      if (readContract.getCounterfeitConcern) {
+        const cc = await readContract.getCounterfeitConcern(humanId);
+        if (cc && cc.active) {
+          verifyRenderOpts.counterfeitActive = true;
+          verifyRenderOpts.counterfeitProver = cc.proverCreatorId;
+        }
+      }
+    } catch {}
+
+    Object.assign(verifyRenderOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
     render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOn, verifyRenderOpts);
 
   } catch (e) {
@@ -1341,6 +1412,38 @@ function renderPassportJsonExtras(passport, isDigital) {
         <div class="fields">${rows.join("")}</div>`;
 }
 
+/** v0.3: optional publishing-agent row on Verify (read-only; scoped to issuer wallet). */
+async function verifyFetchDelegationOpts(readContract, creatorWallet) {
+  const out = {};
+  try {
+    if (
+      readContract &&
+      typeof readContract.getCreatorPublishingDelegation === "function" &&
+      creatorWallet &&
+      typeof odpSupportsV03 === "function" &&
+      odpSupportsV03(odpContractGeneration)
+    ) {
+      const cw = ethers.utils.getAddress(String(creatorWallet));
+      const d = await readContract.getCreatorPublishingDelegation(cw);
+      const agent = d.agent || d[0];
+      const rawExp = d.expiresAt !== undefined ? d.expiresAt : d[1];
+      const expBn = ethers.BigNumber.isBigNumber(rawExp)
+        ? rawExp
+        : ethers.BigNumber.from(rawExp == null ? 0 : rawExp);
+      const expSec = expBn.toNumber();
+      const ZERO = "0x0000000000000000000000000000000000000000";
+      if (agent && String(agent).toLowerCase() !== ZERO) {
+        out.delegationAgent = String(agent);
+        out.delegationExpiresAt = expSec;
+        out.delegationExpiresLabel = expSec ? new Date(expSec * 1000).toLocaleString() : "—";
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return out;
+}
+
 /** On-chain packed `contractVersion` byte (mint-time). This UI targets v0.2+ registries; `0` may appear only on historical rows. */
 function formatOdpProtocolBadge(contractVersion) {
   const v = Number(contractVersion);
@@ -1442,8 +1545,11 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
     resolvedOnAddress &&
     String(resolvedOnAddress).toLowerCase() !== String(net_.contract || "").toLowerCase();
   const isDigital = rec.objectType === "digital";
-  const hasImage  = rec.imageHash !== ZERO32;
-  const hasFile   = rec.fileHash  !== ZERO32;
+  const sidecarHashes = odpPassportSidecarHashes(rec);
+  const hasImage = odpNonZeroBytes32(sidecarHashes.imageHash);
+  const hasImage2 = odpNonZeroBytes32(sidecarHashes.imageHash2);
+  const hasImage3 = odpNonZeroBytes32(sidecarHashes.imageHash3);
+  const hasFile = odpNonZeroBytes32(sidecarHashes.fileHash);
   const hasNFC    = rec.sealType  === 1 || rec.sealType === 3;
   let dataHashHex;
   try {
@@ -1536,6 +1642,16 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         ${
           renderOpts && renderOpts.dataUrlHostedAsOdp
             ? `<p class="info neutral" style="font-size:12px;margin:0 0 14px;line-height:1.55;border-left:3px solid var(--accent);padding-left:10px">${esc(t("verify.dataUrl.odpHostedBanner"))}</p>`
+            : ""
+        }
+        ${
+          rec && rec.revoked
+            ? `<div class="err-box" style="margin:0 0 14px;font-size:13px;line-height:1.55"><strong>Revoked on-chain</strong> — this passport was revoked. Do not treat as a valid authenticity anchor.</div>`
+            : ""
+        }
+        ${
+          renderOpts && renderOpts.counterfeitActive
+            ? `<div class="err-box" style="margin:0 0 14px;font-size:13px;line-height:1.55"><strong>Institutional authenticity concern</strong> — profile <span class="mono">${esc(String(renderOpts.counterfeitProver || ""))}</span> (P or M) raised a counterfeit-related flag. This is an institutional opinion, not a legal ruling.</div>`
             : ""
         }
 
@@ -1637,6 +1753,23 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             <div class="fv mono">${rec.creator}</div>
           </div>
 
+          ${
+            rec.owner !== undefined && rec.owner
+              ? `<div class="field full">
+            <div class="fl">${esc(t("verify.fields.owner"))}</div>
+            <div class="fv mono">${esc(String(rec.owner))}</div>
+          </div>`
+              : ""
+          }
+          ${
+            renderOpts && renderOpts.delegationAgent
+              ? `<div class="field full">
+            <div class="fl">${esc(t("verify.fields.delegation"))}</div>
+            <div class="fv mono">${esc(String(renderOpts.delegationAgent))}<br><span style="font-size:11px;color:var(--text2)">${esc(t("verify.fields.delegationExpires"))}: ${esc(String(renderOpts.delegationExpiresLabel || "—"))}</span></div>
+          </div>`
+              : ""
+          }
+
         </div>
 
         ${passport ? renderPassportJsonExtras(passport, isDigital) : ""}
@@ -1659,7 +1792,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           ${esc(t("verify.detail.localOdpLead"))}
         </p>
         <div class="drop-zone json-drop" id="odpDrop">
-          <input type="file" id="odpInput" accept=".odp,application/zip,application/octet-stream,.zip">
+          <input type="file" id="odpInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
           <p>${esc(t("verify.detail.localOdpDrop1"))}<br>
           <span style="opacity:0.6">${esc(t("verify.detail.localOdpDrop2"))}</span></p>
         </div>
@@ -1682,7 +1815,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           <span class="vbadge na">Registered</span>
           <div class="vinfo">
             <div class="vinfo-label">Original File (SHA-256)</div>
-            <div class="vinfo-val">${rec.fileHash}</div>
+            <div class="vinfo-val">${esc(sidecarHashes.fileHash)}</div>
           </div>
         </div>` : ""}
 
@@ -1728,10 +1861,26 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div class="vrow">
           <span class="vbadge na">${hasImage ? 'Registered' : 'None'}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Image (SHA-256)</div>
-            <div class="vinfo-val">${hasImage ? rec.imageHash : "No image registered"}</div>
+            <div class="vinfo-label">Image 1 (SHA-256)</div>
+            <div class="vinfo-val">${hasImage ? esc(sidecarHashes.imageHash) : "No image registered"}</div>
           </div>
         </div>
+        ${hasImage2 ? `
+        <div class="vrow">
+          <span class="vbadge na">Registered</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Image 2 (SHA-256)</div>
+            <div class="vinfo-val">${esc(sidecarHashes.imageHash2)}</div>
+          </div>
+        </div>` : ""}
+        ${hasImage3 ? `
+        <div class="vrow">
+          <span class="vbadge na">Registered</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Image 3 (SHA-256)</div>
+            <div class="vinfo-val">${esc(sidecarHashes.imageHash3)}</div>
+          </div>
+        </div>` : ""}
         ${hasImage && !rec.imageUrl ? `
         <div class="vrow">
           <span class="vbadge warn">No URL</span>
@@ -1748,7 +1897,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         ${isDigital && hasFile ? `
         <div class="section-title">Verify Original File</div>
         <div class="drop-zone" id="fileDrop" onclick="document.getElementById('fileInput').click()">
-          <input type="file" id="fileInput" onchange="verifyFile(event, '${rec.fileHash}')">
+          <input type="file" id="fileInput" onchange="verifyFile(event, '${esc(sidecarHashes.fileHash)}')">
           <p>Drop original file here or click to select<br>
           <span style="opacity:0.6">SHA-256 computed locally — file is never uploaded</span></p>
         </div>
@@ -1756,13 +1905,29 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
 
         <!-- Image verification -->
         ${hasImage ? `
-        <div class="section-title">Verify Image</div>
+        <div class="section-title">Verify image 1</div>
         <div class="drop-zone" id="imgDrop" onclick="document.getElementById('imgInput').click()">
-          <input type="file" id="imgInput" accept="image/*" onchange="verifyImage(event, '${rec.imageHash}')">
+          <input type="file" id="imgInput" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash)}')">
           <p>Drop image file here or click to select<br>
           <span style="opacity:0.6">Computed locally — not uploaded</span></p>
         </div>
         <div id="imgResult"></div>` : ""}
+        ${hasImage2 ? `
+        <div class="section-title">Verify image 2</div>
+        <div class="drop-zone" id="imgDrop2" onclick="document.getElementById('imgInput2').click()">
+          <input type="file" id="imgInput2" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash2)}', 'imgResult2', 'imgDrop2')">
+          <p>Drop second image or select file<br>
+          <span style="opacity:0.6">Bundle path: <code>image2/</code></span></p>
+        </div>
+        <div id="imgResult2"></div>` : ""}
+        ${hasImage3 ? `
+        <div class="section-title">Verify image 3</div>
+        <div class="drop-zone" id="imgDrop3" onclick="document.getElementById('imgInput3').click()">
+          <input type="file" id="imgInput3" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash3)}', 'imgResult3', 'imgDrop3')">
+          <p>Drop third image or select file<br>
+          <span style="opacity:0.6">Bundle path: <code>image3/</code></span></p>
+        </div>
+        <div id="imgResult3"></div>` : ""}
 
         <!-- NFC hint -->
         ${hasNFC ? `
@@ -1802,14 +1967,16 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div class="links">
           <a class="ext-link" href="${net_.explorer}/address/${net_.contract}" target="_blank">Contract ↗</a>
           ${(rec.dataUrl || "").trim() ? `<a class="ext-link" href="${esc(rec.dataUrl)}" target="_blank">Passport JSON ↗</a>` : `<span class="ext-link" style="opacity:0.55;cursor:default">No public JSON URL on-chain</span>`}
-          ${hasImage && rec.imageUrl ? `<a class="ext-link" href="${esc(rec.imageUrl)}" target="_blank">Image ↗</a>` : ""}
+          ${hasImage && rec.imageUrl ? `<a class="ext-link" href="${esc(rec.imageUrl)}" target="_blank">Image 1 ↗</a>` : ""}
+          ${hasImage2 && rec.imageUrl2 ? `<a class="ext-link" href="${esc(rec.imageUrl2)}" target="_blank">Image 2 ↗</a>` : ""}
+          ${hasImage3 && rec.imageUrl3 ? `<a class="ext-link" href="${esc(rec.imageUrl3)}" target="_blank">Image 3 ↗</a>` : ""}
           ${net_.explorer ? `<a class="ext-link" href="${net_.explorer}/address/${rec.creator}" target="_blank">Creator ↗</a>` : ""}
         </div>
 
       </div>
     </div>`;
   queueMicrotask(() => {
-    attachOdpVerifyHandlers(humanId, dataHashHex, rec.fileHash, rec.imageHash);
+    attachOdpVerifyHandlers(humanId, dataHashHex, rec);
     attachInstitutionProofVerifyHandlers();
     const c2paDeclared =
       passport && passport.digital && passport.digital.c2pa && passport.digital.c2pa.manifestHash
@@ -1919,7 +2086,7 @@ function renderLocalPassportPreview(p) {
     </div>`;
 }
 
-function attachOdpVerifyHandlers(expectedHumanId, dataHashHex, onchainFileHash, onchainImageHash) {
+function attachOdpVerifyHandlers(expectedHumanId, dataHashHex, passportRec) {
   const drop = document.getElementById("odpDrop");
   const input = document.getElementById("odpInput");
   if (!drop || !input) return;
@@ -1937,14 +2104,14 @@ function attachOdpVerifyHandlers(expectedHumanId, dataHashHex, onchainFileHash, 
     e.stopPropagation();
     drop.classList.remove("drop-zone-over");
     const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
-    if (f) void runOdpBundleVerify(f, expectedHumanId, dataHashHex, onchainFileHash, onchainImageHash);
+    if (f) void runOdpBundleVerify(f, expectedHumanId, dataHashHex, passportRec);
   };
   drop.addEventListener("dragover", onDragOver, true);
   drop.addEventListener("dragleave", onDragLeave, true);
   drop.addEventListener("drop", onDrop, true);
   input.addEventListener("change", (e) => {
     const f = e.target && e.target.files && e.target.files[0];
-    if (f) void runOdpBundleVerify(f, expectedHumanId, dataHashHex, onchainFileHash, onchainImageHash);
+    if (f) void runOdpBundleVerify(f, expectedHumanId, dataHashHex, passportRec);
     e.target.value = "";
   });
 }
@@ -1954,11 +2121,11 @@ async function sha256BufferToHex(buf) {
   return "0x" + Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, onchainFileHash, onchainImageHash) {
+async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passportRec) {
   const out = document.getElementById("odpResult");
   const drop = document.getElementById("odpDrop");
   if (!out) return;
-  out.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Reading .odp bundle…</span></div>`;
+  out.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Reading .odpass bundle…</span></div>`;
   try {
     if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
     const zip = await JSZip.loadAsync(file);
@@ -1969,36 +2136,49 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, onchai
     const localDataHash = await sha256text(canon);
     const dataMatch = localDataHash.toLowerCase() === String(onchainDataHash || "").toLowerCase();
 
-    let sidecarCheckHtml = "";
-    const wantFile = String(onchainFileHash || "").toLowerCase();
-    const wantImage = String(onchainImageHash || "").toLowerCase();
+    const sc = odpPassportSidecarHashes(passportRec);
+    const wantFile = String(sc.fileHash || "").toLowerCase();
+    const wantImage = String(sc.imageHash || "").toLowerCase();
+    const wantImage2 = String(sc.imageHash2 || "").toLowerCase();
+    const wantImage3 = String(sc.imageHash3 || "").toLowerCase();
     const hasFileHash = wantFile && wantFile !== ZERO32.toLowerCase();
-    const hasImageHash = wantImage && wantImage !== ZERO32.toLowerCase();
-    const originalEntry = Object.values(zip.files).find((z) => !z.dir && z.name.startsWith("original/"));
-    const imageEntry = Object.values(zip.files).find((z) => !z.dir && z.name.startsWith("image/"));
+    const imageSlots = [
+      { folder: "image", want: wantImage, label: "Image 1" },
+      { folder: "image2", want: wantImage2, label: "Image 2" },
+      { folder: "image3", want: wantImage3, label: "Image 3" },
+    ];
+
+    const sidecarRows = [];
+    const originalEntry = firstZipFileInFolder(zip, "original");
     if (originalEntry && hasFileHash) {
       const buf = await originalEntry.async("arraybuffer");
       const got = await sha256BufferToHex(buf);
       const ok = got.toLowerCase() === wantFile;
-      sidecarCheckHtml = `<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+      sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
         <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? "Original OK" : "Original mismatch"}</span>
         <div class="vinfo">
           <div class="vinfo-label">${esc(originalEntry.name)}</div>
           <div class="vinfo-val">${esc(got)}</div>
         </div>
-      </div>`;
-    } else if (imageEntry && hasImageHash) {
+      </div>`);
+    }
+    for (const slot of imageSlots) {
+      const w = String(slot.want || "").toLowerCase();
+      if (!w || w === ZERO32.toLowerCase()) continue;
+      const imageEntry = firstZipFileInFolder(zip, slot.folder);
+      if (!imageEntry) continue;
       const buf = await imageEntry.async("arraybuffer");
       const got = await sha256BufferToHex(buf);
-      const ok = got.toLowerCase() === wantImage;
-      sidecarCheckHtml = `<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
-        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? "Image OK" : "Image mismatch"}</span>
+      const ok = got.toLowerCase() === w;
+      sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? `${esc(slot.label)} OK` : `${esc(slot.label)} mismatch`}</span>
         <div class="vinfo">
           <div class="vinfo-label">${esc(imageEntry.name)}</div>
           <div class="vinfo-val">${esc(got)}</div>
         </div>
-      </div>`;
+      </div>`);
     }
+    const sidecarCheckHtml = sidecarRows.join("");
 
     if (drop) drop.style.borderStyle = "solid";
     let bundlePreview = "";
@@ -2026,7 +2206,7 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, onchai
   } catch (e) {
     if (drop) drop.style.borderStyle = "solid";
     out.innerHTML = `<div class="err-box" style="margin-top:10px;font-size:12px">
-      <strong>Invalid .odp bundle.</strong> ${esc(e && (e.message || String(e)))}
+      <strong>Invalid .odpass bundle.</strong> ${esc(e && (e.message || String(e)))}
     </div>`;
   }
 }
@@ -2064,10 +2244,13 @@ function attachC2paHashCheck(declaredHashRaw) {
   });
 }
 
-async function verifyImage(e, onchain) {
+async function verifyImage(e, onchain, resultId, dropId) {
   const file = e.target.files[0];
   if (!file) return;
-  const el = document.getElementById("imgResult");
+  const rid = resultId || "imgResult";
+  const did = dropId || "imgDrop";
+  const el = document.getElementById(rid);
+  if (!el) return;
   el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Computing SHA-256...</span></div>`;
 
   const buf  = await file.arrayBuffer();
@@ -2075,7 +2258,8 @@ async function verifyImage(e, onchain) {
   const hex  = "0x" + Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
 
   const match = hex.toLowerCase() === onchain.toLowerCase();
-  document.getElementById("imgDrop").style.borderStyle = "solid";
+  const dropEl = document.getElementById(did);
+  if (dropEl) dropEl.style.borderStyle = "solid";
   el.innerHTML = `
     <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
       <span class="vbadge ${match ? 'ok' : 'bad'}">${match ? 'Authentic' : 'Replaced'}</span>
@@ -2123,9 +2307,11 @@ function sortKeysDeep(obj) {
 
 function urlPathIndicatesOdp(u) {
   try {
-    return /\.odp$/i.test(new URL(u).pathname);
+    const p = new URL(u).pathname;
+    return /\.odpass$/i.test(p) || /\.odp$/i.test(p);
   } catch {
-    return /\.odp(\?|#|$)/i.test(String(u || ""));
+    const s = String(u || "");
+    return /\.odpass(\?|#|$)/i.test(s) || /\.odp(\?|#|$)/i.test(s);
   }
 }
 

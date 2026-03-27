@@ -22,9 +22,13 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200,
+        // Lower runs shrink bytecode — v0.3 contract is large (Spurious Dragon 24 KiB deploy limit).
+        runs: 1,
       },
       viaIR: true,
+      metadata: {
+        bytecodeHash: "none",
+      },
     },
   },
 

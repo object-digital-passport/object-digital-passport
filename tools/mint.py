@@ -2,10 +2,10 @@
 """
 Object Digital Passport — Mint CLI
 Author: Andrei Chernikov
-Specification v0.2
+Specification v0.3 (CLI targets v0.3 contract ABI)
 
 Usage:
-    python mint.py                  # interactive mint → saves passports/<Passport ID>.odp (SPEC §15)
+    python mint.py                  # interactive mint → saves passports/<Passport ID>.odpass (SPEC §15)
     python mint.py --register       # register profile (on-chain creatorId) first
     python mint.py --check          # check your profile ID
 
@@ -108,6 +108,10 @@ CONTRACT_ABI = [
             {"name": "sealHash",     "type": "bytes32"},
             {"name": "nfcPublicKey", "type": "bytes"},
             {"name": "nfcModel",     "type": "string"},
+            {"name": "imageHash2",   "type": "bytes32"},
+            {"name": "imageUrl2",    "type": "string"},
+            {"name": "imageHash3",   "type": "bytes32"},
+            {"name": "imageUrl3",    "type": "string"},
             {"name": "dataUrlIsFolderBase", "type": "bool"},
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
@@ -124,6 +128,10 @@ CONTRACT_ABI = [
             {"name": "dataUrl",   "type": "string"},
             {"name": "imageHash", "type": "bytes32"},
             {"name": "imageUrl",  "type": "string"},
+            {"name": "imageHash2", "type": "bytes32"},
+            {"name": "imageUrl2",  "type": "string"},
+            {"name": "imageHash3", "type": "bytes32"},
+            {"name": "imageUrl3",  "type": "string"},
             {"name": "fileHash",  "type": "bytes32"},
             {"name": "dataUrlIsFolderBase", "type": "bool"},
         ],
@@ -158,12 +166,15 @@ CONTRACT_ABI = [
                 {"name": "humanId",          "type": "string"},
                 {"name": "contractVersion",  "type": "uint8"},
                 {"name": "creator",          "type": "address"},
+                {"name": "owner",            "type": "address"},
                 {"name": "creatorId",        "type": "string"},
                 {"name": "year",         "type": "uint32"},
                 {"name": "month",        "type": "uint8"},
                 {"name": "objectType",   "type": "string"},
                 {"name": "dataHash",     "type": "bytes32"},
                 {"name": "imageHash",    "type": "bytes32"},
+                {"name": "imageHash2",   "type": "bytes32"},
+                {"name": "imageHash3",   "type": "bytes32"},
                 {"name": "fileHash",     "type": "bytes32"},
                 {"name": "sealType",     "type": "uint8"},
                 {"name": "sealHash",     "type": "bytes32"},
@@ -171,7 +182,12 @@ CONTRACT_ABI = [
                 {"name": "nfcModel",     "type": "string"},
                 {"name": "dataUrl",      "type": "string"},
                 {"name": "imageUrl",     "type": "string"},
+                {"name": "imageUrl2",    "type": "string"},
+                {"name": "imageUrl3",    "type": "string"},
                 {"name": "timestamp",    "type": "uint256"},
+                {"name": "revoked",      "type": "bool"},
+                {"name": "revokedAt",    "type": "uint256"},
+                {"name": "revocationReasonHash", "type": "bytes32"},
             ]
         }],
     },
@@ -327,10 +343,18 @@ def safe_odp_basename(human_id: str) -> str:
     return (s or "passport")[:96]
 
 
-def write_odp_bundle(out_path, passport_json_str, manifest, original_path=None, image_path=None):
+def write_odp_bundle(
+    out_path,
+    passport_json_str,
+    manifest,
+    original_path=None,
+    image_path=None,
+    image_path2=None,
+    image_path3=None,
+):
     """
     ODP bundle per SPEC.md §15 — same layout as `createPassportOdpBlob` in web/passport.html:
-    passport.json, manifest.json, optional original/* and image/*.
+    passport.json, manifest.json, optional original/*, image/*, image2/*, image3/*.
     """
     with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         zf.writestr("passport.json", passport_json_str.encode("utf-8"))
@@ -340,6 +364,12 @@ def write_odp_bundle(out_path, passport_json_str, manifest, original_path=None, 
         if image_path and Path(image_path).is_file():
             p = Path(image_path)
             zf.write(p, arcname=f"image/{p.name}")
+        if image_path2 and Path(image_path2).is_file():
+            p = Path(image_path2)
+            zf.write(p, arcname=f"image2/{p.name}")
+        if image_path3 and Path(image_path3).is_file():
+            p = Path(image_path3)
+            zf.write(p, arcname=f"image3/{p.name}")
         zf.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8"))
 
 # ─── Register profile ─────────────────────────────────────────────────────────
@@ -697,6 +727,10 @@ def cmd_mint(args):
             to_bytes32(seal_hash_bytes),
             nfc_pub_key,
             nfc_model_str,   # "NTAG424DNA_TT" or ""
+            ZERO_BYTES32,
+            "",
+            ZERO_BYTES32,
+            "",
             False,           # dataUrlIsFolderBase — CLI uses full dataUrl; use web UI for folder-base mint
         )
     else:
@@ -707,6 +741,10 @@ def cmd_mint(args):
             data_url,
             to_bytes32(image_hash_bytes),
             image_url,
+            ZERO_BYTES32,
+            "",
+            ZERO_BYTES32,
+            "",
             to_bytes32(file_hash_bytes),
             False,           # dataUrlIsFolderBase
         )
@@ -754,14 +792,16 @@ def cmd_mint(args):
         })
 
     manifest = {
-        "format": "odp-bundle",
-        "bundleVersion": "0.1",
+        "format": "odpass-bundle",
+        "bundleVersion": "0.2",
         "passportId": human_id,
         "createdAtUtc": odp_created_at_utc_iso(),
         "mode": "full",
         "onChain": {
             "dataHash": bytes32_to_hex0x(to_bytes32(data_hash_bytes)),
             "imageHash": b32h(image_hash_bytes),
+            "imageHash2": ZERO_HEX32,
+            "imageHash3": ZERO_HEX32,
             "fileHash": b32h(file_hash_bytes),
             "txHash": tx_hex,
             "chainId": int(net["chain_id"]),
@@ -772,7 +812,7 @@ def cmd_mint(args):
 
     output_dir = Path("passports")
     output_dir.mkdir(exist_ok=True)
-    odp_path = output_dir / (safe_odp_basename(human_id) + ".odp")
+    odp_path = output_dir / (safe_odp_basename(human_id) + ".odpass")
     write_odp_bundle(odp_path, passport_json_str, manifest, orig_for_zip, img_for_zip)
 
     print()
@@ -783,14 +823,14 @@ def cmd_mint(args):
     print(f"  Transaction:  {net['explorer']}/tx/{tx_hex}")
     print()
     print(f"  Saved bundle: {odp_path}")
-    print(f"  (Same .odp layout as web Passport: SPEC.md §15, manifest bundleVersion 0.1.)")
+    print(f"  (Same .odpass zip layout as web Passport: SPEC.md §15, manifest bundleVersion 0.2.)")
     print()
     print(f"  Next steps:")
     if data_url:
-        print(f"  1. Unzip the .odp and upload passport.json to your dataUrl — use the exact bytes from the bundle.")
+        print(f"  1. Unzip the .odpass and upload passport.json to your dataUrl — use the exact bytes from the bundle.")
     else:
-        print(f"  1. Keep the .odp safe; without a public dataUrl only holders can verify against the chain.")
-    print(f"  2. Drop the .odp on Verify or enter Passport ID {human_id}")
+        print(f"  1. Keep the .odpass safe; without a public dataUrl only holders can verify against the chain.")
+    print(f"  2. Drop the .odpass on Verify or enter Passport ID {human_id}")
     print(f"  3. QR: python mint.py --qr {human_id}")
     divider()
 

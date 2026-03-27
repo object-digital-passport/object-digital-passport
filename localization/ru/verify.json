@@ -116,7 +116,10 @@
     },
     "fields": {
       "passportId": "Passport ID",
-      "profile": "Профиль"
+      "profile": "Профиль",
+      "owner": "Текущий владелец (on-chain)",
+      "delegation": "Агент публикации (эмитент)",
+      "delegationExpires": "Истекает"
     },
     "creatorResult": {
       "registeredTitle": "Профиль зарегистрирован",

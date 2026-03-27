@@ -1,4 +1,4 @@
-# Object Digital Passport · v0.2
+# Object Digital Passport · v0.3 (draft protocol / tooling)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -28,7 +28,7 @@ If you are new:
 
 1. Read this README for the practical overview.
 2. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
-3. Use [`RELEASE_v0.2.md`](RELEASE_v0.2.md) as the release snapshot.
+3. Use [`RELEASE_v0.3.md`](RELEASE_v0.3.md) for the current v0.3 operator snapshot. The older **v0.2** deployed line is summarized under [**Current release**](#current-release) below and in [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md).
 
 Translated version:
 - Russian README: [`localization/ru/README.md`](localization/ru/README.md)
@@ -45,6 +45,7 @@ Important context about version lines:
 
 - Use an EIP-1193 wallet (MetaMask, Rabby, Coinbase Wallet, Brave Wallet, etc.).
 - Keep a small POL balance for gas.
+- **Use a dedicated wallet for ODP only** — not for savings, DeFi, or trading (limits damage if a dapp is malicious).
 
 ### 2) Register your profile
 
@@ -65,7 +66,7 @@ Important context about version lines:
 ### 5) Verify
 
 - Open [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
-- Enter Passport ID, paste `odp://...`, or drop `.odp` file.
+- Enter Passport ID, paste `odp://...`, or drop `.odpass` / `.odp` file.
 
 ## How ODP Works
 
@@ -96,12 +97,12 @@ Pages:
 
 | Item | Value |
 |:--|:--|
-| Recommended PoC line | v0.2 |
-| Mainnet contract (v0.2) | [`0x6c83c8C2e18c183a2776431a23187832b42FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) |
+| Recommended PoC line | **v0.3** (this repo) / **v0.2** (deployed mainnet below) |
+| Mainnet contract (v0.2 line) | [`0x6c83c8C2e18c183a2776431a23187832b42FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) — *v0.3 bytecode is in-repo; deploy a new address to use new ABI features* |
 | Legacy contract (v0.1, unsupported by current UI) | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
 
-Friendly release summary:
-- [`RELEASE_v0.2.md`](RELEASE_v0.2.md)
+Operator-facing release notes:
+- [`RELEASE_v0.3.md`](RELEASE_v0.3.md)
 
 ## Terms You Need
 
@@ -149,19 +150,25 @@ WalletConnect-style flows are not wired in static pages of this repo by default.
 /
 ├── SPEC.md
 ├── SECURITY.md
-├── RELEASE_v0.2.md
+├── RELEASE_v0.3.md
 ├── docs/
 │   ├── README.md
 │   ├── VERSIONING_AND_RELEASES.md
 │   ├── V0.2-DRAFT.md
-│   └── V0.3-DRAFT.md
+│   └── V0.3.md
+├── e2e/
+│   ├── README.md
+│   ├── package.json
+│   ├── playwright.config.cjs
+│   └── smoke.spec.ts
 ├── contracts/
 │   └── ObjectDigitalPassport.sol
 ├── deploy/
 │   ├── hardhat.config.js
 │   └── scripts/deploy.js
 ├── tools/
-│   └── mint.py
+│   ├── mint.py
+│   └── README.md
 └── web/
     ├── creator.html
     ├── passport.html
@@ -201,8 +208,7 @@ Typical v0.2 costs:
 
 More details:
 - [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)
-- [`docs/V0.3-DRAFT.md`](docs/V0.3-DRAFT.md)
-- RU draft: [`localization/ru/V0.3-DRAFT.md`](localization/ru/V0.3-DRAFT.md)
+- [`docs/V0.3.md`](docs/V0.3.md)
 
 ## Contributing
 

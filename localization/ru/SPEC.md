@@ -1,5 +1,5 @@
 # Object Digital Passport
-### Specification v0.2 — DRAFT
+### Specification v0.3 — DRAFT (перевод справочно)
 
 *Author: Andrei Chernikov*
 
@@ -18,6 +18,21 @@
 - **С v0.1 обратной совместимости нет** ни для ID профиля (`creatorId`), ни для паспортных записей: v0.1 и v0.2 нужно считать разными реестрами.
 
 Если вам нужен сценарий **«один кошелёк + один долгоживущий `creatorId`»** как каноничное хранилище, лучше дождаться стабильного **v1**.
+
+### v0.3 on-chain (кратко)
+
+Контракт **v0.3** (`CONTRACT_VERSION` упакованный байт **3**) расширяет реестр:
+
+- **`owner`** (изначально совпадает с `creator`) и **`transferPassport`**; опционально **`delegateCreatorPublishing`** / **`revokeCreatorPublishing`** (агент публикации на весь аккаунт эмитента для **`updatePassportUrls`**)
+- **`revokePassport`** (creator или адрес **`governance`**) с **`revocationReasonHash`**
+- До **трёх** якорей изображения: **`imageHash`**, **`imageHash2`**, **`imageHash3`** (и подсказки URL **`imageUrl`**, **`imageUrl2`**, **`imageUrl3`**)
+- **Аудит P-affiliation**: **`getPAffiliationAudit`**, **`detachPAffiliation`** (родитель P); метки времени join / detach
+- **Подделка / сомнение в подлинности**: **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** (только P или M; позиция институции, не юридический факт)
+- **Компактные revert**: ошибки через **`error EC(uint16 code)`** — расшифровка по исходнику задеплоенного контракта (строковые сообщения убраны из-за лимита 24 KiB)
+
+**On-chain governance определений типов с timelock** в байткоде v0.3 не хранится; multisig / DAO — оффчейн, при необходимости фиксируйте хэши в релизах.
+
+Переносимый формат бандла — **`.odpass`** (ZIP); **`.odp`** — **legacy**-расширение для того же layout; верификаторы принимают оба.
 
 ---
 ## Перевод — справочно
@@ -97,16 +112,19 @@ ODP-2027-01-002048391   ← объект зарегистрирован в ян�
 
 ### Алгоритм генерации
 
+Референсный **`ObjectDigitalPassport`** (v0.3) использует (Solidity `abi.encodePacked`):
+
 ```
-entropy = keccak256(block.timestamp + msg.sender + nonce)
-number  = uint32(entropy) % 1_000_000_000      // 000000000–999999999
-if number already exists for this year+month:
-    nonce++, retry
-humanId = "ODP-" + year + "-" + month + "-" + zero_pad(number, 9)
+key     = uint32(year) * 100 + uint32(month)
+entropy = keccak256(block.timestamp, block.prevrandao, msg.sender, nonce, key, gasleft())
+number  = uint32(uint256(entropy)) % 1_000_000_000   // 000000000–999999999
+if number уже занят для этого года+месяца:
+    nonce++, retry (ограниченное число попыток)
+humanId = "ODP-" + decimal(year) + "-" + two_digit(month) + "-" + zero_pad(number, 9)
 ```
 
-10 миллионов возможных значений в месяц. Уникальность гарантируется контрактом
-посредством проверки коллизий через autopol retry.
+**Один миллиард** возможных значений в месяц. Уникальность гарантируется контрактом
+через проверку коллизий с ограниченным числом повторов.
 
 ### Правила
 
@@ -131,13 +149,13 @@ humanId = "ODP-" + year + "-" + month + "-" + zero_pad(number, 9)
 ### Формат
 
 ```
-T-NNN-NNN-NNN
+T-NNN-NNN-NNN-NNN
 ```
 
 | Раздел | Описание | Пример |
 |------|-----------|---------|
 | `T` | Префикс типа (см. ниже) | `C` |
-| `NNN-NNN-NNN` | 9-значное случайное число, разделённое на группы по 3 для читаемости | `482-930-174` |
+| `NNN-NNN-NNN-NNN` | 12-значное случайное число, разбитое на **четыре** группы по 3 для читаемости | `482-930-174-005` |
 
 ### Префиксы типов
 
@@ -179,14 +197,16 @@ M-204-839-112-441   ← музей или коллекция
 
 ### Алгоритм генерации
 
+Референсный контракт (v0.3) использует (packed encoding, в том же стиле, что и Passport ID):
+
 ```
-entropy  = keccak256(block.timestamp + msg.sender + nonce)
-number   = uint64(entropy) % 1_000_000_000_000 // 000000000000–999999999999
-if number already exists: nonce++, retry
-group_1  = number / 1_000_000_000              // 1st 3 digits
-group_2  = (number / 1_000_000) % 1_000        // 2nd 3 digits
-group_3  = (number / 1_000) % 1_000            // 3rd 3 digits
-group_4  = number % 1_000                      // 4th 3 digits
+entropy  = keccak256(block.timestamp, block.prevrandao, msg.sender, nonce, gasleft())
+number   = uint64(uint256(entropy)) % 1_000_000_000_000   // 12 десятичных цифр
+if number уже занят: nonce++, retry (ограниченное число попыток)
+group_1  = number / 1_000_000_000
+group_2  = (number / 1_000_000) % 1_000
+group_3  = (number / 1_000) % 1_000
+group_4  = number % 1_000
 creatorId = type + "-" + pad3(group_1) + "-" + pad3(group_2) + "-" + pad3(group_3) + "-" + pad3(group_4)
 ```
 
@@ -302,25 +322,28 @@ ODP-2026-03-004829301  (original passport, 2026)
 ### Формат Proof ID
 
 ```
-PRF-YYYY-MM-NNNNNNN
+PRF-YYYY-MM-NNNNNNNN
 ```
 
-Генерируется тем же алгоритмом, что и Passport ID:
+Восьмизначный суффикс (не семь). Референсный **`ObjectDigitalPassport`** (v0.3):
 
 ```
-entropy = keccak256(block.timestamp + msg.sender + humanId + nonce)
-number  = uint32(entropy) % 10_000_000
-if number already exists for this year+month: nonce++, retry
-proofId = "PRF-" + year + "-" + month + "-" + zero_pad(number, 7)
+key         = uint32(year) * 100 + uint32(month)          // год/месяц события proof из аргументов tx
+humanIdHash = keccak256(utf8(humanId))
+entropy     = keccak256(block.timestamp, block.prevrandao, msg.sender, nonce, key, humanIdHash, gasleft())
+number      = uint32(uint256(entropy)) % 100_000_000      // 00000000–99999999
+if number уже занят для этого года+месяца: nonce++, retry (ограниченное число попыток)
+proofId     = "PRF-" + decimal(year) + "-" + two_digit(month) + "-" + zero_pad(number, 8)
 ```
 
-Пример: `PRF-2031-03-7392018`
+Пример: `PRF-2031-03-07392018`
 
 ### Поля записи proof
 
 | Поле | Тип | Обязательное | Описание |
 |-------|------|-------------|----------|
-| `proofId` | `string` | да | Автоматически генерируется: `PRF-2031-03-7392018` |
+| `proofId` | `string` | да | Автоматически: `PRF-YYYY-MM-NNNNNNNN` (суффикс из 8 цифр) |
+| `contractVersion` | `uint8` | да | Упакованная линия спеки на момент отправки (v0.3 mint/submit → **3**) |
 | `prover` | `string` | да | ID профиля институции (например, `P-029-384-751-224`) |
 | `humanId` | `string` | да | Passport ID аттестуемого объекта (имя поля `humanId`) |
 | `noteHash` | `bytes32` | нет | SHA-256 прикрепленного документа. `bytes32(0)`, если документа нет |
@@ -501,6 +524,8 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 |----------|-------|
 | Сеть | Polygon PoS (mainnet) |
 | Chain ID | 137 |
+| Канонический контракт **v0.2** mainnet | `0x6c83c8C2e18c183a2776431a23187832b42FfFBb` ([PolygonScan](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb)) — **байткод / ABI отличается** от **v0.3** в этом репозитории |
+| Референс **v0.3** | Исходник в репо (`ObjectDigitalPassport.sol`); для функций v0.3 нужен **новый деплой** (см. §8) |
 | Testnet | Polygon Amoy (chain ID 80002) |
 | Газ-токен | POL (ex-POL) |
 | Средняя стоимость mint | ~$0.01 |
@@ -509,31 +534,76 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 Одна каноническая сеть устраняет неоднозначность при верификации.
 Поддержка нескольких сетей зарезервирована для будущей версии.
 
-Официальный адрес контракта опубликован в репозитории протокола.
-Использование другого адреса означает работу с отдельным, несовместимым реестром.
+Официальный адрес линии **v0.2** указан выше. Другой адрес — отдельный, несовместимый реестр.
 
 ---
 
 ## 8. On-chain запись
 
+Раздел соответствует структуре **`Passport`** референсного **`ObjectDigitalPassport`** **v0.3** (`CONTRACT_VERSION` упакованный байт **3**). Порядок полей в ABI-тапле может отличаться; **имена** полей нормативны.
+
 | Поле | Тип | Обязательное | Описание |
 |-------|------|----------|-------------|
-| `humanId` | `string` | yes | `ODP-2026-03-004829301` |
-| `creator` | `address` | yes | Кошелёк, который минтачил |
-| `creatorId` | `string` | yes | ID профиля (обязателен — кошелёк должен быть зарегистрирован) |
-| `year` | `uint16` | yes | Год регистрации |
-| `month` | `uint8` | yes | Месяц регистрации (1–12) |
-| `objectType` | `string` | yes | `physical` или `digital` |
-| `dataHash` | `bytes32` | yes | SHA-256 от minified `passport.json` |
-| `imageHash` | `bytes32` | no | SHA-256 основной картинки. `0x000...0`, если нет |
-| `fileHash` | `bytes32` | no | SHA-256 цифрового файла. Требуется, если `objectType = digital` |
-| `sealType` | `uint8` | no | `1` = NFC, `2` = нумерованный, `3` = оба. Требуется, если `objectType = physical` |
-| `sealHash` | `bytes32` | no | SHA-256 объекта `seal`. Требуется, если `objectType = physical` |
-| `nfcPublicKey` | `bytes` | no | public key NFC-чипа. Пусто, если нет NFC seal |
-| `dataUrl` | `string` | yes | URL, по которому верификатор получает `passport.json` (макс. 512 символов): **сырой JSON** в теле ответа или **ZIP `.odp` по §15** с `passport.json` внутри |
-| `imageUrl` | `string` | no | Подсказка URL для изображения. Только информационно |
-| `timestamp` | `uint256` | yes | Устанавливается контрактом на момент mint’а |
-| `timestampTimeZone` | derived | yes | Фиксированная интерпретация протокола: **`UTC` (GMT+0)**. Отдельно в on-chain не хранится; часовой пояс всегда offset 0. |
+| `humanId` | `string` | да | Passport ID, напр. `ODP-2026-03-004829301` |
+| `contractVersion` | `uint8` | да | Упаковано при mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (v0.3 → **3**) |
+| `creator` | `address` | да | **Неизменяемый** кошелёк issuer (минтер) |
+| `owner` | `address` | да | Текущий держатель; **изначально = `creator`**; меняется только через **`transferPassport`** |
+| `creatorId` | `string` | да | ID профиля (до mint кошелёк должен быть зарегистрирован) |
+| `year` | `uint32` | да | Год регистрации (**> 0**) |
+| `month` | `uint8` | да | Месяц регистрации (1–12) |
+| `objectType` | `string` | да | `physical` или `digital` |
+| `dataHash` | `bytes32` | да | SHA-256 minified `passport.json` |
+| `imageHash` | `bytes32` | нет | SHA-256 основного изображения; `0x…00`, если нет |
+| `imageHash2` | `bytes32` | нет | Второе изображение; `0x…00`, если нет |
+| `imageHash3` | `bytes32` | нет | Третье изображение; **должно быть ноль, если ноль `imageHash2`** |
+| `fileHash` | `bytes32` | нет | SHA-256 цифрового оригинала; **обязан быть ненулевым**, если `objectType = digital` |
+| `sealType` | `uint8` | нет | Physical: `1` NFC, `2` нумерованная, `3` обе. Digital: **0** |
+| `sealHash` | `bytes32` | нет | SHA-256 `seal` в `passport.json`; нужен для physical |
+| `nfcPublicKey` | `bytes` | нет | Публичный ключ NFC; пусто без NFC |
+| `nfcModel` | `string` | нет | **`NTAG424DNA_TT`** при NFC seal; иначе пусто (контракт сравнивает хэш строки) |
+| `dataUrl` | `string` | нет | Откуда верификаторы получают `passport.json` (макс. **512** символов). Может быть **`""`** — тогда HTTP-верификаторы не получат JSON. При mint может разрешаться из «папки» (см. ниже). Тело: сырой JSON или ZIP **§15** |
+| `imageUrl` | `string` | нет | Подсказка URL основного изображения (макс. **512** символов) |
+| `imageUrl2` | `string` | нет | URL второго изображения (макс. **512**); пусто, если `imageHash2` ноль |
+| `imageUrl3` | `string` | нет | URL третьего (макс. **512**); пусто, если `imageHash3` ноль |
+| `timestamp` | `uint256` | да | Время блока mint |
+| `revoked` | `bool` | да | Флаг **необратимой** отмены |
+| `revokedAt` | `uint256` | да | Unix-секунды отзыва; **0**, если не отозван |
+| `revocationReasonHash` | `bytes32` | нет | **`keccak256(UTF-8 reason)`**; **0**, если не отозван |
+
+**Выводимое:** время цепи для off-chain отображают в **UTC**; отдельного поля `timestampTimeZone` нет.
+
+**Неизменяемость хэшей после mint:** `dataHash`, **`imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` **никогда** не меняются on-chain.
+
+**Папочный `dataUrl` при mint:** если `dataUrlIsFolderBase` = true, в вызов передаётся только **корень HTTPS-папки**; контракт сохраняет `stripTrailingSlash(folder) + "/" + humanId + ".json"` после известного Passport ID. **`updatePassportUrls`** всегда задаёт **буквальные** строки (без разрешения папки) и обновляет **только** `dataUrl` и **основной** `imageUrl` — не `imageUrl2` / `imageUrl3`.
+
+### Референсный контракт — mint (v0.3)
+
+- **`mintPhysical(year, month, dataHash, dataUrl, imageHash, imageUrl, sealType, sealHash, nfcPublicKey, nfcModel, imageHash2, imageUrl2, imageHash3, imageUrl3, dataUrlIsFolderBase)`**
+- **`mintDigital(year, month, dataHash, dataUrl, imageHash, imageUrl, imageHash2, imageUrl2, imageHash3, imageUrl3, fileHash, dataUrlIsFolderBase)`**
+
+### Референсный контракт — владение, URL, отзыв (v0.3)
+
+| Функция | Кто может вызывать | Примечания |
+|----------|----------------|-------|
+| `updatePassportUrls(humanId, newDataUrl, newImageUrl, confirmedDataHash)` | **`creator` или `owner`**, либо **активный агент публикации эмитента** | Нужно `confirmedDataHash == dataHash`; отозванные паспорты отклоняются |
+| `transferPassport(humanId, newOwner)` | **`owner`** | `newOwner != address(0)` |
+| `delegateCreatorPublishing(agent, expiresAt)` | **Зарегистрированный профиль** (`msg.sender`); слот на кошелёк **`msg.sender`** | Один активный агент на кошелёк эмитента; `expiresAt > block.timestamp` |
+| `revokeCreatorPublishing()` | **Зарегистрированный профиль** (очищает свой слот) | |
+| `getCreatorPublishingDelegation(creatorWallet)` | любой | `(agent, expiresAt)` для кошелька **эмитента** |
+| `revokePassport(humanId, reasonHash)` | **`creator` или `governance`** | `reasonHash != 0`; **`submitProof` reverts** при отозванном паспорте |
+| `raiseCounterfeitConcern(humanId, reasonHash)` | Зарегистрированные **`P` или `M`** | `reasonHash != 0` |
+| `clearCounterfeitConcern(humanId)` | **Тот же `creatorId` prover**, что поднял флаг | минимальная политика v0.3 |
+| `getCounterfeitConcern(humanId)` | любой | `(active, proverCreatorId, reasonHash, timestamp)` |
+
+### Референсный контракт — деплой, freeze, governance (v0.3)
+
+- **`deployer`**: `immutable`, в конструкторе = адрес деплоя.
+- **`governance`**: `address`; **в конструкторе `governance = deployer`**. Для multisig/DAO — **`transferGovernance(newAddr)`** (вызывает текущий `governance`).
+- **`freeze()`**: **только `deployer`**; **необратимо**; блокирует новые записи (`notFrozen`); чтение без изменений.
+
+### Revert’ы
+
+Референсный байткод использует только **`error EC(uint16 code)`** (без строковых сообщений), из-за лимита EIP-170. Интеграторам **нужно** декодировать коды по исходнику задеплоенного контракта.
 
 ---
 
@@ -541,13 +611,13 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 
 ### Хостинг `dataUrl` (сторонние сайты)
 
-`dataUrl` может указывать на любой публичный HTTPS-хост (object storage, CDN, статический сайт, Git forge и т.п.). Последний сегмент пути **ДОЛЖЕН** иметь вид `<humanId>.json`, используя **точную** строку Passport ID из контракта (то же значение, что поле `humanId`; например `ODP-2026-03-004829301.json` — тот же регистр, что и в on-chain). Если вместо сырого JSON размещается ZIP **§15 `.odp`**, последний сегмент **желательно** `<humanId>.odp`. Реализации, которые получают файл, **ОБЯЗАНЫ** выполнять:
+`dataUrl` может указывать на любой публичный HTTPS-хост (object storage, CDN, статический сайт, Git forge и т.п.). Последний сегмент пути **ДОЛЖЕН** иметь вид `<humanId>.json`, используя **точную** строку Passport ID из контракта (то же значение, что поле `humanId`; например `ODP-2026-03-004829301.json` — тот же регистр, что и в on-chain). Если вместо сырого JSON размещается ZIP **§15 `.odpass`** (legacy: **`.odp`**), последний сегмент **желательно** `<humanId>.odpass` или `<humanId>.odp`. Реализации, которые получают файл, **ОБЯЗАНЫ** выполнять:
 
-1. **HTTPS** — URL использует TLS; сервер возвращает HTTP **200**, а тело ответа даёт байты passport JSON: **сырой JSON** или **ZIP `.odp` по §15** с извлечением `passport.json` (п. 5), не HTML-страницу, не страницу логина и не UI просмотра репозитория.
+1. **HTTPS** — URL использует TLS; сервер возвращает HTTP **200**, а тело ответа даёт байты passport JSON: **сырой JSON** или **ZIP `.odpass`/`.odp` по §15** с извлечением `passport.json` (п. 5), не HTML-страницу, не страницу логина и не UI просмотра репозитория.
 2. **Raw-файл на Git-хостингах** — для GitHub, GitLab и похожих хостов используйте URL **raw** файла (например `raw.githubusercontent.com/.../passport.json`), а не HTML-страницу blob.
 3. **CORS (веб-верификаторы)** — веб-верификаторы выполняют `fetch()` от своего origin; хост **ДОЛЖЕН** разрешать cross-origin **GET** для `dataUrl`, чтобы браузер мог прочитать тело (многие статические хосты и GitHub Raw это поддерживают; неверно настроенный приватный сервер может блокировать верификацию).
 4. **Целостность** — после каноникализации содержимое **ДОЛЖНО** совпадать с `dataHash` в сети (см. §10). Любое изменение байтов (включая пробелы/отступы) меняет хэш.
-5. **`.odp` по `dataUrl` (опционально)** — тело ответа **может** быть **ZIP** в форме **§15 `.odp`** (путь **желательно** заканчивается на **`.odp`**; часто `application/zip` или `application/octet-stream`). Верификатор **ОБЯЗАН** извлечь **`passport.json`** и применить **те же** правила каноникализации и сравнения с `dataHash`, что и для сырого JSON. **`manifest.json`** в архиве **не** является якорем доверия на этом шаге.
+5. **`.odpass` / `.odp` по `dataUrl` (опционально)** — тело ответа **может** быть **ZIP** в форме **§15** (путь **желательно** заканчивается на **`.odpass`** или legacy **`.odp`**; часто `application/zip` или `application/octet-stream`). Верификатор **ОБЯЗАН** извлечь **`passport.json`** и применить **те же** правила каноникализации и сравнения с `dataHash`, что и для сырого JSON. **`manifest.json`** в архиве **не** является якорем доверия на этом шаге.
 
 #### Ответственность создателя за `passport.json` после mint (нормативно)
 
@@ -555,7 +625,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 
 1. Если `dataUrl` **не пуст**, но нет HTTP **200** ответа, тело которого после каноникализации соответствует `dataHash`, то верификаторы **ОБЯЗАНЫ** считать веб-верификацию **проваленной** (например **UNVERIFIABLE** / несовпадение хэша по §11 — точные названия состояний зависят от реализации).
 2. Если `dataUrl` **пуст**, то HTTP-загрузка примениться не может; проверить `dataHash` могут только стороны с **файлом `passport.json`** (UX зависит от реализации; предпочтительно предупреждать создателя в момент mint).
-3. Создатель **может** позже обновить `dataUrl` через on-chain обновление URL (например `updatePassportUrls` в референсном контракте) **без** повторного mint’инга, если размещённый файл всё ещё соответствует `dataHash`.
+3. **`creator` или `owner`** могут позже обновить `dataUrl` (и основной `imageUrl`) через **`updatePassportUrls`** в референсном контракте **v0.3** **без** повторного mint, если размещённый файл всё ещё соответствует `dataHash` и паспорт не отозван.
 4. **Референсные и совместимые UIs** **ДОЛЖНЫ** требовать **явного подтверждения пользователя** сразу перед отправкой mint-транзакции: что сохранение `passport.json` — ответственность создателя; что публичная проверка зависит от доступности этого файла по зарегистрированному URL при заданном `dataUrl`; и что пользователь должен скачать или скопировать файл до закрытия экрана успеха, если реализация предоставляет это действие.
 
 ### Роль issuer и дополнительная метадата (нормативно, v0.2)
@@ -1078,34 +1148,39 @@ odp://ODP-2026-03-004829301
 
 ## 13. Требования к SDK
 
-### Почти-ERC стандарт чтения (v0.2)
+### Почти-ERC стандарт чтения (референсный контракт v0.3)
 
-Этот раздел фиксирует практическую «поверхность интеграции только-чтения»,
-которую другие разработчики должны считать стабильной для v0.2 верifiers.
+Раздел задаёт практическую поверхность чтения/интеграции, с которой должны совпадать интеграции с референсным **`ObjectDigitalPassport`** **v0.3**.
 
 Уровень 1 (основное чтение)
 - `exists(humanId) -> bool` (не делает revert)
 - `resolvePassport(humanId) -> (passport, creator, proofCount, contractVersion)` (reverts если не найден)
+- `getPassport(humanId) -> Passport` (полная структура; reverts если не найден)
 - `getCreator(creatorId) -> CreatorRecord`
 - `getProofsForPassportPaged(humanId, offset, limit) -> (proofIds[], total)` (pagination возвращает срез `[offset, offset+limit)`; не копирует весь массив до среза)
 - `getProof(proofId) -> ProofRecord`
+- `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
+- `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)`
+- `getPAffiliationAudit(childPId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
+- `governance() -> address` · `deployer() -> address` · `frozen() -> bool`
 
 Опциональные списки Уровня 1
 - `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> (humanIds[], total)`
 
 Инварианты (гарантии)
-- Хэши неизменяемы после mint: `dataHash`, `imageHash`, `fileHash`, `sealHash`.
-- `updatePassportUrls()` может менять только URL и требует `confirmedDataHash == on-chain dataHash`.
-- `freeze()` — необратимый one-time переключатель, который останавливает новые записи; существующее чтение не затрагивается.
+- Хэши неизменяемы после mint: `dataHash`, **`imageHash`, `imageHash2`, `imageHash3`**, `fileHash`, `sealHash`.
+- `updatePassportUrls()` может менять **только** primary `dataUrl` и **`imageUrl`** (не `imageUrl2`/`imageUrl3`) и требует `confirmedDataHash == on-chain dataHash`; вызывать могут **`creator` или `owner`**, либо **активный агент публикации** (`getCreatorPublishingDelegation(passport.creator)`).
+- `freeze()` — **только deployer**, необратимо останавливает новые записи; чтение без изменений.
+- **`submitProof` reverts**, если паспорт **отозван**.
 
 Аффилиация (P → P, один уровень)
-- `getPAffiliatedChildrenPaged(parentPId, offset, limit) -> (children[], total)` — preferred pagination endpoint для верifiers/frontends.
-- `getPAffiliatedChildren(parentPId) -> string[]` возвращает весь список в v0.2. Верификаторы/фронтенды MUST считать результат потенциально большим и применять UI/Network caps.
-- Hard caps в v0.2: у одного parent `P` может быть максимум **100 active child `P`**, а у одного child `P` максимум **100 pending parent proposals** в любой момент времени.
+- `getPAffiliatedChildrenPaged(parentPId, offset, limit) -> (children[], total)` — предпочтительный endpoint пагинации для верификаторов/фронтов.
+- `getPAffiliatedChildren(parentPId) -> string[]` возвращает весь список. Верификаторы/фронтенды MUST считать результат потенциально большим и применять UI/Network caps.
+- Hard caps: у одного parent `P` максимум **100** активных child `P`, у одного child `P` максимум **100** ожидающих предложений parent.
 
 Закрепление документов
 - `getExternalDocumentAttestation(wallet, documentHash)` возвращает метаданные для одной аттестации `(wallet, hash)`.
-- Поведение референсного `verify.html` (v0.2) для закрепления документа и глобальной проверки по хэшу описано выше в разделе **Уровень 1C**.
+- Поведение референсного `verify.html` для закрепления документа и глобальной проверки по хэшу описано выше в разделе **Уровень 1C**.
 
 ```
 verify(humanId) → VerificationResult
@@ -1133,16 +1208,26 @@ mint(params) → humanId
 registerCreator(type) → creatorId
   // type: "C" | "B" | "P" | "M"
 
-submitProof(humanId, noteHash?, noteUrl?) → proofId
-  // caller must be registered as type P or M
+submitProof(humanId, noteHash, noteUrl, year, month) → proofId
+  // caller must be registered as type P or M; year/month — календарные значения для PRF id
 
 proposePAffiliation(parentPId)
 confirmPAffiliation(childPId)
+detachPAffiliation(childPId)   // только активный parent P
 cancelPAffiliationRequest(parentPId)
 isPAffiliationPending(parentPId, childPId) → bool
 getPAffiliatedParent(childPId) → string
 getPAffiliatedChildrenPaged(parentPId, offset, limit) → (children[], total)
 getPAffiliatedChildren(parentPId) → string[]
+
+transferPassport(humanId, newOwner)
+delegateCreatorPublishing(agent, expiresAt)
+revokeCreatorPublishing()
+revokePassport(humanId, reasonHash)
+raiseCounterfeitConcern(humanId, reasonHash)
+clearCounterfeitConcern(humanId)
+transferGovernance(newGovernance)
+freeze()
 
 getCreator(creatorId) → CreatorRecord
 getProofsForPassport(humanId) → ProofRecord[]
@@ -1157,151 +1242,144 @@ computeImageHash(imageBytes) → bytes32
 
 ## 14. Versioning
 
-- This specification is **v0.2** (draft); `passport.json` uses `"version": "0.2"` for current examples
-- Breaking changes increment the minor version: `0.2`, `0.3`, ...
-- Stable release will be `1.0`
-- All `passport.json` files include a `version` field for forward compatibility
-- The contract is not upgradeable — a new protocol version deploys a new contract
-- Type prefixes may only be added through an official specification update
+- Эта спецификация (англ. оригинал) — **v0.3** (черновик); в `passport.json` для новых примеров рекомендуется `"version": "0.3"` (**`0.2`** остаётся валидным для старых файлов)
+- Ломающие изменения увеличивают минор: `0.2`, `0.3`, …
+- Стабильный релиз — `1.0`
+- Все `passport.json` включают поле `version` для совместимости вперёд
+- Контракт не upgradeable — новая версия протокола = новый контракт
+- Префиксы типов добавляются только официальным обновлением спецификации
 
 ---
 
-## 15. `.odp` bundle (offline container)
+## 15. Бандл **`.odpass`** (offline-контейнер)
 
-Опциональный **`.odp` файл** — переносимый offline-контейнер для распространения и резервного хранения ODP-паспорта.
-Он предназначен, чтобы офлайн-верификаторы могли пересчитать хэши и проверить их по on-chain записям.
-Криптографический источник истины остаётся в блокчейне.
+Нормативный переносимый файл — **`.odpass`**: ZIP-контейнер для распространения и резервного копирования ODP-паспорта.
+Устаревшее расширение **`.odp`** обозначает **тот же** внутренний layout; верификаторы ДОЛЖНЫ принимать оба расширения.
+
+Он позволяет офлайн-верификаторам пересчитать хэши и сверить их с on-chain записями.
+On-chain поля остаются криптографическим источником истины.
 
 ### 15.1 Формат
 
-`.odp` — это ZIP-контейнер (используйте расширение `.odp`; внутри имена файлов — UTF-8).
+`.odpass` / `.odp` — ZIP (для новых экспортов предпочтительно **`.odpass`**; имена внутри — UTF-8).
 
 Ожидаемые записи в ZIP:
 
 - Обязательные:
-  - `passport.json` — канонические байты ODP `passport.json` (UTF-8 текст).
-  - `manifest.json` — метаданные бандла для удобства (не якорь доверия).
+  - `passport.json` — канонические байты ODP `passport.json` (UTF-8).
+  - `manifest.json` — метаданные бандла для UX (не якорь доверия).
 - Опциональные:
-  - `original/<filename>` — оригинальные байты цифрового ассета, соответствующие on-chain `fileHash` (для digital паспортов).
-  - `image/<filename>` — байты изображения, соответствующие on-chain `imageHash` (когда доступно).
+  - `original/<filename>` — байты цифрового актива, соответствующие on-chain `fileHash`.
+  - `image/<filename>` — изображение, соответствующее on-chain `imageHash` (и при необходимости доп. слоты `image2/`, `image3/` — см. реализацию).
 
-#### 15.1.1 Эталонная форма `manifest.json` (реализации)
+#### 15.1.1 Эталонная форма `manifest.json`
 
-Референсные средства в этом репозитории (`web/passport.html`, `tools/mint.py`) записывают `manifest.json` как JSON в UTF-8 как минимум с полями:
+Референс в репозитории (`web/passport.html`, `tools/mint.py`) пишет `manifest.json` в UTF-8 как минимум с:
 
-- `format`: `"odp-bundle"`
-- `bundleVersion`: `"0.1"` (увеличивать при несовместимых изменениях схемы)
-- `humanId`, `createdAtUtc` (UTC ISO-8601, напр. `2026-03-22T12:00:00Z`), `mode` (напр. `"full"`)
-- `onChain`: `dataHash`, `imageHash`, `fileHash` (`0x` + 64 hex или все нули), `txHash`, `chainId`, `contract` (адрес в checksum-форме, где применимо)
-- `files`: массив `{ path, role, mime }`; для sidecar-файлов допускаются `sizeBytes` и `sha256` (`0x` + 64 hex)
+- `format`: `"odpass-bundle"` (legacy может быть `"odp-bundle"`)
+- `bundleVersion`: `"0.2"` для референс-инструментов v0.3 (чтение legacy `"0.1"` допускается)
+- `passportId` (или legacy `humanId`), `createdAtUtc` (UTC ISO-8601), `mode` (напр. `"full"`)
+- `onChain`: `dataHash`, `imageHash`, `imageHash2`, `imageHash3`, `fileHash` (`0x` + 64 hex или нули), `txHash`, `chainId`, `contract`
+- `files`: `{ path, role, mime }`; для sidecar допускаются `sizeBytes`, `sha256`
 
-Реализации МОГУТ добавлять ключи. Верификаторы НЕ ДОЛЖНЫ считать `manifest.json` якорем доверия; авторитетны on-chain хэши и байты `passport.json`.
+Реализации МОГУТ добавлять ключи. Верификаторы НЕ ДОЛЖНЫ считать `manifest.json` якорем доверия.
 
 ### 15.2 Правила верификации
 
-Офлайн-верификатор `.odp` бандла ДОЛЖЕН:
+Офлайн-верификатор бандла `.odpass` / `.odp` ДОЛЖЕН:
 
 1. Извлечь `passport.json`.
-2. Пересчитать `localDataHash` как SHA-256 от канонического JSON ODP (те же правила канонизации, что и у протокольного верификатора),
-   используя нормализацию `humanId` для сравнения входа для on-chain хэша (т.е. при пересчёте считать Passport ID из бандла как `humanId: null`).
-3. Сравнить `localDataHash` с on-chain `dataHash` для указанного Passport ID (`humanId`).
+2. Пересчитать `localDataHash` (канонический JSON ODP, нормализация Passport ID как `humanId: null` для chain-hash).
+3. Сравнить с on-chain `dataHash`.
 
-Если on-chain запись содержит ненулевой `fileHash`, а в бандле есть `original/*`, верификатор ДОЛЖЕН/SHOULD также:
+При ненулевом `fileHash` и наличии `original/*` — пересчитать SHA-256 и сравнить с `fileHash`.
 
-- пересчитать SHA-256 для `original/*` и сравнить его с `fileHash`.
+При ненулевых `imageHash` / `imageHash2` / `imageHash3` и соответствующих файлах в бандле — пересчитать SHA-256 и сравнить с каждым ненулевым слотом.
 
-Аналогично, если on-chain запись содержит ненулевой `imageHash`, а в бандле есть `image/*`, верификатор ДОЛЖЕН/SHOULD также:
+### 15.3 Модель доверия
 
-- пересчитать SHA-256 для `image/*` и сравнить его с `imageHash`.
-
-### 15.3 Модель доверия и ограничения
-
-- `.odp` — недоверенный ввод и ДОЛЖЕН восприниматься как данные (без выполнения кода).
-- `.odp` не заменяет on-chain истину. Верификация всегда якорится on-chain хэшами (`dataHash`, а при наличии `fileHash` / `imageHash`).
-- В черновике v0.2 не требуется никаких дополнительных полей в контракте: существующих on-chain хэшей достаточно для проверки бандла.
+- Бандл — недоверенный ввод, без выполнения кода.
+- Бандл не заменяет on-chain истину; якорь — `dataHash` и при необходимости `fileHash` / хэши изображений (в т.ч. v0.3).
 
 ---
 
 ## 16. Что этот протокол НЕ определяет
 
-- Кто именно хостит `passport.json` или цифровые файлы — это ответственность создателя
-- Что происходит, если `dataUrl` становится недоступным — on-chain хэш всё равно остаётся валиден
-- UI или визуальный дизайн верификаторов и меток
-- Механики ценообразования или маркетплейсов
-- Передачу владения (может быть определено будущим расширением)
-- Поддержку нескольких блокчейн-сетей (зарезервировано для будущих версий)
-- Человекочитаемые имена — ID профиля это номер, а не имя
-- Какой именно продукт seal использовать — подходит любой, который выполняет требования
-- Полную интеграцию с C2PA сверх совместимости по хэшу (зарезервировано для будущей версии)
+- Кто хостит `passport.json` или файлы — ответственность создателя
+- Что если `dataUrl` недоступен — on-chain хэш остаётся валидным
+- UI верификаторов и меток
+- Ценообразование и маркетплейсы как таковые
+- Правила сверх **v0.3** `transferPassport` / делегирования (напр. эскроу) — вне области
+- Несколько блокчейн-сетей — зарезервировано
+- Человекочитаемые имена профиля
+- Конкретный продукт seal
+- Полная интеграция C2PA сверх совместимости по хэшу
 
 ---
 
-## 17. Управление кошельком и ключами
+## 17. Кошелёк и ключи
 
-ODP не определяет, как пользователи управляют своими криптографическими ключами.
-Протокол требует только валидный Ethereum-совместимый адрес кошелька
-для подписи транзакций. Как ключ создаётся, хранится и защищается —
-полностью ответственность и выбор пользователя.
+ODP не задаёт способ хранения ключей; нужен только Ethereum-адрес для подписи транзакций.
 
-### Key generation principle
+**Рекомендация:** отдельный кошелёк **только для ODP** — не для крупных балансов, DeFi и трейдинга. Второй keypair протокол не требует: подпись — ключи кошелька. Опциональные **DID**-документы (§18) МОГУТ объявлять доп. ключи для VC; это вне базового register/mint.
 
-The private key must be generated on the user's own device.
-It must never be transmitted to ODP infrastructure, any third-party server,
-or any other party. The protocol has no mechanism to receive or store keys.
+### Принцип генерации ключа
 
-### Storage approaches
+Приватный ключ создаётся на устройстве пользователя. Его нельзя передавать в инфраструктуру ODP или третьим лицам; протокол не принимает и не хранит ключи.
 
-Three broad categories exist. The protocol is compatible with all of them:
+### Способы хранения
 
-**Category A — Software wallet (seed phrase)**
-The key is derived from a 12–24 word seed phrase stored by the user.
-The seed phrase is the master backup. If lost, the wallet cannot be recovered.
-Users choosing this approach must:
-- Write the seed phrase on paper immediately upon creation
-- Verify the phrase by confirming word order as prompted
-- Store the paper copy offline in a secure physical location
-- Never store the seed phrase digitally (no photos, no cloud, no messaging apps)
-- Keep at least one physical backup copy in a separate location
+**A — Софт-кошелёк (seed)**  
+Seed — мастер-бэкап. При потере — кошелёк не восстановить. Записать seed на бумаге, проверить порядок слов, хранить офлайн, не хранить в облаке/фото/мессенджерах, иметь вторую копию в другом месте.
 
-**Category B — Hardware device (seed phrase + physical security)**
-The key is generated and stored inside a dedicated physical device.
-Transactions are signed on the device and require physical confirmation.
-A seed phrase is still generated as a backup — the same rules apply.
-The physical device adds a layer of protection: even if the computer
-is compromised, transactions cannot be signed without the device.
+**B — Аппаратный кошелёк**  
+Ключ в устройстве; подпись с подтверждением на устройстве. Seed всё равно нужен как бэкап — те же правила.
 
-**Category C — Seed-less hardware (key in chip)**
-Some physical devices generate a key inside a secure chip with no seed phrase.
-The key never leaves the device in any form.
-Users choosing this approach must:
-- Purchase at least one additional backup device before registering
-- Losing all devices means permanent loss of access to the profile ID and all passports
-- There is no recovery path without a backup device
+**C — Аппарат без seed (чип)**  
+Ключ не покидает чип. Нужен запасной девайс до регистрации; потеря всех устройств = безвозвратная потеря доступа к профилю и паспортам.
 
-### What losing access means for ODP
+### Потеря доступа
 
-If a creator loses their wallet:
-- Their profile ID remains in the blockchain forever — nothing in ODP can ever be deleted
-- All passports they minted remain valid and verifiable by anyone
-- They can no longer mint new passports under that profile ID
-- They can no longer update existing passports
+- Профиль в блокчейне навсегда; удалить ODP не может
+- Выпущенные паспорта остаются проверяемыми
+- Новые mint и обновления под этим профилем невозможны без кошелька
 
-Passports already minted are **not corrupted**. The blockchain record is permanent.
-Only the ability to create new records under that identity is lost.
+### Расширения (вне спецификации)
 
-### Extensions (outside this specification)
-
-The following are possible extensions that implementations may choose to build.
-They are not part of the ODP protocol and are not standardized here:
-
-- Encrypted key storage on a user-controlled server
-- Key management integrated into a mobile application
-- Multi-signature wallets (multiple keys required to sign)
-- Social recovery schemes
-- Any other approach compatible with Ethereum-signed transactions
+Шифрованное хранение, мобильный KMS, multisig, social recovery и т.п. — на усмотрение реализаций.
 
 ---
 
+## 18. Интероп, позиционирование, DID (информативно)
+
+ODP задуман как **криптографический слой доверия** рядом с **DPP**, **GS1**, **IIIF**, **C2PA** и др., а не их замена.
+
+### 18.1 Опциональные поля `passport.json` (v0.3)
+
+Реализации МОГУТ добавлять (всё оффчейн, если включено — входит в `dataHash`):
+
+- **`sustainability`**, **`compliance`**
+- **`identifiers.gtin`** — привязка к GS1 Digital Link в tooling
+- **`iiif.manifest`**
+- Метаданные объекта: габариты, вес, глубина, **`creationDate`**, **`listingPrice`**, **`internalTag`**
+- **`images`** — до трёх логических изображений (primary ↔ `imageHash`, доп. ↔ `imageHash2`/`imageHash3`)
+
+Верификатор не трактует цену как юридическую оферту.
+
+### 18.2 DID (`did:odp`)
+
+- `did:odp:passport:<Passport ID>`
+- `did:odp:profile:<Profile ID>`
+
+Минимальный DID document (JSON): `id`, `verificationMethod` на Ethereum-адрес создателя (или отдельные ключи для VC), `alsoKnownAs` к `passport.json` / деплою. Глобальный on-chain resolver в v0.3 не требуется.
+
+#### 18.2.1 Опциональный поток «регистрации» DID (информативно)
+
+Создание или публикация DID document **необязательны** и **не** требуют отдельной on-chain транзакции. Эмитент (или tooling) **может** экспортировать JSON DID document **в любой момент** после минта, если известны Passport ID и контекст реестра: из `getPassport` читаются `creator` / `creatorId` и при необходимости `dataUrl`, далее — §18.2. Кошелёк, не подключавшийся в момент минта, может собрать тот же документ из публичных данных сети. Реализации **могут** добавлять ненормативные подсказки (например `chainId`, адрес контракта) рядом с DID для каталогов или резолверов.
+
+### 18.3 Verifiable Credentials
+
+Институциональные **proof** (`submitProof`) можно отображать как VC-claims; для протокольного верификатора авторитетна on-chain `ProofRecord`.
 
 ---
 
