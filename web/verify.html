@@ -835,8 +835,9 @@ async function verifyFromOdpBundleQuick(file) {
     } catch {
       throw new Error(t("verify.odpQuick.badJson"));
     }
-    const humanId = parseId(String(p && p.humanId != null ? p.humanId : ""));
-    if (!humanId) throw new Error(t("verify.odpQuick.badHumanId"));
+    const passportIdRaw = p && p.passportId != null ? p.passportId : (p && p.humanId != null ? p.humanId : "");
+    const humanId = parseId(String(passportIdRaw));
+    if (!humanId) throw new Error(t("verify.odpQuick.badPassportId"));
     const idIn = document.getElementById("idInput");
     if (idIn) idIn.value = humanId;
 
@@ -1197,10 +1198,11 @@ function renderPassportJsonExtras(passport, isDigital) {
   if (p.version != null) {
     rows.push(`<div class="field"><div class="fl">JSON spec</div><div class="fv">${esc(String(p.version))}</div></div>`);
   }
-  if ("humanId" in p) {
-    const hj = p.humanId === null ? "null" : String(p.humanId);
+  if ("passportId" in p || "humanId" in p) {
+    const pidVal = ("passportId" in p) ? p.passportId : p.humanId;
+    const hj = pidVal === null ? "null" : String(pidVal);
     rows.push(
-      `<div class="field"><div class="fl">${esc(t("verify.passportJson.humanIdRow"))}</div><div class="fv"><span class="human-id-val">${esc(hj)}</span></div></div>`
+      `<div class="field"><div class="fl">${esc(t("verify.passportJson.passportIdRow"))}</div><div class="fv"><span class="human-id-val">${esc(hj)}</span></div></div>`
     );
   }
   if (p.year != null || p.month != null) {
@@ -1852,7 +1854,8 @@ function renderLocalPassportPreview(p) {
   const cname = p.creator && p.creator.name != null ? String(p.creator.name) : "—";
   const cid = p.creator && p.creator.creatorId != null ? String(p.creator.creatorId) : "—";
   const cwallet = p.creator && p.creator.wallet != null ? String(p.creator.wallet) : "";
-  const humanJson = p.humanId === undefined ? "—" : p.humanId === null ? "null" : String(p.humanId);
+  const pidRaw = p.passportId !== undefined ? p.passportId : p.humanId;
+  const humanJson = pidRaw === undefined ? "—" : pidRaw === null ? "null" : String(pidRaw);
   const objType = (p.type != null ? String(p.type) : p.objectType != null ? String(p.objectType) : "—");
   const isDigital = String(p.objectType || "").toLowerCase() === "digital";
   const ver = p.version != null ? String(p.version) : "—";
@@ -2156,23 +2159,23 @@ async function passportJsonTextFromDataUrlResponse(resp, publicDataUrl) {
 
 /**
  * Canonical JSON for hash compare (must match mint).
- * Mint hashes buildPassport(null) with humanId null. We accept:
- * - missing humanId → null
- * - humanId string equal to this passport's chain ID → null (same bytes as mint after post-mint export)
+ * Mint hashes buildPassport(null) with passportId null (legacy: humanId null). We accept:
+ * - missing ID field → null
+ * - passportId/humanId string equal to this passport's chain ID → null (same bytes as mint after post-mint export)
  */
 function minify(str, expectedHumanId) {
   const parsed = JSON.parse(str);
   if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
-    if (!("humanId" in parsed)) {
-      parsed.humanId = null;
-    } else if (
-      expectedHumanId &&
-      typeof parsed.humanId === "string"
-    ) {
+    const hasPassportId = "passportId" in parsed;
+    const hasHumanId = "humanId" in parsed;
+    if (!hasPassportId && !hasHumanId) parsed.passportId = null;
+    if (expectedHumanId && hasPassportId && typeof parsed.passportId === "string") {
+      const pid = parseId(parsed.passportId);
+      if (pid && pid === expectedHumanId) parsed.passportId = null;
+    }
+    if (expectedHumanId && hasHumanId && typeof parsed.humanId === "string") {
       const pid = parseId(parsed.humanId);
-      if (pid && pid === expectedHumanId) {
-        parsed.humanId = null;
-      }
+      if (pid && pid === expectedHumanId) parsed.humanId = null;
     }
   }
   return JSON.stringify(sortKeysDeep(normalizeNFC(parsed)));

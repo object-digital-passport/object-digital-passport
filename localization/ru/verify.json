@@ -59,8 +59,8 @@
       "panelVerifyHint": "Загрузите этот же файл и вставьте JSON-пакет. Страница пересоберёт каноничное сообщение и проверит EIP-191 подписанта с on-chain creator.",
       "verifySignatureBtn": "Проверить подпись",
       "labelMessage": "Сообщение",
-      "humanIdPlaceholder": "ODP-2026-03-123456789",
-      "optionalHumanIdSuffix": "(необязательно, если Passport ID есть в JSON-пакете)",
+      "passportIdPlaceholder": "ODP-2026-03-123456789",
+      "optionalPassportIdSuffix": "(необязательно, если Passport ID есть в JSON-пакете)",
       "fileLabel": "Файл",
       "fileDropLine1": "Выберите файл",
       "fileDropLine2": "Подтверждается только этот файл",
@@ -111,7 +111,7 @@
       "unregisteredHint": "Ниже — данные из вашего файла ({name}). В этом реестре нет такого паспорта — пакет на цепочке не подтверждён.",
       "noPassportJson": "В архиве нет passport.json.",
       "badJson": "passport.json не является корректным JSON.",
-      "badHumanId": "В passport.json должен быть корректный Passport ID (ODP-…).",
+      "badPassportId": "В passport.json должен быть корректный Passport ID (ODP-…).",
       "jszipMissing": "Не удалось загрузить JSZip. Проверьте сеть и обновите страницу."
     },
     "fields": {
@@ -123,7 +123,7 @@
       "registeredDesc": "Этот кошелёк привязан к профилю в сети."
     },
     "passportJson": {
-      "humanIdRow": "Passport ID (поле humanId в JSON)"
+      "passportIdRow": "Passport ID (поле passportId в JSON; legacy humanId поддерживается)"
     },
     "localPreview": {
       "passportIdInFile": "Passport ID в файле (humanId)"

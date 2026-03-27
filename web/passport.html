@@ -634,8 +634,12 @@ function htmlPassportPmProofCard() {
 
 function activatePassportTool(tool, updateUrl) {
   let slug = String(tool ?? "").trim();
+  const q = new URLSearchParams(window.location.search);
+  const qTool = (q.get("tool") || "").trim();
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-ui-'+Date.now(),hypothesisId:'H1',location:'web/passport.html:activatePassportTool:entry',message:'Tool activation entry values',data:{toolArg:String(tool??''),slugInitial:String(slug),queryTool:String(qTool),updateUrl:!!updateUrl},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   if (!slug) {
-    const q = new URLSearchParams(window.location.search);
     if ((q.get("tool") || "").trim() === "mint") slug = "mint";
   }
   if (updateUrl) {
@@ -656,6 +660,9 @@ function activatePassportTool(tool, updateUrl) {
     if (subnav) subnav.style.display = "none";
     if (menu) menu.hidden = false;
     if (mintSec) mintSec.hidden = true;
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-ui-'+Date.now(),hypothesisId:'H2',location:'web/passport.html:activatePassportTool:menu-mode',message:'Menu mode activated (mint workspace hidden)',data:{slugFinal:String(slug),menuHidden:!!(menu&&menu.hidden),mintHidden:!!(mintSec&&mintSec.hidden),subnavDisplay:subnav?String(subnav.style.display):''},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     scrollToPassportSection(document.getElementById("passportToolsMenu") || document.getElementById("passportToolsHeading"));
     return;
   }
@@ -663,6 +670,9 @@ function activatePassportTool(tool, updateUrl) {
   if (subnav) subnav.style.display = "";
   if (subTitle) subTitle.textContent = t("passport.tools.mintSubnavTitle");
   if (mintSec) mintSec.hidden = false;
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-ui-'+Date.now(),hypothesisId:'H3',location:'web/passport.html:activatePassportTool:mint-mode',message:'Mint mode activated (workspace shown)',data:{slugFinal:String(slug),menuHidden:!!(menu&&menu.hidden),mintHidden:!!(mintSec&&mintSec.hidden),subnavDisplay:subnav?String(subnav.style.display):''},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   scrollToPassportSection(mintSec);
 }
 
@@ -826,6 +836,7 @@ function bindPMProofHandlers() {
 
 function renderForm() {
   const net = NET;
+  const showWorkspaceNavigator = canShowPassportPmProof();
   document.getElementById("app").innerHTML = `
 
     <div class="wbar">
@@ -839,6 +850,7 @@ function renderForm() {
 
     ${htmlPassportPmProofCard()}
 
+    ${showWorkspaceNavigator ? `
     <div style="margin-top:16px" id="passportToolsHeading">
       <div class="section-title">${esc(t("passport.tools.sectionTitle"))}</div>
       <p class="fhint" id="passportToolsLead" style="margin:0 0 12px;line-height:1.55;max-width:52rem">${esc(t("passport.tools.lead"))}</p>
@@ -856,8 +868,9 @@ function renderForm() {
         <div id="passportToolSubnavTitle" class="verify-subnav-title"></div>
       </div>
     </section>
+    ` : ""}
 
-    <section id="passportMintWorkspace" hidden>
+    <section id="passportMintWorkspace" ${showWorkspaceNavigator ? "hidden" : ""}>
     <div id="passportMintsRow" style="display:none;margin-bottom:12px;max-width:52rem"></div>
 
     <div class="card passport-list-card">
@@ -1201,7 +1214,10 @@ function renderForm() {
       }),
     }).catch(() => {});
     // #endregion
-    activatePassportTool("", false);
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-ui-'+Date.now(),hypothesisId:'H5',location:'web/passport.html:renderForm:default-tool-postfix',message:'renderForm selects mint as default tool',data:{call:'activatePassportTool(\"mint\", false)',queryTool:String((new URLSearchParams(window.location.search).get('tool')||'')),expectedMintVisible:true},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    activatePassportTool("mint", false);
   });
 }
 
@@ -1409,7 +1425,7 @@ function buildPassport(humanId) {
   // #endregion
   const clock = buildRegistrationClock(now);
   const p = {
-    version:"0.2", humanId:humanId||null,
+    version:"0.2", passportId:humanId||null,
     objectType: objType,
     type: v("f_type"),
     title: v("f_title"),
@@ -1753,7 +1769,7 @@ async function executeMint() {
       }
     }
 
-    // dataHash on-chain is sha256(buildPassport(null)). Download includes real humanId; verify.html maps matching humanId string → null for hash check.
+    // dataHash on-chain is sha256(buildPassport(null)). Download includes real passportId; verify.html maps matching ID string → null for hash check.
     const passportOut = buildPassport(humanId);
     const finalJson = canonicalJsonString(passportOut);
     showSuccess(humanId, tx.hash, finalJson, passport.title, registeredDataUrl, {
@@ -2060,7 +2076,7 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
   const manifest = {
     format: "odp-bundle",
     bundleVersion: "0.1",
-    humanId: String(humanId || ""),
+    passportId: String(humanId || ""),
     createdAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
     mode: "full",
     onChain: {

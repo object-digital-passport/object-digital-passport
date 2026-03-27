@@ -49,7 +49,7 @@ This specification uses the following terms in a precise sense:
 
 | Term | Definition |
 |:--|:--|
-| **Passport ID** | The `ODP-…` object identifier (§2). The same string is stored in `passport.json` and in contract interfaces under the field / parameter name **`humanId`** (historical name; same value). |
+| **Passport ID** | The `ODP-…` object identifier (§2). In `passport.json` use **`passportId`**; in contract interfaces the same string still uses historical wire name **`humanId`**. |
 | **Profile ID** | The issuer’s `C-…` / `B-…` / `P-…` / `M-…` identifier (§3). In `passport.json` it appears as **`creator.creatorId`**; on-chain event and function payloads use the string **`creatorId`**. |
 | **Mint**, **minting** | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Passport ID**, records **hashes**, optional **URLs**, and seal metadata. **v0.2** charges **network gas only** (no separate **MINT_FEE**). Minting does **not** upload `passport.json` to the blockchain; the creator **may** host that file at `dataUrl` (see §8–§9). If `dataUrl` is empty, public web verification cannot fetch JSON — only a holder of the canonical **passport.json** can verify against `dataHash`. |
 | **Register (`registerCreator`)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **profile ID** before any mint or proof. **v0.2**: gas only (no **REGISTER_FEE**). |
@@ -66,7 +66,7 @@ This specification uses the following terms in a precise sense:
 
 Every registered object receives a globally unique Passport ID (human-readable `ODP-…` string).
 
-> **Wire names:** in Solidity, JSON-RPC ABIs, and `passport.json`, this value is labeled **`humanId`**. *Passport ID* is the specification’s name for the same string.
+> **Wire names:** in Solidity and JSON-RPC ABIs, this value is labeled **`humanId`**. In `passport.json`, use **`passportId`**. *Passport ID* is the specification’s name for the same string.
 
 ### Format
 
@@ -585,7 +585,7 @@ If local device time is shown to users, implementations MUST normalize that inst
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-004829301",
+  "passportId": "ODP-2026-03-004829301",
   "objectType": "physical",
   "type": "artwork",
   "title": "Object Community #1",
@@ -619,7 +619,7 @@ If local device time is shown to users, implementations MUST normalize that inst
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-000193847",
+  "passportId": "ODP-2026-03-000193847",
   "objectType": "digital",
   "type": "digital",
   "title": "Untitled #7",
@@ -651,7 +651,7 @@ If local device time is shown to users, implementations MUST normalize that inst
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-004829301",
+  "passportId": "ODP-2026-03-004829301",
   "objectType": "physical",
   "type": "artwork",
   "title": "Object Community #1",
@@ -724,7 +724,7 @@ If local device time is shown to users, implementations MUST normalize that inst
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-000193847",
+  "passportId": "ODP-2026-03-000193847",
   "objectType": "digital",
   "type": "digital",
   "title": "Untitled #7",
@@ -869,10 +869,10 @@ to appear as TAMPERED on other implementations.
 
 ### Rules
 
-- `version`, `humanId`, `objectType`, and `creator.creatorId` are required
+- `version`, `passportId`, `objectType`, and `creator.creatorId` are required
 - For physical objects: at least one of `seal.nfc` or `seal.numbered` is required
 - For digital objects: `digital.fileHash` is required
-- `humanId` in JSON must exactly match the on-chain record
+- `passportId` in JSON must exactly match the on-chain record (legacy `humanId` accepted for older exports)
 - `creator.wallet` must match the registered wallet in the Creator Registry
 - Encoding: UTF-8
 - The file must be minified before hashing

@@ -592,7 +592,7 @@ def cmd_mint(args):
     reg_unix, reg_clock = registration_clock_block(now)
     passport = {
         "version":    "0.2",
-        "humanId":    None,  # filled after mint
+        "passportId": None,  # filled after mint
         "objectType": "physical" if is_physical else "digital",
         "type":       obj_type,
         "title":      title,
@@ -719,7 +719,7 @@ def cmd_mint(args):
         print(f"  Transaction: {net['explorer']}/tx/{Web3.to_hex(tx_hash)}")
         sys.exit(1)
 
-    passport["humanId"] = human_id
+    passport["passportId"] = human_id
     passport_json_str = json.dumps(
         normalize_nfc(passport), sort_keys=True, separators=(",", ":"), ensure_ascii=False
     )
@@ -756,7 +756,7 @@ def cmd_mint(args):
     manifest = {
         "format": "odp-bundle",
         "bundleVersion": "0.1",
-        "humanId": human_id,
+        "passportId": human_id,
         "createdAtUtc": odp_created_at_utc_iso(),
         "mode": "full",
         "onChain": {

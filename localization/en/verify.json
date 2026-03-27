@@ -59,8 +59,8 @@
       "panelVerifyHint": "Upload the same file and paste the JSON bundle. The page rebuilds canonical message and verifies EIP-191 signer against on-chain passport.creator.",
       "verifySignatureBtn": "Verify signature",
       "labelMessage": "Message",
-      "humanIdPlaceholder": "ODP-2026-03-123456789",
-      "optionalHumanIdSuffix": "(optional if Passport ID is inside JSON bundle)",
+      "passportIdPlaceholder": "ODP-2026-03-123456789",
+      "optionalPassportIdSuffix": "(optional if Passport ID is inside JSON bundle)",
       "fileLabel": "File",
       "fileDropLine1": "Choose file",
       "fileDropLine2": "Only this file can be proven",
@@ -111,7 +111,7 @@
       "unregisteredHint": "Contents below come from your file ({name}). This registry has no matching passport — the bundle is not confirmed on-chain.",
       "noPassportJson": "passport.json not found inside the bundle.",
       "badJson": "passport.json is not valid JSON.",
-      "badHumanId": "passport.json must contain a valid Passport ID (ODP-…).",
+      "badPassportId": "passport.json must contain a valid Passport ID (ODP-…).",
       "jszipMissing": "JSZip failed to load. Check your network and reload the page."
     },
     "fields": {
@@ -123,7 +123,7 @@
       "registeredDesc": "This wallet is linked to a profile on-chain."
     },
     "passportJson": {
-      "humanIdRow": "Passport ID (humanId in JSON)"
+      "passportIdRow": "Passport ID (passportId in JSON; legacy humanId accepted)"
     },
     "localPreview": {
       "passportIdInFile": "Passport ID in file (humanId)"

@@ -51,7 +51,7 @@ Object Digital Passport (ODP) — это открытый стандарт, ко
 
 | Термин | Определение |
 |:--|:--|
-| **Passport ID** | Идентификатор объекта в формате `ODP-…` (§2). Та же строка хранится в `passport.json` и в ABI контракта под именем поля / параметра **`humanId`** (историческое имя; то же значение). |
+| **Passport ID** | Идентификатор объекта в формате `ODP-…` (§2). В `passport.json` используйте **`passportId`**; в ABI/контракте та же строка остаётся под историческим wire-именем **`humanId`**. |
 | **ID профиля** | Короткий идентификатор выпускающей стороны `C-…` / `B-…` / `P-…` / `M-…` (§3). В `passport.json` — **`creator.creatorId`**; в событиях и вызовах контракта — строка **`creatorId`**. |
 | **Mint**, **minting** | Отправка Ethereum-транзакции, которая **создаёт** новую on-chain запись паспорта через `mintPhysical` или `mintDigital` (или эквивалент) в контракте. Контракт назначает **Passport ID**, записывает **хэши**, опциональные **URL** и metadata seal. В **v0.2** применяется **только network gas** (без отдельного **MINT_FEE**). Minting **не** загружает `passport.json` в блокчейн; creator **может** размещать этот файл по адресу `dataUrl` (см. §8–§9). Если `dataUrl` пуст, публичная веб-верификация не сможет получить JSON — проверка по `dataHash` доступна только обладателю канонического **passport.json**. |
 | **Register (`registerCreator`)** | Отправка `registerCreator` (или эквивалента), чтобы кошелёк получил постоянный **ID профиля** до любых mint или proof. **v0.2**: только gas (без **REGISTER_FEE**). |
@@ -68,7 +68,7 @@ Object Digital Passport (ODP) — это открытый стандарт, ко
 
 Каждый зарегистрированный объект получает глобально уникальный Passport ID (строка `ODP-…`).
 
-> **Имена в данных:** в Solidity, ABI и `passport.json` это значение помечено как **`humanId`**. *Passport ID* — имя в спецификации для той же строки.
+> **Имена в данных:** в Solidity и ABI это значение помечено как **`humanId`**. В `passport.json` используйте **`passportId`**. *Passport ID* — имя в спецификации для той же строки.
 
 ### Формат
 
@@ -585,7 +585,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-004829301",
+  "passportId": "ODP-2026-03-004829301",
   "objectType": "physical",
   "type": "artwork",
   "title": "Object Community #1",
@@ -619,7 +619,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-000193847",
+  "passportId": "ODP-2026-03-000193847",
   "objectType": "digital",
   "type": "digital",
   "title": "Untitled #7",
@@ -651,7 +651,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-004829301",
+  "passportId": "ODP-2026-03-004829301",
   "objectType": "physical",
   "type": "artwork",
   "title": "Object Community #1",
@@ -724,7 +724,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 ```json
 {
   "version": "0.2",
-  "humanId": "ODP-2026-03-000193847",
+  "passportId": "ODP-2026-03-000193847",
   "objectType": "digital",
   "type": "digital",
   "title": "Untitled #7",
@@ -869,10 +869,10 @@ value = value.normalize("NFC")
 
 ### Правила
 
-- Требуются поля: `version`, `humanId`, `objectType`, а также `creator.creatorId`
+- Требуются поля: `version`, `passportId`, `objectType`, а также `creator.creatorId`
 - Для физических объектов: требуется хотя бы одно из `seal.nfc` или `seal.numbered`
 - Для цифровых объектов: требуется `digital.fileHash`
-- `humanId` в JSON должно **точно** совпадать с on-chain записью
+- `passportId` в JSON должно **точно** совпадать с on-chain записью (legacy `humanId` допустим для старых экспортов)
 - `creator.wallet` должно совпадать с зарегистрированным кошельком в Creator Registry
 - Кодировка: UTF-8
 - Файл должен быть минимизирован перед хэшированием
