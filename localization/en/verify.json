@@ -1,9 +1,9 @@
 {
   "verify": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Verify",
+      "documentTitle": "ODP v0.3 — Verify",
       "h1": "Verify",
-      "sub": "Object Digital Passport · Specification v0.2",
+      "sub": "Object Digital Passport · Specification v0.3",
       "hint": "Check that a passport or profile ID is registered."
     },
     "search": {
@@ -113,6 +113,21 @@
       "badJson": "passport.json is not valid JSON.",
       "badPassportId": "passport.json must contain a valid Passport ID (ODP-…).",
       "jszipMissing": "JSZip failed to load. Check your network and reload the page."
+    },
+    "paffAudit": {
+      "title": "P affiliation — on-chain audit",
+      "lead": "Enter a child institution Profile ID (P-…). Read-only: active parent and join/detach timestamps from the registry.",
+      "childLabel": "Child Profile ID (P-…)",
+      "loadBtn": "Load audit",
+      "badChild": "Enter a Profile ID that starts with P-.",
+      "needNet": "Wait until the network status connects (or check your RPC).",
+      "loading": "Loading audit…",
+      "activeParent": "Active parent",
+      "joinedAt": "Joined at",
+      "detachedAt": "Detached at",
+      "lastDetachedParent": "Last detached from parent",
+      "registryNote": "Data from contract",
+      "noSupport": "No deployment returned affiliation audit (try a v0.3 registry)."
     },
     "fields": {
       "passportId": "Passport ID",

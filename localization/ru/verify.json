@@ -1,9 +1,9 @@
 {
   "verify": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Проверка",
+      "documentTitle": "ODP v0.3 — Проверка",
       "h1": "Проверка",
-      "sub": "Object Digital Passport · спецификация v0.2",
+      "sub": "Object Digital Passport · спецификация v0.3",
       "hint": "Проверьте, что паспорт или профиль зарегистрированы."
     },
     "search": {
@@ -113,6 +113,21 @@
       "badJson": "passport.json не является корректным JSON.",
       "badPassportId": "В passport.json должен быть корректный Passport ID (ODP-…).",
       "jszipMissing": "Не удалось загрузить JSZip. Проверьте сеть и обновите страницу."
+    },
+    "paffAudit": {
+      "title": "P-affiliation — аудит в сети",
+      "lead": "Введите Profile ID дочернего учреждения (P-…). Только чтение: активный родитель и метки join/detach в реестре.",
+      "childLabel": "Child Profile ID (P-…)",
+      "loadBtn": "Показать аудит",
+      "badChild": "Нужен Profile ID, начинающийся с P-.",
+      "needNet": "Дождитесь подключения к сети (индикатор статуса) или проверьте RPC.",
+      "loading": "Загрузка аудита…",
+      "activeParent": "Активный родитель",
+      "joinedAt": "Подключено",
+      "detachedAt": "Отсоединено",
+      "lastDetachedParent": "Последний родитель при отсоединении",
+      "registryNote": "Данные из контракта",
+      "noSupport": "Ни один адрес из списка не вернул аудит (нужен реестр v0.3)."
     },
     "fields": {
       "passportId": "Passport ID",

@@ -1,9 +1,9 @@
 {
   "passport": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Создать паспорт",
+      "documentTitle": "ODP v0.3 — Создать паспорт",
       "h1": "Создать паспорт",
-      "sub": "Object Digital Passport · спецификация v0.2"
+      "sub": "Object Digital Passport · спецификация v0.3"
     },
     "appLoading": "Подключение кошелька…",
     "connect": {
@@ -60,6 +60,12 @@
       "delegationLine": "Агент {agent} · истекает {exp}",
       "publishAgentSection": "Эмитент — агент публикации",
       "publishAgentHint": "Один кошелёк может обновлять размещённые URL (updatePassportUrls) для всех ваших паспортов. Задаётся с кошелька эмитента, не на каждый паспорт отдельно.",
+      "agentUrlSection": "Агент публикации — обновить URL",
+      "agentUrlLead": "Сначала загрузите паспорт выше. Как активный агент эмитента вы меняете только основные dataUrl и imageUrl (не image 2/3 в контракте). Хэши неизменны.",
+      "agentUrlDataLabel": "dataUrl (HTTPS)",
+      "agentUrlImageLabel": "URL основного изображения",
+      "agentUrlSubmit": "Записать URL в сеть",
+      "agentUrlUrlTooLong": "Каждый URL не длиннее 512 символов.",
       "governanceAddr": "Адрес governance реестра",
       "counterfeitLine": "Флаг «institutional concern»",
       "counterfeitActive": "Активен — профиль {prover}",

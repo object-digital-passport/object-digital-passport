@@ -50,26 +50,23 @@ pragma solidity ^0.8.20;
  *   Anyone can read, verify, fork, or deploy their own instance.
  */
 /**
- * IODPExtension — interface for future extension contracts.
+ * IODPExtension — interface for hypothetical **mint-class** extension contracts.
  *
- * Extensions validate and interpret type-specific data before core stores it.
- * v1 will route mint calls through registered extensions.
- * In v0 this interface is defined for forward compatibility — no extensions are active.
+ * The `type` key in typeToExtension is **not** the creator profile prefix (C/B/P/M).
+ * Profile letters are fixed at `registerCreator`; this hook is for **alternate passport
+ * mint pipelines** (illustrative bytes e.g. \"V\", \"G\" in docs — not implemented in v0.3).
  *
- * Write flow (v1):
- *   User calls mintPassport(type, data)
- *   → Core looks up: extension = typeToExtension[type]
- *   → extension.validate(data)
- *   → extension.normalize(data) → canonical bytes
- *   → Core stores record and assigns ID
+ * Extensions would validate/normalize a payload before the core stores the passport.
+ * v0.3: interface + empty mapping only — no code reads typeToExtension; mint is native only.
  *
- * Extensions can add new types (e.g. "V" for video, "G" for game items)
- * but only through a new contract version — not open registration.
+ * Sketch flow (future version, not live):
+ *   mintPassport(typeByte, data) → typeToExtension[typeByte] → validate → normalize → store
  */
 interface IODPExtension {
     /// Validate type-specific data. Reverts if invalid.
     function validate(bytes calldata data) external view;
-    /// Normalize data to canonical form for storage.
+    /// @dev For **digital** extension mint, return `abi.encode` of
+    /// `(uint32 year,uint8 month,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 imageHash2,string imageUrl2,bytes32 imageHash3,string imageUrl3,bytes32 fileHash)` — same field semantics as `mintDigital`.
     function normalize(bytes calldata data) external view returns (bytes memory);
 }
 
@@ -118,7 +115,13 @@ contract ObjectDigitalPassport {
         string  creatorId;     // Profile ID (SPEC); mandatory
         uint32  year;          // uint32 supports any year from 1 to 4,294,967,295
         uint8   month;
+        /// v0.3 mint path: only OBJECT_PHYSICAL / OBJECT_DIGITAL. Subtypes and industry labels → SPEC + `passport.json` + `dataHash`.
+        /// A new top-level on-chain `objectType` string (third branch in storage/events) requires a protocol/contract line, not an implicit upgrade.
         string  objectType;    // "physical" or "digital"
+        /// Commitment to canonical `passport.json` (SPEC §10). New JSON keys need no on-chain schema:
+        /// evolve **SPEC** + canonicalization for **new** mints only; `dataHash` is **immutable** after mint, so
+        /// the hashed byte string for an existing passport cannot gain new integrity-bound fields without breaking verify.
+        /// Optional UI-only or manifest-only fields live off this anchor. Future lines may add auxiliary commitments if needed.
         bytes32 dataHash;      // SHA-256 of minified passport.json
         bytes32 imageHash;     // SHA-256 of primary image. bytes32(0) = none
         bytes32 imageHash2;    // optional 2nd image (max 3 on-chain hashes total)
@@ -225,11 +228,9 @@ contract ObjectDigitalPassport {
     /// Type-definition governance is documented in SPEC; on-chain timelock registry was omitted for bytecode size.
     address public governance;
 
-    // ── Extension Registry (v1 architecture) ─────────────────────────────────
-    // Maps type bytes1 → extension contract address.
-    // In v0 this is empty — all types are handled natively.
-    // In v1 new types (e.g. "V", "G") can be added by deploying a new contract.
-    // Adding extensions in v1 requires deployer governance (not open registration).
+    // ── Extension Registry (reserved; unused in v0.3) ─────────────────────────
+    // Mint-class byte → extension. NOT creator profile prefix (C/B/P/M).
+    // Never written or read in v0.3 — forward-compatible slot + public ABI surface only.
     mapping(bytes1 => address) public typeToExtension;
 
     // ── Freeze (for v0 → v1 migration) ─────────────────────────────────────────────
@@ -369,6 +370,17 @@ contract ObjectDigitalPassport {
         address prev = governance;
         governance = newGovernance;
         emit GovernanceTransferred(prev, newGovernance, block.timestamp);
+    }
+
+    /// @notice Register or remove an `IODPExtension` for `mintClass`. Only `governance`. `extension == address(0)` clears.
+    /// @dev Forbidden `mintClass` values: same bytes as creator profile prefixes **C**, **B**, **P**, **M** (ASCII).
+    function setMintExtension(bytes1 mintClass, address extension) external notFrozen {
+        if (!(msg.sender == governance)) revert EC(56);
+        if (mintClass == TYPE_C || mintClass == TYPE_B || mintClass == TYPE_P || mintClass == TYPE_M) {
+            revert EC(65);
+        }
+        if (extension != address(0) && extension.code.length == 0) revert EC(66);
+        typeToExtension[mintClass] = extension;
     }
 
     // ─── Creator Registry ─────────────────────────────────────────────────────
@@ -650,9 +662,9 @@ contract ObjectDigitalPassport {
 
     function _validateOptionalImageSlots(
         bytes32 imageHash2,
-        string calldata imageUrl2,
+        string memory imageUrl2,
         bytes32 imageHash3,
-        string calldata imageUrl3
+        string memory imageUrl3
     ) internal pure {
         if (imageHash2 == bytes32(0)) {
             if (!(bytes(imageUrl2).length == 0)) revert EC(41);
@@ -727,8 +739,7 @@ contract ObjectDigitalPassport {
 
     /// @dev Strip trailing ASCII `/` only (repeated). Does not normalize `//` in the middle of the path;
     ///      callers should pass a clean HTTPS folder base; malformed bases may resolve to odd URLs.
-    function _stripTrailingSlash(string calldata s) internal pure returns (string memory) {
-        bytes memory b = bytes(s);
+    function _trimTrailingSlashBytes(bytes memory b) internal pure returns (bytes memory) {
         uint256 end = b.length;
         while (end > 0 && b[end - 1] == 0x2f) {
             unchecked {
@@ -736,13 +747,23 @@ contract ObjectDigitalPassport {
             }
         }
         if (end == b.length) {
-            return string(abi.encodePacked(s));
+            return b;
         }
         bytes memory out = new bytes(end);
         for (uint256 i = 0; i < end; i++) {
             out[i] = b[i];
         }
-        return string(out);
+        return out;
+    }
+
+    function _stripTrailingSlash(string calldata s) internal pure returns (string memory) {
+        bytes memory b = bytes(s);
+        b = _trimTrailingSlashBytes(b);
+        return string(b);
+    }
+
+    function _stripTrailingSlashMemory(string memory s) internal pure returns (string memory) {
+        return string(_trimTrailingSlashBytes(bytes(s)));
     }
 
     /// @param dataUrl When `dataUrlIsFolderBase` is true, this is the HTTPS folder root only (no filename); the stored URL becomes `folderBase + "/" + humanId + ".json"` after `humanId` is known.
@@ -760,6 +781,101 @@ contract ObjectDigitalPassport {
         }
         string memory base = _stripTrailingSlash(dataUrl);
         return string(abi.encodePacked(base, "/", humanId, ".json"));
+    }
+
+    function _resolveMintDataUrlMemory(
+        string memory dataUrl,
+        bool dataUrlIsFolderBase,
+        string memory humanId
+    ) internal pure returns (string memory) {
+        if (bytes(dataUrl).length == 0) {
+            if (!(!dataUrlIsFolderBase)) revert EC(31);
+            return "";
+        }
+        if (!dataUrlIsFolderBase) {
+            return dataUrl;
+        }
+        string memory base = _stripTrailingSlashMemory(dataUrl);
+        return string(abi.encodePacked(base, "/", humanId, ".json"));
+    }
+
+    function _validateDigitalMintUnpacked(
+        uint32 year,
+        uint8 month,
+        bytes32 dataHash,
+        string memory dataUrl,
+        bytes32 imageHash,
+        string memory imageUrl,
+        bytes32 imageHash2,
+        string memory imageUrl2,
+        bytes32 imageHash3,
+        string memory imageUrl3,
+        bytes32 fileHash
+    ) internal pure {
+        if (!(year > 0)) revert EC(9);
+        if (!(month >= 1 && month <= 12)) revert EC(8);
+        if (!(dataHash != bytes32(0))) revert EC(30);
+        if (!(bytes(dataUrl).length <= 512)) revert EC(24);
+        if (!(bytes(imageUrl).length <= 512)) revert EC(23);
+        if (!(fileHash != bytes32(0))) revert EC(29);
+        if (imageHash == bytes32(0)) {
+            if (!(bytes(imageUrl).length == 0)) revert EC(28);
+        }
+        _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
+    }
+
+    /// @dev Assumes `_validateDigitalMintUnpacked` already applied. Writes digital `Passport` and emits `PassportMinted`.
+    function _mintDigitalCommit(
+        string memory creatorId,
+        uint32 year,
+        uint8 month,
+        bytes32 dataHash,
+        string memory dataUrl,
+        bytes32 imageHash,
+        string memory imageUrl,
+        bytes32 imageHash2,
+        string memory imageUrl2,
+        bytes32 imageHash3,
+        string memory imageUrl3,
+        bytes32 fileHash,
+        bool dataUrlIsFolderBase
+    ) internal returns (string memory humanId) {
+        humanId = _generatePassportId(year, month);
+        string memory resolvedDataUrl = _resolveMintDataUrlMemory(dataUrl, dataUrlIsFolderBase, humanId);
+        if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
+
+        _passports[humanId] = Passport({
+            humanId:         humanId,
+            contractVersion: CONTRACT_VERSION,
+            creator:         msg.sender,
+            owner:           msg.sender,
+            creatorId:       creatorId,
+            year:            year,
+            month:           month,
+            objectType:      OBJECT_DIGITAL,
+            dataHash:        dataHash,
+            imageHash:       imageHash,
+            imageHash2:      imageHash2,
+            imageHash3:      imageHash3,
+            fileHash:        fileHash,
+            sealType:        0,
+            sealHash:        bytes32(0),
+            nfcPublicKey:    "",
+            nfcModel:        "",
+            dataUrl:         resolvedDataUrl,
+            imageUrl:        imageUrl,
+            imageUrl2:       imageUrl2,
+            imageUrl3:       imageUrl3,
+            timestamp:       block.timestamp,
+            revoked:         false,
+            revokedAt:       0,
+            revocationReasonHash: bytes32(0)
+        });
+
+        _creatorPassports[msg.sender].push(humanId);
+
+        emit PassportMinted(humanId, msg.sender, creatorId, OBJECT_DIGITAL,
+                            year, month, dataHash, 0, "", block.timestamp);
     }
 
     function mintPhysical(
@@ -870,57 +986,102 @@ contract ObjectDigitalPassport {
         bool dataUrlIsFolderBase
     ) external notFrozen returns (string memory humanId) {
         string memory creatorId = _beginMint();
+        _validateDigitalMintUnpacked(
+            year,
+            month,
+            dataHash,
+            dataUrl,
+            imageHash,
+            imageUrl,
+            imageHash2,
+            imageUrl2,
+            imageHash3,
+            imageUrl3,
+            fileHash
+        );
+        return _mintDigitalCommit(
+            creatorId,
+            year,
+            month,
+            dataHash,
+            dataUrl,
+            imageHash,
+            imageUrl,
+            imageHash2,
+            imageUrl2,
+            imageHash3,
+            imageUrl3,
+            fileHash,
+            dataUrlIsFolderBase
+        );
+    }
 
-        if (!(year > 0)) revert EC(9);
-        if (!(month >= 1   && month <= 12)) revert EC(8);
-        if (!(dataHash != bytes32(0))) revert EC(30);
-        if (!(bytes(dataUrl).length <= 512)) revert EC(24);
-        if (!(bytes(imageUrl).length <= 512)) revert EC(23);
-        if (!(fileHash != bytes32(0))) revert EC(29);
+    /**
+     * @notice DIGITAL mint where `payload` is validated/normalized by a governance-registered `IODPExtension`.
+     * @param mintClass Route byte (not C/B/P/M). Must have `typeToExtension[mintClass] != address(0)`.
+     * @param payload Opaque input forwarded to the extension.
+     * @dev Extension `normalize` **must** return `abi.encode` of
+     *      `(uint32 year,uint8 month,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 imageHash2,string imageUrl2,bytes32 imageHash3,string imageUrl3,bytes32 fileHash)`
+     *      — same semantics as `mintDigital` after decode. Core re-validates with `_validateDigitalMintUnpacked`.
+     */
+    function mintDigitalViaExtension(
+        bytes1 mintClass,
+        bytes calldata payload,
+        bool dataUrlIsFolderBase
+    ) external notFrozen returns (string memory humanId) {
+        address ext = typeToExtension[mintClass];
+        if (!(ext != address(0))) revert EC(64);
 
-        if (imageHash == bytes32(0)) {
-            if (!(bytes(imageUrl).length == 0)) revert EC(28);
-        }
-        _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
+        string memory creatorId = _beginMint();
 
-        humanId = _generatePassportId(year, month);
+        IODPExtension(ext).validate(payload);
+        bytes memory norm = IODPExtension(ext).normalize(payload);
 
-        string memory resolvedDataUrl = _resolveMintDataUrl(dataUrl, dataUrlIsFolderBase, humanId);
-        if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
+        (
+            uint32 year,
+            uint8 month,
+            bytes32 dataHash,
+            string memory dataUrl,
+            bytes32 imageHash,
+            string memory imageUrl,
+            bytes32 imageHash2,
+            string memory imageUrl2,
+            bytes32 imageHash3,
+            string memory imageUrl3,
+            bytes32 fileHash
+        ) = abi.decode(
+            norm,
+            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32)
+        );
 
-        _passports[humanId] = Passport({
-            humanId:         humanId,
-            contractVersion: CONTRACT_VERSION,
-            creator:         msg.sender,
-            owner:           msg.sender,
-            creatorId:       creatorId,
-            year:            year,
-            month:           month,
-            objectType:      OBJECT_DIGITAL,
-            dataHash:     dataHash,
-            imageHash:    imageHash,
-            imageHash2:   imageHash2,
-            imageHash3:   imageHash3,
-            fileHash:     fileHash,
-            sealType:     0,
-            sealHash:     bytes32(0),
-            nfcPublicKey: "",
-            nfcModel:     "",
-            dataUrl:      resolvedDataUrl,
-            imageUrl:     imageUrl,
-            imageUrl2:    imageUrl2,
-            imageUrl3:    imageUrl3,
-            timestamp:    block.timestamp,
-            revoked:      false,
-            revokedAt:    0,
-            revocationReasonHash: bytes32(0)
-        });
-
-        _creatorPassports[msg.sender].push(humanId);
-
-        emit PassportMinted(humanId, msg.sender, creatorId, OBJECT_DIGITAL,
-                            year, month, dataHash, 0, "", block.timestamp);
-        return humanId;
+        _validateDigitalMintUnpacked(
+            year,
+            month,
+            dataHash,
+            dataUrl,
+            imageHash,
+            imageUrl,
+            imageHash2,
+            imageUrl2,
+            imageHash3,
+            imageUrl3,
+            fileHash
+        );
+        humanId = _mintDigitalCommit(
+            creatorId,
+            year,
+            month,
+            dataHash,
+            dataUrl,
+            imageHash,
+            imageUrl,
+            imageHash2,
+            imageUrl2,
+            imageHash3,
+            imageUrl3,
+            fileHash,
+            dataUrlIsFolderBase
+        );
     }
 
     // ─── Passport — Update ────────────────────────────────────────────────────

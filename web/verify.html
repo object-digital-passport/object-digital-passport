@@ -8,12 +8,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<title>ODP v0.2 — Verify</title>
+<title>ODP v0.3 — Verify</title>
 
 <!--
   Object Digital Passport — Verifier
   Author: Andrei Chernikov
-  Specification v0.2
+  Specification v0.3
 
   Shared styles: odp.css (same dark theme as Creator / Passport)
 
@@ -38,7 +38,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="verify.meta.h1">Verify</h1>
-    <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.2</p>
+    <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.3</p>
     <div id="odpStackLabelHeader" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
     <p class="fhint" style="margin-top:6px;max-width:42rem" data-i18n="verify.meta.hint">Check that a passport or profile ID is registered.</p>
   </div>
@@ -105,6 +105,23 @@
   <p class="search-hint" data-i18n="verify.search.hint">Passport IDs (ODP-…) and profile IDs (C-123-456-789-012, or B-, P-, M-) can be pasted from a label, a site link, or the square QR button.</p>
   <p class="fhint" id="idExistsHint" style="min-height:1.25em;margin-top:8px;font-size:12px;color:var(--text3);max-width:42rem;line-height:1.5" aria-live="polite"></p>
 </div>
+
+<section class="card verify-paff-audit-card" id="verifyPaffAuditSection" style="margin-top:18px;max-width:42rem">
+  <div class="card-head" data-i18n="verify.paffAudit.title">P affiliation — on-chain audit</div>
+  <div class="card-body" style="padding-top:12px">
+    <p class="fhint" style="margin:0 0 12px;line-height:1.55" data-i18n="verify.paffAudit.lead">
+      Enter a child institution Profile ID (P-…). Read-only: active parent and join/detach timestamps from the registry.
+    </p>
+    <div class="row2" style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px">
+      <div class="field" style="flex:1;min-width:14rem;max-width:28rem">
+        <label for="verifyPaffChildId" data-i18n="verify.paffAudit.childLabel">Child Profile ID (P-…)</label>
+        <input type="text" id="verifyPaffChildId" placeholder="P-…" autocomplete="off" spellcheck="false" style="width:100%">
+      </div>
+      <button type="button" class="btn btn-sec" id="verifyPaffAuditBtn" data-i18n="verify.paffAudit.loadBtn">Load audit</button>
+    </div>
+    <div id="verifyPaffAuditOut" style="margin-top:14px;font-size:12px;line-height:1.6"></div>
+  </div>
+</section>
 
 <div id="result"></div>
 </div>
@@ -2593,6 +2610,77 @@ async function verifyDocAttestation() {
   }
 }
 
+function verifyPaffFmtTs(sec) {
+  const n = Number(sec);
+  if (!n || Number.isNaN(n)) return "—";
+  try {
+    return new Date(n * 1000).toLocaleString();
+  } catch {
+    return "—";
+  }
+}
+
+async function runVerifyPaffiliationAudit() {
+  const out = document.getElementById("verifyPaffAuditOut");
+  const rawIn = document.getElementById("verifyPaffChildId");
+  const btn = document.getElementById("verifyPaffAuditBtn");
+  if (!out || !rawIn) return;
+  const raw = String(rawIn.value || "").trim();
+  out.innerHTML = "";
+  if (!raw || !/^P-/i.test(raw)) {
+    out.innerHTML = `<div class="info warn">${esc(t("verify.paffAudit.badChild"))}</div>`;
+    return;
+  }
+  if (!provider) {
+    out.innerHTML = `<div class="info warn">${esc(t("verify.paffAudit.needNet"))}</div>`;
+    return;
+  }
+  const childPId = raw;
+  if (btn) btn.disabled = true;
+  out.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.paffAudit.loading"))}</span></div>`;
+  try {
+    const contracts = verifyReadContractsOrdered();
+    let lastErr = null;
+    for (const c of contracts) {
+      if (!c || typeof c.getPAffiliationAudit !== "function") continue;
+      try {
+        const a = await c.getPAffiliationAudit(childPId);
+        const activeParent = a.activeParent !== undefined ? String(a.activeParent) : String(a[0] || "");
+        const rawJoined = a.joinedAt !== undefined ? a.joinedAt : a[1];
+        const rawDetached = a.detachedAt !== undefined ? a.detachedAt : a[2];
+        const lastDetached =
+          a.lastDetachedFromParent !== undefined ? String(a.lastDetachedFromParent) : String(a[3] || "");
+        const jb = ethers.BigNumber.isBigNumber(rawJoined) ? rawJoined.toNumber() : Number(rawJoined || 0);
+        const db = ethers.BigNumber.isBigNumber(rawDetached) ? rawDetached.toNumber() : Number(rawDetached || 0);
+        out.innerHTML = `
+          <div class="info neutral" style="padding:12px 14px;border-radius:8px">
+            <div><strong>${esc(t("verify.paffAudit.activeParent"))}:</strong> ${activeParent ? esc(activeParent) : "—"}</div>
+            <div style="margin-top:6px"><strong>${esc(t("verify.paffAudit.joinedAt"))}:</strong> ${esc(verifyPaffFmtTs(jb))}</div>
+            <div style="margin-top:6px"><strong>${esc(t("verify.paffAudit.detachedAt"))}:</strong> ${esc(verifyPaffFmtTs(db))}</div>
+            <div style="margin-top:6px"><strong>${esc(t("verify.paffAudit.lastDetachedParent"))}:</strong> ${
+              lastDetached ? esc(lastDetached) : "—"
+            }</div>
+            <div style="margin-top:8px;font-size:11px;color:var(--text3)">${esc(t("verify.paffAudit.registryNote"))} <code class="mono">${esc(
+              shortAddr(c.address)
+            )}</code></div>
+          </div>`;
+        if (btn) btn.disabled = false;
+        return;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    const msg =
+      lastErr && (lastErr.reason || lastErr.message)
+        ? String(lastErr.reason || lastErr.message)
+        : t("verify.paffAudit.noSupport");
+    out.innerHTML = `<div class="info warn">${esc(msg)}</div>`;
+  } catch (e) {
+    out.innerHTML = `<div class="err-box">${esc(e && e.message ? e.message : String(e))}</div>`;
+  }
+  if (btn) btn.disabled = false;
+}
+
 // ── Enter key ─────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -2602,6 +2690,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("idInput").addEventListener("input", () => {
     schedulePassportExistsHint();
   });
+  const paffBtn = document.getElementById("verifyPaffAuditBtn");
+  if (paffBtn) {
+    paffBtn.addEventListener("click", () => void runVerifyPaffiliationAudit());
+  }
   const docUriEl = document.getElementById("docAttestDocumentUri");
   if (docUriEl) {
     docUriEl.addEventListener("input", () => {

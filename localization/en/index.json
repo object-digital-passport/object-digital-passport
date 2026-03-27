@@ -1,9 +1,9 @@
 {
   "index": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Web demo",
+      "documentTitle": "ODP v0.3 — Web demo",
       "h1": "Object Digital Passport",
-      "sub": "Reference web UI (v0.2) · same files as in the repo"
+      "sub": "Reference web UI (v0.3) · same files as in the repo"
     },
     "cardTitle": "Open a page",
     "lead": "These are static pages; connect a wallet where needed. Polygon PoS RPC is required for chain reads.",

@@ -15,7 +15,7 @@ This note is written in plain language for operators, creators, and integrators.
 - **Owner** (starts as creator; changes via `transferPassport`): `transferPassport`, `updatePassportUrls` (owner, creator, or the issuer’s active publishing agent per spec).
 - **Issuer wallet** (registered profile): `delegateCreatorPublishing`, `revokeCreatorPublishing` (account-wide publishing agent for hosted URLs).
 - **Creator or governance**: `revokePassport(humanId, reasonHash)` with non-zero `reasonHash` (typically `keccak256(utf8(reason))`).
-- **Governance only**: `transferGovernance(newGovernance)`.
+- **Governance only**: `transferGovernance(newGovernance)`, `setMintExtension(mintClass, extension)` — registers or clears an `IODPExtension` for **digital** extension mint (`mintDigitalViaExtension`). `mintClass` must not be **C/B/P/M** (profile-prefix bytes). See **[`contracts/examples/ODPPassThroughDigitalExtension.sol`](contracts/examples/ODPPassThroughDigitalExtension.sol)** for the expected `normalize` ABI encoding (same tuple as `mintDigital`). **No extra events** are emitted beyond `PassportMinted` — the `mintClass` is in the transaction calldata for indexers.
 - **P / M institutions**: `raiseCounterfeitConcern`, `clearCounterfeitConcern` (prover-only clear).
 - **P parent**: `detachPAffiliation` (child Profile ID); propose/confirm/cancel affiliation remain on **Profile** ([`web/creator.html`](web/creator.html)).
 

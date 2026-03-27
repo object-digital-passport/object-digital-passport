@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<title>ODP v0.2 — Create Passport</title>
+<title>ODP v0.3 — Create Passport</title>
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.3.0"></script>
@@ -23,7 +23,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="passport.meta.h1">Create Passport</h1>
-    <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.2</p>
+    <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.3</p>
     <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
   <div class="header-toolbar">
@@ -682,6 +682,19 @@ function htmlPassportV03OperationsCard() {
         <div id="passportV03Err"></div>
         <div id="passportV03State" class="info neutral" style="display:none;margin-top:12px;padding:12px 14px;border-radius:8px;font-size:12px;line-height:1.6;text-align:left"></div>
 
+        <div id="passportV03AgentUrlBlock" style="display:none;margin-top:14px">
+          <div class="section-label">${esc(t("passport.v03Ops.agentUrlSection"))}</div>
+          <p class="fhint" style="margin:0 0 10px;line-height:1.55">${esc(t("passport.v03Ops.agentUrlLead"))}</p>
+          <div class="field"><label for="passportV03AgentUrlData">${esc(t("passport.v03Ops.agentUrlDataLabel"))}</label>
+            <input type="url" id="passportV03AgentUrlData" placeholder="https://…" autocomplete="off" spellcheck="false"></div>
+          <div class="field"><label for="passportV03AgentUrlImg">${esc(t("passport.v03Ops.agentUrlImageLabel"))}</label>
+            <input type="url" id="passportV03AgentUrlImg" placeholder="https://…" autocomplete="off" spellcheck="false"></div>
+          <div id="passportV03AgentUrlErr"></div>
+          <div class="btn-row" style="margin-top:10px">
+            <button type="button" class="btn" id="passportV03AgentUrlSubmitBtn">${esc(t("passport.v03Ops.agentUrlSubmit"))}</button>
+          </div>
+        </div>
+
         <div id="passportV03OwnerBlock" style="display:none;margin-top:14px">
           <div class="section-label">${esc(t("passport.v03Ops.ownerSection"))}</div>
           <div class="row2">
@@ -763,12 +776,14 @@ async function passportV03RefreshState() {
   const errEl = document.getElementById("passportV03Err");
   const stateEl = document.getElementById("passportV03State");
   const ownerBlock = document.getElementById("passportV03OwnerBlock");
+  const agentUrlBlock = document.getElementById("passportV03AgentUrlBlock");
   const publishAgentBlock = document.getElementById("passportV03PublishAgentBlock");
   const revokeBlock = document.getElementById("passportV03RevokeBlock");
   const instBlock = document.getElementById("passportV03InstBlock");
   const paffBlock = document.getElementById("passportV03PaffBlock");
   if (errEl) errEl.innerHTML = "";
   if (!passportV03UiEnabled()) {
+    if (agentUrlBlock) agentUrlBlock.style.display = "none";
     if (errEl) errEl.innerHTML = `<div class="info warn">${esc(t("passport.v03Ops.notV03"))}</div>`;
     return;
   }
@@ -776,6 +791,8 @@ async function passportV03RefreshState() {
     ? String(document.getElementById("passportV03Hid").value).trim()
     : "");
   if (!hid || !/^ODP-/i.test(hid)) {
+    const aub0 = document.getElementById("passportV03AgentUrlBlock");
+    if (aub0) aub0.style.display = "none";
     if (errEl) errEl.innerHTML = `<div class="info warn">${esc(t("passport.v03Ops.needValidId"))}</div>`;
     return;
   }
@@ -813,6 +830,11 @@ async function passportV03RefreshState() {
     const isCreator = creatorAddr && wl === String(creatorAddr).toLowerCase();
     const isGov = govAddr && wl === String(govAddr).toLowerCase();
     const revoked = !!p.revoked;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const agentLc = agent && String(agent).toLowerCase();
+    const delegActive =
+      !!(agentLc && agentLc !== ZERO.toLowerCase() && expSec > nowSec);
+    const isPublishAgentWallet = delegActive && wl === agentLc && !isCreator;
     const delLine =
       agent && agent.toLowerCase() !== ZERO
         ? t("passport.v03Ops.delegationLine")
@@ -831,6 +853,19 @@ async function passportV03RefreshState() {
         <div><strong>${esc(t("passport.v03Ops.delegation"))}:</strong> ${esc(delLine)}</div>
         <div><strong>${esc(t("passport.v03Ops.governanceAddr"))}:</strong> <span class="mono">${esc(govAddr ? String(govAddr) : "—")}</span></div>
         <div><strong>${esc(t("passport.v03Ops.counterfeitLine"))}:</strong> ${cfLine}</div>`;
+    }
+    if (agentUrlBlock) {
+      if (!revoked && isPublishAgentWallet) {
+        agentUrlBlock.style.display = "block";
+        const eA = document.getElementById("passportV03AgentUrlErr");
+        const dA = document.getElementById("passportV03AgentUrlData");
+        const iA = document.getElementById("passportV03AgentUrlImg");
+        if (eA) eA.innerHTML = "";
+        if (dA) dA.value = p.dataUrl || "";
+        if (iA) iA.value = p.imageUrl || "";
+      } else {
+        agentUrlBlock.style.display = "none";
+      }
     }
     if (ownerBlock) ownerBlock.style.display = !revoked && isOwner ? "block" : "none";
     if (publishAgentBlock) publishAgentBlock.style.display = !revoked && isCreator ? "block" : "none";
@@ -851,6 +886,8 @@ async function passportV03RefreshState() {
     }
     if (ownerBlock) ownerBlock.style.display = "none";
     if (publishAgentBlock) publishAgentBlock.style.display = "none";
+    const aubE = document.getElementById("passportV03AgentUrlBlock");
+    if (aubE) aubE.style.display = "none";
     if (revokeBlock) revokeBlock.style.display = "none";
     if (instBlock) instBlock.style.display = "none";
     if (paffBlock) paffBlock.style.display = "none";
@@ -989,6 +1026,55 @@ function bindPassportV03Operations() {
         if (errEl) errEl.innerHTML = `<div class="info e">${esc(m)}</div>`;
       }
       revDel.disabled = false;
+    };
+  }
+  const agentUrlBtn = document.getElementById("passportV03AgentUrlSubmitBtn");
+  if (agentUrlBtn) {
+    agentUrlBtn.onclick = async () => {
+      const errUrl = document.getElementById("passportV03AgentUrlErr");
+      if (errUrl) errUrl.innerHTML = "";
+      const hid = passportV03Last && passportV03Last.humanId;
+      const p = passportV03Last && passportV03Last.p;
+      if (!hid || !p) {
+        if (errUrl) errUrl.innerHTML = `<div class="info warn">${esc(t("passport.v03Ops.needValidId"))}</div>`;
+        return;
+      }
+      const newData = document.getElementById("passportV03AgentUrlData") && document.getElementById("passportV03AgentUrlData").value
+        ? String(document.getElementById("passportV03AgentUrlData").value).trim()
+        : "";
+      const newImg = document.getElementById("passportV03AgentUrlImg") && document.getElementById("passportV03AgentUrlImg").value
+        ? String(document.getElementById("passportV03AgentUrlImg").value).trim()
+        : "";
+      if (newData.length > 512 || newImg.length > 512) {
+        if (errUrl) errUrl.innerHTML = `<div class="info warn">${esc(t("passport.v03Ops.agentUrlUrlTooLong"))}</div>`;
+        return;
+      }
+      let confirmed = p.dataHash;
+      try {
+        if (
+          confirmed != null &&
+          typeof ethers !== "undefined" &&
+          ethers.utils &&
+          typeof ethers.utils.hexlify === "function" &&
+          !(typeof confirmed === "string" && /^0x[0-9a-f]{64}$/i.test(String(confirmed)))
+        ) {
+          confirmed = ethers.utils.hexlify(confirmed);
+        }
+      } catch {
+        /* use as-is */
+      }
+      agentUrlBtn.disabled = true;
+      if (errUrl) errUrl.innerHTML = `<div class="info neutral">${esc(t("passport.v03Ops.sending"))}</div>`;
+      try {
+        const tx = await contract.updatePassportUrls(hid, newData, newImg, confirmed);
+        await tx.wait();
+        if (errUrl) errUrl.innerHTML = `<div class="info neutral">${esc(t("passport.v03Ops.doneTx"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+        void passportV03RefreshState();
+      } catch (e) {
+        const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+        if (errUrl) errUrl.innerHTML = `<div class="info e">${esc(m)}</div>`;
+      }
+      agentUrlBtn.disabled = false;
     };
   }
   const revP = document.getElementById("passportV03RevokePassportBtn");

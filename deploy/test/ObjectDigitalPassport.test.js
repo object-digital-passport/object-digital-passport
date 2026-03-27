@@ -329,4 +329,102 @@ describe("ObjectDigitalPassport", function () {
       expect(cc.active).to.equal(false);
     });
   });
+
+  describe("mintDigitalViaExtension (IODPExtension)", function () {
+    const MINT_CLASS_V = "0x56";
+
+    function encodeDigitalMintPayload(args) {
+      const coder = ethers.AbiCoder.defaultAbiCoder();
+      return coder.encode(
+        [
+          "uint32",
+          "uint8",
+          "bytes32",
+          "string",
+          "bytes32",
+          "string",
+          "bytes32",
+          "string",
+          "bytes32",
+          "string",
+          "bytes32",
+        ],
+        args
+      );
+    }
+
+    it("mints after governance setMintExtension", async function () {
+      const c = await deployFixture();
+      const Ext = await ethers.getContractFactory("ODPPassThroughDigitalExtension");
+      const ext = await Ext.deploy();
+      await ext.waitForDeployment();
+      await c.setMintExtension(MINT_CLASS_V, ext.target);
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const args = [
+        2026,
+        3,
+        nonZeroDataHash(900),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(900),
+      ];
+      const payload = encodeDigitalMintPayload(args);
+      const tx = await c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false);
+      await tx.wait();
+      const ids = await c.getPassportsByCreator(w.address);
+      const humanId = ids[ids.length - 1];
+      const p = await c.getPassport(humanId);
+      expect(p.objectType).to.equal("digital");
+      expect(p.dataHash).to.equal(nonZeroDataHash(900));
+    });
+
+    it("reverts EC(64) when extension not registered", async function () {
+      const c = await deployFixture();
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const payload = encodeDigitalMintPayload([
+        2026,
+        3,
+        nonZeroDataHash(901),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(901),
+      ]);
+      await expect(c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(64n);
+    });
+
+    it("reverts EC(65) when setMintExtension uses reserved profile byte", async function () {
+      const c = await deployFixture();
+      const Ext = await ethers.getContractFactory("ODPPassThroughDigitalExtension");
+      const ext = await Ext.deploy();
+      await ext.waitForDeployment();
+      await expect(c.setMintExtension(TYPE_C, ext.target)).to.be.revertedWithCustomError(c, "EC").withArgs(65n);
+    });
+
+    it("reverts EC(66) when extension address has no code", async function () {
+      const c = await deployFixture();
+      const [_, eoa] = await ethers.getSigners();
+      await expect(c.setMintExtension(MINT_CLASS_V, eoa.address))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(66n);
+    });
+
+    it("non-governance cannot setMintExtension", async function () {
+      const c = await deployFixture();
+      const [_, w2] = await ethers.getSigners();
+      const Ext = await ethers.getContractFactory("ODPPassThroughDigitalExtension");
+      const ext = await Ext.deploy();
+      await ext.waitForDeployment();
+      await expect(c.connect(w2).setMintExtension(MINT_CLASS_V, ext.target))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(56n);
+    });
+  });
 });

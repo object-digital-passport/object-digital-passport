@@ -394,25 +394,22 @@
    */
   function odpFormatStackSummaryHtml(generation) {
     var g = generation == null ? "?" : String(generation);
-    var spec =
-      generation === 0
-        ? odpStackT("stack.spec.legacy", "legacy CONTRACT_VERSION 0 — not supported by this UI")
-          : generation >= 4
-            ? odpStackT(
-                "stack.spec.v04",
-                "ODP v0.4 — v0.3 features + account-scoped publishing agent (may updatePassportUrls for issuer’s passports)"
-              )
-            : generation >= 3
-              ? odpStackT(
-                  "stack.spec.v03",
-                  "ODP v0.3 — ownership, per-passport delegate, revocation, 3 image hashes, P/M counterfeit, P-affiliation detach"
-                )
-              : generation >= 2
-            ? odpStackT(
-                "stack.spec.v02",
-                "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
-              )
-            : odpStackT("stack.spec.unknown", "unknown generation");
+    var spec;
+    if (generation === 0) {
+      spec = odpStackT("stack.spec.legacy", "legacy CONTRACT_VERSION 0 — not supported by this UI");
+    } else if (generation >= 3) {
+      spec = odpStackT(
+        "stack.spec.v03",
+        "ODP v0.3 — ownership, account-scoped publishing agent (updatePassportUrls), revocation, 3 image hashes, P/M counterfeit, P-affiliation detach"
+      );
+    } else if (generation >= 2) {
+      spec = odpStackT(
+        "stack.spec.v02",
+        "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
+      );
+    } else {
+      spec = odpStackT("stack.spec.unknown", "unknown generation");
+    }
     var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
     var flagClass = "odp-stack-flag--" + trust.level;
     var metaLine = odpStackTpl("stack.summaryMeta", "Site {siteVer} · on-chain gen {gen} — {spec}", {

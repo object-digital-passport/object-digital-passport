@@ -1,9 +1,9 @@
 {
   "creator": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Регистрация профиля",
+      "documentTitle": "ODP v0.3 — Регистрация профиля",
       "h1": "Профиль",
-      "sub": "Object Digital Passport · спецификация v0.2"
+      "sub": "Object Digital Passport · спецификация v0.3"
     },
     "steps": {
       "wallet": "Кошелёк",

@@ -1,9 +1,9 @@
 {
   "passport": {
     "meta": {
-      "documentTitle": "ODP v0.2 — Create Passport",
+      "documentTitle": "ODP v0.3 — Create Passport",
       "h1": "Create Passport",
-      "sub": "Object Digital Passport · Specification v0.2"
+      "sub": "Object Digital Passport · Specification v0.3"
     },
     "appLoading": "Connecting wallet…",
     "connect": {
@@ -60,6 +60,12 @@
       "delegationLine": "Agent {agent} · expires {exp}",
       "publishAgentSection": "Issuer — publishing agent",
       "publishAgentHint": "One wallet may update hosted URLs (updatePassportUrls) for all passports you minted. Set or revoke it from the issuer wallet; it is not per-passport.",
+      "agentUrlSection": "Publishing agent — update hosted URLs",
+      "agentUrlLead": "Load the passport above first. As the issuer’s active publishing agent you may change only primary dataUrl and imageUrl (not image 2/3 on-chain). Hashes stay immutable.",
+      "agentUrlDataLabel": "dataUrl (HTTPS)",
+      "agentUrlImageLabel": "Primary image URL",
+      "agentUrlSubmit": "Update URLs on-chain",
+      "agentUrlUrlTooLong": "Each URL must be at most 512 characters.",
       "governanceAddr": "Registry governance address",
       "counterfeitLine": "Institutional concern flag",
       "counterfeitActive": "Active — prover {prover}",
