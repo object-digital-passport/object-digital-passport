@@ -38,6 +38,20 @@ async function main() {
 
   const address = await contract.getAddress();
   console.log(`  ✅ Deployed: ${address}`);
+
+  let walletDocumentAnchorAddress = null;
+  try {
+    console.log("\n  Deploying ODPWalletDocumentAnchor (optional satellite for file SHA-256 anchors)...");
+    const AnchorFactory = await ethers.getContractFactory("ODPWalletDocumentAnchor");
+    const anchor = await AnchorFactory.deploy(address);
+    await anchor.waitForDeployment();
+    walletDocumentAnchorAddress = await anchor.getAddress();
+    console.log(`  ✅ Wallet document anchor: ${walletDocumentAnchorAddress}`);
+    console.log(`     Set NET.docAnchor in verify.html to this address for v0.3+ on-chain file attest.`);
+  } catch (e) {
+    console.log(`  ⚠️  ODPWalletDocumentAnchor deploy skipped: ${e && e.message ? e.message : e}`);
+  }
+
   const deployedVersion = await contract.CONTRACT_VERSION();
   const specMajor = await contract.SPEC_MAJOR();
   const specMinor = await contract.SPEC_MINOR();
@@ -47,7 +61,7 @@ async function main() {
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
-    console.log(`  Packed byte: ${deployedVersion} (v0.3 = 3: ownership, revocation, extra image hashes, P-affiliation detach, counterfeit flag)`);
+    console.log(`  Packed byte: ${deployedVersion} (v0.3 = 3: ownership, revocation, extra image hashes, P-affiliation detach)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering profile (type C)...");
@@ -78,7 +92,10 @@ async function main() {
       z,                                  // imageHash3
       "",                                 // imageUrl3
       fakeFileHash,                       // fileHash (bytes32) — required for digital
-      false                               // dataUrlIsFolderBase — full URL, not folder root
+      false,                              // dataUrlIsFolderBase — full URL, not folder root
+      z,                                  // auxCommitmentHash
+      "",                                 // auxCommitmentUri
+      ""                                  // mintOnBehalfOfCreatorId (self-mint)
     );
     const mintReceipt = await mintTx.wait();
 
@@ -125,6 +142,7 @@ async function main() {
     network:          networkName,
     chainId:          Number(network.chainId),
     contractAddress:  address,
+    walletDocumentAnchorAddress,
     contractVersion:  Number(deployedVersion),
     deployedBy:       deployer.address,
     deployedAt:       new Date().toISOString(),

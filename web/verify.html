@@ -91,13 +91,13 @@
   </div>
 
   <div class="odp-quick-verify-wrap odp-quick-verify-wrap--tight">
-    <label class="search-label odp-quick-verify-label" for="odpQuickInput" data-i18n="verify.odpQuick.label">Or drop an .odp bundle</label>
+    <label class="search-label odp-quick-verify-label" for="odpQuickInput" data-i18n="verify.odpQuick.label">Or drop a .odpass bundle</label>
     <p class="fhint odp-quick-verify-lead" data-i18n="verify.odpQuick.lead">
-      Reads passport.json from the bundle, detects Passport ID, loads the on-chain record, and compares hashes in your browser. If the JSON was edited, you still see what is in the file — it will not match as authentic.
+      Reads the .odpass ZIP (passport.json inside), detects Passport ID, loads the on-chain record, and compares hashes in your browser. If the file was edited, you still see what is in the bundle — it will not verify as authentic.
     </p>
     <div class="drop-zone json-drop" id="odpQuickDrop">
       <input type="file" id="odpQuickInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
-      <p><span data-i18n="verify.odpQuick.dropLine1">Drop .odp here or click to select</span><br>
+      <p><span data-i18n="verify.odpQuick.dropLine1">Drop .odpass here or click to select</span><br>
       <span style="opacity:0.6" data-i18n="verify.odpQuick.dropLine2">Processed locally — not uploaded</span></p>
     </div>
   </div>
@@ -246,6 +246,8 @@ const NET = {
   rpc:      POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
   contract: "0x6c83c8C2e18c183a2776431a23187832b42FfFBb",
+  /** Optional `ODPWalletDocumentAnchor` for `attestExternalDocument` when the main registry is v0.3+ (EIP-170). */
+  docAnchor: null,
   contractGenerationFallback: null,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
   previousContracts: [],
@@ -268,6 +270,55 @@ const DOC_ATTEST_WRITE_ABI = [
     outputs: [],
   },
 ];
+
+const DOC_ATTEST_READ_ABI = [
+  {
+    name: "getExternalDocumentAttestation",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "wallet", type: "address" },
+      { name: "documentHash", type: "bytes32" },
+    ],
+    outputs: [
+      { name: "attested", type: "bool" },
+      { name: "creatorId", type: "string" },
+      { name: "timestamp", type: "uint256" },
+      { name: "documentUri", type: "string" },
+    ],
+  },
+];
+
+/** Write target: explicit `docAnchor` when set, else main `NET.contract` (v0.2 on-core attest). */
+function odpDocAttestWriteAddress() {
+  const d = NET.docAnchor != null ? String(NET.docAnchor).trim() : "";
+  if (/^0x[a-f0-9]{40}$/i.test(d)) return d;
+  return NET.contract;
+}
+
+function odpDocAttestReadyForV03() {
+  if (odpContractGeneration == null || odpContractGeneration < 3) return true;
+  const d = NET.docAnchor != null ? String(NET.docAnchor).trim() : "";
+  return /^0x[a-f0-9]{40}$/i.test(d);
+}
+
+/** Contracts to scan for `getExternalDocumentAttestation` (anchor first, then registry fallbacks). */
+function docAttestReadContractsOrdered() {
+  if (!provider) return [];
+  const out = [];
+  const seen = {};
+  function pushAddr(addr) {
+    const a = String(addr || "").trim();
+    if (!/^0x[a-f0-9]{40}$/i.test(a)) return;
+    const k = a.toLowerCase();
+    if (seen[k]) return;
+    seen[k] = true;
+    out.push(new ethers.Contract(a, DOC_ATTEST_READ_ABI, provider));
+  }
+  pushAddr(NET.docAnchor);
+  for (const c of verifyReadContractsOrdered()) pushAddr(c.address);
+  return out;
+}
 
 let odpContractGeneration = null;
 /** Set when primary `NET.contract` probes as legacy (byte 0). */
@@ -309,14 +360,76 @@ function odpPassportSidecarHashes(rec) {
   };
 }
 
-function firstZipFileInFolder(zip, folderName) {
-  const prefix = folderName.endsWith("/") ? folderName : folderName + "/";
+function zipEntryPathNormalized(name) {
+  return String(name || "").replace(/\\/g, "/");
+}
+
+/** Top-level file under one folder segment (legacy bundles: original/photo.jpg). Case-insensitive; normalizes \\ to /. */
+function firstZipFileInFolder(zip, folderSegment) {
+  const seg = String(folderSegment || "")
+    .replace(/\\/g, "/")
+    .replace(/^\/+|\/+$/g, "");
+  if (!seg) return null;
+  const escaped = seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp("^" + escaped + "/[^/]+$", "i");
   for (const z of Object.values(zip.files)) {
-    if (!z || z.dir || !z.name || !z.name.startsWith(prefix)) continue;
-    if (z.name.slice(prefix.length).includes("/")) continue;
-    return z;
+    if (!z || z.dir || !z.name) continue;
+    if (re.test(zipEntryPathNormalized(z.name))) return z;
   }
   return null;
+}
+
+let odpBundleSidecarPreviewUrl = null;
+function revokeOdpBundleSidecarPreviewUrl() {
+  if (odpBundleSidecarPreviewUrl) {
+    try {
+      URL.revokeObjectURL(odpBundleSidecarPreviewUrl);
+    } catch (_) {}
+    odpBundleSidecarPreviewUrl = null;
+  }
+}
+
+function zipEntryLooksDisplayableImage(name) {
+  return /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(String(name || ""));
+}
+
+function odpSafeOriginalsRelPath(p) {
+  const n = zipEntryPathNormalized(p).replace(/^\/+/, "");
+  if (!n || n.indexOf("..") >= 0) return "";
+  if (!/^originals\//i.test(n)) return "";
+  return n;
+}
+
+function zipEntryByRelPath(zip, relPath) {
+  const want = odpSafeOriginalsRelPath(zipEntryPathNormalized(relPath).replace(/^\/+/, ""));
+  if (!want) return null;
+  const low = want.toLowerCase();
+  for (const z of Object.values(zip.files)) {
+    if (!z || z.dir || !z.name) continue;
+    if (zipEntryPathNormalized(z.name).toLowerCase() === low) return z;
+  }
+  return null;
+}
+
+async function odpLoadManifestOriginalsMap(zip) {
+  const me = zip.file("manifest.json");
+  if (!me) return null;
+  try {
+    const j = JSON.parse(await me.async("text"));
+    const o = j && j.originals != null && typeof j.originals === "object" ? j.originals : null;
+    if (!o) return null;
+    const pick = (k) => (typeof o[k] === "string" ? o[k].trim() : "");
+    const out = {
+      fileHash: pick("fileHash"),
+      imageHash: pick("imageHash"),
+      imageHash2: pick("imageHash2"),
+      imageHash3: pick("imageHash3"),
+    };
+    if (!out.fileHash && !out.imageHash && !out.imageHash2 && !out.imageHash3) return null;
+    return out;
+  } catch {
+    return null;
+  }
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -479,7 +592,7 @@ async function initVerifyWalletBar() {
     try {
       docAttestWeb3Provider = new ethers.providers.Web3Provider(eth, "any");
       docAttestSigner = docAttestWeb3Provider.getSigner();
-      docAttestContract = new ethers.Contract(NET.contract, DOC_ATTEST_WRITE_ABI, docAttestSigner);
+      docAttestContract = new ethers.Contract(odpDocAttestWriteAddress(), DOC_ATTEST_WRITE_ABI, docAttestSigner);
     } catch {}
   }
   syncDocAttestPreviews();
@@ -562,7 +675,8 @@ async function connect() {
       if (docAttestSec) {
         docAttestSec.hidden =
           odpContractGeneration == null ||
-          (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration));
+          (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration)) ||
+          (odpContractGeneration >= 3 && !odpDocAttestReadyForV03());
       }
       setNet("on", `${c.name}${t("verify.net.genLabel")}${odpContractGeneration}`);
       if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(c);
@@ -1181,7 +1295,7 @@ function renderInvalid(humanId) {
     </div>`;
 }
 
-/** No on-chain row — still show passport.json from .odp so the user can inspect the file. */
+/** No on-chain row — still show passport.json from the local .odpass so the user can inspect the file. */
 function renderInvalidWithLocalPassport(humanId, passportObj, bundleFileName) {
   const preview = passportObj ? renderLocalPassportPreview(passportObj) : "";
   const hint = t("verify.odpQuick.unregisteredHint").replace("{name}", String(bundleFileName || "bundle"));
@@ -1230,6 +1344,7 @@ function renderCreatorResult(creatorId, c, deploymentAddress) {
     String(deploymentAddress).toLowerCase() !== String(net_.contract || "").toLowerCase();
   const whenUtc = formatUnixUtcSeconds(c.timestamp);
   const typeLabel = { C: "Creator", B: "Brand", P: "Institution", M: "Museum" }[c.typePrefix] || "Creator";
+  const showInstitutionalTrustNote = c.typePrefix === "P" || c.typePrefix === "M";
   document.getElementById("result").innerHTML = `
     <div class="card">
       <div class="status-bar authentic">
@@ -1241,6 +1356,11 @@ function renderCreatorResult(creatorId, c, deploymentAddress) {
       </div>
       <div class="card-body">
         ${showPrior ? `<p class="odp-prior-deploy-note">Resolved on a <strong>prior deployment</strong> (<code class="mono">${esc(shortAddr(deploymentAddress))}</code>). Treat trust separately from the primary registry.</p>` : ""}
+        ${
+          showInstitutionalTrustNote
+            ? `<p class="info neutral" style="margin:0 0 12px;font-size:12px;line-height:1.55">${esc(t("verify.creatorResult.institutionalTrustNote"))}</p>`
+            : ""
+        }
         <div class="field"><div class="fl">${esc(t("verify.fields.profile"))}</div><div class="fv"><span class="creator-id-val">${esc(creatorId)}</span></div></div>
         <div class="field"><div class="fl">Type</div><div class="fv">${esc(c.typePrefix)} (${esc(typeLabel)})</div></div>
         <div class="field full"><div class="fl">Wallet</div><div class="fv mono">${esc(wallet)}</div></div>
@@ -1591,7 +1711,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
     authentic:    "Passport data matches on-chain hash",
     tampered:     "Passport data was modified after registration",
     unverifiable: "Record exists on-chain, but passport data is unreachable",
-    noPublicUrl:  "No hosted JSON URL on record — only someone with the canonical passport.json file can verify details and authenticity",
+    noPublicUrl:  t("verify.result.noPublicUrlDesc"),
   }[dataStatus];
 
   const title   = passport?.title    || "—";
@@ -1777,6 +1897,17 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
 
           ${
+            typeof rec.mintAgent !== "undefined" &&
+            rec.mintAgent &&
+            String(rec.mintAgent).toLowerCase() !== "0x0000000000000000000000000000000000000000"
+              ? `<div class="field full">
+            <div class="fl">Mint executed by (agent)</div>
+            <div class="fv mono">${esc(String(rec.mintAgent))}</div>
+          </div>`
+              : ""
+          }
+
+          ${
             rec.owner !== undefined && rec.owner
               ? `<div class="field full">
             <div class="fl">${esc(t("verify.fields.owner"))}</div>
@@ -1940,7 +2071,8 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div class="drop-zone" id="fileDrop" onclick="document.getElementById('fileInput').click()">
           <input type="file" id="fileInput" onchange="verifyFile(event, '${esc(sidecarHashes.fileHash)}')">
           <p>Drop original file here or click to select<br>
-          <span style="opacity:0.6">SHA-256 computed locally — file is never uploaded</span></p>
+          <span style="opacity:0.6">SHA-256 computed locally — file is never uploaded</span><br>
+          <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="fileResult"></div>` : ""}
 
@@ -1950,7 +2082,8 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div class="drop-zone" id="imgDrop" onclick="document.getElementById('imgInput').click()">
           <input type="file" id="imgInput" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash)}')">
           <p>Drop image file here or click to select<br>
-          <span style="opacity:0.6">Computed locally — not uploaded</span></p>
+          <span style="opacity:0.6">Computed locally — not uploaded</span><br>
+          <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="imgResult"></div>` : ""}
         ${hasImage2 ? `
@@ -1958,7 +2091,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div class="drop-zone" id="imgDrop2" onclick="document.getElementById('imgInput2').click()">
           <input type="file" id="imgInput2" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash2)}', 'imgResult2', 'imgDrop2')">
           <p>Drop second image or select file<br>
-          <span style="opacity:0.6">Bundle path: <code>image2/</code></span></p>
+          <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="imgResult2"></div>` : ""}
         ${hasImage3 ? `
@@ -1966,7 +2099,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div class="drop-zone" id="imgDrop3" onclick="document.getElementById('imgInput3').click()">
           <input type="file" id="imgInput3" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash3)}', 'imgResult3', 'imgDrop3')">
           <p>Drop third image or select file<br>
-          <span style="opacity:0.6">Bundle path: <code>image3/</code></span></p>
+          <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="imgResult3"></div>` : ""}
 
@@ -2166,7 +2299,8 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
   const out = document.getElementById("odpResult");
   const drop = document.getElementById("odpDrop");
   if (!out) return;
-  out.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Reading .odpass bundle…</span></div>`;
+  revokeOdpBundleSidecarPreviewUrl();
+  out.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>${esc(t("verify.bundle.reading"))}</span></div>`;
   try {
     if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
     const zip = await JSZip.loadAsync(file);
@@ -2183,43 +2317,213 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
     const wantImage2 = String(sc.imageHash2 || "").toLowerCase();
     const wantImage3 = String(sc.imageHash3 || "").toLowerCase();
     const hasFileHash = wantFile && wantFile !== ZERO32.toLowerCase();
+    const mo = await odpLoadManifestOriginalsMap(zip);
     const imageSlots = [
-      { folder: "image", want: wantImage, label: "Image 1" },
-      { folder: "image2", want: wantImage2, label: "Image 2" },
-      { folder: "image3", want: wantImage3, label: "Image 3" },
+      {
+        manifestKey: "imageHash",
+        folder: "image",
+        want: wantImage,
+        label: t("verify.bundle.sidecarImage1"),
+        tryOriginalFallback: true,
+      },
+      {
+        manifestKey: "imageHash2",
+        folder: "image2",
+        want: wantImage2,
+        label: t("verify.bundle.sidecarImage2"),
+        tryOriginalFallback: false,
+      },
+      {
+        manifestKey: "imageHash3",
+        folder: "image3",
+        want: wantImage3,
+        label: t("verify.bundle.sidecarImage3"),
+        tryOriginalFallback: false,
+      },
     ];
 
+    function sidecarViaNote(via) {
+      if (via === "manifest") return t("verify.bundle.sidecarViaManifest");
+      if (via === "legacy") return t("verify.bundle.sidecarLegacyLayout");
+      if (via === "legacy-fallback") return t("verify.bundle.sidecarLegacyOriginalFallback");
+      return "";
+    }
+
+    // #region agent log
+    const _zipKeys = Object.keys(zip.files || {})
+      .map((k) => zipEntryPathNormalized(k))
+      .filter((k) => !k.endsWith("/"));
+    fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+      body: JSON.stringify({
+        sessionId: "7d72c7",
+        runId: "bundle-sidecar",
+        hypothesisId: "H1",
+        location: "verify.html:runOdpBundleVerify:afterZip",
+        message: "bundle sidecar context",
+        data: {
+          zipFileCount: _zipKeys.length,
+          zipSample: _zipKeys.slice(0, 16),
+          hasManifestOriginals: Boolean(mo),
+          hasFileHash,
+          wantImageNonZero: Boolean(wantImage && wantImage !== ZERO32.toLowerCase()),
+          hasOriginalsFolder: _zipKeys.some((k) => /^originals\//i.test(k)),
+          hasLegacyOriginalFolder: _zipKeys.some((k) => /^original\//i.test(k)),
+          hasLegacyImageFolder: _zipKeys.some((k) => /^image\//i.test(k)),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
+
     const sidecarRows = [];
-    const originalEntry = firstZipFileInFolder(zip, "original");
-    if (originalEntry && hasFileHash) {
-      const buf = await originalEntry.async("arraybuffer");
-      const got = await sha256BufferToHex(buf);
-      const ok = got.toLowerCase() === wantFile;
-      sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
-        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? "Original OK" : "Original mismatch"}</span>
+    /** @type {{ priority: number, entry: object } | null} */
+    let previewPick = null;
+    function considerVerifiedImagePreview(ok, priority, entry) {
+      if (!ok || !entry || !zipEntryLooksDisplayableImage(entry.name)) return;
+      if (!previewPick || priority < previewPick.priority) previewPick = { priority, entry };
+    }
+
+    let fileEntry = null;
+    let fileVia = "";
+    if (hasFileHash) {
+      if (mo && mo.fileHash) {
+        fileEntry = zipEntryByRelPath(zip, mo.fileHash);
+        if (fileEntry) fileVia = "manifest";
+      }
+      if (!fileEntry) {
+        fileEntry = firstZipFileInFolder(zip, "original");
+        if (fileEntry) fileVia = "legacy";
+      }
+    }
+    if (hasFileHash) {
+      if (fileEntry) {
+        const buf = await fileEntry.async("arraybuffer");
+        const got = await sha256BufferToHex(buf);
+        const ok = got.toLowerCase() === wantFile;
+        considerVerifiedImagePreview(ok, 4, fileEntry);
+        const via = sidecarViaNote(fileVia);
+        sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? esc(t("verify.bundle.sidecarOriginalOk")) : esc(t("verify.bundle.sidecarOriginalBad"))}</span>
         <div class="vinfo">
-          <div class="vinfo-label">${esc(originalEntry.name)}</div>
-          <div class="vinfo-val">${esc(got)}</div>
+          <div class="vinfo-label">${esc(fileEntry.name)}${via ? " · " + esc(via) : ""}</div>
+          <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(got)}</div>
         </div>
       </div>`);
+      } else {
+        sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge bad">${esc(t("verify.bundle.sidecarOriginalMissing"))}</span>
+        <div class="vinfo">
+          <div class="vinfo-label">${esc(t("verify.bundle.sidecarOriginalExpected"))}</div>
+          <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(wantFile)}</div>
+        </div>
+      </div>`);
+      }
     }
+
+    let slotIdx = 0;
     for (const slot of imageSlots) {
+      slotIdx += 1;
       const w = String(slot.want || "").toLowerCase();
       if (!w || w === ZERO32.toLowerCase()) continue;
-      const imageEntry = firstZipFileInFolder(zip, slot.folder);
-      if (!imageEntry) continue;
+      let imageEntry = null;
+      let imgVia = "";
+      if (mo && mo[slot.manifestKey]) {
+        imageEntry = zipEntryByRelPath(zip, mo[slot.manifestKey]);
+        if (imageEntry) imgVia = "manifest";
+      }
+      let fromLegacyImageFolder = false;
+      if (!imageEntry) {
+        imageEntry = firstZipFileInFolder(zip, slot.folder);
+        if (imageEntry) {
+          imgVia = "legacy";
+          fromLegacyImageFolder = true;
+        }
+      }
+      if (!imageEntry && slot.tryOriginalFallback) {
+        imageEntry = firstZipFileInFolder(zip, "original");
+        if (imageEntry) imgVia = "legacy-fallback";
+      }
+      // #region agent log
+      if (slotIdx === 1) {
+        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+          body: JSON.stringify({
+            sessionId: "7d72c7",
+            runId: "bundle-sidecar",
+            hypothesisId: "H2",
+            location: "verify.html:runOdpBundleVerify:image1resolve",
+            message: "image1 zip resolution",
+            data: {
+              fromLegacyImageFolder,
+              pickedPath: imageEntry ? zipEntryPathNormalized(imageEntry.name) : null,
+              imgVia,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
+      // #endregion
+      if (!imageEntry) {
+        sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
+        <span class="vbadge bad">${esc(t("verify.bundle.sidecarImageMissing").replace("{label}", slot.label))}</span>
+        <div class="vinfo">
+          <div class="vinfo-label">${esc(t("verify.bundle.sidecarExpectedHash"))}</div>
+          <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(w)}</div>
+        </div>
+      </div>`);
+        continue;
+      }
       const buf = await imageEntry.async("arraybuffer");
       const got = await sha256BufferToHex(buf);
       const ok = got.toLowerCase() === w;
+      considerVerifiedImagePreview(ok, slotIdx, imageEntry);
+      const okKey = ok ? "verify.bundle.sidecarImageOk" : "verify.bundle.sidecarImageBad";
+      const via = sidecarViaNote(imgVia);
       sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
-        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? `${esc(slot.label)} OK` : `${esc(slot.label)} mismatch`}</span>
+        <span class="vbadge ${ok ? "ok" : "bad"}">${esc(t(okKey).replace("{label}", slot.label))}</span>
         <div class="vinfo">
-          <div class="vinfo-label">${esc(imageEntry.name)}</div>
-          <div class="vinfo-val">${esc(got)}</div>
+          <div class="vinfo-label">${esc(imageEntry.name)}${via ? " · " + esc(via) : ""}</div>
+          <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(got)}</div>
         </div>
       </div>`);
     }
     const sidecarCheckHtml = sidecarRows.join("");
+
+    let bundleImgPreview = "";
+    if (previewPick && previewPick.entry) {
+      try {
+        const blob = await previewPick.entry.async("blob");
+        odpBundleSidecarPreviewUrl = URL.createObjectURL(blob);
+        // #region agent log
+        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
+          body: JSON.stringify({
+            sessionId: "7d72c7",
+            runId: "bundle-sidecar",
+            hypothesisId: "H3",
+            location: "verify.html:runOdpBundleVerify:preview",
+            message: "showing verified image preview",
+            data: {
+              priority: previewPick.priority,
+              path: zipEntryPathNormalized(previewPick.entry.name),
+              blobSize: blob && blob.size,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+        bundleImgPreview = `<div class="odp-bundle-verified-preview" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;font-family:var(--mono)">${esc(t("verify.bundle.verifiedImagePreviewTitle"))}</div>
+          <img src="${odpBundleSidecarPreviewUrl}" alt="${esc(t("verify.bundle.verifiedImagePreviewAlt"))}" style="max-width:min(420px,100%);height:auto;border-radius:4px;border:1px solid var(--border);display:block" />
+        </div>`;
+      } catch (_) {
+        revokeOdpBundleSidecarPreviewUrl();
+      }
+    }
 
     if (drop) drop.style.borderStyle = "solid";
     let bundlePreview = "";
@@ -2234,17 +2538,19 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
       <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
         <span class="vbadge ${dataMatch ? "ok" : "bad"}">${dataMatch ? "Authentic" : "Mismatch"}</span>
         <div class="vinfo">
-          <div class="vinfo-label">${esc(file.name)} → passport.json</div>
+          <div class="vinfo-label">${esc(t("verify.bundle.rowLabel").replace("{name}", String(file.name || "")))}</div>
           <div class="vinfo-val">${esc(localDataHash)}</div>
         </div>
       </div>
       ${!dataMatch ? `<div class="err-box" style="margin-top:8px;font-size:11px">
-        Bundle passport.json does not match on-chain <code>dataHash</code> for <code>${esc(expectedHumanId)}</code>.
+        ${esc(t("verify.bundle.dataMismatch").replace("{id}", String(expectedHumanId || "")))}
       </div>` : ""}
       ${bundlePreview}
       ${sidecarCheckHtml}
+      ${bundleImgPreview}
     `;
   } catch (e) {
+    revokeOdpBundleSidecarPreviewUrl();
     if (drop) drop.style.borderStyle = "solid";
     out.innerHTML = `<div class="err-box" style="margin-top:10px;font-size:12px">
       <strong>Invalid .odpass bundle.</strong> ${esc(e && (e.message || String(e)))}
@@ -2364,7 +2670,7 @@ function bodyLooksLikeZipStart(buf) {
 }
 
 /**
- * HTTP 200 body from `dataUrl`: raw `passport.json` text, or extract `passport.json` from hosted `.odp` (SPEC §15).
+ * HTTP 200 body from `dataUrl`: raw `passport.json` text, or extract `passport.json` from hosted `.odpass` (SPEC §15; legacy `.odp` accepted).
  * @returns {Promise<{ rawJ: string, hostedAs: "json" | "odp" }>}
  */
 async function passportJsonTextFromDataUrlResponse(resp, publicDataUrl) {
@@ -2450,7 +2756,7 @@ async function connectDocAttestWallet() {
     }
     docAttestSigner = docAttestWeb3Provider.getSigner();
     const addr = await docAttestSigner.getAddress();
-    docAttestContract = new ethers.Contract(NET.contract, DOC_ATTEST_WRITE_ABI, docAttestSigner);
+    docAttestContract = new ethers.Contract(odpDocAttestWriteAddress(), DOC_ATTEST_WRITE_ABI, docAttestSigner);
     verifyWalletCreatorId = await resolveCreatorIdByWallet(addr);
     try { sessionStorage.removeItem(ODP_SKIP_WALLET_AUTOCONNECT); } catch {}
     setVerifyWalletBar(addr);
@@ -2470,6 +2776,10 @@ async function attestDocumentFromVerify() {
   if (!out || !fileEl) return;
   if (odpContractGeneration == null || (typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration))) {
     out.innerHTML = `<div class="err-box">${esc(t("verify.docAttest.genUnsupported"))}</div>`;
+    return;
+  }
+  if (!odpDocAttestReadyForV03()) {
+    out.innerHTML = `<div class="err-box">v0.3 main registry has no on-core document anchor. Set <code class="mono">NET.docAnchor</code> to the deployed <code class="mono">ODPWalletDocumentAnchor</code> address (see README / SPEC).</div>`;
     return;
   }
   const f = fileEl.files && fileEl.files[0];
@@ -2514,7 +2824,7 @@ async function verifyDocAttestation() {
   const out = document.getElementById("docVerifyResult");
   if (!out) return;
   if (odpContractGeneration != null && typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration)) {
-    out.innerHTML = `<div class="info neutral" style="line-height:1.55">This registry generation (v0.3+) does not include <code class="mono">attestExternalDocument</code>. Historical attestations may still appear on older deployments in <code class="mono">previousContracts</code>.</div>`;
+    out.innerHTML = `<div class="info neutral" style="line-height:1.55">This registry generation does not support wallet document anchoring in the verifier UI.</div>`;
     return;
   }
   if (!contract) {
@@ -2529,42 +2839,76 @@ async function verifyDocAttestation() {
   }
 
   async function collectAttestationsByHash(hash) {
-    const iface = new ethers.utils.Interface([
-      "event ExternalDocumentAttested(string indexed creatorId,address indexed creator,bytes32 documentHash,string documentUri,uint256 timestamp)"
+    const ifaceAnchor = new ethers.utils.Interface([
+      "event ExternalDocumentAttested(string indexed creatorId,address indexed attestor,bytes32 indexed documentHash,string documentUri,uint256 timestamp)",
     ]);
-    const topic0 = iface.getEventTopic("ExternalDocumentAttested");
+    const ifaceLegacy = new ethers.utils.Interface([
+      "event ExternalDocumentAttested(string indexed creatorId,address indexed creator,bytes32 documentHash,string documentUri,uint256 timestamp)",
+    ]);
+    const topic0Anchor = ifaceAnchor.getEventTopic("ExternalDocumentAttested");
+    const topic0Legacy = ifaceLegacy.getEventTopic("ExternalDocumentAttested");
     const topicHash = ethers.utils.hexZeroPad(hash, 32);
     const all = [];
+    const hashLc = String(hash).toLowerCase();
 
-    for (const c of verifyReadContractsOrdered()) {
+    for (const c of docAttestReadContractsOrdered()) {
+      const seen = new Set();
+      async function pushFromWallet(wallet, contractAddress) {
+        const w = ethers.utils.getAddress(wallet);
+        const k = w.toLowerCase();
+        if (seen.has(k)) return;
+        seen.add(k);
+        try {
+          const a = await c.getExternalDocumentAttestation(w, hash);
+          if (a && a.attested) {
+            all.push({
+              wallet: w,
+              creatorId: a.creatorId,
+              timestamp: Number(a.timestamp || 0),
+              documentUri: a.documentUri || "",
+              contractAddress,
+            });
+          }
+        } catch {}
+      }
+
       try {
-        if (typeof c.getExternalDocumentAttestation !== "function") continue;
-        const logs = await c.provider.getLogs({
+        const logsA = await c.provider.getLogs({
           address: c.address,
           fromBlock: 0,
           toBlock: "latest",
-          topics: [topic0, null, null, topicHash],
+          topics: [topic0Anchor, null, null, topicHash],
         });
-        if (!logs || logs.length === 0) continue;
-
-        const seen = new Set();
-        for (const lg of logs) {
-          if (!lg.topics || lg.topics.length < 3) continue;
+        for (const lg of logsA || []) {
+          if (!lg.topics || lg.topics.length < 4) continue;
           const wallet = ethers.utils.getAddress(ethers.utils.hexDataSlice(lg.topics[2], 12));
-          if (seen.has(wallet.toLowerCase())) continue;
-          seen.add(wallet.toLowerCase());
+          await pushFromWallet(wallet, c.address);
+        }
+      } catch {}
+
+      try {
+        const logsL = await c.provider.getLogs({
+          address: c.address,
+          fromBlock: 0,
+          toBlock: "latest",
+          topics: [topic0Legacy, null, null],
+        });
+        for (const lg of logsL || []) {
+          let parsed;
           try {
-            const a = await c.getExternalDocumentAttestation(wallet, hash);
-            if (a && a.attested) {
-              all.push({
-                wallet,
-                creatorId: a.creatorId,
-                timestamp: Number(a.timestamp || 0),
-                documentUri: a.documentUri || "",
-                contractAddress: c.address,
-              });
-            }
-          } catch {}
+            parsed = ifaceLegacy.parseLog(lg);
+          } catch {
+            continue;
+          }
+          let dhHex = "";
+          try {
+            dhHex = String(ethers.utils.hexlify(parsed.args.documentHash)).toLowerCase();
+          } catch {
+            continue;
+          }
+          if (dhHex !== hashLc) continue;
+          const wallet = parsed.args.creator;
+          await pushFromWallet(wallet, c.address);
         }
       } catch {}
     }

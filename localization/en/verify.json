@@ -35,7 +35,8 @@
       "creatorNotFoundLabel": "Profile Not Found",
       "creatorNotFoundDesc": "No profile record for {id}",
       "creatorNotFoundBody": "This profile ID does not exist in the registry, or the ID may be incorrect.",
-      "errorPrefix": "Error:"
+      "errorPrefix": "Error:",
+      "noPublicUrlDesc": "No hosted file URL on record — only someone with the canonical .odpass bundle (or the passport data inside it) can verify details and authenticity"
     },
     "loading": {
       "fetchPassport": "Fetching passport record…",
@@ -98,16 +99,37 @@
       "docCheck": "Document hash check"
     },
     "dataUrl": {
-      "odpHostedBanner": "Hosted dataUrl returned an .odp ZIP — passport.json was taken from inside the bundle and hashed the same way as raw JSON.",
-      "noPassportInZip": "Hosted URL looks like a ZIP/.odp, but passport.json is missing inside."
+      "odpHostedBanner": "Hosted dataUrl returned a .odpass ZIP — passport.json was read from inside the bundle and hashed the same way as raw JSON.",
+      "noPassportInZip": "Hosted URL looks like a ZIP/.odpass, but passport.json is missing inside."
+    },
+    "bundle": {
+      "reading": "Reading .odpass bundle…",
+      "rowLabel": "{name} — .odpass (canonical passport.json inside)",
+      "dataMismatch": "The passport JSON inside this .odpass does not match on-chain dataHash for {id}.",
+      "sidecarImage1": "Image 1",
+      "sidecarImage2": "Image 2",
+      "sidecarImage3": "Image 3",
+      "sidecarOriginalOk": "Original file OK",
+      "sidecarOriginalBad": "Original file mismatch",
+      "sidecarOriginalMissing": "Digital original missing in bundle (expected path in manifest.originals.fileHash or legacy original/)",
+      "sidecarOriginalExpected": "Expected SHA-256 (on-chain fileHash)",
+      "sidecarImageOk": "{label} OK",
+      "sidecarImageBad": "{label} mismatch",
+      "sidecarImageMissing": "{label} missing in bundle (manifest.originals or legacy image folder)",
+      "sidecarExpectedHash": "Expected SHA-256 (on-chain)",
+      "sidecarViaManifest": "path from manifest.json",
+      "sidecarLegacyLayout": "legacy folder layout",
+      "sidecarLegacyOriginalFallback": "legacy image1 fallback: original/",
+      "verifiedImagePreviewTitle": "Verified image (local preview)",
+      "verifiedImagePreviewAlt": "Bundle image whose SHA-256 matched the chain"
     },
     "odpQuick": {
-      "label": "Or drop an .odp bundle",
-      "lead": "Reads passport.json inside the file, detects Passport ID, loads the on-chain record, and compares hashes in your browser. If the JSON was edited, you still see what is in the file — it will not verify as authentic.",
-      "dropLine1": "Drop .odp here or click to select",
+      "label": "Or drop a .odpass bundle",
+      "lead": "Reads the .odpass ZIP (passport.json inside), detects Passport ID, loads the on-chain record, and compares hashes in your browser. Sidecar files use originals/ + manifest.originals (v0.3); legacy folder layouts are still accepted. If the bundle was edited, you still see what is in the file — it will not verify as authentic.",
+      "dropLine1": "Drop .odpass here or click to select",
       "dropLine2": "Processed locally — not uploaded",
-      "reading": "Reading .odp bundle…",
-      "banner": "Source: {name} — passport.json from this bundle was hashed here and compared to the chain. The hosted dataUrl was not used.",
+      "reading": "Reading .odpass bundle…",
+      "banner": "Source: {name} — data from this .odpass was hashed here and compared to the chain. The hosted dataUrl was not used.",
       "unregisteredHint": "Contents below come from your file ({name}). This registry has no matching passport — the bundle is not confirmed on-chain.",
       "noPassportJson": "passport.json not found inside the bundle.",
       "badJson": "passport.json is not valid JSON.",
@@ -138,7 +160,8 @@
     },
     "creatorResult": {
       "registeredTitle": "Profile registered",
-      "registeredDesc": "This wallet is linked to a profile on-chain."
+      "registeredDesc": "This wallet is linked to a profile on-chain.",
+      "institutionalTrustNote": "This profile ID is registered in the registry. The label (Institution / Museum) is not verified on-chain — confirm this exact ID on the organization’s official website before trusting proofs or institutional claims."
     },
     "passportJson": {
       "passportIdRow": "Passport ID (passportId in JSON; legacy humanId accepted)"
@@ -147,9 +170,10 @@
       "passportIdInFile": "Passport ID in file (humanId)"
     },
     "detail": {
-      "localOdpTitle": "Verify with your .odp file",
-      "localOdpLead": "Drop the .odp bundle you saved after mint. The page reads passport.json inside it and compares canonical SHA-256 to on-chain dataHash — same rules as fetching from dataUrl — processed only in your browser.",
-      "localOdpDrop1": "Drop .odp here or click to select",
+      "odpassSidecarPaths": "v0.3 .odpass: byte paths are listed in manifest.originals (under originals/). Legacy bundles may use original/ or image/ folders.",
+      "localOdpTitle": "Verify with your .odpass file",
+      "localOdpLead": "Drop the .odpass bundle you saved after mint. The page reads passport.json inside it and compares canonical SHA-256 to on-chain dataHash — same rules as fetching from dataUrl. Sidecar bytes live under originals/ with exact paths listed in manifest.originals (bundle v0.3); older bundles may use legacy original/ and image/ folders. Matching raster previews are shown locally (nothing is uploaded).",
+      "localOdpDrop1": "Drop .odpass here or click to select",
       "localOdpDrop2": "Canonical minify + hash — not uploaded"
     },
     "walletBar": {

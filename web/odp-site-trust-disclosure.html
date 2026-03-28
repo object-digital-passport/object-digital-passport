@@ -8,6 +8,7 @@
   <!-- Loaded into the site-trust modal; keep markup in sync with odpStackDisclosureParagraphsHtml() in odp-contract.js when policy text changes. -->
   <div class="odp-site-trust-disclosure">
     <p class="odp-stack-note">The read ABI decodes prior <strong>contractVersion</strong> values on-chain. The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries).</p>
+    <p class="odp-stack-note"><strong>Verify</strong> can read a local <strong>.odpass</strong> ZIP: it canonicalizes <strong>passport.json</strong> against on-chain <strong>dataHash</strong>. Sidecar files live under <strong>originals/</strong>; exact paths are in <strong>manifest.originals</strong> (bundle v0.3). The page hashes those bytes like mint and may show a <strong>local</strong> raster preview when a hash matches — the file is not uploaded. Legacy bundles with separate <strong>original/</strong> and <strong>image/</strong> folders are still accepted.</p>
     <p class="odp-stack-note"><strong>0.x</strong> site releases are <strong>red-flag</strong> (experimental). Stable SemVer starts at <strong>major 1</strong>. When <strong>several stable majors</strong> exist, any major below the latest stable is <strong>yellow-flag</strong> — verify upgrade notes.</p>
   </div>
 </body>

@@ -6,7 +6,7 @@
 > An open standard for physical and digital object authentication
 > via blockchain and human-readable identifiers.
 
-## IMPORTANT: v0.X is not backward-compatible storage
+## IMPORTANT: registry versions, 0.x incompatibility, and alignment toward v1
 
 This repository documents a **v0.X** protocol line. During **0.X**, contract rules may still change.
 
@@ -15,20 +15,37 @@ In plain terms:
 - Your `creatorId` and passport records belong to that specific deployment.
 - If a new 0.X deployment is launched, even the same wallet may get a **different** `creatorId`.
 - Data already written to an older deployment remains there and stays readable, but it does not move automatically into a newer deployment.
-- **No backward compatibility with v0.1** for profile IDs (`creatorId`) or passport records: treat v0.1 and v0.2 as separate registries.
+
+### No backward compatibility across reference lines v0.1, v0.2, and v0.3
+
+Treat **each** reference contract generation as a **separate registry** (different address, bytecode, and ABI):
+
+- **v0.3 is not backward compatible** with **v0.2** or **v0.1**: you cannot assume the same integration code, transaction shapes, or on-chain entry points work unchanged across these lines. Profile IDs (`creatorId`) and passport records **do not** migrate by themselves.
+- **v0.2 is not backward compatible** with **v0.1** for the same reasons.
+- Verifiers and wallets **must** pair **chain + contract address + `CONTRACT_VERSION`** (or equivalent generation metadata) with the correct ABI and SPEC section for that deployment.
 
 If your goal is **one wallet + one long-lived `creatorId`** as canonical storage, wait for stable **v1**.
+
+### Forward alignment: v0.3 reference line → stable v1 (design intent)
+
+The **v0.3** reference contract and this SPEC are written so that a future **stable v1** can define a clear **forward** path without pretending 0.x registries silently interoperate:
+
+- On-chain records carry **`contractVersion`** (packed `SPEC_MAJOR` / `SPEC_MINOR`) at mint; **v0.3 → packed byte `3`**.
+- **`humanId`**, **`creatorId`**, and **`passport.json`** versioning rules aim to stay stable enough that **v1** can specify **migration or dual-read** (e.g. tooling that verifies old deployments alongside a v1 registry) rather than ad-hoc field drift.
+- **v1** is not specified here; when it ships, it will define any **migration**, **bridging**, or **freeze** of v0.x registries explicitly. Until then, this paragraph states **engineering intent**, not a promise of in-place upgrade for any particular deployment.
 
 ### v0.3 on-chain line (summary)
 
 The **v0.3** contract (`CONTRACT_VERSION` packed byte **3**) extends the registry with:
 
 - **`owner`** (starts as `creator`) and **`transferPassport`**; optional **`delegateCreatorPublishing`** / **`revokeCreatorPublishing`** (account-scoped publishing agent for **`updatePassportUrls`**)
+- **Mint agent (delegated mint):** agent calls **`requestMintAgentRole(principalCreatorId)`**, principal calls **`confirmMintAgentRole(agent)`**; then **`mintDigital` / `mintPhysical` / `mint*ViaExtension`** accept trailing **`mintOnBehalfOfCreatorId`** (principal’s profile id, or **`""`** for self-mint). On-chain **`Passport.creator`** and **`owner`** are the **principal** wallet; **`Passport.mintAgent`** is **`address(0)`** if the principal minted, else the **delegate** wallet. Monthly mint caps (**C** / **B**) count against the **principal** wallet. Pending state: **`mintAgentDelegationPending(keccak256(abi.encodePacked(principalCreatorId, agent)))`**; active delegate: **`mintAgentForCreator(creatorId)`**. Lifecycle: **`MintAgentUpdate`** (`kind`: 0=request, 1=cancel, 2=activated, 3=removed). **`revokeMintAgentRole`** (principal), **`renounceMintAgentRole(principalCreatorId)`** (agent), **`cancelMintAgentRequest(principalCreatorId)`** (agent, pending only).
 - **`revokePassport`** (creator or **`governance`** address) with **`revocationReasonHash`**
 - Up to **three** image anchors: **`imageHash`**, **`imageHash2`**, **`imageHash3`** (and URL hints **`imageUrl`**, **`imageUrl2`**, **`imageUrl3`**)
 - **P-affiliation audit**: **`getPAffiliationAudit`**, **`detachPAffiliation`** (parent P); timestamps for join / detach
-- **Counterfeit / authenticity concern**: **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** (P or M only; institutional opinion, not legal fact)
-- **Compact reverts**: failures use **`error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to satisfy the 24 KiB deploy limit)
+- **Compact reverts**: failures use **`error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to satisfy the 24 KiB deploy limit). The reference **v0.3** artifact may still exceed the **24 KiB** deploy limit until bytecode is split or further optimized; local **Hardhat** tests may use **`allowUnlimitedContractSize`** — verify bytecode size before mainnet deploy.
+
+**Removed from reference v0.3 `ObjectDigitalPassport` bytecode (EIP-170):** on-chain **counterfeit concern** (`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`). Those entry points remain on **v0.2** deployments that still include them; the reference **Passport** web UI hides institutional counterfeit controls when the connected ABI lacks them.
 
 **Type-definition governance with on-chain timelock** is not stored in the v0.3 bytecode; operate governance (multisig / DAO) off-chain and document hashes in releases if needed.
 
@@ -546,8 +563,8 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 |-------|------|----------|-------------|
 | `humanId` | `string` | yes | Passport ID, e.g. `ODP-2026-03-004829301` |
 | `contractVersion` | `uint8` | yes | Packed at mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (v0.3 → **3**) |
-| `creator` | `address` | yes | **Immutable** issuer wallet (minter) |
-| `owner` | `address` | yes | Current holder; **starts as `creator`**; changes only via **`transferPassport`** |
+| `creator` | `address` | yes | **Immutable** issuer wallet (**principal** profile wallet; same when minting via agent) |
+| `owner` | `address` | yes | Current holder; **starts as `creator`** (principal); changes only via **`transferPassport`** |
 | `creatorId` | `string` | yes | Profile ID (wallet must be registered before mint) |
 | `year` | `uint32` | yes | Registration year (**> 0**) |
 | `month` | `uint8` | yes | Registration month (1–12) |
@@ -571,6 +588,7 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 | `revocationReasonHash` | `bytes32` | no | **`keccak256(UTF-8 reason)`**; **0** if not revoked |
 | `auxCommitmentHash` | `bytes32` | no | Optional **second** commitment (e.g. PDF COA), independent of `dataHash`. **0** = unused; if **0**, `auxCommitmentUri` MUST be empty |
 | `auxCommitmentUri` | `string` | no | HTTPS hint for the aux file (max **512** chars when hash non-zero); **empty** when hash is **0** |
+| `mintAgent` | `address` | yes | Wallet that executed the mint tx; **`address(0)`** if the principal minted themselves |
 
 **Derived:** chain time is interpreted in **UTC** for off-chain display; no separate `timestampTimeZone` field.
 
@@ -580,9 +598,9 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 
 ### Reference contract — mint (v0.3)
 
-- **`mintPhysical(..., imageHash3, imageUrl3, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
-- **`mintDigital(..., imageHash3, imageUrl3, fileHash, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
-- **`mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** / **`mintPhysicalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** — governance-registered **`IODPExtension`**; **`normalize`** returns `abi.encode` of the **13-tuple** (digital + aux) or **16-tuple** (physical fields + aux, **without** `dataUrlIsFolderBase`). On success the contract emits **`ExtensionMintUsed(mintClass, kind, humanId)`** with **`kind`**: `0` = digital, `1` = physical, in addition to **`PassportMinted`**.
+- **`mintPhysical(..., auxCommitmentUri, mintOnBehalfOfCreatorId)`** — trailing **`mintOnBehalfOfCreatorId`**: use **`""`** for self-mint; else principal **`creatorId`** when **`msg.sender`** is the active mint agent.
+- **`mintDigital(..., auxCommitmentUri, mintOnBehalfOfCreatorId)`** — same trailing argument.
+- **`mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** / **`mintPhysicalViaExtension(...)`** — governance-registered **`IODPExtension`**; **`normalize`** returns `abi.encode` of the **13-tuple** (digital + aux) or **16-tuple** (physical fields + aux, **without** `dataUrlIsFolderBase`). On success the contract emits **`ExtensionMintUsed(mintClass, kind, humanId)`** with **`kind`**: `0` = digital, `1` = physical, in addition to **`PassportMinted`** (which includes **`mintAgent`**).
 - **`updatePassportAuxCommitment(humanId, newHash, newUri)`** — **`creator` or `governance`**; enforces the same aux empty/hash rules as at mint; emits **`PassportAuxCommitmentUpdated`**.
 
 ### Reference contract — ownership, URLs, revocation (v0.3)
@@ -595,10 +613,16 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 | `delegateCreatorPublishing(agent, expiresAt)` | **Registered profile** (`msg.sender`); stored per **`msg.sender`** wallet | Single active agent per issuer wallet; `expiresAt > block.timestamp` |
 | `revokeCreatorPublishing()` | **Registered profile** (clears own slot) | |
 | `getCreatorPublishingDelegation(creatorWallet)` | any | Returns `(agent, expiresAt)` for that **issuer** wallet |
+| `requestMintAgentRole(principalCreatorId)` | any wallet except principal’s | Creates pending slot; emits **`MintAgentUpdate`** `kind=0` |
+| `confirmMintAgentRole(agent)` | **Registered principal** (`msg.sender` wallet owns profile) | Consumes pending; sets **`mintAgentForCreator`**; **`MintAgentUpdate`** `kind=2` (and `kind=3` for replaced agent if any) |
+| `cancelMintAgentRequest(principalCreatorId)` | **Agent** (own pending only) | **`MintAgentUpdate`** `kind=1` |
+| `revokeMintAgentRole()` | **Registered principal** | Clears active agent; **`MintAgentUpdate`** `kind=3` |
+| `renounceMintAgentRole(principalCreatorId)` | **Active agent** | **`MintAgentUpdate`** `kind=3` |
+| `mintAgentForCreator(creatorId)` | any | `view` — public mapping getter |
+| `mintAgentDelegationPending(bytes32)` | any | `view` — `keccak256(abi.encodePacked(principalCreatorId, agent))` |
 | `revokePassport(humanId, reasonHash)` | **`creator` or `governance`** | `reasonHash != 0`; **`submitProof` reverts** while revoked |
-| `raiseCounterfeitConcern(humanId, reasonHash)` | Registered **`P` or `M`** | `reasonHash != 0` |
-| `clearCounterfeitConcern(humanId)` | **Same prover `creatorId`** that raised | v0.3 minimal policy |
-| `getCounterfeitConcern(humanId)` | any | `(active, proverCreatorId, reasonHash, timestamp)` |
+
+**v0.2-only (not in reference v0.3 main registry bytecode):** `raiseCounterfeitConcern`, `clearCounterfeitConcern`, `getCounterfeitConcern` — see summary above.
 
 ### Reference contract — deploy, freeze, governance (v0.3)
 
@@ -609,6 +633,36 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 ### Reverts
 
 The reference bytecode uses **`error EC(uint16 code)`** only (no string messages), to satisfy the EIP-170 size limit. Integrators **must** decode codes against the deployed source.
+
+### Planned protocol extensions (not in reference bytecode today)
+
+The following are **design placeholders** for future lines or satellite contracts. They are **not** enforced by the current reference [`ObjectDigitalPassport.sol`](contracts/ObjectDigitalPassport.sol) deployment artifact. See **[`docs/PROTOCOL_TRACKS.md`](docs/PROTOCOL_TRACKS.md)** and **[`docs/EIP170_STRATEGY.md`](docs/EIP170_STRATEGY.md)** before scheduling on-chain work.
+
+#### A) Global uniqueness of passport `dataHash` (planned)
+
+**Intent (product option):** reject a new mint if the canonical `passport.json` **`dataHash`** was already used for **any** passport in that registry, so one hash anchors at most one `humanId` over the lifetime of the deployment.
+
+**Current behavior:** the reference contract allows multiple passports with the same `dataHash` (distinct `humanId`). Changing to global uniqueness is a **breaking semantic** for issuers who reuse identical JSON across objects.
+
+**If implemented:** enforce in the shared mint commit path (all `mintDigital` / `mintPhysical` / `mint*ViaExtension` routes). **Do not** apply this rule to **`attestExternalDocument`** / wallet document anchors — those commitments use a **different** on-chain meaning (file hash attestation, not `Passport.dataHash`). **Recommended:** after `revokePassport`, the hash remains **consumed** (slot never freed) so the same JSON anchor cannot get a “second life”.
+
+#### B) Optional author attestation (ECDSA) (planned)
+
+**Intent:** allow an **optional** cryptographic binding between a **separate author key** and the integrity anchor (`dataHash`) and/or issuer profile, without replacing trust in the registered minter when the feature is unused.
+
+**Non-goals until implemented:**
+
+- Integrators **must not** assume `ecrecover` or author signatures are validated on-chain in the reference contract.
+- Optional author signing does **not** by itself stop a compromised minter from minting **without** invoking the author path (unless a future product line makes author attestation **mandatory**).
+
+**Suggested shape (normative target for a future SPEC line, subject to review):**
+
+1. **Storage or events:** persist `authorSigner` (`address`) on `Passport` when used, and/or emit a dedicated event carrying the signer and a commitment to the signature for indexers. Storing full `bytes signature` on-chain is optional (gas vs re-verifiability).
+2. **Digest:** use **EIP-712** typed data with domain `chainId` + `verifyingContract` and a struct including at least **`bytes32 dataHash`** and a binding to **`creatorId`** (or principal wallet) so the signature is chain- and registry-specific. Simpler **EIP-191** hashes are acceptable only if collision and replay semantics are documented.
+3. **Mint agent interaction:** the attestation should reference the **principal** profile / wallet semantics (the on-chain `creator` after mint), not merely the delegate agent address, unless explicitly designed otherwise.
+4. **Parameters:** new calldata on mint entrypoints (e.g. `authorSigner`, `authorSignature`) with **empty** / zero sentinel meaning “skip verification” for backward compatibility.
+
+**Implementation gate:** bytecode size (**EIP-170**); likely **after** splitting auxiliary logic to a satellite or shipping a new contract generation.
 
 ---
 
@@ -1065,19 +1119,23 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**v0.3 reference bytecode:** these entry points were **removed** to satisfy the **EIP-170** deploy limit. They remain available on **v0.2** (`CONTRACT_VERSION` **2**) deployments. For a **second document anchor tied to a passport** on v0.3, use **`auxCommitmentHash` / `auxCommitmentUri`** (mint or **`updatePassportAuxCommitment`**).
+**v0.3 main registry (`ObjectDigitalPassport`):** `attestExternalDocument` / `getExternalDocumentAttestation` were **removed** from the main contract to satisfy **EIP-170**. They remain on **v0.2** (`CONTRACT_VERSION` **2**) deployments.
 
-**On-chain (reference contract, generation 2 / v0.2 only):**
+**Satellite (v0.3+ deployments):** optional separate contract **`ODPWalletDocumentAnchor`** — deploy **after** the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s **`getCreatorByWallet`**, exposes the same write/read semantics (**`attestExternalDocument`**, **`getExternalDocumentAttestation`**), and emits **`ExternalDocumentAttested`** with **`documentHash` indexed** (plus indexed `creatorId` and **`attestor`** address) so verifiers can filter logs by hash. **At most one** attestation per `(wallet, documentHash)` per anchor contract.
 
-- `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)`.
+For a **second document anchor tied to a passport** on v0.3, use **`auxCommitmentHash` / `auxCommitmentUri`** (mint or **`updatePassportAuxCommitment`**) on the main registry.
+
+**On-chain (v0.2 main registry, or `ODPWalletDocumentAnchor` on v0.3+):**
+
+- `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered on the **main** registry; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)` in that anchor contract.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — returns `attested`, `creatorId`, timestamp, and `documentUri`.
 
-**Verification:** compute SHA-256 of the local file; query the contract; **match** means the creator recorded this hash at `timestamp`. This does **not** replace qualified e-signatures or national law — it is a **public, immutable anchor** tying a wallet to a file hash.
+**Verification:** compute SHA-256 of the local file; query the contract(s); **match** means the wallet recorded this hash at `timestamp`. This does **not** replace qualified e-signatures or national law — it is a **public, immutable anchor** tying a wallet to a file hash.
 
-**Reference web UI (v0.2):** `verify.html` implements Level 1C as follows:
+**Reference web UI:** `verify.html` implements Level 1C when the deployment supports it (**generation ≥ 2** in `odp-contract.js`). For **v0.2**, writes target the main **`NET.contract`**. For **v0.3+ main registry**, writes and primary discovery use a configured **`NET.docAnchor`** address (the deployed **`ODPWalletDocumentAnchor`**); without it, the **Anchor a file (wallet)** panel stays hidden, but **Check file hash on-chain** can still use **`previousContracts`** (e.g. older v0.2 registries) and the anchor when set.
 
-- **Anchor (submit):** a registered wallet submits `attestExternalDocument(documentHash, "")`. The reference UI does **not** collect `documentUri`. The on-chain ABI still allows an optional HTTPS URL (max 512 chars) for other clients or scripted calls; attested URIs (if any) remain visible via `getExternalDocumentAttestation` and events.
-- **Check (verify):** the user uploads a file; the page computes SHA-256 locally, then automatically searches the configured registry set for attestations of that hash (e.g. via `ExternalDocumentAttested` logs indexed by `documentHash`, confirmed with `getExternalDocumentAttestation`). The reference UI performs **global** discovery — it lists every wallet that anchored that hash — and does **not** require the verifier to enter a profile ID or wallet filter.
+- **Anchor (submit):** a registered wallet calls `attestExternalDocument(documentHash, documentUri)` on the write target. The reference UI allows an optional HTTPS URL (max 512 chars).
+- **Check (verify):** the user uploads a file; the page computes SHA-256 locally, then searches the configured registry set (anchor first, then fallbacks) for attestations of that hash — e.g. **`ExternalDocumentAttested`** logs (**indexed `documentHash`** on the satellite; legacy v0.2 layouts may differ), confirmed with **`getExternalDocumentAttestation`**. The UI performs **global** discovery and does **not** require a profile ID or wallet filter.
 
 ### Level 2A — NFC seal verification (physical, sealType 1 or 3)
 
@@ -1166,12 +1224,14 @@ Level 1 (core reading)
 - `getProofsForPassport(humanId) -> string[]` (proof IDs; verifiers SHOULD paginate **client-side** if the list may be large)
 - `getProof(proofId) -> ProofRecord`
 - `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
-- `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)`
 - `getPAffiliationAudit(childPId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
 - `governance() -> address` · `deployer() -> address` · `frozen() -> bool`
 
+Optional (**v0.2** main registry only): `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)` — omitted from reference **v0.3** `ObjectDigitalPassport`; not applicable to **`ODPWalletDocumentAnchor`**.
+
 Optional Level 1 list endpoints
-- `getPassportsByCreator(creatorWallet) -> string[]` (full list; UIs SHOULD slice client-side — **v0.3** bytecode omits on-chain paged variants for size)
+- `getPassportsByCreator(creatorWallet) -> string[]` (full list; UIs SHOULD paginate client-side or use paged view below when available)
+- `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> string[]` (**v0.3** reference main registry) — bounded slice; **`getProofsForPassportPaged`** is **not** included (bytecode trade-off)
 
 **Composite read (replacing removed `resolvePassport`):** `getPassport` + `getCreator(passport.creatorId)` + `getProofsForPassport(humanId).length` + `CONTRACT_VERSION` (public constant).
 
@@ -1182,12 +1242,12 @@ Core guarantees (invariants)
 - **`submitProof` reverts** if the passport is **revoked**.
 
 Affiliation note (P → P, one-level)
-- `getPAffiliatedChildren(parentPId) -> string[]` returns the full list; verifiers/frontends MUST treat the result as potentially large and apply **client-side** pagination or caps (**v0.3** has no `getPAffiliatedChildrenPaged`).
+- `getPAffiliatedChildren(parentPId) -> string[]` returns the full list; verifiers/frontends MUST treat the result as potentially large and apply **client-side** pagination or caps, or use **`getPAffiliatedChildrenPaged(parentPId, offset, limit)`** on the **v0.3** reference main registry.
 - Hard caps in v0.2: a single parent `P` can have at most **100 active child `P`**, and a single child `P` can have at most **100 pending parent proposals** at any moment.
 
-Document anchoring (v0.2 deployments only)
-- `getExternalDocumentAttestation(wallet, documentHash)` returns metadata for a single `(wallet, hash)` attestation when present in bytecode.
-- Reference `verify.html` hides document-anchor tools when `CONTRACT_VERSION` ≥ **3**; **Level 1C** UI remains for **v0.2** registry generations.
+Document anchoring
+- **`getExternalDocumentAttestation(wallet, documentHash)`** on the **v0.2** main registry, or on a deployed **`ODPWalletDocumentAnchor`** (v0.3+), returns metadata for a single `(wallet, hash)` attestation when present.
+- Reference **`verify.html`**: file-hash **check** stays available when the verifier stack supports external-doc reads (**generation ≥ 2**); **wallet anchor (submit)** for **v0.3+** requires **`NET.docAnchor`** pointing at **`ODPWalletDocumentAnchor`** (see §Level 1C).
 
 ```
 verify(humanId) → VerificationResult
@@ -1230,8 +1290,9 @@ transferPassport(humanId, newOwner)
 delegateCreatorPublishing(agent, expiresAt)
 revokeCreatorPublishing()
 revokePassport(humanId, reasonHash)
-raiseCounterfeitConcern(humanId, reasonHash)
-clearCounterfeitConcern(humanId)
+// v0.2 main registry only (omitted from reference v0.3 ObjectDigitalPassport):
+// raiseCounterfeitConcern(humanId, reasonHash)
+// clearCounterfeitConcern(humanId)
 transferGovernance(newGovernance)
 freeze()
 
@@ -1274,21 +1335,27 @@ Expected ZIP entries:
 - Mandatory:
   - `passport.json` — the canonical ODP `passport.json` document bytes (UTF-8 text).
   - `manifest.json` — bundle metadata for UX (not a trust anchor).
-- Optional:
-  - `original/<filename>` — original digital asset bytes corresponding to the on-chain `fileHash` (for digital passports).
-  - `image/<filename>` — image bytes corresponding to the on-chain `imageHash` (when available).
+- Optional (current reference layout, **`bundleVersion` `0.3`**):
+  - All on-chain-anchored byte files live under **`originals/<role>__<filename>`** (UTF-8 path segments; `<role>` is a short ASCII token such as `digital`, `image`, `image2`, `image3` so basenames cannot collide).
+  - **`manifest.originals`** — object whose values are the **exact ZIP paths** (strings) for sidecars, keyed by on-chain semantics:
+    - `fileHash` → path of bytes matching on-chain `fileHash` (digital original asset when present).
+    - `imageHash`, `imageHash2`, `imageHash3` → paths matching the corresponding on-chain image hashes when present.
+  - Omitted keys mean that sidecar was not included in the bundle.
+
+**Legacy bundles** (older tooling) MAY instead use separate top-level folders per sidecar: `original/*` for `fileHash`, `image/*` for primary `imageHash`, `image2/*`, `image3/*` for extras. Verifiers SHOULD accept both layouts.
 
 #### 15.1.1 Reference `manifest.json` shape (implementations)
 
 Reference tooling in this repository (`web/passport.html`, `tools/mint.py`) writes `manifest.json` as UTF-8 JSON with at least:
 
 - `format`: `"odpass-bundle"` (legacy bundles MAY use `"odp-bundle"`)
-- `bundleVersion`: `"0.2"` for v0.3 reference tooling (legacy `"0.1"` remains valid for read)
+- `bundleVersion`: `"0.3"` for current reference exports (legacy `"0.2"` / `"0.1"` remain valid for read)
 - `passportId` (or legacy `humanId`), `createdAtUtc` (UTC ISO-8601, e.g. `2026-03-22T12:00:00Z`), `mode` (e.g. `"full"`)
 - `onChain`: `dataHash`, `imageHash`, `imageHash2`, `imageHash3`, `fileHash` (`0x` + 64 hex, or all-zero), `txHash`, `chainId`, `contract` (checksummed address string where applicable)
+- `originals`: map of logical keys (`fileHash`, `imageHash`, …) to **ZIP entry paths** under `originals/` (explicit strings; normative for resolving bytes in `0.3` bundles)
 - `files`: array of `{ path, role, mime }`; sidecar entries MAY include `sizeBytes` and `sha256` (`0x` + 64 hex)
 
-Implementations MAY add keys. Verifiers MUST NOT treat `manifest.json` as a trust anchor; on-chain hashes and `passport.json` bytes remain authoritative.
+Implementations MAY add keys. Verifiers MUST NOT treat `manifest.json` as a trust anchor; on-chain hashes and `passport.json` bytes remain authoritative. For **`0.3`**, verifiers MAY use `manifest.originals` only as a **hint** for which ZIP entry to hash; the on-chain `bytes32` values remain the comparison target.
 
 ### 15.2 Verification rules
 
@@ -1300,13 +1367,13 @@ An offline verifier of an `.odpass` / `.odp` bundle MUST:
    when recomputing the chain-hash input).
 3. Compare `localDataHash` to the on-chain `dataHash` for the claimed Passport ID (`humanId`).
 
-If the on-chain record contains non-zero `fileHash` and the bundle contains `original/*`, a verifier SHOULD also:
+If the on-chain record contains non-zero `fileHash` and the bundle includes bytes for that commitment, a verifier SHOULD also:
 
-- recompute SHA-256 of `original/*` bytes and compare it to `fileHash`.
+- resolve the file (prefer the path in `manifest.originals.fileHash` when present and safe, else a legacy `original/*` entry), recompute SHA-256, and compare to `fileHash`.
 
-Likewise, if the on-chain record contains non-zero `imageHash` and the bundle contains `image/*`, a verifier SHOULD also:
+Likewise, for non-zero `imageHash` / `imageHash2` / `imageHash3`, a verifier SHOULD resolve the corresponding entry (prefer `manifest.originals.imageHash` / `imageHash2` / `imageHash3`, else legacy `image/*`, `image2/*`, `image3/*`), recompute SHA-256, and compare to the on-chain hash.
 
-- recompute SHA-256 of `image/*` bytes and compare it to `imageHash`.
+Paths under `manifest.originals` MUST be rejected if they contain `..` or do not start with the `originals/` prefix (case-insensitive), to avoid zip-slip confusion; on-chain hashes still govern the outcome.
 
 ### 15.3 Trust model and limitations
 

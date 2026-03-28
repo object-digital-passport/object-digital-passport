@@ -23,9 +23,15 @@ pragma solidity ^0.8.20;
  *   No owner. No admin. No pause function. No selfdestruct.
  *   Rules cannot change after deployment.
  *   Protocol updates require a new contract (v0.2, v0.3, etc.).
+ *
+ * VERSIONING (normative detail: SPEC.md):
+ *   Reference lines v0.1, v0.2, and v0.3 are separate registries — not backward compatible
+ *   (different address, bytecode, ABI). Integrators must not treat them as drop-in replacements.
+ *   The v0.3 line is documented in SPEC as aligned toward a future stable v1 (migration to be
+ *   defined in v1); this is design intent, not an in-place upgrade guarantee.
  *   v0.3 adds: owner/transfer, account-scoped publishing agent for hosted URLs, revocation,
- *   extra image hashes, P-affiliation detach + timestamps, P/M counterfeit concern flag,
- *   governance (revocation), optional aux commitment + IODPExtension mint routes (digital/physical).
+ *   extra image hashes, P-affiliation detach + timestamps, governance (revocation),
+ *   optional aux commitment + IODPExtension mint routes (digital/physical).
  *   Type-definition governance is off-chain / SPEC where noted (saves bytecode).
  *
  * SECURITY NOTES:
@@ -39,6 +45,9 @@ pragma solidity ^0.8.20;
  *   - NFC: only NTAG424DNA_TT accepted — standard chip can be reattached
  *   - Proof institutions (P) and museums (M) are open registration — verifiers must warn
  *     users to confirm P/M-type IDs on official institution websites
+ *   - Mint agent (v0.3): optional two-step handshake — agent `requestMintAgentRole(principalCreatorId)`,
+ *     principal `confirmMintAgentRole(agent)` — then agent may mint with `mintOnBehalfOfCreatorId`;
+ *     `Passport.creator` / `owner` are the principal wallet; `Passport.mintAgent` records who sent the tx (0 = self)
  *   - Creator is trusted to physically install the correct chip model
  *     The contract cannot verify hardware — only the declared model
  *   - Anti-spam: monthly mint-rate limit (no protocol fee — gas only)
@@ -51,14 +60,15 @@ pragma solidity ^0.8.20;
  *   Anyone can read, verify, fork, or deploy their own instance.
  */
 /**
- * IODPExtension — interface for hypothetical **mint-class** extension contracts.
+ * IODPExtension — interface for **mint-class** extension contracts (governance-registered via `setMintExtension`).
  *
- * The `type` key in typeToExtension is **not** the creator profile prefix (C/B/P/M).
- * Profile letters are fixed at `registerCreator`; this hook is for **alternate passport
- * mint pipelines** (illustrative bytes e.g. \"V\", \"G\" in docs — not implemented in v0.3).
+ * The `mintClass` byte in `typeToExtension` is **not** the creator profile prefix (C/B/P/M).
+ * Those profile letters are fixed at `registerCreator`. `mintClass` selects an alternate **mint pipeline**
+ * (e.g. custom bytes like `"V"` or `"G"` in documentation) implemented by a separate contract that
+ * implements this interface.
  *
- * Digital `normalize` output: 13-tuple ending with `auxCommitmentHash` + `auxCommitmentUri` (see `_validateAuxCommitmentFields`).
- * Physical `normalize` output: 16-tuple — physical mint params + same aux pair (see `mintPhysicalViaExtension` NatSpec).
+ * Digital `normalize` output: **13-tuple** ending with `auxCommitmentHash` + `auxCommitmentUri` (see `_validateAuxCommitmentFields`).
+ * Physical `normalize` output: **16-tuple** — physical mint params + same aux pair (see `mintPhysicalViaExtension` NatSpec).
  */
 interface IODPExtension {
     /// Validate type-specific data. Reverts if invalid.
@@ -87,7 +97,7 @@ contract ObjectDigitalPassport {
     uint8 public constant SPEC_MINOR = 3;
 
     /// Packed byte stored in Passport.contractVersion: `SPEC_MAJOR * 16 + SPEC_MINOR` (each must stay < 16).
-    /// Spec line **0.3** → packed **3**: ownership/revocation/images/P-affiliation/counterfeit/governance, plus
+    /// Spec line **0.3** → packed **3**: ownership/revocation/images/P-affiliation/governance, plus
     /// **account-scoped publishing agent** for `updatePassportUrls`.
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
@@ -139,6 +149,8 @@ contract ObjectDigitalPassport {
         /// Optional second commitment (e.g. PDF COA); independent of `dataHash`. Mutable by creator or governance.
         bytes32 auxCommitmentHash;
         string  auxCommitmentUri; // optional HTTPS hint; max 512 when hash non-zero; both zero when unused
+        /// Wallet that executed the mint for `creator`’s profile; `address(0)` = principal minted themselves.
+        address mintAgent;
     }
 
     /// @dev Bundles digital mint fields to avoid stack-too-deep in IR pipeline.
@@ -243,15 +255,14 @@ contract ObjectDigitalPassport {
     /// agent may call `updatePassportUrls` for any passport with `p.creator == creatorWallet` (hash check unchanged).
     mapping(address => DelegationInfo) private _creatorPublishDelegation;
 
-    /// Latest counterfeit / authenticity concern raised by P or M (prover is institution profile id).
-    mapping(string => bool)    private _counterfeitActive;
-    mapping(string => string)  private _counterfeitProverId;
-    mapping(string => bytes32) private _counterfeitReasonHash;
-    mapping(string => uint256) private _counterfeitTimestamp;
-
     /// Governance address (multisig / DAO): may revoke passports alongside creator.
     /// Type-definition governance is documented in SPEC; on-chain timelock registry was omitted for bytecode size.
     address public governance;
+
+    /// Principal profile ID → active mint-agent wallet (at most one). Public getter: `mintAgentForCreator(string)`.
+    mapping(string => address) public mintAgentForCreator;
+    /// Pending requests: `mintAgentDelegationPending(keccak256(abi.encodePacked(principalCreatorId, agent)))`.
+    mapping(bytes32 => bool) public mintAgentDelegationPending;
 
     // Mint-class byte → extension. NOT creator profile prefix (C/B/P/M).
     mapping(bytes1 => address) public typeToExtension;
@@ -290,8 +301,12 @@ contract ObjectDigitalPassport {
         bytes32         dataHash,
         uint8           sealType,   // 0=digital, 1=NFC, 2=numbered, 3=both
         string          nfcModel,   // "NTAG424DNA_TT" or "" if no NFC
-        uint256         timestamp
+        uint256         timestamp,
+        address         mintAgent    // address(0) if principal called mint; else delegate wallet
     );
+
+    /// Mint-agent lifecycle: kind 0=request pending, 1=request cancelled, 2=role activated, 3=role removed (revoke/renounce/replace).
+    event MintAgentUpdate(string indexed principalCreatorId, address indexed agent, uint8 kind, uint256 timestamp);
 
     event PassportUrlsUpdated(
         string indexed humanId,
@@ -341,19 +356,6 @@ contract ObjectDigitalPassport {
         string  indexed humanId,
         address indexed revokedBy,
         bytes32 reasonHash,
-        uint256 timestamp
-    );
-
-    event CounterfeitConcernRaised(
-        string indexed humanId,
-        string indexed proverCreatorId,
-        bytes32 reasonHash,
-        uint256 timestamp
-    );
-
-    event CounterfeitConcernCleared(
-        string indexed humanId,
-        string indexed proverCreatorId,
         uint256 timestamp
     );
 
@@ -610,6 +612,99 @@ contract ObjectDigitalPassport {
         return _pChildrenOf[parentPId];
     }
 
+    function _stringArraySlice(string[] storage arr, uint256 offset, uint256 limit)
+        internal
+        view
+        returns (string[] memory result, uint256 total)
+    {
+        total = arr.length;
+        if (offset >= total) {
+            return (new string[](0), total);
+        }
+        uint256 end = offset + limit;
+        if (end > total) {
+            end = total;
+        }
+        uint256 n = end - offset;
+        result = new string[](n);
+        for (uint256 i = 0; i < n; i++) {
+            result[i] = arr[offset + i];
+        }
+    }
+
+    /// @dev Paginated affiliated children for large parent lists (same slice semantics as `getPassportsByCreatorPaged`).
+    function getPAffiliatedChildrenPaged(string calldata parentPId, uint256 offset, uint256 limit)
+        external
+        view
+        returns (string[] memory result, uint256 total)
+    {
+        return _stringArraySlice(_pChildrenOf[parentPId], offset, limit);
+    }
+
+    // ─── Mint agent delegation (principal profile ↔ executing wallet) ───────────
+
+    /**
+     * Agent requests the right to mint passports for `principalCreatorId`.
+     * The principal must call `confirmMintAgentRole(agent)` to activate.
+     */
+    function requestMintAgentRole(string calldata principalCreatorId) external notFrozen {
+        if (!(bytes(principalCreatorId).length > 0)) revert EC(76);
+        CreatorRecord storage cr = _creators[principalCreatorId];
+        if (!(bytes(cr.creatorId).length > 0)) revert EC(2);
+        if (!(msg.sender != cr.wallet)) revert EC(75);
+        if (mintAgentForCreator[principalCreatorId] == msg.sender) {
+            return;
+        }
+        bytes32 k = keccak256(abi.encodePacked(principalCreatorId, msg.sender));
+        if (!(!mintAgentDelegationPending[k])) revert EC(74);
+        mintAgentDelegationPending[k] = true;
+        emit MintAgentUpdate(principalCreatorId, msg.sender, 0, block.timestamp);
+    }
+
+    /**
+     * Principal (registered `msg.sender`) confirms a pending agent. Replaces any previous mint agent.
+     */
+    function confirmMintAgentRole(address agent) external notFrozen {
+        if (!(agent != address(0))) revert EC(21);
+        string memory artistCreatorId = _requireRegistered();
+        bytes32 k = keccak256(abi.encodePacked(artistCreatorId, agent));
+        if (!(mintAgentDelegationPending[k])) revert EC(73);
+        delete mintAgentDelegationPending[k];
+        address prev = mintAgentForCreator[artistCreatorId];
+        mintAgentForCreator[artistCreatorId] = agent;
+        if (prev != address(0) && prev != agent) {
+            emit MintAgentUpdate(artistCreatorId, prev, 3, block.timestamp);
+        }
+        emit MintAgentUpdate(artistCreatorId, agent, 2, block.timestamp);
+    }
+
+    /// Principal revokes the active mint agent.
+    function revokeMintAgentRole() external notFrozen {
+        string memory artistCreatorId = _requireRegistered();
+        address prev = mintAgentForCreator[artistCreatorId];
+        if (!(prev != address(0))) revert EC(79);
+        delete mintAgentForCreator[artistCreatorId];
+        emit MintAgentUpdate(artistCreatorId, prev, 3, block.timestamp);
+    }
+
+    /// Active agent renounces the role for `principalCreatorId`.
+    function renounceMintAgentRole(string calldata principalCreatorId) external notFrozen {
+        if (!(bytes(principalCreatorId).length > 0)) revert EC(76);
+        if (!(bytes(_creators[principalCreatorId].creatorId).length > 0)) revert EC(2);
+        if (!(mintAgentForCreator[principalCreatorId] == msg.sender)) revert EC(72);
+        delete mintAgentForCreator[principalCreatorId];
+        emit MintAgentUpdate(principalCreatorId, msg.sender, 3, block.timestamp);
+    }
+
+    /// Agent cancels their own pending request before confirmation.
+    function cancelMintAgentRequest(string calldata principalCreatorId) external notFrozen {
+        if (!(bytes(principalCreatorId).length > 0)) revert EC(76);
+        bytes32 k = keccak256(abi.encodePacked(principalCreatorId, msg.sender));
+        if (!(mintAgentDelegationPending[k])) revert EC(73);
+        delete mintAgentDelegationPending[k];
+        emit MintAgentUpdate(principalCreatorId, msg.sender, 1, block.timestamp);
+    }
+
     // ─── Passport Registry — Physical ─────────────────────────────────────────
 
     function _validateOptionalImageSlots(
@@ -676,6 +771,88 @@ contract ObjectDigitalPassport {
         }
 
         _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
+    }
+
+    function _validatePhysicalMintInputs(PhysicalMintInputs memory m) internal pure {
+        _validatePhysicalUnpacked(
+            m.year,
+            m.month,
+            m.dataHash,
+            m.dataUrl,
+            m.imageHash,
+            m.imageUrl,
+            m.sealType,
+            m.sealHash,
+            m.nfcPublicKey,
+            m.nfcModel,
+            m.imageHash2,
+            m.imageUrl2,
+            m.imageHash3,
+            m.imageUrl3
+        );
+    }
+
+    function _validateDigitalMintInputs(DigitalMintInputs memory dm) internal pure {
+        _validateDigitalMintUnpacked(
+            dm.year,
+            dm.month,
+            dm.dataHash,
+            dm.dataUrl,
+            dm.imageHash,
+            dm.imageUrl,
+            dm.imageHash2,
+            dm.imageUrl2,
+            dm.imageHash3,
+            dm.imageUrl3,
+            dm.fileHash,
+            dm.auxCommitmentHash,
+            dm.auxCommitmentUri
+        );
+    }
+
+    function _decodeDigitalExtensionNorm(bytes memory norm) internal pure returns (DigitalMintInputs memory dm) {
+        (
+            dm.year,
+            dm.month,
+            dm.dataHash,
+            dm.dataUrl,
+            dm.imageHash,
+            dm.imageUrl,
+            dm.imageHash2,
+            dm.imageUrl2,
+            dm.imageHash3,
+            dm.imageUrl3,
+            dm.fileHash,
+            dm.auxCommitmentHash,
+            dm.auxCommitmentUri
+        ) = abi.decode(
+            norm,
+            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32, bytes32, string)
+        );
+    }
+
+    function _decodePhysicalExtensionNorm(bytes memory norm) internal pure returns (PhysicalMintInputs memory pm) {
+        (
+            pm.year,
+            pm.month,
+            pm.dataHash,
+            pm.dataUrl,
+            pm.imageHash,
+            pm.imageUrl,
+            pm.sealType,
+            pm.sealHash,
+            pm.nfcPublicKey,
+            pm.nfcModel,
+            pm.imageHash2,
+            pm.imageUrl2,
+            pm.imageHash3,
+            pm.imageUrl3,
+            pm.auxCommitmentHash,
+            pm.auxCommitmentUri
+        ) = abi.decode(
+            norm,
+            (uint32, uint8, bytes32, string, bytes32, string, uint8, bytes32, bytes, string, bytes32, string, bytes32, string, bytes32, string)
+        );
     }
 
     /// @dev Strip trailing ASCII `/` only (repeated). Does not normalize `//` in the middle of the path;
@@ -769,10 +946,14 @@ contract ObjectDigitalPassport {
     }
 
     /// @dev Assumes `_validateDigitalMintUnpacked` already applied. Writes digital `Passport` and emits `PassportMinted`.
+    /// @param principalWallet Issuer wallet on record (`Passport.creator` / initial `owner`).
+    /// @param mintAgentForPassport `address(0)` if `msg.sender == principalWallet`; else executing delegate.
     function _mintDigitalCommit(
         string memory creatorId,
         DigitalMintInputs memory m,
-        bool dataUrlIsFolderBase
+        bool dataUrlIsFolderBase,
+        address principalWallet,
+        address mintAgentForPassport
     ) internal returns (string memory humanId) {
         humanId = _generatePassportId(m.year, m.month);
         string memory resolvedDataUrl = _resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
@@ -781,8 +962,8 @@ contract ObjectDigitalPassport {
         _passports[humanId] = Passport({
             humanId:         humanId,
             contractVersion: CONTRACT_VERSION,
-            creator:         msg.sender,
-            owner:           msg.sender,
+            creator:         principalWallet,
+            owner:           principalWallet,
             creatorId:       creatorId,
             year:            m.year,
             month:           m.month,
@@ -805,20 +986,23 @@ contract ObjectDigitalPassport {
             revokedAt:       0,
             revocationReasonHash: bytes32(0),
             auxCommitmentHash: m.auxCommitmentHash,
-            auxCommitmentUri:  m.auxCommitmentUri
+            auxCommitmentUri:  m.auxCommitmentUri,
+            mintAgent:         mintAgentForPassport
         });
 
-        _creatorPassports[msg.sender].push(humanId);
+        _creatorPassports[principalWallet].push(humanId);
 
-        emit PassportMinted(humanId, msg.sender, creatorId, OBJECT_DIGITAL,
-                            m.year, m.month, m.dataHash, 0, "", block.timestamp);
+        emit PassportMinted(humanId, principalWallet, creatorId, OBJECT_DIGITAL,
+                            m.year, m.month, m.dataHash, 0, "", block.timestamp, mintAgentForPassport);
     }
 
     /// @dev After `_validatePhysicalUnpacked` and `_validateAuxCommitmentFields`.
     function _mintPhysicalCommit(
         string memory creatorId,
         PhysicalMintInputs memory m,
-        bool dataUrlIsFolderBase
+        bool dataUrlIsFolderBase,
+        address principalWallet,
+        address mintAgentForPassport
     ) internal returns (string memory humanId) {
         humanId = _generatePassportId(m.year, m.month);
         string memory resolvedDataUrl = _resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
@@ -827,8 +1011,8 @@ contract ObjectDigitalPassport {
         _passports[humanId] = Passport({
             humanId:         humanId,
             contractVersion: CONTRACT_VERSION,
-            creator:         msg.sender,
-            owner:           msg.sender,
+            creator:         principalWallet,
+            owner:           principalWallet,
             creatorId:       creatorId,
             year:            m.year,
             month:           m.month,
@@ -851,13 +1035,14 @@ contract ObjectDigitalPassport {
             revokedAt:       0,
             revocationReasonHash: bytes32(0),
             auxCommitmentHash: m.auxCommitmentHash,
-            auxCommitmentUri:  m.auxCommitmentUri
+            auxCommitmentUri:  m.auxCommitmentUri,
+            mintAgent:         mintAgentForPassport
         });
 
-        _creatorPassports[msg.sender].push(humanId);
+        _creatorPassports[principalWallet].push(humanId);
 
-        emit PassportMinted(humanId, msg.sender, creatorId, OBJECT_PHYSICAL,
-                            m.year, m.month, m.dataHash, m.sealType, m.nfcModel, block.timestamp);
+        emit PassportMinted(humanId, principalWallet, creatorId, OBJECT_PHYSICAL,
+                            m.year, m.month, m.dataHash, m.sealType, m.nfcModel, block.timestamp, mintAgentForPassport);
     }
 
     function mintPhysical(
@@ -877,46 +1062,32 @@ contract ObjectDigitalPassport {
         string  calldata imageUrl3,
         bool dataUrlIsFolderBase,
         bytes32 auxCommitmentHash,
-        string  calldata auxCommitmentUri
+        string  calldata auxCommitmentUri,
+        string  calldata mintOnBehalfOfCreatorId
     ) external notFrozen returns (string memory humanId) {
-        string memory creatorId = _beginMint();
+        (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
 
-        _validatePhysicalUnpacked(
-            year,
-            month,
-            dataHash,
-            dataUrl,
-            imageHash,
-            imageUrl,
-            sealType,
-            sealHash,
-            nfcPublicKey,
-            nfcModel,
-            imageHash2,
-            imageUrl2,
-            imageHash3,
-            imageUrl3
-        );
-        _validateAuxCommitmentFields(auxCommitmentHash, auxCommitmentUri);
-
-        PhysicalMintInputs memory m;
-        m.year = year;
-        m.month = month;
-        m.dataHash = dataHash;
-        m.dataUrl = dataUrl;
-        m.imageHash = imageHash;
-        m.imageUrl = imageUrl;
-        m.sealType = sealType;
-        m.sealHash = sealHash;
-        m.nfcPublicKey = nfcPublicKey;
-        m.nfcModel = nfcModel;
-        m.imageHash2 = imageHash2;
-        m.imageUrl2 = imageUrl2;
-        m.imageHash3 = imageHash3;
-        m.imageUrl3 = imageUrl3;
-        m.auxCommitmentHash = auxCommitmentHash;
-        m.auxCommitmentUri = auxCommitmentUri;
-        return _mintPhysicalCommit(creatorId, m, dataUrlIsFolderBase);
+        PhysicalMintInputs memory m = PhysicalMintInputs({
+            year: year,
+            month: month,
+            dataHash: dataHash,
+            dataUrl: dataUrl,
+            imageHash: imageHash,
+            imageUrl: imageUrl,
+            sealType: sealType,
+            sealHash: sealHash,
+            nfcPublicKey: nfcPublicKey,
+            nfcModel: nfcModel,
+            imageHash2: imageHash2,
+            imageUrl2: imageUrl2,
+            imageHash3: imageHash3,
+            imageUrl3: imageUrl3,
+            auxCommitmentHash: auxCommitmentHash,
+            auxCommitmentUri: auxCommitmentUri
+        });
+        _validatePhysicalMintInputs(m);
+        _validateAuxCommitmentFields(m.auxCommitmentHash, m.auxCommitmentUri);
+        return _mintPhysicalCommit(creatorId, m, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
     }
 
     // ─── Passport Registry — Digital ──────────────────────────────────────────
@@ -937,6 +1108,8 @@ contract ObjectDigitalPassport {
      * @param dataUrlIsFolderBase If true, `dataUrl` is folder root only; stored URL is `folderBase/humanId.json`.
      * @param auxCommitmentHash Optional second document commitment (0 with empty URI if unused).
      * @param auxCommitmentUri Optional HTTPS hint for that document (max 512 chars if hash set).
+     * @param mintOnBehalfOfCreatorId Pass "" to mint as the registered caller. Otherwise the principal profile id
+     *        the caller mints for — `msg.sender` must be the active mint agent for that id (see `requestMintAgentRole` / `confirmMintAgentRole`).
      */
     function mintDigital(
         uint32  year,
@@ -952,39 +1125,27 @@ contract ObjectDigitalPassport {
         bytes32 fileHash,
         bool dataUrlIsFolderBase,
         bytes32 auxCommitmentHash,
-        string  calldata auxCommitmentUri
+        string  calldata auxCommitmentUri,
+        string  calldata mintOnBehalfOfCreatorId
     ) external notFrozen returns (string memory humanId) {
-        string memory creatorId = _beginMint();
-        _validateDigitalMintUnpacked(
-            year,
-            month,
-            dataHash,
-            dataUrl,
-            imageHash,
-            imageUrl,
-            imageHash2,
-            imageUrl2,
-            imageHash3,
-            imageUrl3,
-            fileHash,
-            auxCommitmentHash,
-            auxCommitmentUri
-        );
-        DigitalMintInputs memory dm;
-        dm.year = year;
-        dm.month = month;
-        dm.dataHash = dataHash;
-        dm.dataUrl = dataUrl;
-        dm.imageHash = imageHash;
-        dm.imageUrl = imageUrl;
-        dm.imageHash2 = imageHash2;
-        dm.imageUrl2 = imageUrl2;
-        dm.imageHash3 = imageHash3;
-        dm.imageUrl3 = imageUrl3;
-        dm.fileHash = fileHash;
-        dm.auxCommitmentHash = auxCommitmentHash;
-        dm.auxCommitmentUri = auxCommitmentUri;
-        return _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase);
+        (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
+        DigitalMintInputs memory dm = DigitalMintInputs({
+            year: year,
+            month: month,
+            dataHash: dataHash,
+            dataUrl: dataUrl,
+            imageHash: imageHash,
+            imageUrl: imageUrl,
+            imageHash2: imageHash2,
+            imageUrl2: imageUrl2,
+            imageHash3: imageHash3,
+            imageUrl3: imageUrl3,
+            fileHash: fileHash,
+            auxCommitmentHash: auxCommitmentHash,
+            auxCommitmentUri: auxCommitmentUri
+        });
+        _validateDigitalMintInputs(dm);
+        return _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
     }
 
     /**
@@ -997,52 +1158,20 @@ contract ObjectDigitalPassport {
     function mintDigitalViaExtension(
         bytes1 mintClass,
         bytes calldata payload,
-        bool dataUrlIsFolderBase
+        bool dataUrlIsFolderBase,
+        string calldata mintOnBehalfOfCreatorId
     ) external notFrozen returns (string memory humanId) {
         address ext = typeToExtension[mintClass];
         if (!(ext != address(0))) revert EC(64);
 
-        string memory creatorId = _beginMint();
+        (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
 
         IODPExtension(ext).validate(payload);
         bytes memory norm = IODPExtension(ext).normalize(payload);
 
-        DigitalMintInputs memory dm;
-        (
-            dm.year,
-            dm.month,
-            dm.dataHash,
-            dm.dataUrl,
-            dm.imageHash,
-            dm.imageUrl,
-            dm.imageHash2,
-            dm.imageUrl2,
-            dm.imageHash3,
-            dm.imageUrl3,
-            dm.fileHash,
-            dm.auxCommitmentHash,
-            dm.auxCommitmentUri
-        ) = abi.decode(
-            norm,
-            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32, bytes32, string)
-        );
-
-        _validateDigitalMintUnpacked(
-            dm.year,
-            dm.month,
-            dm.dataHash,
-            dm.dataUrl,
-            dm.imageHash,
-            dm.imageUrl,
-            dm.imageHash2,
-            dm.imageUrl2,
-            dm.imageHash3,
-            dm.imageUrl3,
-            dm.fileHash,
-            dm.auxCommitmentHash,
-            dm.auxCommitmentUri
-        );
-        humanId = _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase);
+        DigitalMintInputs memory dm = _decodeDigitalExtensionNorm(norm);
+        _validateDigitalMintInputs(dm);
+        humanId = _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
         emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_DIGITAL, humanId);
     }
 
@@ -1054,58 +1183,22 @@ contract ObjectDigitalPassport {
     function mintPhysicalViaExtension(
         bytes1 mintClass,
         bytes calldata payload,
-        bool dataUrlIsFolderBase
+        bool dataUrlIsFolderBase,
+        string calldata mintOnBehalfOfCreatorId
     ) external notFrozen returns (string memory humanId) {
         address ext = typeToExtension[mintClass];
         if (!(ext != address(0))) revert EC(64);
 
-        string memory creatorId = _beginMint();
+        (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
 
         IODPExtension(ext).validate(payload);
         bytes memory norm = IODPExtension(ext).normalize(payload);
 
-        PhysicalMintInputs memory pm;
-        (
-            pm.year,
-            pm.month,
-            pm.dataHash,
-            pm.dataUrl,
-            pm.imageHash,
-            pm.imageUrl,
-            pm.sealType,
-            pm.sealHash,
-            pm.nfcPublicKey,
-            pm.nfcModel,
-            pm.imageHash2,
-            pm.imageUrl2,
-            pm.imageHash3,
-            pm.imageUrl3,
-            pm.auxCommitmentHash,
-            pm.auxCommitmentUri
-        ) = abi.decode(
-            norm,
-            (uint32, uint8, bytes32, string, bytes32, string, uint8, bytes32, bytes, string, bytes32, string, bytes32, string, bytes32, string)
-        );
-
-        _validatePhysicalUnpacked(
-            pm.year,
-            pm.month,
-            pm.dataHash,
-            pm.dataUrl,
-            pm.imageHash,
-            pm.imageUrl,
-            pm.sealType,
-            pm.sealHash,
-            pm.nfcPublicKey,
-            pm.nfcModel,
-            pm.imageHash2,
-            pm.imageUrl2,
-            pm.imageHash3,
-            pm.imageUrl3
-        );
+        PhysicalMintInputs memory pm = _decodePhysicalExtensionNorm(norm);
+        _validatePhysicalMintInputs(pm);
         _validateAuxCommitmentFields(pm.auxCommitmentHash, pm.auxCommitmentUri);
 
-        humanId = _mintPhysicalCommit(creatorId, pm, dataUrlIsFolderBase);
+        humanId = _mintPhysicalCommit(creatorId, pm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
         emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_PHYSICAL, humanId);
     }
 
@@ -1232,51 +1325,6 @@ contract ObjectDigitalPassport {
         emit PassportRevoked(humanId, msg.sender, reasonHash, block.timestamp);
     }
 
-    /**
-     * P or M institution raises an authenticity / counterfeit concern (institutional opinion, not a legal finding).
-     */
-    function raiseCounterfeitConcern(string calldata humanId, bytes32 reasonHash) external notFrozen {
-        if (!(reasonHash != bytes32(0))) revert EC(16);
-        Passport storage p = _passports[humanId];
-        if (!(p.creator != address(0))) revert EC(12);
-
-        string memory callerId = _walletToCreatorId[msg.sender];
-        if (!(bytes(callerId).length > 0)) revert EC(7);
-        bytes1 tp = _creators[callerId].typePrefix;
-        if (!(tp == TYPE_P || tp == TYPE_M)) revert EC(15);
-
-        _counterfeitActive[humanId] = true;
-        _counterfeitProverId[humanId] = callerId;
-        _counterfeitReasonHash[humanId] = reasonHash;
-        _counterfeitTimestamp[humanId] = block.timestamp;
-        emit CounterfeitConcernRaised(humanId, callerId, reasonHash, block.timestamp);
-    }
-
-    /// Only the institution that raised the concern may clear it (v0.3 minimal policy).
-    function clearCounterfeitConcern(string calldata humanId) external notFrozen {
-        if (!(_counterfeitActive[humanId])) revert EC(14);
-        string memory callerId = _requireRegistered();
-        if (!(keccak256(bytes(_counterfeitProverId[humanId])) == keccak256(bytes(callerId)))) revert EC(13);
-        _counterfeitActive[humanId] = false;
-        emit CounterfeitConcernCleared(humanId, callerId, block.timestamp);
-    }
-
-    function getCounterfeitConcern(string calldata humanId)
-        external
-        view
-        returns (
-            bool active,
-            string memory proverCreatorId,
-            bytes32 reasonHash,
-            uint256 ts
-        )
-    {
-        active = _counterfeitActive[humanId];
-        proverCreatorId = _counterfeitProverId[humanId];
-        reasonHash = _counterfeitReasonHash[humanId];
-        ts = _counterfeitTimestamp[humanId];
-    }
-
     // ─── Passport — Read ──────────────────────────────────────────────────────
 
     function getPassport(string calldata humanId)
@@ -1294,6 +1342,14 @@ contract ObjectDigitalPassport {
         external view returns (string[] memory)
     {
         return _creatorPassports[creator];
+    }
+
+    function getPassportsByCreatorPaged(address creator, uint256 offset, uint256 limit)
+        external
+        view
+        returns (string[] memory result, uint256 total)
+    {
+        return _stringArraySlice(_creatorPassports[creator], offset, limit);
     }
 
     // ─── Proof Registry ───────────────────────────────────────────────────────
@@ -1379,10 +1435,39 @@ contract ObjectDigitalPassport {
         if (!(bytes(creatorId).length > 0)) revert EC(3);
     }
 
-    /** Enforce registration and monthly limit (no protocol fee). */
-    function _beginMint() internal returns (string memory creatorId) {
-        creatorId = _requireRegistered();
-        _checkAndIncrementMintLimit(creatorId);
+    /**
+     * @return creatorId Profile id written on the passport.
+     * @return principalWallet Issuer wallet (`Passport.creator` / initial `owner`).
+     * @return mintAgentAddr `address(0)` if principal mints; else `msg.sender` (delegate).
+     */
+    function _resolveMintPrincipal(string calldata mintOnBehalfOfCreatorId)
+        internal
+        view
+        returns (string memory creatorId, address principalWallet, address mintAgentAddr)
+    {
+        if (bytes(mintOnBehalfOfCreatorId).length == 0) {
+            creatorId = _walletToCreatorId[msg.sender];
+            if (!(bytes(creatorId).length > 0)) revert EC(3);
+            return (creatorId, msg.sender, address(0));
+        }
+        creatorId = mintOnBehalfOfCreatorId;
+        CreatorRecord storage cr = _creators[creatorId];
+        if (!(bytes(cr.creatorId).length > 0)) revert EC(2);
+        principalWallet = cr.wallet;
+        if (msg.sender == principalWallet) {
+            return (creatorId, principalWallet, address(0));
+        }
+        if (!(mintAgentForCreator[creatorId] == msg.sender)) revert EC(72);
+        return (creatorId, principalWallet, msg.sender);
+    }
+
+    /** Enforce registration (caller or agent path), monthly limit on **principal** wallet, increment counter. */
+    function _beginMint(string calldata mintOnBehalfOfCreatorId)
+        internal
+        returns (string memory creatorId, address principalWallet, address mintAgentAddr)
+    {
+        (creatorId, principalWallet, mintAgentAddr) = _resolveMintPrincipal(mintOnBehalfOfCreatorId);
+        _checkAndIncrementMintLimit(creatorId, principalWallet);
     }
 
     function _isValidType(bytes1 t) internal pure returns (bool) {
@@ -1397,18 +1482,19 @@ contract ObjectDigitalPassport {
 
     /**
      * Check monthly mint limit and increment counter (C/B only; P and M are unlimited).
+     * Counts against **principal** issuer wallet (so an agent consumes the artist’s tier quota).
      * Resets on calendar month boundary (yearMonth key changes).
      */
-    function _checkAndIncrementMintLimit(string memory creatorId) internal {
+    function _checkAndIncrementMintLimit(string memory creatorId, address principalWallet) internal {
         bytes1 t = _creators[creatorId].typePrefix;
         if (t == TYPE_P || t == TYPE_M) {
             return;
         }
         uint32 limit = (t == TYPE_B) ? MONTHLY_LIMIT_B : MONTHLY_LIMIT_C;
         uint32 ym = _currentYearMonth();
-        uint32 count = _mintCount[msg.sender][ym];
+        uint32 count = _mintCount[principalWallet][ym];
         if (!(count < limit)) revert EC(1);
-        _mintCount[msg.sender][ym] = count + 1;
+        _mintCount[principalWallet][ym] = count + 1;
     }
 
     /**

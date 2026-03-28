@@ -6,7 +6,7 @@
 > An open standard for physical and digital object authentication
 > via blockchain and human-readable identifiers.
 
-## ВАЖНО: 0.X — это не совместимое долгосрочное хранилище
+## ВАЖНО: версии реестра, несовместимость 0.x и выравнивание под v1
 
 Этот репозиторий описывает линию протокола **v0.X**. На этапе **0.X** правила контракта ещё могут меняться.
 
@@ -15,20 +15,37 @@
 - Ваш `creatorId` и записи паспортов привязаны именно к этому деплойменту.
 - Если выходит новый деплоймент 0.X, даже тот же кошелёк может получить **другой** `creatorId`.
 - Данные в старом деплойменте остаются и читаются, но автоматически в новый деплоймент не переносятся.
-- **С v0.1 обратной совместимости нет** ни для ID профиля (`creatorId`), ни для паспортных записей: v0.1 и v0.2 нужно считать разными реестрами.
+
+### Нет обратной совместимости между референсными линиями v0.1, v0.2 и v0.3
+
+Считайте **каждое** поколение референсного контракта **отдельным реестром** (другой адрес, байткод и ABI):
+
+- **v0.3 не обратно совместим** с **v0.2** и **v0.1**: нельзя предполагать, что тот же клиентский код, формы транзакций или набор entry points работают без изменений между линиями. `creatorId` и записи паспортов **сами** не мигрируют.
+- **v0.2 не обратно совместим** с **v0.1** по тем же причинам.
+- Верификаторы и кошельки **обязаны** сопоставлять **сеть + адрес контракта + `CONTRACT_VERSION`** (или эквивалент поколения) с корректным ABI и разделом SPEC для этого деплоя.
 
 Если вам нужен сценарий **«один кошелёк + один долгоживущий `creatorId`»** как каноничное хранилище, лучше дождаться стабильного **v1**.
+
+### Просмотр вперёд: референсная линия v0.3 → стабильный v1 (намерение дизайна)
+
+Референсный контракт **v0.3** и этот SPEC сформулированы так, чтобы будущий **стабильный v1** мог задать ясный **прямой** путь, не создавая видимости тихой интероперабельности между реестрами 0.x:
+
+- В on-chain записях при минте фиксируется **`contractVersion`** (упакованные `SPEC_MAJOR` / `SPEC_MINOR`); **v0.3 → упакованный байт `3`**.
+- Правила для **`humanId`**, **`creatorId`** и версии **`passport.json`** рассчитаны на достаточную стабильность, чтобы **v1** мог описать **миграцию или двойное чтение** (например инструменты, верифицирующие старые деплои параллельно с реестром v1), а не размытую смену полей.
+- **v1** здесь не специфицирован; при выходе он явно определит **миграцию**, **мост** или **заморозку** реестров 0.x. До этого момента абзац фиксирует **инженерное намерение**, а не обещание in-place-апгрейда для конкретного деплоя.
 
 ### v0.3 on-chain (кратко)
 
 Контракт **v0.3** (`CONTRACT_VERSION` упакованный байт **3**) расширяет реестр:
 
 - **`owner`** (изначально совпадает с `creator`) и **`transferPassport`**; опционально **`delegateCreatorPublishing`** / **`revokeCreatorPublishing`** (агент публикации на весь аккаунт эмитента для **`updatePassportUrls`**)
+- **Агент минта:** двустороннее рукопожатие — **`requestMintAgentRole(principalCreatorId)`** (агент) и **`confirmMintAgentRole(agent)`** (принципал); в конец **`mintDigital` / `mintPhysical` / `mint*ViaExtension`** добавлен аргумент **`mintOnBehalfOfCreatorId`** (`""` = минт от своего профиля, иначе id профиля принципала). В **`Passport`**: **`creator`** и **`owner`** — кошелёк принципала; **`mintAgent`** — кошелёк, отправивший tx, или **`0`** при самоминте. Лимиты **C/B** списываются с **принципала**. Состояние: **`mintAgentDelegationPending`**, **`mintAgentForCreator`**; событие **`MintAgentUpdate`** (`kind` 0–3). Отзыв: **`revokeMintAgentRole`**, **`renounceMintAgentRole`**, **`cancelMintAgentRequest`**.
 - **`revokePassport`** (creator или адрес **`governance`**) с **`revocationReasonHash`**
 - До **трёх** якорей изображения: **`imageHash`**, **`imageHash2`**, **`imageHash3`** (и подсказки URL **`imageUrl`**, **`imageUrl2`**, **`imageUrl3`**)
 - **Аудит P-affiliation**: **`getPAffiliationAudit`**, **`detachPAffiliation`** (родитель P); метки времени join / detach
-- **Подделка / сомнение в подлинности**: **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** (только P или M; позиция институции, не юридический факт)
-- **Компактные revert**: ошибки через **`error EC(uint16 code)`** — расшифровка по исходнику задеплоенного контракта (строковые сообщения убраны из-за лимита 24 KiB)
+- **Компактные revert**: ошибки через **`error EC(uint16 code)`** — расшифровка по исходнику задеплоенного контракта (строковые сообщения убраны из-за лимита 24 KiB). Артефакт **v0.3** может всё ещё превышать **24 KiB** до разбиения/оптимизации; в **Hardhat** допускается **`allowUnlimitedContractSize`** — перед mainnet проверьте размер байткода.
+
+**Убрано из референсного байткода v0.3 `ObjectDigitalPassport` (EIP-170):** on-chain **counterfeit concern** (`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`). Эти entry points остаются на деплойментах **v0.2**, где они ещё есть; референсный **Passport** UI скрывает блоки counterfeit, если в ABI их нет.
 
 **On-chain governance определений типов с timelock** в байткоде v0.3 не хранится; multisig / DAO — оффчейн, при необходимости фиксируйте хэши в релизах.
 
@@ -596,9 +613,8 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 | `revokeCreatorPublishing()` | **Зарегистрированный профиль** (очищает свой слот) | |
 | `getCreatorPublishingDelegation(creatorWallet)` | любой | `(agent, expiresAt)` для кошелька **эмитента** |
 | `revokePassport(humanId, reasonHash)` | **`creator` или `governance`** | `reasonHash != 0`; **`submitProof` reverts** при отозванном паспорте |
-| `raiseCounterfeitConcern(humanId, reasonHash)` | Зарегистрированные **`P` или `M`** | `reasonHash != 0` |
-| `clearCounterfeitConcern(humanId)` | **Тот же `creatorId` prover**, что поднял флаг | минимальная политика v0.3 |
-| `getCounterfeitConcern(humanId)` | любой | `(active, proverCreatorId, reasonHash, timestamp)` |
+
+**Только v0.2 (нет в референсном байткоде v0.3 основного реестра):** `raiseCounterfeitConcern`, `clearCounterfeitConcern`, `getCounterfeitConcern` — см. краткое резюме выше.
 
 ### Референсный контракт — деплой, freeze, governance (v0.3)
 
@@ -609,6 +625,36 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 ### Revert’ы
 
 Референсный байткод использует только **`error EC(uint16 code)`** (без строковых сообщений), из-за лимита EIP-170. Интеграторам **нужно** декодировать коды по исходнику задеплоенного контракта.
+
+### Запланированные расширения протокола (пока не в референсном байткоде)
+
+Ниже — **заготовки дизайна** для будущих линий или спутниковых контрактов. Текущий артефакт [`ObjectDigitalPassport.sol`](../../contracts/ObjectDigitalPassport.sol) их **не** применяет. Перед планированием on-chain работ см. **[`docs/PROTOCOL_TRACKS.md`](../../docs/PROTOCOL_TRACKS.md)** и **[`docs/EIP170_STRATEGY.md`](../../docs/EIP170_STRATEGY.md)**.
+
+#### A) Глобальная уникальность `dataHash` паспорта (запланировано)
+
+**Смысл (опция продукта):** отклонять новый mint, если канонический `passport.json` **`dataHash`** уже использовался **любым** паспортом в этом реестре — один хэш привязан не более чем к одному `humanId` за жизнь деплоя.
+
+**Сейчас:** референсный контракт допускает несколько паспортов с одним `dataHash` (разные `humanId`). Переход к глобальной уникальности — **ломающая семантика** для эмитентов, переиспользующих один и тот же JSON.
+
+**Если реализовать:** проверка в общем пути commit mint (все `mintDigital` / `mintPhysical` / `mint*ViaExtension`). **Не** распространять на **`attestExternalDocument`** / якоря документов кошелька — там другой on-chain смысл (хэш файла, не `Passport.dataHash`). **Рекомендация:** после `revokePassport` слот хэша **не освобождать**, чтобы тот же якорь JSON не получил «вторую жизнь».
+
+#### B) Опциональная аттестация автора (ECDSA) (запланировано)
+
+**Смысл:** опциональная криптографическая привязка **отдельного ключа автора** к якорю целостности (`dataHash`) и/или профилю эмитента, **не** заменяя доверие к зарегистрированному минтеру, если функция не используется.
+
+**До реализации:**
+
+- Интеграторам **нельзя** полагаться на on-chain проверку `ecrecover` или подписи автора в референсном контракте.
+- Опциональная подпись автора **сама по себе** не останавливает скомпрометированного минтера от минта **без** этого пути (если только будущая линия не сделает аттестацию **обязательной**).
+
+**Целевая форма (для будущей нормативной линии SPEC, подлежит ревью):**
+
+1. **Storage или события:** при использовании хранить `authorSigner` (`address`) в `Passport` и/или эмитить событие со знающим и commitment к подписи для индексаторов. Полное хранение `bytes signature` on-chain — опционально (газ vs повторная проверка).
+2. **Дайджест:** типизированные данные **EIP-712** с доменом `chainId` + `verifyingContract` и структурой как минимум с **`bytes32 dataHash`** и привязкой к **`creatorId`** (или кошельку принципала), чтобы подпись была специфична для сети и реестра. Простые хэши **EIP-191** допустимы только при явной документации коллизий и replay.
+3. **Mint agent:** аттестация должна ссылаться на семантику **принципала** (on-chain `creator` после mint), а не только на адрес делегата-агента, если иное явно не заложено в дизайн.
+4. **Параметры:** новые calldata на входах mint (например `authorSigner`, `authorSignature`) с **пустым** / нулевым sentinel «пропустить проверку» для обратной совместимости.
+
+**Ворота реализации:** размер байткода (**EIP-170**); вероятно **после** выноса вспомогательной логики в спутник или новое поколение контракта.
 
 ---
 
@@ -1065,19 +1111,23 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 
 **Назначение:** связать on-chain **SHA-256** оффчейн-файла (например PDF-контракт) с **кошельком Creator**, чтобы контрагенты могли проверить те же байты без доверия только email-вложениям.
 
-**Референсный байткод v0.3:** эти entry points **удалены** ради лимита **EIP-170**. Они остаются на деплойментах **v0.2** (`CONTRACT_VERSION` **2**). Для **второго якоря документа, привязанного к паспорту**, в v0.3 используйте **`auxCommitmentHash` / `auxCommitmentUri`** (mint или **`updatePassportAuxCommitment`**).
+**Основной реестр v0.3 (`ObjectDigitalPassport`):** `attestExternalDocument` / `getExternalDocumentAttestation` **удалены** из основного контракта ради **EIP-170**. Они остаются на **v0.2** (`CONTRACT_VERSION` **2**).
 
-**On-chain (референсный контракт, generation 2 / v0.2 только):**
+**Спутник (деплойменты v0.3+):** опциональный отдельный контракт **`ODPWalletDocumentAnchor`** — деплой **после** основного реестра, в конструктор передаётся адрес реестра. Регистрация проверяется через **`getCreatorByWallet`** основного контракта; те же семантики записи/чтения (**`attestExternalDocument`**, **`getExternalDocumentAttestation`**), событие **`ExternalDocumentAttested`** с **индексированным `documentHash`** (плюс индексированные `creatorId` и адрес **`attestor`**). **Не более одной** аттестации на `(wallet, documentHash)` в одном контракте-якоре.
 
-- `attestExternalDocument(bytes32 documentHash, string documentUri)` — вызывающий должен быть зарегистрирован; `documentHash` — это SHA-256 от raw-байтов файла (то же, что используется для кодирования `fileHash`); `documentUri` опциональный HTTPS URL (макс. 512 символов); **не более одной** аттестации на `(wallet, documentHash)`.
+Для **второго якоря документа, привязанного к паспорту**, в v0.3 на основном реестре используйте **`auxCommitmentHash` / `auxCommitmentUri`** (mint или **`updatePassportAuxCommitment`**).
+
+**On-chain (основной реестр v0.2 или `ODPWalletDocumentAnchor` при v0.3+):**
+
+- `attestExternalDocument(bytes32 documentHash, string documentUri)` — вызывающий должен быть зарегистрирован в **основном** реестре; `documentHash` — SHA-256 от raw-байтов файла (как для `fileHash`); `documentUri` опциональный HTTPS URL (макс. 512 символов); **не более одной** аттестации на `(wallet, documentHash)` в этом контракте-якоре.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — возвращает `attested`, `creatorId`, timestamp и `documentUri`.
 
-**Верификация:** вычислите SHA-256 локального файла; запросите контракт; **совпадение** означает, что создатель записал этот хэш в `timestamp`. Это **не** заменяет квалифицированные e-подписи или национальное право — это **публичная, неизменяемая привязка**, связывающая кошелёк с хэшем файла.
+**Верификация:** SHA-256 локального файла; запрос к контракту(ам); **совпадение** — кошелёк записал хэш в `timestamp`. Это **не** замена квалифицированным e-подписям — это **публичный якорь**.
 
-**Референсный веб-UI (v0.2):** `verify.html` реализует уровень 1C так:
+**Референсный веб-UI:** `verify.html` включает уровень 1C, когда стек поддерживает внешние аттестации (**generation ≥ 2** в `odp-contract.js`). Для **v0.2** запись идёт в основной **`NET.contract`**. Для **основного реестра v0.3+** запись и основной discovery используют **`NET.docAnchor`** (адрес **`ODPWalletDocumentAnchor`**); без него панель **Anchor a file** скрыта, а **проверка хэша** может использовать **`previousContracts`** (например старые v0.2) и якорь, если задан.
 
-- **Закрепить (submit):** зарегистрированный кошелёк вызывает `attestExternalDocument(documentHash, "")`. Референсный UI **не** запрашивает `documentUri`. В on-chain ABI по-прежнему допускается опциональный HTTPS URL (макс. 512 символов) для других клиентов или скриптов; зафиксированные URI (если есть) остаются видимыми через `getExternalDocumentAttestation` и события.
-- **Проверить (verify):** пользователь загружает файл; страница локально считает SHA-256, затем автоматически ищет в настроенном наборе реестров аттестации этого хэша (например по логам `ExternalDocumentAttested` с индексом по `documentHash`, с подтверждением через `getExternalDocumentAttestation`). Референсный UI выполняет **глобальный** поиск — перечисляет все кошельки, закрепившие этот хэш — и **не** требует ввода ID профиля или фильтра по кошельку.
+- **Закрепить (submit):** зарегистрированный кошелёк вызывает `attestExternalDocument` на целевом контракте; UI допускает опциональный HTTPS URL (макс. 512 символов).
+- **Проверить (verify):** загрузка файла, локальный SHA-256, поиск в настроенном наборе (сначала якорь, затем fallback) — логи **`ExternalDocumentAttested`** (**на спутнике `documentHash` в topic**; у legacy v0.2 раскладка может отличаться), подтверждение через **`getExternalDocumentAttestation`**; **глобальный** поиск без ввода profile ID.
 
 ### Уровень 2A — проверка NFC seal (physical, sealType 1 или 3)
 
@@ -1166,12 +1216,14 @@ odp://ODP-2026-03-004829301
 - `getProofsForPassport(humanId) -> string[]` (ID доказательств; верификаторы SHOULD пагинировать **на клиенте**, если список может быть большим)
 - `getProof(proofId) -> ProofRecord`
 - `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
-- `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)`
 - `getPAffiliationAudit(childPId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
 - `governance() -> address` · `deployer() -> address` · `frozen() -> bool`
 
+Опционально (**только основной реестр v0.2**): `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)` — в референсном **v0.3** `ObjectDigitalPassport` нет; к **`ODPWalletDocumentAnchor`** не относится.
+
 Опциональные списки Уровня 1
-- `getPassportsByCreator(creatorWallet) -> string[]` (полный список; UI SHOULD нарезать на клиенте — в байткоде **v0.3** нет on-chain пагинации из-за размера)
+- `getPassportsByCreator(creatorWallet) -> string[]` (полный список; UI SHOULD пагинировать на клиенте или использовать paged ниже)
+- `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> string[]` (референсный основной реестр **v0.3**) — срез; **`getProofsForPassportPaged`** **не** входит в байткод (компромисс размера)
 
 **Составное чтение (вместо удалённого `resolvePassport`):** `getPassport` + `getCreator(passport.creatorId)` + `getProofsForPassport(humanId).length` + `CONTRACT_VERSION` (публичная константа).
 
@@ -1182,12 +1234,12 @@ odp://ODP-2026-03-004829301
 - **`submitProof` reverts**, если паспорт **отозван**.
 
 Аффилиация (P → P, один уровень)
-- `getPAffiliatedChildren(parentPId) -> string[]` возвращает весь список. Верификаторы/фронтенды MUST считать результат потенциально большим и применять **клиентскую** пагинацию или лимиты (в **v0.3** нет `getPAffiliatedChildrenPaged`).
+- `getPAffiliatedChildren(parentPId) -> string[]` возвращает весь список. Верификаторы/фронтенды MUST считать результат потенциально большим и применять **клиентскую** пагинацию или лимиты, либо **`getPAffiliatedChildrenPaged(parentPId, offset, limit)`** на референсном основном реестре **v0.3**.
 - Hard caps: у одного parent `P` максимум **100** активных child `P`, у одного child `P` максимум **100** ожидающих предложений parent.
 
-Закрепление документов (только деплойменты v0.2)
-- `getExternalDocumentAttestation(wallet, documentHash)` возвращает метаданные для одной аттестации `(wallet, hash)`, если функция есть в байткоде.
-- Референсный `verify.html` скрывает инструменты закрепления при `CONTRACT_VERSION` ≥ **3**; UI уровня **1C** остаётся для реестров **v0.2**.
+Закрепление документов
+- **`getExternalDocumentAttestation(wallet, documentHash)`** на основном реестре **v0.2** или на задеплоенном **`ODPWalletDocumentAnchor`** (v0.3+) возвращает метаданные для одной аттестации `(wallet, hash)`, если функция есть.
+- Референсный **`verify.html`**: проверка хэша доступна при поддержке внешних аттестаций (**generation ≥ 2**); **закрепление (submit)** для **v0.3+** требует **`NET.docAnchor`** на **`ODPWalletDocumentAnchor`** (см. §Уровень 1C).
 
 ```
 verify(humanId) → VerificationResult
@@ -1230,8 +1282,9 @@ transferPassport(humanId, newOwner)
 delegateCreatorPublishing(agent, expiresAt)
 revokeCreatorPublishing()
 revokePassport(humanId, reasonHash)
-raiseCounterfeitConcern(humanId, reasonHash)
-clearCounterfeitConcern(humanId)
+// только основной реестр v0.2 (нет в референсном v0.3 ObjectDigitalPassport):
+// raiseCounterfeitConcern(humanId, reasonHash)
+// clearCounterfeitConcern(humanId)
 transferGovernance(newGovernance)
 freeze()
 
@@ -1274,21 +1327,24 @@ On-chain поля остаются криптографическим источ
 - Обязательные:
   - `passport.json` — канонические байты ODP `passport.json` (UTF-8).
   - `manifest.json` — метаданные бандла для UX (не якорь доверия).
-- Опциональные:
-  - `original/<filename>` — байты цифрового актива, соответствующие on-chain `fileHash`.
-  - `image/<filename>` — изображение, соответствующее on-chain `imageHash` (и при необходимости доп. слоты `image2/`, `image3/` — см. реализацию).
+- Опциональные (текущий референс, **`bundleVersion` `0.3`**):
+  - Все байтовые файлы с on-chain хэшами — в **`originals/<role>__<filename>`** (`<role>` — короткий токен: `digital`, `image`, `image2`, `image3`, чтобы не совпадали имена).
+  - **`manifest.originals`** — объект: ключи `fileHash`, `imageHash`, `imageHash2`, `imageHash3`, значения — **точные пути в ZIP** к файлам; отсутствующий ключ = этого сайдка нет в архиве.
+
+**Устаревший layout:** отдельные папки `original/*`, `image/*`, `image2/*`, `image3/*`. Верификаторам СЛЕДУЕТ поддерживать оба варианта.
 
 #### 15.1.1 Эталонная форма `manifest.json`
 
 Референс в репозитории (`web/passport.html`, `tools/mint.py`) пишет `manifest.json` в UTF-8 как минимум с:
 
 - `format`: `"odpass-bundle"` (legacy может быть `"odp-bundle"`)
-- `bundleVersion`: `"0.2"` для референс-инструментов v0.3 (чтение legacy `"0.1"` допускается)
+- `bundleVersion`: `"0.3"` для текущего экспорта (чтение legacy `"0.2"` / `"0.1"` допускается)
 - `passportId` (или legacy `humanId`), `createdAtUtc` (UTC ISO-8601), `mode` (напр. `"full"`)
 - `onChain`: `dataHash`, `imageHash`, `imageHash2`, `imageHash3`, `fileHash` (`0x` + 64 hex или нули), `txHash`, `chainId`, `contract`
+- `originals`: явные пути под `originals/` (см. выше)
 - `files`: `{ path, role, mime }`; для sidecar допускаются `sizeBytes`, `sha256`
 
-Реализации МОГУТ добавлять ключи. Верификаторы НЕ ДОЛЖНЫ считать `manifest.json` якорем доверия.
+Реализации МОГУТ добавлять ключи. Верификаторы НЕ ДОЛЖНЫ считать `manifest.json` якорем доверия; для **`0.3`** пути в `originals` — только подсказка, какой entry хэшировать; критерий — on-chain `bytes32`.
 
 ### 15.2 Правила верификации
 
@@ -1298,9 +1354,9 @@ On-chain поля остаются криптографическим источ
 2. Пересчитать `localDataHash` (канонический JSON ODP, нормализация Passport ID как `humanId: null` для chain-hash).
 3. Сравнить с on-chain `dataHash`.
 
-При ненулевом `fileHash` и наличии `original/*` — пересчитать SHA-256 и сравнить с `fileHash`.
+При ненулевом `fileHash` — найти байты (предпочтительно `manifest.originals.fileHash`, иначе legacy `original/*`), пересчитать SHA-256, сравнить с `fileHash`.
 
-При ненулевых `imageHash` / `imageHash2` / `imageHash3` и соответствующих файлах в бандле — пересчитать SHA-256 и сравнить с каждым ненулевым слотом.
+При ненулевых `imageHash` / `imageHash2` / `imageHash3` — то же (предпочтительно `manifest.originals.*`, иначе `image/*`, `image2/*`, `image3/*`). Пути с `..` или без префикса `originals/` отклонять; итог всё равно задают on-chain хэши.
 
 ### 15.3 Модель доверия
 

@@ -37,7 +37,7 @@ Important context about version lines:
 - `0.x` means proof-of-concept stage.
 - Deployments are separate registries (address A is not address B).
 - Profile/passport records do not auto-migrate between deployments.
-- v0.1 and v0.2 are not backward-compatible registries.
+- **v0.3 is not backward compatible with v0.2 or v0.1** (different bytecode and ABI); **v0.2** and **v0.1** are likewise separate registries. The **v0.3** line is specified so a future **stable v1** can define migration / dual-read — see **[`SPEC.md`](SPEC.md)** (*IMPORTANT: registry versions…*).
 
 ## Quick Start (5 minutes)
 
@@ -187,6 +187,10 @@ Verification basics:
 
 For exact normative rules:
 - [`SPEC.md`](SPEC.md)
+
+Deploy / bytecode (EIP-170) and how audit follow-up relates to shipped features:
+- [`docs/PROTOCOL_TRACKS.md`](docs/PROTOCOL_TRACKS.md)
+- [`docs/EIP170_STRATEGY.md`](docs/EIP170_STRATEGY.md)
 
 ## Costs and Network
 

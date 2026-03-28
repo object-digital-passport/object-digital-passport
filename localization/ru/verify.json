@@ -35,7 +35,8 @@
       "creatorNotFoundLabel": "Профиль не найден",
       "creatorNotFoundDesc": "Нет записи профиля для {id}",
       "creatorNotFoundBody": "Этого ID профиля нет в реестре, или ID неверен.",
-      "errorPrefix": "Ошибка:"
+      "errorPrefix": "Ошибка:",
+      "noPublicUrlDesc": "Публичный URL файла в сети не зарегистрирован — детали и подлинность может проверить только тот, у кого есть каноничный .odpass (или данные паспорта из него)"
     },
     "loading": {
       "fetchPassport": "Загрузка записи паспорта…",
@@ -98,16 +99,37 @@
       "docCheck": "Проверка хэша документа"
     },
     "dataUrl": {
-      "odpHostedBanner": "По dataUrl пришёл ZIP/.odp — passport.json извлечён из бандла и хэширован так же, как сырой JSON.",
-      "noPassportInZip": "URL похож на ZIP/.odp, но внутри нет passport.json."
+      "odpHostedBanner": "По dataUrl пришёл ZIP/.odpass — passport.json прочитан из бандла и хэширован так же, как сырой JSON.",
+      "noPassportInZip": "URL похож на ZIP/.odpass, но внутри нет passport.json."
+    },
+    "bundle": {
+      "reading": "Читаем .odpass…",
+      "rowLabel": "{name} — .odpass (внутри каноничный passport.json)",
+      "dataMismatch": "JSON паспорта внутри этого .odpass не совпадает с on-chain dataHash для {id}.",
+      "sidecarImage1": "Изображение 1",
+      "sidecarImage2": "Изображение 2",
+      "sidecarImage3": "Изображение 3",
+      "sidecarOriginalOk": "Оригинальный файл OK",
+      "sidecarOriginalBad": "Оригинальный файл не совпадает",
+      "sidecarOriginalMissing": "В пакете нет цифрового оригинала (ожидается путь manifest.originals.fileHash или legacy original/)",
+      "sidecarOriginalExpected": "Ожидаемый SHA-256 (on-chain fileHash)",
+      "sidecarImageOk": "{label} OK",
+      "sidecarImageBad": "{label} не совпадает",
+      "sidecarImageMissing": "Нет файла для {label} (manifest.originals или устаревшая папка image)",
+      "sidecarExpectedHash": "Ожидаемый SHA-256 (on-chain)",
+      "sidecarViaManifest": "путь из manifest.json",
+      "sidecarLegacyLayout": "устаревший layout папок",
+      "sidecarLegacyOriginalFallback": "устаревший fallback для изображения 1: original/",
+      "verifiedImagePreviewTitle": "Проверенное изображение (локальный предпросмотр)",
+      "verifiedImagePreviewAlt": "Картинка из бандла, SHA-256 совпал с сетью"
     },
     "odpQuick": {
-      "label": "Или перетащите .odp-пакет",
-      "lead": "Читается passport.json из файла, определяется Passport ID, загружается запись из сети и сравниваются хэши в браузере. Если JSON меняли, содержимое файла всё равно показывается — подлинность не подтвердится.",
-      "dropLine1": "Перетащите .odp сюда или нажмите для выбора",
+      "label": "Или перетащите .odpass-пакет",
+      "lead": "Читается ZIP .odpass (внутри passport.json), определяется Passport ID, загружается запись из сети и сравниваются хэши в браузере. Сайдкары: originals/ и manifest.originals (v0.3); старые варианты папок тоже принимаются. Если пакет меняли, содержимое всё равно показывается — подлинность не подтвердится.",
+      "dropLine1": "Перетащите .odpass сюда или нажмите для выбора",
       "dropLine2": "Обработка только локально — файл не отправляется",
-      "reading": "Читаем .odp…",
-      "banner": "Источник: {name} — passport.json из пакета хэшировался здесь и сравнивался с сетью. URL с хостинга (dataUrl) не использовался.",
+      "reading": "Читаем .odpass…",
+      "banner": "Источник: {name} — данные из этого .odpass хэшировались здесь и сравнивались с сетью. URL с хостинга (dataUrl) не использовался.",
       "unregisteredHint": "Ниже — данные из вашего файла ({name}). В этом реестре нет такого паспорта — пакет на цепочке не подтверждён.",
       "noPassportJson": "В архиве нет passport.json.",
       "badJson": "passport.json не является корректным JSON.",
@@ -138,7 +160,8 @@
     },
     "creatorResult": {
       "registeredTitle": "Профиль зарегистрирован",
-      "registeredDesc": "Этот кошелёк привязан к профилю в сети."
+      "registeredDesc": "Этот кошелёк привязан к профилю в сети.",
+      "institutionalTrustNote": "Этот ID профиля зарегистрирован в реестре. Подпись типа (институт / музей) on-chain не верифицируется — сверьте именно этот ID на официальном сайте организации, прежде чем доверять proof или институциональным заявлениям."
     },
     "passportJson": {
       "passportIdRow": "Passport ID (поле passportId в JSON; legacy humanId поддерживается)"
@@ -147,9 +170,10 @@
       "passportIdInFile": "Passport ID в файле (humanId)"
     },
     "detail": {
-      "localOdpTitle": "Проверка по вашему .odp",
-      "localOdpLead": "Перетащите .odp-пакет, сохранённый после минта. Страница читает passport.json внутри архива и сравнивает канонический SHA-256 с on-chain dataHash — те же правила, что при загрузке с dataUrl — только в браузере.",
-      "localOdpDrop1": "Перетащите .odp сюда или нажмите для выбора",
+      "odpassSidecarPaths": "В .odpass v0.3 пути к байтам указаны в manifest.originals (папка originals/). У старых пакетов могли быть original/ и image/.",
+      "localOdpTitle": "Проверка по вашему .odpass",
+      "localOdpLead": "Перетащите .odpass-пакет, сохранённый после минта. Страница читает passport.json внутри архива и сравнивает канонический SHA-256 с on-chain dataHash — те же правила, что при загрузке с dataUrl. Сайдкары лежат в originals/, точные пути — в manifest.originals (бандл v0.3); старые пакеты могут использовать устаревшие папки original/ и image/. При совпадении хэша показывается локальный предпросмотр (ничего не загружается на сервер).",
+      "localOdpDrop1": "Перетащите .odpass сюда или нажмите для выбора",
       "localOdpDrop2": "Канонизация и хэш — файл не отправляется"
     },
     "walletBar": {

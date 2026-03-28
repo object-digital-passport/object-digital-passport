@@ -1,179 +1,115 @@
-# ODP Security Model · v0.1
+# ODP Security Model · v0.3
 
 *Author: Andrei Chernikov*
 
 Object Digital Passport is a **registry of claims**, not a guarantee of physical authenticity.
-This document describes the threat model, known limitations, and recommendations.
+This document describes the threat model, known limitations, and recommendations for the **v0.3-shaped** reference contract (`CONTRACT_VERSION` packed byte **3**). Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
 
 ---
 
 ## What the protocol guarantees
 
-- A record exists in the blockchain at a specific timestamp
-- The data at `dataUrl` matches the hash recorded at mint time
-- The profile ID (`creatorId`) is tied to a specific wallet address
-- All hashes are immutable after minting
-- No one — including the deployer — can delete or modify records
+- A passport or profile record exists on-chain at a specific timestamp (within the chosen deployment).
+- **Integrity anchor:** `dataHash`, image hashes, `fileHash`, and `sealHash` recorded at mint are **immutable** on-chain.
+- The profile ID (`creatorId`) is tied to the **registered wallet** for that profile at registration time.
+- **No one** — including the deployer — can delete or rewrite immutable hash fields on existing passports.
+- **Contract version:** deployments expose `CONTRACT_VERSION` / generation; verifiers should confirm they read the intended registry (address + chain).
+
+## Registry versions: v0.3 vs older 0.x and future v1
+
+- **No backward compatibility** between reference **v0.3**, **v0.2**, and **v0.1**: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
+- **v0.3 forward alignment:** the reference line is specified so a future **stable v1** can define migration or dual-verification paths using stable identifiers and `contractVersion` on records — see **[`SPEC.md`](SPEC.md)** (*IMPORTANT: registry versions…*). Until v1 is published, treat this as **design intent**, not a guarantee of upgrade for any live registry.
 
 ## What the protocol does NOT guarantee
 
-- That the physical object exists
-- That the creator is who they claim to be
-- That an NFC chip is genuinely NTAG 424 DNA TagTamper
-- That a P-type institution is legitimate
-- That the person holding the wallet is the original artist
+- That the physical object exists or that off-chain files at `dataUrl` are still hosted (the chain stores hashes and URL **hints**).
+- That the creator or institution is who they claim to be **off-chain** (IDs are registered permissionlessly).
+- That an NFC chip is genuinely NTAG 424 DNA TagTamper or that the public key matches the installed chip.
+- That **P-** or **M-** type profiles represent a real museum or institution **on-chain** — the protocol stores an ID and type prefix only; names are self-declared.
+- That the person holding the wallet is the original artist or rightsholder.
+- **Optional future features** described in **SPEC** (e.g. global `dataHash` uniqueness, **author ECDSA attestation**) are **not** security properties until deployed in bytecode for your registry — see **SPEC** *Planned* sections.
+
+### URLs vs hashes (important)
+
+- The **verifier** (or any client) that fetches bytes from `dataUrl` and compares SHA-256 to **`dataHash`** can detect content substitution.
+- The chain **does not** fetch HTTPS; “the data at `dataUrl` matches the hash” is true **only after** a correct off-chain check. Treat unknown or malicious `dataUrl` as untrusted until verified.
 
 ---
 
-## Known risks and mitigations
+## v0.3-specific trust boundaries
+
+### Governance (single on-chain address)
+
+- **`governance`** is one `address` (constructor defaults to deployer; should be moved to a multisig/Safe via **`transferGovernance`**).
+- A compromised **`governance`** can affect **policy-level** actions allowed by the contract (e.g. revoke passports alongside creator, register mint extensions, aux updates where permitted). There is **no** on-chain timelock in the reference bytecode — operate multisig and procedures off-chain.
+- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes).
+
+### Mint agent (delegated mint)
+
+- A **principal** profile can authorize a **mint agent** wallet (two-step handshake: **`requestMintAgentRole`** / **`confirmMintAgentRole`**).
+- The agent may call mint functions with **`mintOnBehalfOfCreatorId`** set to the principal’s **`creatorId`**.
+- On-chain, **`Passport.creator`** and initial **`owner`** are the **principal** wallet; **`Passport.mintAgent`** records who sent the transaction (`address(0)` if the principal minted themselves).
+- **C/B** monthly mint caps count against the **principal** wallet, not the agent.
+- Principals should revoke delegation (**`revokeMintAgentRole`**) when the relationship ends; agents can **`renounceMintAgentRole`**.
+
+### Publishing agent (URLs only)
+
+- **`delegateCreatorPublishing`** allows a separate wallet to call **`updatePassportUrls`** for passports whose **`creator`** is the delegating issuer — **only** URL fields, hashes unchanged. This is **not** mint delegation.
+
+### Extensions (`IODPExtension`)
+
+- Governance may register external contracts for **`mint*ViaExtension`**. A malicious or buggy extension trusted by governance can affect mint outcomes. Treat extension registration as **high privilege**.
+
+### P- and M-type profiles (social / institutional trust)
+
+- **Same class of risk:** verifiers see a type label (e.g. Institution / Museum) and a profile ID. **On-chain does not verify** the legal name or website of the organization.
+- Confirm **`creatorId`** on the organization’s **official** channel before trusting proofs or institutional claims.
+
+### Auxiliary commitment
+
+- **`auxCommitmentHash` / `auxCommitmentUri`** may be updated by **creator or governance** per **SPEC**; they are **not** the same immutability class as `dataHash`.
+
+---
+
+## Known risks and mitigations (carried forward)
 
 ### 1. Social engineering and phishing
 
-**Risk:** Fake website mimicking ODP verifier. Fake "official" P-type institution.
-Links in `dataUrl` or `noteUrl` pointing to malicious content.
+**Risk:** Fake verifier site; fake “official” P/M institution; malicious `dataUrl` / `noteUrl`.
 
 **Mitigation:**
-- The verifier computes SHA-256 of fetched content and compares to on-chain hash.
-  Content substitution is detected automatically.
-- Verifiers show only the profile ID (P-NNN-NNN-NNN-NNN) — no institution name.
-  Names are self-declared and not stored in the protocol.
-- To trust a Proof, find the exact profile ID on the institution's official website.
-- Never click links from `noteUrl` without checking the domain.
 
----
+- Compare fetched content to on-chain hashes locally.
+- Treat profile IDs as opaque strings; verify them on **official** sites.
+- Do not trust `noteUrl` without domain checks.
 
-### 2. Stolen creator wallet
+### 2. Stolen creator or owner wallet
 
-**Risk:** Attacker with access to creator's wallet can call `updatePassportUrls`.
-The `confirmedDataHash` parameter prevents accidental wrong URLs but does NOT
-protect against a deliberate attacker who can read the public `dataHash` from
-the blockchain.
+**Risk:** **`updatePassportUrls`** (with `confirmedDataHash`) does not stop an attacker who can read `dataHash` from chain (stolen key).
 
-**Mitigation:**
-- Use a hardware wallet (seed-less preferred) for the creator key
-- Store the deployer key offline — it is only needed for `freeze()`
-- Rate limit on mints limits damage from a stolen wallet
-- All existing passport records remain valid even if wallet is compromised —
-  the attacker can only update URLs, not hashes
+**Mitigation:** Hardware wallet; limit exposure; **`revokePassport`** if needed (creator or governance).
 
----
+### 3. Stolen mint agent wallet
 
-### 3. Multiple wallets (anti-spam, not anti-sybil)
+**Risk:** While delegation is active, an agent can mint on behalf of the principal (within caps and rules).
 
-**Risk:** The monthly mint limits (tiered by Creator type in the v0.2 reference contract: **C** ≈ 1k/month, **B** ≈ 100k/month, **P** unlimited) can be circumvented by creating
-multiple wallets. This is an anti-spam measure, not a Sybil resistance mechanism.
+**Mitigation:** Principal **`revokeMintAgentRole`** immediately; short-lived delegation; separate agent hot wallet with minimal privileges elsewhere.
 
-**Accepted tradeoff:** The protocol is permissionless by design.
-Off-chain whitelists (separate repositories) provide reputation layering
-without compromising the trustless core.
+### 4. Multiple wallets (anti-spam, not anti-Sybil)
 
----
+**Risk:** **C** / **B** tiers have per-calendar-month caps; **P** / **M** are unlimited in the reference contract. New wallets bypass per-wallet caps.
 
-### 4. Frontend supply chain (CDN)
+**Accepted tradeoff:** permissionless design; off-chain reputation if needed.
 
-**Risk:** Scripts loaded from CDN (e.g. ethers.js) could be tampered
-with by a CDN compromise. A malicious script could intercept private keys or
-manipulate transactions.
+### 5–8. Frontend CDN, RPC privacy, canonical JSON, NFC, numbered seals
 
-**Recommendation for production deployment:**
-- Download and self-host all JavaScript dependencies
-- Add Subresource Integrity (SRI) hashes to all `<script>` tags:
-
-```html
-<script
-  src="ethers.min.js"
-  integrity="sha384-[hash]"
-  crossorigin="anonymous"
-></script>
-```
-
-- Serve over HTTPS with HSTS enabled
-- Consider a Content Security Policy (CSP) header
-
----
-
-### 5. RPC privacy
-
-**Risk:** Public RPC endpoints (polygon-rpc.com, rpc-amoy.polygon.technology)
-log all requests including wallet addresses and queried data.
-
-**Recommendation:**
-- For sensitive use cases, run your own Polygon node
-- Use a private RPC provider (Alchemy, Infura, Quicknode)
-- For verification only (read), public RPC is generally acceptable
-
----
-
-### 6. Canonical JSON and Unicode edge cases
-
-**Risk:** If two implementations serialize `passport.json` differently,
-the computed `dataHash` will differ and a legitimate passport will appear TAMPERED.
-
-**Protocol requirement (see SPEC.md §9):**
-All string values must be Unicode NFC normalized before hashing.
-Keys must be sorted alphabetically at every nesting level.
-
-```python
-# Python
-import unicodedata
-value = unicodedata.normalize("NFC", value)
-data  = json.dumps(obj, sort_keys=True, separators=(",",":"), ensure_ascii=False)
-```
-
-```javascript
-// JavaScript
-value = value.normalize("NFC")
-data  = JSON.stringify(sortKeysDeep(normalizeNFC(obj)))
-```
-
-**Edge cases to watch:**
-- Cyrillic, Arabic, CJK characters — always NFC normalize
-- Emoji with variation selectors — normalize before storing
-- File paths with Unicode — normalize before including in passport.json
-
----
-
-### 7. NFC chip trust
-
-**Risk:** The contract stores `nfcPublicKey` and `nfcModel` as declared by the creator.
-It cannot verify that the physical chip is genuinely NTAG 424 DNA TagTamper or that
-the public key matches the installed chip.
-
-**Accepted limitation:** NFC hardware verification is physically impossible on-chain.
-Cryptographic challenge-response verification must be performed by a compatible
-mobile application at the time of physical inspection.
-
-**Recommendation:** SDK implementations must perform challenge-response verification
-(see SPEC.md §11, Level 2A) — showing only "NFC key on file" without challenge-response
-is insufficient for high-value objects.
-
----
-
-### 8. Numbered seal weakness
-
-**Risk:** A numbered seal (sealType 2) provides reference, not cryptographic proof.
-The number can be copied onto a fake object.
-
-**Accepted limitation:** Numbered seals are appropriate for lower-value items where
-physical inspection is feasible. For high-value art, NFC (sealType 1 or 3) is required.
+Unchanged from v0.1 guidance — see **SPEC** §9–11 for JSON/NFC levels.
 
 ---
 
 ## Deployer key security
 
-The `deployer` address has one special power: calling `freeze()` to permanently
-stop new writes (used when migrating to v1).
-
-**Requirements:**
-- Generate the deployer key on an air-gapped machine
-- Store seed phrase offline, in at least two physical locations
-- Use this wallet for nothing else — zero balance except gas for `freeze()`
-- Consider a hardware wallet for the deployer key
-
-If the deployer key is compromised:
-- Attacker can freeze the contract (stop new writes)
-- Attacker CANNOT delete or modify any existing records
-- Attacker CANNOT steal funds (contract holds no significant value)
+Same as v0.1: **`freeze()`** only; cannot alter historical records. Protect offline.
 
 ---
 
@@ -181,14 +117,24 @@ If the deployer key is compromised:
 
 When verifying an object:
 
-- [ ] Passport ID matches QR code exactly (same value as JSON/ABI field `humanId`)
-- [ ] Status shows **AUTHENTIC** (data hash verified)
-- [ ] Profile ID (`creatorId`) matches what is published on the creator's official website
-- [ ] If Proof records exist — each P-type ID is findable on the institution's website
-- [ ] For NFC seal — use a compatible app to run challenge-response verification
-- [ ] For numbered seal — visually compare number on object to number in passport
-- [ ] `dataUrl` domain looks legitimate (not a lookalike)
-- [ ] If image is registered — drop the image file to verify hash
+- [ ] **Chain and contract:** you are connected to the intended network and registry address (or known-good deployment).
+- [ ] Passport ID matches QR / bundle (`humanId` / `passportId`).
+- [ ] Passport data status shows **AUTHENTIC** (hash check succeeded).
+- [ ] **`creatorId`** matches what the issuer publishes on an **official** site.
+- [ ] For **P** or **M** profiles — the ID is **not** proof of identity on-chain; confirm on the institution’s official channel.
+- [ ] If **`mintAgent`** is shown non-zero — understand a delegate executed the mint; **`creator`** is still the issuer wallet on record.
+- [ ] Proof records — find each **`creatorId`** on the institution’s site if you rely on proofs.
+- [ ] NFC — challenge-response where applicable; numbered seal — visual compare.
+- [ ] `dataUrl` / image URLs — legitimate domains; verify file hashes where offered.
+
+---
+
+## Planned protocol options (not deployed in reference bytecode yet)
+
+Described in **[`SPEC.md`](SPEC.md)** for roadmap alignment only:
+
+- **Global uniqueness of passport `dataHash`** — would forbid two mints with the same JSON anchor hash; product tradeoff.
+- **Optional author attestation (ECDSA)** — separate key could attest to `dataHash` / profile binding; **no** on-chain verification in the current reference contract; implementation blocked on **bytecode size / architecture** — see **[`docs/EIP170_STRATEGY.md`](docs/EIP170_STRATEGY.md)**.
 
 ---
 

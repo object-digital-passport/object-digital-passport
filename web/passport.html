@@ -820,9 +820,10 @@ async function passportV03RefreshState() {
       expBn = ethers.BigNumber.isBigNumber(rawExp) ? rawExp : ethers.BigNumber.from(rawExp || 0);
     }
     const expSec = expBn.toNumber ? expBn.toNumber() : Number(expBn);
+    const hasCounterfeitOnChain = typeof contract.getCounterfeitConcern === "function";
     let ccActive = false;
     let ccProver = "";
-    if (typeof contract.getCounterfeitConcern === "function") {
+    if (hasCounterfeitOnChain) {
       const cc = await contract.getCounterfeitConcern(hid);
       ccActive = !!(cc.active !== undefined ? cc.active : cc[0]);
       ccProver = cc.proverCreatorId !== undefined ? String(cc.proverCreatorId) : String(cc[1] || "");
@@ -853,7 +854,7 @@ async function passportV03RefreshState() {
         <div><strong>${esc(t("passport.v03Ops.revoked"))}:</strong> ${revoked ? esc(t("passport.v03Ops.revokedYes")) : esc(t("passport.v03Ops.revokedNo"))}</div>
         <div><strong>${esc(t("passport.v03Ops.delegation"))}:</strong> ${esc(delLine)}</div>
         <div><strong>${esc(t("passport.v03Ops.governanceAddr"))}:</strong> <span class="mono">${esc(govAddr ? String(govAddr) : "—")}</span></div>
-        <div><strong>${esc(t("passport.v03Ops.counterfeitLine"))}:</strong> ${cfLine}</div>`;
+        ${hasCounterfeitOnChain ? `<div><strong>${esc(t("passport.v03Ops.counterfeitLine"))}:</strong> ${cfLine}</div>` : ""}`;
     }
     if (agentUrlBlock) {
       if (!revoked && isPublishAgentWallet) {
@@ -871,7 +872,9 @@ async function passportV03RefreshState() {
     if (ownerBlock) ownerBlock.style.display = !revoked && isOwner ? "block" : "none";
     if (publishAgentBlock) publishAgentBlock.style.display = !revoked && isCreator ? "block" : "none";
     if (revokeBlock) revokeBlock.style.display = !revoked && (isCreator || isGov) ? "block" : "none";
-    if (instBlock) instBlock.style.display = !revoked && canShowPassportPmProof() ? "block" : "none";
+    if (instBlock)
+      instBlock.style.display =
+        hasCounterfeitOnChain && !revoked && canShowPassportPmProof() ? "block" : "none";
     if (paffBlock) paffBlock.style.display = creatorId && String(creatorId).charAt(0) === "P" ? "block" : "none";
     const canClearCf = ccActive && ccProver && creatorId && ccProver === creatorId;
     const cfRaise = document.getElementById("passportV03CfRaiseBtn");
@@ -1113,6 +1116,7 @@ function bindPassportV03Operations() {
   const cfRaise = document.getElementById("passportV03CfRaiseBtn");
   if (cfRaise) {
     cfRaise.onclick = async () => {
+      if (typeof contract.getCounterfeitConcern !== "function") return;
       const errEl = document.getElementById("passportV03Err");
       if (errEl) errEl.innerHTML = "";
       const hid = passportV03Last.humanId;
@@ -1145,6 +1149,7 @@ function bindPassportV03Operations() {
   const cfClear = document.getElementById("passportV03CfClearBtn");
   if (cfClear) {
     cfClear.onclick = async () => {
+      if (typeof contract.getCounterfeitConcern !== "function") return;
       const errEl = document.getElementById("passportV03Err");
       if (errEl) errEl.innerHTML = "";
       const hid = passportV03Last.humanId;
@@ -2000,9 +2005,9 @@ function normalizeBaseUrl(raw) {
   }
 }
 
-/** Final on-chain passport.json URL when using folder hosting. */
-function joinPassportJsonUrl(baseNormalized, humanId) {
-  return `${baseNormalized}/${humanId}.json`;
+/** Final on-chain dataUrl when using folder hosting — hosts the .odpass ZIP (Verify reads passport.json inside). */
+function joinPassportBundleUrl(baseNormalized, humanId) {
+  return `${baseNormalized}/${humanId}.odpass`;
 }
 
 /**
@@ -2301,8 +2306,9 @@ async function executeMint() {
   const err = validate();
   if (err) { errEl.innerHTML=`<div class="info e" style="margin-top:12px">${esc(err)}</div>`; return; }
 
-  const passport  = buildPassport(null);
-  const dataHash_ = await sha256obj(passport);
+  /** Snapshot at hash time — must be the exact bytes later written to .odpass (only passportId changes). Re-building after tx.wait() would shift registration timestamps and break Verify. */
+  const passportForHash = buildPassport(null);
+  const dataHash_ = await sha256obj(passportForHash);
   const imgH_     = imageHash;
   const imgU_     = imageUrl;
   const imgEx =
@@ -2335,15 +2341,15 @@ async function executeMint() {
     }
   } else {
     dataUrlForMint = useFolder
-      ? `${baseNorm}/odp-mint-pending-${Date.now()}.json`
+      ? `${baseNorm}/odp-mint-pending-${Date.now()}.odpass`
       : v("f_url");
   }
 
   let sealHash_ = ZERO32;
   let nfcBytes  = new Uint8Array(0);
 
-  if (objType==="physical" && passport.seal) {
-    sealHash_ = await sha256obj(passport.seal);
+  if (objType==="physical" && passportForHash.seal) {
+    sealHash_ = await sha256obj(passportForHash.seal);
     if ((sealType===1||sealType===3) && v("f_nkey")) {
       try { nfcBytes = ethers.utils.arrayify("0x"+v("f_nkey").replace(/^0x/,"")); } catch {}
     }
@@ -2375,6 +2381,13 @@ async function executeMint() {
     <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
 
   try {
+    let passportIdsBeforeMint = [];
+    try {
+      passportIdsBeforeMint = await contract.getPassportsByCreator(wallet);
+    } catch {
+      passportIdsBeforeMint = [];
+    }
+
     let tx;
     if (objType==="physical") {
       const nfcModelStr = (sealType===1||sealType===3) ? "NTAG424DNA_TT" : "";
@@ -2385,7 +2398,7 @@ async function executeMint() {
           ...imgEx,
           dataUrlIsFolderBase,
           ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-            ? [auxCommitmentHash, auxCommitmentUri]
+            ? [auxCommitmentHash, auxCommitmentUri, ""]
             : []),
           mintTxOpts()
         );
@@ -2395,7 +2408,7 @@ async function executeMint() {
           sealType,sealHash_,nfcBytes,nfcModelStr,
           ...imgEx,
           ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-            ? [auxCommitmentHash, auxCommitmentUri]
+            ? [auxCommitmentHash, auxCommitmentUri, ""]
             : []),
           mintTxOpts()
         );
@@ -2406,7 +2419,7 @@ async function executeMint() {
         ...imgEx,
         fileHashBytes32,dataUrlIsFolderBase,
         ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [auxCommitmentHash, auxCommitmentUri]
+          ? [auxCommitmentHash, auxCommitmentUri, ""]
           : []),
         mintTxOpts()
       );
@@ -2416,7 +2429,7 @@ async function executeMint() {
         ...imgEx,
         fileHashBytes32,
         ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [auxCommitmentHash, auxCommitmentUri]
+          ? [auxCommitmentHash, auxCommitmentUri, ""]
           : []),
         mintTxOpts()
       );
@@ -2432,23 +2445,58 @@ async function executeMint() {
 
     const receipt = await tx.wait();
 
-    // Parse humanId from event
-    let humanId = null;
     const iface = new ethers.utils.Interface(ABI);
-    for (const log of receipt.logs) {
+    function humanIdFromMintReceiptLogs(logs) {
+      for (const log of logs || []) {
+        try {
+          const parsed = iface.parseLog(log);
+          if (parsed.name === "PassportMinted" && parsed.args && parsed.args.humanId) {
+            return String(parsed.args.humanId);
+          }
+        } catch {
+          /* wrong log shape / not our event */
+        }
+      }
+      return null;
+    }
+
+    let humanId = humanIdFromMintReceiptLogs(receipt.logs);
+    let humanIdSource = humanId ? "receipt_logs" : null;
+
+    if (!humanId && provider && tx && tx.hash) {
+      for (let attempt = 0; attempt < 5 && !humanId; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 280));
+        try {
+          const rec2 = await provider.getTransactionReceipt(tx.hash);
+          humanId = humanIdFromMintReceiptLogs(rec2 && rec2.logs);
+          if (humanId) humanIdSource = "receipt_refetch";
+        } catch {
+          /* RPC flake */
+        }
+      }
+    }
+
+    if (!humanId) {
       try {
-        const parsed = iface.parseLog(log);
-        if (parsed.name==="PassportMinted") { humanId=parsed.args.humanId; break; }
-      } catch {}
+        const after = await contract.getPassportsByCreator(wallet);
+        const beforeSet = new Set(passportIdsBeforeMint || []);
+        const newcomers = (after || []).filter((id) => id && !beforeSet.has(id));
+        if (newcomers.length >= 1) {
+          humanId = newcomers[newcomers.length - 1];
+          humanIdSource = "list_diff";
+        }
+      } catch {
+        /* fall through */
+      }
     }
 
     let registeredDataUrl = dataUrlForMint;
     if (!humanId) throw new Error(t("passport.form.mintReadHumanId"));
 
     if (odpSupportsFolderBaseMint(odpContractGeneration) && dataUrlIsFolderBase) {
-      registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
+      registeredDataUrl = joinPassportBundleUrl(baseNorm, humanId);
     } else if (!skip && !odpSupportsFolderBaseMint(odpContractGeneration) && useFolder && baseNorm) {
-      registeredDataUrl = joinPassportJsonUrl(baseNorm, humanId);
+      registeredDataUrl = joinPassportBundleUrl(baseNorm, humanId);
       document.getElementById("app").innerHTML = `
         <div style="text-align:center;padding:48px 0">
           <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
@@ -2470,10 +2518,14 @@ async function executeMint() {
       }
     }
 
-    // dataHash on-chain is sha256(buildPassport(null)). Download includes real passportId; verify.html maps matching ID string → null for hash check.
-    const passportOut = buildPassport(humanId);
+    // dataHash on-chain is sha256(passportForHash). Bundle JSON = same object + real passportId (verify minify maps ID → null to match hash).
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H3',location:'passport.html:mint:beforeShowSuccess',message:'mint reached pre-showSuccess',data:{humanId:String(humanId||''),humanIdSource:String(humanIdSource||''),receiptLogCount:(receipt&&receipt.logs&&receipt.logs.length)||0,jsZipType:typeof JSZip,registeredDataUrlLen:(registeredDataUrl&&String(registeredDataUrl).length)||0},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    const passportOut = JSON.parse(JSON.stringify(passportForHash));
+    passportOut.passportId = humanId;
     const finalJson = canonicalJsonString(passportOut);
-    showSuccess(humanId, tx.hash, finalJson, passport.title, registeredDataUrl, {
+    showSuccess(humanId, tx.hash, finalJson, passportForHash.title, registeredDataUrl, {
       txHash: tx.hash,
       dataHash: dataHash_,
       imageHash: imgH_,
@@ -2496,6 +2548,13 @@ async function executeMint() {
 
 function safeFilePart(s) {
   return String(s).replace(/[^\w.-]+/g, "_").slice(0, 96);
+}
+
+/** `.odpass` byte files live under `originals/`; `role` prefix keeps basenames unique (SPEC §15). */
+function odpOriginalsBundleRelPath(role, filename) {
+  const r = String(role || "file").replace(/[^\w-]+/g, "");
+  const base = safeFilePart(filename || "file");
+  return `originals/${r}__${base}`;
 }
 
 /** SPEC §18.2 — minimal did:odp passport DID document (off-chain export). */
@@ -2594,6 +2653,14 @@ function downloadQrFromEl(containerEl, filename) {
     download: filename || "odp-qr.png",
   });
   a.click();
+}
+
+function confirmLeaveMintSuccessScreen() {
+  try {
+    return window.confirm(t("passport.form.leaveSuccessConfirm"));
+  } catch {
+    return true;
+  }
 }
 
 function closeShareModal() {
@@ -2744,6 +2811,9 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
 }
 
 function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H3',location:'passport.html:showSuccess:entry',message:'showSuccess entered',data:{humanId:String(humanId||''),jsonLen:(json&&json.length)||0,jsZipType:typeof JSZip},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const net = NET;
   const rel = getVerifyRelativePath(humanId);
   const hasPublicUrl = dataUrlOnChain && String(dataUrlOnChain).trim().length > 0;
@@ -2753,7 +2823,7 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
   const step3 = esc(t("passport.form.successStep3").replace("{creatorId}", creatorId));
 
   document.getElementById("app").innerHTML = `
-    <div class="success">
+    <div class="success" id="successMainBlock" style="opacity:0.38;filter:blur(1px);pointer-events:none;transition:opacity 0.2s ease,filter 0.2s ease">
       <div class="success-icon">✓</div>
       <div class="success-title">${esc(title)}</div>
       <span class="success-id">${esc(humanId)}</span>
@@ -2780,11 +2850,24 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
         <button type="button" class="btn" id="successDlOdpBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDlOdp"))}</button>
         <button type="button" class="btn btn-sec" id="successShareOdpBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successShareOdp"))}</button>
         <button type="button" class="btn btn-sec" id="successDidBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDidDoc"))}</button>
-        <a href="${net.explorer}/tx/${txHash}" target="_blank" rel="noopener noreferrer"><button type="button" class="btn btn-ghost">${esc(t("passport.form.successExplorer"))}</button></a>
-        <a href="${esc(rel)}"><button type="button" class="btn btn-ghost">${esc(t("passport.form.successVerify"))}</button></a>
-        <button type="button" class="btn btn-ghost" onclick="renderForm()">${esc(t("passport.form.successNewPassport"))}</button>
+        <button type="button" class="btn btn-ghost" id="successExplorerBtn">${esc(t("passport.form.successExplorer"))}</button>
+        <button type="button" class="btn btn-ghost" id="successVerifyBtn">${esc(t("passport.form.successVerify"))}</button>
+        <button type="button" class="btn btn-ghost" id="successNewPassportBtn">${esc(t("passport.form.successNewPassport"))}</button>
       </div>
       <p style="max-width:520px;margin:14px auto 0;text-align:center;font-size:12px;line-height:1.55;color:var(--text3)">${esc(t("passport.form.successDidHint"))}</p>
+    </div>
+
+    <div id="odpassCriticalModal" class="share-modal odpass-critical-modal" role="dialog" aria-modal="true" aria-labelledby="odpassCriticalTitle">
+      <div class="share-modal-backdrop" id="odpassCriticalBackdrop"></div>
+      <div class="share-modal-panel" style="max-width:26rem;text-align:left">
+        <h3 id="odpassCriticalTitle" class="share-modal-title" style="margin-right:0">${esc(t("passport.form.odpassModalTitle"))}</h3>
+        <p class="fhint" style="font-size:13px;line-height:1.65;margin:0 0 12px;color:var(--text)">${esc(t("passport.form.odpassModalBody"))}</p>
+        <p class="fhint" style="font-size:12px;line-height:1.65;margin:0;color:var(--text2)">${esc(t("passport.form.odpassModal321"))}</p>
+        <div class="share-modal-actions" style="margin-top:18px">
+          <button type="button" class="btn" id="odpassCriticalDlBtn">${esc(t("passport.form.odpassModalDl"))}</button>
+          <button type="button" class="btn btn-sec" id="odpassCriticalContinueBtn">${esc(t("passport.form.odpassModalContinue"))}</button>
+        </div>
+      </div>
     </div>
 
     <div id="shareModal" class="share-modal" hidden aria-hidden="true">
@@ -2806,6 +2889,54 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
   const shareBtn = document.getElementById("sharePassportBtn");
   if (shareBtn) shareBtn.addEventListener("click", () => fillPassportShareModal(humanId));
 
+  const successMain = document.getElementById("successMainBlock");
+  const critBackdrop = document.getElementById("odpassCriticalBackdrop");
+  if (critBackdrop) {
+    critBackdrop.addEventListener("click", (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+    });
+  }
+  const critContinue = document.getElementById("odpassCriticalContinueBtn");
+  if (critContinue) {
+    critContinue.addEventListener("click", () => {
+      const cm = document.getElementById("odpassCriticalModal");
+      if (cm) {
+        cm.hidden = true;
+        cm.setAttribute("aria-hidden", "true");
+      }
+      if (successMain) {
+        successMain.style.opacity = "";
+        successMain.style.filter = "";
+        successMain.style.pointerEvents = "";
+      }
+    });
+  }
+  const critDl = document.getElementById("odpassCriticalDlBtn");
+  if (critDl) critDl.addEventListener("click", () => void downloadPassportOdp(humanId, json, bundleMeta));
+
+  const exBtn = document.getElementById("successExplorerBtn");
+  if (exBtn) {
+    exBtn.addEventListener("click", () => {
+      if (!confirmLeaveMintSuccessScreen()) return;
+      window.open(`${net.explorer}/tx/${txHash}`, "_blank", "noopener,noreferrer");
+    });
+  }
+  const vfBtn = document.getElementById("successVerifyBtn");
+  if (vfBtn) {
+    vfBtn.addEventListener("click", () => {
+      if (!confirmLeaveMintSuccessScreen()) return;
+      window.location.href = rel;
+    });
+  }
+  const newBtn = document.getElementById("successNewPassportBtn");
+  if (newBtn) {
+    newBtn.addEventListener("click", () => {
+      if (!confirmLeaveMintSuccessScreen()) return;
+      renderForm();
+    });
+  }
+
   try {
     sessionStorage.setItem("odp_passport_json_" + humanId, json);
   } catch (e) {}
@@ -2825,7 +2956,11 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
       downloadJsonBlob(doc, `${safeFilePart(humanId)}-did-document.json`);
     };
   }
-  void downloadPassportOdp(humanId, json, bundleMeta);
+  void downloadPassportOdp(humanId, json, bundleMeta).catch((e) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H1',location:'passport.html:showSuccess:downloadReject',message:'downloadPassportOdp rejected',data:{err:String((e&&e.message)||e)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  });
 }
 
 /** Returns true if the system share sheet completed successfully; false if Web Share with files is unavailable. */
@@ -2867,14 +3002,17 @@ function blobDownloadOdp(humanId, blob) {
   }, 2500);
 }
 
-/** SPEC §15 + §15.1.1 — keep aligned with `tools/mint.py` (`.odpass` zip bundle). */
+/** SPEC §15 + §15.1.1 — `.odpass` ZIP: `originals/<role>__<file>` + `manifest.originals` paths; aligned with `tools/mint.py`. */
 async function createPassportOdpBlob(humanId, json, bundleMeta) {
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H4',location:'passport.html:createPassportOdpBlob:entry',message:'createPassportOdpBlob',data:{jsZipType:typeof JSZip,hasOriginal:!!(bundleMeta&&bundleMeta.originalFile),hasImg:!!(bundleMeta&&bundleMeta.imageFile)},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
   const zip = new JSZip();
   zip.file("passport.json", json);
   const manifest = {
     format: "odpass-bundle",
-    bundleVersion: "0.2",
+    bundleVersion: "0.3",
     passportId: String(humanId || ""),
     createdAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
     mode: "full",
@@ -2888,14 +3026,17 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
       chainId: Number(NET.chainId),
       contract: String(NET.contract || ""),
     },
+    originals: {},
     files: [{ path: "passport.json", role: "passport", mime: "application/json" }],
   };
   if (bundleMeta && bundleMeta.originalFile) {
     const f = bundleMeta.originalFile;
-    zip.file(`original/${f.name}`, f);
+    const rel = odpOriginalsBundleRelPath("digital", f.name);
+    zip.file(rel, f);
+    manifest.originals.fileHash = rel;
     const h = await sha256HexFromBuffer(await f.arrayBuffer());
     manifest.files.push({
-      path: `original/${f.name}`,
+      path: rel,
       role: "original",
       mime: String(f.type || "application/octet-stream"),
       sizeBytes: Number(f.size || 0),
@@ -2904,10 +3045,12 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
   }
   if (bundleMeta && bundleMeta.imageFile) {
     const f = bundleMeta.imageFile;
-    zip.file(`image/${f.name}`, f);
+    const rel = odpOriginalsBundleRelPath("image", f.name);
+    zip.file(rel, f);
+    manifest.originals.imageHash = rel;
     const h = await sha256HexFromBuffer(await f.arrayBuffer());
     manifest.files.push({
-      path: `image/${f.name}`,
+      path: rel,
       role: "imageOriginal",
       mime: String(f.type || "application/octet-stream"),
       sizeBytes: Number(f.size || 0),
@@ -2916,10 +3059,12 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
   }
   if (bundleMeta && bundleMeta.imageFile2) {
     const f = bundleMeta.imageFile2;
-    zip.file(`image2/${f.name}`, f);
+    const rel = odpOriginalsBundleRelPath("image2", f.name);
+    zip.file(rel, f);
+    manifest.originals.imageHash2 = rel;
     const h = await sha256HexFromBuffer(await f.arrayBuffer());
     manifest.files.push({
-      path: `image2/${f.name}`,
+      path: rel,
       role: "imageOriginal2",
       mime: String(f.type || "application/octet-stream"),
       sizeBytes: Number(f.size || 0),
@@ -2928,10 +3073,12 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
   }
   if (bundleMeta && bundleMeta.imageFile3) {
     const f = bundleMeta.imageFile3;
-    zip.file(`image3/${f.name}`, f);
+    const rel = odpOriginalsBundleRelPath("image3", f.name);
+    zip.file(rel, f);
+    manifest.originals.imageHash3 = rel;
     const h = await sha256HexFromBuffer(await f.arrayBuffer());
     manifest.files.push({
-      path: `image3/${f.name}`,
+      path: rel,
       role: "imageOriginal3",
       mime: String(f.type || "application/octet-stream"),
       sizeBytes: Number(f.size || 0),
@@ -2943,8 +3090,24 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
 }
 
 async function downloadPassportOdp(humanId, json, bundleMeta) {
-  const blob = await createPassportOdpBlob(humanId, json, bundleMeta);
-  blobDownloadOdp(humanId, blob);
+  // #region agent log
+  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H1',location:'passport.html:downloadPassportOdp:entry',message:'downloadPassportOdp start',data:{humanId:String(humanId||'')},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+  try {
+    const blob = await createPassportOdpBlob(humanId, json, bundleMeta);
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H2',location:'passport.html:downloadPassportOdp:blob',message:'zip blob ready',data:{blobSize:blob&&blob.size},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    blobDownloadOdp(humanId, blob);
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H2',location:'passport.html:downloadPassportOdp:afterClick',message:'blobDownloadOdp invoked',data:{humanId:String(humanId||'')},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+  } catch (e) {
+    // #region agent log
+    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H1',location:'passport.html:downloadPassportOdp:catch',message:'downloadPassportOdp threw',data:{err:String((e&&e.message)||e)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    throw e;
+  }
 }
 
 function fmtSz(b) {

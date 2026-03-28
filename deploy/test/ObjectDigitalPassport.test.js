@@ -26,6 +26,8 @@ function nonZeroFileHash(n) {
 const NO_EXTRA_IMAGES = [ethers.ZeroHash, "", ethers.ZeroHash, ""];
 /** v0.3: optional aux commitment (hash 0 ⇒ URI must be empty) */
 const AUX_EMPTY = [ethers.ZeroHash, ""];
+/** v0.3+: last mint arg — empty string = mint as caller’s registered profile */
+const MINT_SELF = "";
 
 function encodePhysicalMintPayload(args) {
   const coder = ethers.AbiCoder.defaultAbiCoder();
@@ -68,11 +70,15 @@ describe("ObjectDigitalPassport", function () {
     expect(Number(maj) * 16 + Number(min)).to.equal(Number(packed));
   });
 
-  /** ethers v6: mintDigital returns a TransactionResponse, not humanId. IDs are random — read last passport for the wallet. */
-  async function mintDigitalAndId(contract, signer, args) {
+  /**
+   * ethers v6: mintDigital returns a TransactionResponse, not humanId. IDs are random — read last passport for the issuer wallet.
+   * @param {string} [passportOwner] when minting via mint agent, pass principal wallet (creator on record); default `signer.address`
+   */
+  async function mintDigitalAndId(contract, signer, args, passportOwner) {
     const tx = await contract.connect(signer).mintDigital(...args);
     await tx.wait();
-    const ids = await contract.getPassportsByCreator(signer.address);
+    const ownerAddr = passportOwner !== undefined && passportOwner !== null ? passportOwner : signer.address;
+    const ids = await contract.getPassportsByCreator(ownerAddr);
     return ids[ids.length - 1];
   }
 
@@ -93,7 +99,8 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(1),
         false,
-        ...AUX_EMPTY
+        ...AUX_EMPTY,
+        MINT_SELF,
       );
       expect(await c.getRemainingMints(w.address)).to.equal(lim - 1n);
     });
@@ -114,7 +121,8 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(2),
         false,
-        ...AUX_EMPTY
+        ...AUX_EMPTY,
+        MINT_SELF,
       );
       expect(await c.getRemainingMints(wB.address)).to.equal(lim - 1n);
     });
@@ -135,7 +143,8 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(3),
         false,
-        ...AUX_EMPTY
+        ...AUX_EMPTY,
+        MINT_SELF,
       );
       expect(await c.getRemainingMints(wP.address)).to.equal(max32);
     });
@@ -156,7 +165,8 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(31),
         false,
-        ...AUX_EMPTY
+        ...AUX_EMPTY,
+        MINT_SELF,
       );
       expect(await c.getRemainingMints(wM.address)).to.equal(max32);
     });
@@ -176,6 +186,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(41),
         false,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       await c.connect(wM).registerCreator(TYPE_M);
       const tx = await c.connect(wM).submitProof(humanId, zeroHash(), "", 2031, 6);
@@ -202,6 +213,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(10),
         true,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       const p = await c.getPassport(humanId);
       const expectUrl = `https://example.com/passports/${humanId}.json`;
@@ -224,6 +236,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(12),
         true,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       const p = await c.getPassport(humanId);
       expect(p.dataUrl).to.equal(`https://example.com/foo//bar/${humanId}.json`);
@@ -244,6 +257,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(11),
         true,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       const dh = nonZeroDataHash(11);
       const full = `https://other.host/${humanId}.json`;
@@ -269,9 +283,11 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(501),
         false,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       let p = await c.getPassport(humanId);
       expect(p.owner).to.equal(wA.address);
+      expect(p.mintAgent).to.equal(ethers.ZeroAddress);
       await c.connect(wA).transferPassport(humanId, wB.address);
       p = await c.getPassport(humanId);
       expect(p.owner).to.equal(wB.address);
@@ -293,6 +309,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(502),
         false,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       const reason = ethers.keccak256(ethers.toUtf8Bytes("test-revoke"));
       await c.connect(wA).revokePassport(humanId, reason);
@@ -325,31 +342,6 @@ describe("ObjectDigitalPassport", function () {
       expect(a.lastDetachedFromParent).to.equal(parentId);
     });
 
-    it("P raises counterfeit concern; clear by same prover", async function () {
-      const c = await deployFixture();
-      const [wC, wP] = await ethers.getSigners();
-      await c.connect(wC).registerCreator(TYPE_C);
-      await c.connect(wP).registerCreator(TYPE_P);
-      const humanId = await mintDigitalAndId(c, wC, [
-        2026,
-        3,
-        nonZeroDataHash(503),
-        "",
-        zeroHash(),
-        "",
-        ...NO_EXTRA_IMAGES,
-        nonZeroFileHash(503),
-        false,
-        ...AUX_EMPTY,
-      ]);
-      const rh = ethers.keccak256(ethers.toUtf8Bytes("fake"));
-      await c.connect(wP).raiseCounterfeitConcern(humanId, rh);
-      let cc = await c.getCounterfeitConcern(humanId);
-      expect(cc.active).to.equal(true);
-      await c.connect(wP).clearCounterfeitConcern(humanId);
-      cc = await c.getCounterfeitConcern(humanId);
-      expect(cc.active).to.equal(false);
-    });
   });
 
   describe("mintDigitalViaExtension (IODPExtension)", function () {
@@ -397,7 +389,7 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
       ];
       const payload = encodeDigitalMintPayload(args);
-      const tx = await c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false);
+      const tx = await c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false, "");
       const receipt = await tx.wait();
       const ids = await c.getPassportsByCreator(w.address);
       const humanId = ids[ids.length - 1];
@@ -433,7 +425,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(901),
         ...AUX_EMPTY,
       ]);
-      await expect(c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false))
+      await expect(c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false, ""))
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(64n);
     });
@@ -486,6 +478,7 @@ describe("ObjectDigitalPassport", function () {
         false,
         auxH,
         "https://coa.example/cert.pdf",
+        MINT_SELF,
       ]);
       const p = await c.getPassport(humanId);
       expect(p.auxCommitmentHash).to.equal(auxH);
@@ -507,6 +500,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(600),
         false,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       const h1 = nonZeroFileHash(601);
       await c.connect(w).updatePassportAuxCommitment(humanId, h1, "https://a.example/a.pdf");
@@ -533,6 +527,7 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(610),
         false,
         ...AUX_EMPTY,
+        MINT_SELF,
       ]);
       await c.connect(w2).registerCreator(TYPE_B);
       await expect(
@@ -565,7 +560,7 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
       ];
       const payload = encodePhysicalMintPayload(phyArgs);
-      const tx = await c.connect(w).mintPhysicalViaExtension(MINT_CLASS_W, payload, false);
+      const tx = await c.connect(w).mintPhysicalViaExtension(MINT_CLASS_W, payload, false, "");
       const receipt = await tx.wait();
       const ids = await c.getPassportsByCreator(w.address);
       const humanId = ids[ids.length - 1];
@@ -583,6 +578,133 @@ describe("ObjectDigitalPassport", function () {
       expect(ev).to.not.equal(undefined);
       expect(ev.args.kind).to.equal(1);
       expect(ev.args.humanId).to.equal(humanId);
+    });
+  });
+
+  describe("mint agent delegation (v0.3)", function () {
+    it("handshake: agent mints on behalf; principal is creator/owner; mintAgent set", async function () {
+      const c = await deployFixture();
+      const [wArtist, wAgent] = await ethers.getSigners();
+      await c.connect(wArtist).registerCreator(TYPE_C);
+      const artistId = await c.getCreatorByWallet(wArtist.address);
+      await c.connect(wAgent).requestMintAgentRole(artistId);
+      const pendKey = ethers.keccak256(
+        ethers.solidityPacked(["string", "address"], [artistId, wAgent.address])
+      );
+      expect(await c.mintAgentDelegationPending(pendKey)).to.equal(true);
+      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      expect(await c.mintAgentForCreator(artistId)).to.equal(wAgent.address);
+      const humanId = await mintDigitalAndId(
+        c,
+        wAgent,
+        [
+          2026,
+          3,
+          nonZeroDataHash(701),
+          "",
+          zeroHash(),
+          "",
+          ...NO_EXTRA_IMAGES,
+          nonZeroFileHash(701),
+          false,
+          ...AUX_EMPTY,
+          artistId,
+        ],
+        wArtist.address
+      );
+      const p = await c.getPassport(humanId);
+      expect(p.creatorId).to.equal(artistId);
+      expect(p.creator).to.equal(wArtist.address);
+      expect(p.owner).to.equal(wArtist.address);
+      expect(p.mintAgent).to.equal(wAgent.address);
+      const ids = await c.getPassportsByCreator(wArtist.address);
+      expect(ids.includes(humanId)).to.equal(true);
+      const idsAgent = await c.getPassportsByCreator(wAgent.address);
+      expect(idsAgent.length).to.equal(0);
+    });
+
+    it("non-agent cannot mint on behalf (EC 72)", async function () {
+      const c = await deployFixture();
+      const [wArtist, wAgent, wEvil] = await ethers.getSigners();
+      await c.connect(wArtist).registerCreator(TYPE_C);
+      const artistId = await c.getCreatorByWallet(wArtist.address);
+      await c.connect(wAgent).requestMintAgentRole(artistId);
+      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      await expect(
+        c.connect(wEvil).mintDigital(
+          2026,
+          3,
+          nonZeroDataHash(702),
+          "",
+          zeroHash(),
+          "",
+          ...NO_EXTRA_IMAGES,
+          nonZeroFileHash(702),
+          false,
+          ...AUX_EMPTY,
+          artistId
+        )
+      )
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(72n);
+    });
+
+    it("principal monthly limit applies when agent mints", async function () {
+      const c = await deployFixture();
+      const [wArtist, wAgent] = await ethers.getSigners();
+      await c.connect(wArtist).registerCreator(TYPE_C);
+      const artistId = await c.getCreatorByWallet(wArtist.address);
+      const lim = await c.MONTHLY_LIMIT_C();
+      expect(await c.getRemainingMints(wArtist.address)).to.equal(lim);
+      await c.connect(wAgent).requestMintAgentRole(artistId);
+      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      await mintDigitalAndId(
+        c,
+        wAgent,
+        [
+          2026,
+          3,
+          nonZeroDataHash(703),
+          "",
+          zeroHash(),
+          "",
+          ...NO_EXTRA_IMAGES,
+          nonZeroFileHash(703),
+          false,
+          ...AUX_EMPTY,
+          artistId,
+        ],
+        wArtist.address
+      );
+      expect(await c.getRemainingMints(wArtist.address)).to.equal(lim - 1n);
+    });
+
+    it("revokeMintAgentRole blocks further agent mints", async function () {
+      const c = await deployFixture();
+      const [wArtist, wAgent] = await ethers.getSigners();
+      await c.connect(wArtist).registerCreator(TYPE_C);
+      const artistId = await c.getCreatorByWallet(wArtist.address);
+      await c.connect(wAgent).requestMintAgentRole(artistId);
+      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      await c.connect(wArtist).revokeMintAgentRole();
+      expect(await c.mintAgentForCreator(artistId)).to.equal(ethers.ZeroAddress);
+      await expect(
+        c.connect(wAgent).mintDigital(
+          2026,
+          3,
+          nonZeroDataHash(704),
+          "",
+          zeroHash(),
+          "",
+          ...NO_EXTRA_IMAGES,
+          nonZeroFileHash(704),
+          false,
+          ...AUX_EMPTY,
+          artistId
+        )
+      )
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(72n);
     });
   });
 });

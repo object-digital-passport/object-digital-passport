@@ -115,6 +115,7 @@ CONTRACT_ABI = [
             {"name": "dataUrlIsFolderBase", "type": "bool"},
             {"name": "auxCommitmentHash", "type": "bytes32"},
             {"name": "auxCommitmentUri", "type": "string"},
+            {"name": "mintOnBehalfOfCreatorId", "type": "string"},
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
     },
@@ -138,6 +139,7 @@ CONTRACT_ABI = [
             {"name": "dataUrlIsFolderBase", "type": "bool"},
             {"name": "auxCommitmentHash", "type": "bytes32"},
             {"name": "auxCommitmentUri", "type": "string"},
+            {"name": "mintOnBehalfOfCreatorId", "type": "string"},
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
     },
@@ -156,6 +158,7 @@ CONTRACT_ABI = [
             {"indexed": False, "name": "sealType", "type": "uint8"},
             {"indexed": False, "name": "nfcModel", "type": "string"},
             {"indexed": False, "name": "timestamp", "type": "uint256"},
+            {"indexed": False, "name": "mintAgent", "type": "address"},
         ],
     },
     # Read
@@ -194,6 +197,7 @@ CONTRACT_ABI = [
                 {"name": "revocationReasonHash", "type": "bytes32"},
                 {"name": "auxCommitmentHash", "type": "bytes32"},
                 {"name": "auxCommitmentUri", "type": "string"},
+                {"name": "mintAgent", "type": "address"},
             ]
         }],
     },
@@ -349,6 +353,16 @@ def safe_odp_basename(human_id: str) -> str:
     return (s or "passport")[:96]
 
 
+def safe_bundle_filename(name: str) -> str:
+    s = "".join(c if (c.isalnum() or c in ".-_") else "_" for c in (name or "").strip())
+    return (s or "file")[:96]
+
+
+def originals_arcname(role: str, path: Path) -> str:
+    """Same as web `odpOriginalsBundleRelPath`: originals/<role>__<safeBasename>."""
+    return f"originals/{role}__{safe_bundle_filename(path.name)}"
+
+
 def write_odp_bundle(
     out_path,
     passport_json_str,
@@ -359,24 +373,76 @@ def write_odp_bundle(
     image_path3=None,
 ):
     """
-    ODP bundle per SPEC.md §15 — same layout as `createPassportOdpBlob` in web/passport.html:
-    passport.json, manifest.json, optional original/*, image/*, image2/*, image3/*.
+    ODP bundle per SPEC.md §15 — aligned with `createPassportOdpBlob` in web/passport.html:
+    passport.json, manifest.json, optional byte files under originals/ with paths in manifest.originals.
     """
+    m = dict(manifest)
+    files = [{"path": "passport.json", "role": "passport", "mime": "application/json"}]
+    originals = {}
+
     with zipfile.ZipFile(out_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
         zf.writestr("passport.json", passport_json_str.encode("utf-8"))
         if original_path and Path(original_path).is_file():
             p = Path(original_path)
-            zf.write(p, arcname=f"original/{p.name}")
+            arc = originals_arcname("digital", p)
+            zf.write(p, arcname=arc)
+            originals["fileHash"] = arc
+            files.append(
+                {
+                    "path": arc,
+                    "role": "original",
+                    "mime": "application/octet-stream",
+                    "sizeBytes": int(p.stat().st_size),
+                    "sha256": bytes32_to_hex0x(sha256_file(str(p))),
+                }
+            )
         if image_path and Path(image_path).is_file():
             p = Path(image_path)
-            zf.write(p, arcname=f"image/{p.name}")
+            arc = originals_arcname("image", p)
+            zf.write(p, arcname=arc)
+            originals["imageHash"] = arc
+            files.append(
+                {
+                    "path": arc,
+                    "role": "imageOriginal",
+                    "mime": "application/octet-stream",
+                    "sizeBytes": int(p.stat().st_size),
+                    "sha256": bytes32_to_hex0x(sha256_file(str(p))),
+                }
+            )
         if image_path2 and Path(image_path2).is_file():
             p = Path(image_path2)
-            zf.write(p, arcname=f"image2/{p.name}")
+            arc = originals_arcname("image2", p)
+            zf.write(p, arcname=arc)
+            originals["imageHash2"] = arc
+            files.append(
+                {
+                    "path": arc,
+                    "role": "imageOriginal2",
+                    "mime": "application/octet-stream",
+                    "sizeBytes": int(p.stat().st_size),
+                    "sha256": bytes32_to_hex0x(sha256_file(str(p))),
+                }
+            )
         if image_path3 and Path(image_path3).is_file():
             p = Path(image_path3)
-            zf.write(p, arcname=f"image3/{p.name}")
-        zf.writestr("manifest.json", json.dumps(manifest, indent=2, ensure_ascii=False).encode("utf-8"))
+            arc = originals_arcname("image3", p)
+            zf.write(p, arcname=arc)
+            originals["imageHash3"] = arc
+            files.append(
+                {
+                    "path": arc,
+                    "role": "imageOriginal3",
+                    "mime": "application/octet-stream",
+                    "sizeBytes": int(p.stat().st_size),
+                    "sha256": bytes32_to_hex0x(sha256_file(str(p))),
+                }
+            )
+
+        m["bundleVersion"] = "0.3"
+        m["files"] = files
+        m["originals"] = originals
+        zf.writestr("manifest.json", json.dumps(m, indent=2, ensure_ascii=False).encode("utf-8"))
 
 # ─── Register profile ─────────────────────────────────────────────────────────
 
@@ -740,6 +806,7 @@ def cmd_mint(args):
             False,           # dataUrlIsFolderBase — CLI uses full dataUrl; use web UI for folder-base mint
             ZERO_BYTES32,
             "",
+            "",              # mintOnBehalfOfCreatorId — empty = mint as connected wallet
         )
     else:
         fn = contract.functions.mintDigital(
@@ -757,6 +824,7 @@ def cmd_mint(args):
             False,           # dataUrlIsFolderBase
             ZERO_BYTES32,
             "",
+            "",              # mintOnBehalfOfCreatorId
         )
 
     tx_hash, receipt = send_tx(w3, account, fn, net)
@@ -778,32 +846,11 @@ def cmd_mint(args):
     def b32h(b):
         return ZERO_HEX32 if b == ZERO_BYTES32 else bytes32_to_hex0x(b)
 
-    files_meta = [{"path": "passport.json", "role": "passport", "mime": "application/json"}]
     orig_for_zip = file_path if (not is_physical and file_path and Path(file_path).is_file()) else None
     img_for_zip = image_path if (image_path and Path(image_path).is_file()) else None
 
-    if orig_for_zip:
-        p = Path(orig_for_zip)
-        files_meta.append({
-            "path": f"original/{p.name}",
-            "role": "original",
-            "mime": "application/octet-stream",
-            "sizeBytes": int(p.stat().st_size),
-            "sha256": bytes32_to_hex0x(sha256_file(str(p))),
-        })
-    if img_for_zip:
-        p = Path(img_for_zip)
-        files_meta.append({
-            "path": f"image/{p.name}",
-            "role": "imageOriginal",
-            "mime": "application/octet-stream",
-            "sizeBytes": int(p.stat().st_size),
-            "sha256": bytes32_to_hex0x(sha256_file(str(p))),
-        })
-
     manifest = {
         "format": "odpass-bundle",
-        "bundleVersion": "0.2",
         "passportId": human_id,
         "createdAtUtc": odp_created_at_utc_iso(),
         "mode": "full",
@@ -817,7 +864,6 @@ def cmd_mint(args):
             "chainId": int(net["chain_id"]),
             "contract": contract_cs,
         },
-        "files": files_meta,
     }
 
     output_dir = Path("passports")
@@ -833,7 +879,7 @@ def cmd_mint(args):
     print(f"  Transaction:  {net['explorer']}/tx/{tx_hex}")
     print()
     print(f"  Saved bundle: {odp_path}")
-    print(f"  (Same .odpass zip layout as web Passport: SPEC.md §15, manifest bundleVersion 0.2.)")
+    print(f"  (Same .odpass zip layout as web Passport: SPEC.md §15, manifest bundleVersion 0.3, originals/ + manifest.originals.)")
     print()
     print(f"  Next steps:")
     if data_url:

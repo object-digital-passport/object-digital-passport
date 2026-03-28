@@ -755,6 +755,13 @@ select option { background: var(--bg2); }
 .share-modal[hidden] {
   display: none !important;
 }
+/* Mint success: blocking notice above default share modal */
+.odpass-critical-modal {
+  z-index: 1001;
+}
+.odpass-critical-modal .share-modal-backdrop {
+  cursor: default;
+}
 .share-modal-backdrop {
   position: absolute;
   inset: 0;

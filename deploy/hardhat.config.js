@@ -33,8 +33,10 @@ module.exports = {
   },
 
   networks: {
-    // Local development
-    hardhat: {},
+    // Local development — ObjectDigitalPassport v0.3+ is near EIP-170 limit; tests need this until bytecode is split or trimmed.
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
 
     // Polygon Amoy — testnet (free, faucet available)
     amoy: {

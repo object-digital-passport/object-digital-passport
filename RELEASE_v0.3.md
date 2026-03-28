@@ -4,9 +4,9 @@ This note is written in plain language for operators, creators, and integrators.
 
 ## What v0.3 adds (in plain words)
 
-**v0.3** extends the same single-contract model with **ownership**, an **account-scoped publishing agent** (who may call **`updatePassportUrls`** for the issuer’s passports), **irreversible passport revocation**, **governance** (one on-chain address), **up to three image hashes** on-chain, optional **`auxCommitmentHash` / `auxCommitmentUri`** (second mutable document anchor per passport), **extension mints** (**`mintDigitalViaExtension`**, **`mintPhysicalViaExtension`**) with **`ExtensionMintUsed`**, **P/M institutional** flows (counterfeit concern flag, P-affiliation lifecycle), and optional **DID document** export — see [`SPEC.md`](SPEC.md) and the **Current release** table in [`README.md`](README.md) for the deployed **v0.2** baseline and network addresses.
+**v0.3** extends the same single-contract model with **ownership**, an **account-scoped publishing agent** (who may call **`updatePassportUrls`** for the issuer’s passports), **irreversible passport revocation**, **governance** (one on-chain address), **up to three image hashes** on-chain, optional **`auxCommitmentHash` / `auxCommitmentUri`** (second mutable document anchor per passport), **extension mints** (**`mintDigitalViaExtension`**, **`mintPhysicalViaExtension`**) with **`ExtensionMintUsed`**, **P-affiliation lifecycle** (detach on passport UI; propose/confirm on profile), and optional **DID document** export — see [`SPEC.md`](SPEC.md) and the **Current release** table in [`README.md`](README.md) for the deployed **v0.2** baseline and network addresses.
 
-**Bytecode trade-offs (EIP-170):** the reference **v0.3** contract stays under the **24 KiB** deploy limit by omitting some **v0.2** helpers — notably **`resolvePassport`**, on-chain **paged list readers**, **`attestExternalDocument` / `getExternalDocumentAttestation`**, and long **P-type** `require` strings (replaced by **`EC(71)`**). Verifiers should use **`getPassport` + `getCreator` + `getProofsForPassport`**; UIs paginate **client-side**. Wallet document anchoring remains on **v0.2** deployments only; passport-scoped aux commitments replace part of that use case on **v0.3**.
+**Bytecode trade-offs (EIP-170):** the reference **v0.3** **`ObjectDigitalPassport`** stays under the **24 KiB** deploy limit by omitting some **v0.2** surface — notably **`resolvePassport`**, **`getProofsForPassportPaged`**, **`attestExternalDocument` / `getExternalDocumentAttestation`**, the on-chain **counterfeit concern** registry, and long **P-type** `require` strings (replaced by **`EC(71)`**). Verifiers use **`getPassport` + `getCreator` + `getProofsForPassport`**. For large lists, the registry exposes **`getPassportsByCreatorPaged`** and **`getPAffiliatedChildrenPaged`**. **Wallet-level file SHA-256 anchoring** for v0.3+ is implemented in a separate contract, **[`contracts/ODPWalletDocumentAnchor.sol`](contracts/ODPWalletDocumentAnchor.sol)** (deploy after the main registry; pass the registry address to its constructor). The reference **Verify** page uses **`NET.docAnchor`** for writes and log discovery when the main deployment is generation **≥ 3**; passport-scoped **`auxCommitment*`** remains the on-registry second anchor.
 
 - **No protocol fee** — you only pay **network gas** (e.g. Polygon POL).
 - **Governance** is a **single** `address` in the contract. It may point to a **multisig or Safe** controlled off-chain; there is **no** institutional multisig implemented **inside** the bytecode.
@@ -19,14 +19,14 @@ This note is written in plain language for operators, creators, and integrators.
 - **Creator or governance**: `revokePassport(humanId, reasonHash)` with non-zero `reasonHash` (typically `keccak256(utf8(reason))`).
 - **Governance only**: `transferGovernance(newGovernance)`, `setMintExtension(mintClass, extension)` — registers or clears an `IODPExtension` per **`mintClass`** byte (not **C/B/P/M**). **`mintDigitalViaExtension`** / **`mintPhysicalViaExtension`** call the extension’s **`validate`/`normalize`**; **`normalize`** must return `abi.encode` of the **13-tuple** (digital + aux) or **16-tuple** (physical + aux) per [`SPEC.md`](SPEC.md). Examples: **[`contracts/examples/ODPPassThroughDigitalExtension.sol`](contracts/examples/ODPPassThroughDigitalExtension.sol)**, **[`contracts/examples/ODPPassThroughPhysicalExtension.sol`](contracts/examples/ODPPassThroughPhysicalExtension.sol)**. **`ExtensionMintUsed(mintClass, kind, humanId)`** is emitted after a successful extension mint (`kind`: `0` digital, `1` physical), in addition to **`PassportMinted`**.
 - **Creator or governance**: **`updatePassportAuxCommitment(humanId, newHash, newUri)`** — updates **`auxCommitmentHash` / `auxCommitmentUri`** when the passport is not revoked; emits **`PassportAuxCommitmentUpdated`**.
-- **P / M institutions**: `raiseCounterfeitConcern`, `clearCounterfeitConcern` (prover-only clear).
 - **P parent**: `detachPAffiliation` (child Profile ID); propose/confirm/cancel affiliation remain on **Profile** ([`web/creator.html`](web/creator.html)).
 
 ## Deploying the site after a new contract
 
-1. Deploy the contract from [`deploy/`](deploy/) as for v0.2.
-2. Set the **same** **`NET.contract`** (40 hex chars) in **`web/creator.html`**, **`web/passport.html`**, and **`web/verify.html`**.
-3. Do **not** point the reference UI at legacy generation **0** contracts.
+1. Deploy from [`deploy/`](deploy/) — the script deploys **`ObjectDigitalPassport`** and then **`ODPWalletDocumentAnchor`** (see **`walletDocumentAnchorAddress`** in `deployments/<network>.json` if present).
+2. Set **`NET.contract`** (40 hex chars) in **`web/creator.html`**, **`web/passport.html`**, and **`web/verify.html`**.
+3. For v0.3-shaped registries, set **`NET.docAnchor`** in **`web/verify.html`** to the anchor address so **Anchor a file (wallet)** and hash verification can use the satellite.
+4. Do **not** point the reference UI at legacy generation **0** contracts.
 
 ## Post-deploy operator checklist (v0.3)
 

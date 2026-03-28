@@ -88,6 +88,7 @@
       { name: "revocationReasonHash", type: "bytes32" },
       { name: "auxCommitmentHash", type: "bytes32" },
       { name: "auxCommitmentUri", type: "string" },
+      { name: "mintAgent", type: "address" },
     ];
   }
 
@@ -350,7 +351,7 @@
     var g = generation;
     var spec =
       g >= 3
-        ? "ODP spec v0.3 (owner/transfer, account publishing agent for URLs, revocation, extra image hashes, P-affiliation, counterfeit)"
+        ? "ODP spec v0.3 (owner/transfer, account publishing agent for URLs, revocation, extra image hashes, P-affiliation)"
         : g >= 2
           ? "ODP spec v0.2 (gas-only, optional dataUrl, PDF/doc hash anchor)"
           : g === 0
@@ -359,9 +360,9 @@
     return "Site " + ODP_SITE_VERSION + " · on-chain generation " + g + " — " + spec;
   }
 
-  /** v0.3+ bytecode removed `attestExternalDocument` (EIP-170 size); v0.2 registries may still expose it. */
+  /** v0.2: wallet doc anchor on the main registry. v0.3+: anchor lives in optional `ODPWalletDocumentAnchor` (`NET.docAnchor` in verify.html). */
   function odpSupportsExternalDocAttest(generation) {
-    return generation === 2;
+    return generation >= 2;
   }
 
   /** Long disclosure copy (also in `odp-site-trust-disclosure.html` for the modal). */
@@ -387,8 +388,22 @@
       "The read ABI decodes prior <strong>contractVersion</strong> values on-chain. " +
         "The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries)."
     );
+    var noteOdpass = odpStackT(
+      "stack.disclosure.odpassPara",
+      "<strong>Verify</strong> can read a local <strong>.odpass</strong> ZIP: it canonicalizes <strong>passport.json</strong> against on-chain <strong>dataHash</strong>. " +
+        "Sidecar files live under <strong>originals/</strong>; exact paths are in <strong>manifest.originals</strong> (bundle v0.3). The page hashes those bytes like mint and may show a <strong>local</strong> raster preview when a hash matches — the file is not uploaded. " +
+        "Legacy bundles with separate <strong>original/</strong> and <strong>image/</strong> folders are still accepted."
+    );
     return (
-      '<p class="odp-stack-note">' + noteRead + "</p>" + '<p class="odp-stack-note">' + noteSemver + "</p>"
+      '<p class="odp-stack-note">' +
+        noteRead +
+        "</p>" +
+        '<p class="odp-stack-note">' +
+        noteOdpass +
+        "</p>" +
+        '<p class="odp-stack-note">' +
+        noteSemver +
+        "</p>"
     );
   }
 
@@ -403,7 +418,7 @@
     } else if (generation >= 3) {
       spec = odpStackT(
         "stack.spec.v03",
-        "ODP v0.3 — ownership, account-scoped publishing agent (updatePassportUrls), revocation, 3 image hashes, P/M counterfeit, P-affiliation detach"
+        "ODP v0.3 — ownership, account-scoped publishing agent (updatePassportUrls), revocation, 3 image hashes, P-affiliation detach"
       );
     } else if (generation >= 2) {
       spec = odpStackT(
@@ -670,13 +685,20 @@
     if (odpSupportsV03(generation)) {
       mintDigitalInputs.push(
         { name: "auxCommitmentHash", type: "bytes32" },
-        { name: "auxCommitmentUri", type: "string" }
+        { name: "auxCommitmentUri", type: "string" },
+        { name: "mintOnBehalfOfCreatorId", type: "string" }
       );
       mintPhysicalInputs.push(
         { name: "auxCommitmentHash", type: "bytes32" },
-        { name: "auxCommitmentUri", type: "string" }
+        { name: "auxCommitmentUri", type: "string" },
+        { name: "mintOnBehalfOfCreatorId", type: "string" }
       );
     }
+
+    var passportMintedEvent =
+      odpSupportsV03(generation)
+        ? "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp,address mintAgent)"
+        : "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)";
 
     var passportAbi = [
       {
@@ -706,7 +728,7 @@
           },
         ],
       },
-      "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)",
+      passportMintedEvent,
       { name: "mintPhysical", type: "function", stateMutability: mintMut, inputs: mintPhysicalInputs, outputs: [{ name: "humanId", type: "string" }] },
       { name: "mintDigital", type: "function", stateMutability: mintMut, inputs: mintDigitalInputs, outputs: [{ name: "humanId", type: "string" }] },
       {
@@ -830,6 +852,55 @@
           ],
         },
         {
+          name: "requestMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "confirmMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "agent", type: "address" }],
+          outputs: [],
+        },
+        {
+          name: "revokeMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [],
+          outputs: [],
+        },
+        {
+          name: "renounceMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "cancelMintAgentRequest",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "mintAgentForCreator",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "", type: "string" }],
+          outputs: [{ name: "", type: "address" }],
+        },
+        {
+          name: "mintAgentDelegationPending",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "", type: "bytes32" }],
+          outputs: [{ name: "", type: "bool" }],
+        },
+        {
           name: "revokePassport",
           type: "function",
           stateMutability: "nonpayable",
@@ -851,23 +922,6 @@
           outputs: [],
         },
         {
-          name: "raiseCounterfeitConcern",
-          type: "function",
-          stateMutability: "nonpayable",
-          inputs: [
-            { name: "humanId", type: "string" },
-            { name: "reasonHash", type: "bytes32" },
-          ],
-          outputs: [],
-        },
-        {
-          name: "clearCounterfeitConcern",
-          type: "function",
-          stateMutability: "nonpayable",
-          inputs: [{ name: "humanId", type: "string" }],
-          outputs: [],
-        },
-        {
           name: "detachPAffiliation",
           type: "function",
           stateMutability: "nonpayable",
@@ -875,15 +929,17 @@
           outputs: [],
         },
         {
-          name: "getCounterfeitConcern",
+          name: "getPassportsByCreatorPaged",
           type: "function",
           stateMutability: "view",
-          inputs: [{ name: "humanId", type: "string" }],
+          inputs: [
+            { name: "creator", type: "address" },
+            { name: "offset", type: "uint256" },
+            { name: "limit", type: "uint256" },
+          ],
           outputs: [
-            { name: "active", type: "bool" },
-            { name: "proverCreatorId", type: "string" },
-            { name: "reasonHash", type: "bytes32" },
-            { name: "ts", type: "uint256" },
+            { name: "result", type: "string[]" },
+            { name: "total", type: "uint256" },
           ],
         },
         {
@@ -1063,6 +1119,20 @@
             { name: "detachedAt", type: "uint256" },
             { name: "lastDetachedFromParent", type: "string" },
           ],
+        },
+        {
+          name: "getPAffiliatedChildrenPaged",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "parentPId", type: "string" },
+            { name: "offset", type: "uint256" },
+            { name: "limit", type: "uint256" },
+          ],
+          outputs: [
+            { name: "result", type: "string[]" },
+            { name: "total", type: "uint256" },
+          ],
         }
       );
     }
@@ -1179,18 +1249,6 @@
     if (odpSupportsV03(gen)) {
       abi.push(
         {
-          name: "getCounterfeitConcern",
-          type: "function",
-          stateMutability: "view",
-          inputs: [{ name: "humanId", type: "string" }],
-          outputs: [
-            { name: "active", type: "bool" },
-            { name: "proverCreatorId", type: "string" },
-            { name: "reasonHash", type: "bytes32" },
-            { name: "ts", type: "uint256" },
-          ],
-        },
-        {
           name: "getPAffiliationAudit",
           type: "function",
           stateMutability: "view",
@@ -1218,10 +1276,24 @@
             { name: "agent", type: "address" },
             { name: "expiresAt", type: "uint256" },
           ],
+        },
+        {
+          name: "getPassportsByCreatorPaged",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "creator", type: "address" },
+            { name: "offset", type: "uint256" },
+            { name: "limit", type: "uint256" },
+          ],
+          outputs: [
+            { name: "result", type: "string[]" },
+            { name: "total", type: "uint256" },
+          ],
         }
       );
     }
-    if (odpSupportsExternalDocAttest(gen)) {
+    if (gen === 2) {
       abi.push({
         name: "getExternalDocumentAttestation",
         type: "function",
