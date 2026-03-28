@@ -7,6 +7,7 @@
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odp` bundle**. |
 | **[`PROTOCOL_TRACKS.md`](PROTOCOL_TRACKS.md)** | **Non-normative:** Track A (audit backlog) vs Track B (mint agent shipped), EIP-170 pointer. |
 | **[`EIP170_STRATEGY.md`](EIP170_STRATEGY.md)** | Bytecode size limit: options before mainnet deploy. |
+| **[`deploy/README.md`](../deploy/README.md)** | Step-by-step Hardhat deploy (`.env`, compile, Polygon mainnet); EIP-170 gate before `polygon`. |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix branches vs feature lines. |
 | **[`V0.2-DRAFT.md`](V0.2-DRAFT.md)** | Historical / exploratory notes (folder-first hosting, hash boundaries). Several items have since landed in **SPEC v0.2**; read **SPEC** for what is binding. |
 | **[`V0.3.md`](V0.3.md)** | Pointer to **[`RELEASE_v0.3.md`](../RELEASE_v0.3.md)** and **SPEC**. |

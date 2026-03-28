@@ -28,7 +28,7 @@ If you are new:
 
 1. Read this README for the practical overview.
 2. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
-3. Use [`RELEASE_v0.3.md`](RELEASE_v0.3.md) for the current v0.3 operator snapshot. The older **v0.2** deployed line is summarized under [**Current release**](#current-release) below and in [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md).
+3. Use [`RELEASE_v0.3.md`](RELEASE_v0.3.md) for the current v0.3 operator snapshot. The older **v0.2** deployed line is summarized under [**Current release**](#current-release) below and in [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md). **Hardhat mainnet deploy (commands, `.env`, EIP-170 check):** [`deploy/README.md`](deploy/README.md).
 
 Translated version:
 - Russian README: [`localization/ru/README.md`](localization/ru/README.md)

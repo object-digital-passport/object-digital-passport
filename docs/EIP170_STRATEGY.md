@@ -4,7 +4,7 @@ The Ethereum **Spurious Dragon** rule caps **contract creation bytecode** at **2
 
 ## Current situation
 
-- The reference [`contracts/ObjectDigitalPassport.sol`](../contracts/ObjectDigitalPassport.sol) is compiled with the optimizer (`runs: 1`, `viaIR: true` in [`deploy/hardhat.config.js`](../deploy/hardhat.config.js)) but may still **exceed** the limit.
+- The reference registry [`contracts/ObjectDigitalPassport.sol`](../contracts/ObjectDigitalPassport.sol) is compiled with the optimizer (`runs: 1`, `viaIR: true` in [`deploy/hardhat.config.js`](../deploy/hardhat.config.js)) and **links** [`contracts/ODPPassportLib.sol`](../contracts/ODPPassportLib.sol) so deployed **registry** bytecode stays **≤ 24 KiB** (library is a **separate** on-chain contract; both must be under the limit at creation — run `hardhat compile` and read **`[ODP] EIP-170:`**).
 - **Hardhat** network is configured with **`allowUnlimitedContractSize: true`** so local tests can run; this **does not** apply to public chains.
 
 ## Before any mainnet / Amoy deploy

@@ -1,6 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("dotenv").config();
 const path = require("path");
+const { task } = require("hardhat/config");
 
 // Load from .env file — never commit private keys to git
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -71,3 +72,34 @@ module.exports = {
     ],
   },
 };
+
+// EIP-170 size report (main registry + linked ODPPassportLib).
+task("compile", async (taskArgs, hre, runSuper) => {
+  await runSuper(taskArgs);
+  const limit = 24576;
+  const doc = path.join(hre.config.paths.root, "docs", "EIP170_STRATEGY.md");
+  try {
+    const main = await hre.artifacts.readArtifact("ObjectDigitalPassport");
+    const mainBytes = (main.deployedBytecode.length - 2) / 2;
+    let libBytes = 0;
+    try {
+      const lib = await hre.artifacts.readArtifact("ODPPassportLib");
+      libBytes = (lib.deployedBytecode.length - 2) / 2;
+    } catch {
+      /* no lib */
+    }
+    const libNote = libBytes ? `  ODPPassportLib: ${libBytes} bytes (deploy separately, then link).` : "";
+    if (mainBytes > limit) {
+      console.log(
+        `\n[ODP] EIP-170: ObjectDigitalPassport = ${mainBytes} bytes (limit ${limit}, over by ${mainBytes - limit}).${libNote ? `\n${libNote}` : ""}\n` +
+          `  Mitigations: ${doc}\n`
+      );
+    } else {
+      console.log(
+        `\n[ODP] EIP-170: ObjectDigitalPassport = ${mainBytes} bytes (within ${limit} limit).${libNote ? `\n${libNote}` : ""}\n`
+      );
+    }
+  } catch {
+    // renamed / not in project
+  }
+});

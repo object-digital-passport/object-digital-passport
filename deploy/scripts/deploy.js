@@ -30,9 +30,20 @@ async function main() {
   console.log(`  Balance:  ${ethers.formatEther(balance)} POL`);
   console.log();
 
-  // ── Deploy ─────────────────────────────────────────────────────────────────
-  console.log("  Deploying ObjectDigitalPassport...");
-  const Factory = await ethers.getContractFactory("ObjectDigitalPassport");
+  // ── Deploy (library first — EIP-170 bytecode split) ─────────────────────────
+  console.log("  Deploying ODPPassportLib...");
+  const LibFactory = await ethers.getContractFactory("ODPPassportLib");
+  const passportLib = await LibFactory.deploy();
+  await passportLib.waitForDeployment();
+  const passportLibAddress = await passportLib.getAddress();
+  console.log(`  ✅ ODPPassportLib: ${passportLibAddress}`);
+
+  console.log("  Deploying ObjectDigitalPassport (linked)...");
+  const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
+    libraries: {
+      "contracts/ODPPassportLib.sol:ODPPassportLib": passportLibAddress,
+    },
+  });
   const contract = await Factory.deploy();
   await contract.waitForDeployment();
 
@@ -139,9 +150,10 @@ async function main() {
   const deploymentPath = path.join(deploymentsDir, `${networkName}.json`);
 
   const deployment = {
-    network:          networkName,
-    chainId:          Number(network.chainId),
-    contractAddress:  address,
+    network:                  networkName,
+    chainId:                  Number(network.chainId),
+    passportLibAddress:       passportLibAddress,
+    contractAddress:          address,
     walletDocumentAnchorAddress,
     contractVersion:  Number(deployedVersion),
     deployedBy:       deployer.address,

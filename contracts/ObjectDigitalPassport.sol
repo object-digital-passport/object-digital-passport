@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import "./ODPErrors.sol";
+import {DigitalMintInputs, PhysicalMintInputs} from "./ODPPassportTypes.sol";
+import "./ODPPassportLib.sol";
+
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
@@ -58,6 +62,10 @@ pragma solidity ^0.8.20;
  * SOURCE CODE:
  *   Published at: https://github.com/object-digital-passport/object-digital-passport
  *   Anyone can read, verify, fork, or deploy their own instance.
+ *
+ * DEPLOY (EIP-170):
+ *   Deploy linked library `ODPPassportLib` first, then deploy this contract with compiler linker
+ *   metadata pointing at that library address (see `deploy/scripts/deploy.js`).
  */
 /**
  * IODPExtension — interface for **mint-class** extension contracts (governance-registered via `setMintExtension`).
@@ -67,7 +75,7 @@ pragma solidity ^0.8.20;
  * (e.g. custom bytes like `"V"` or `"G"` in documentation) implemented by a separate contract that
  * implements this interface.
  *
- * Digital `normalize` output: **13-tuple** ending with `auxCommitmentHash` + `auxCommitmentUri` (see `_validateAuxCommitmentFields`).
+ * Digital `normalize` output: **13-tuple** ending with `auxCommitmentHash` + `auxCommitmentUri` (see `ODPPassportLib.validateAuxCommitmentFields`).
  * Physical `normalize` output: **16-tuple** — physical mint params + same aux pair (see `mintPhysicalViaExtension` NatSpec).
  */
 interface IODPExtension {
@@ -79,8 +87,6 @@ interface IODPExtension {
 
 contract ObjectDigitalPassport {
 
-    error EC(uint16 code);
-
     // ─── Constants ────────────────────────────────────────────────────────────
 
     bytes1 constant TYPE_C = "C";
@@ -90,7 +96,6 @@ contract ObjectDigitalPassport {
 
     string constant OBJECT_PHYSICAL = "physical";
     string constant OBJECT_DIGITAL  = "digital";
-    bytes32 constant NFC_NTAG424DNA_TT_HASH = keccak256("NTAG424DNA_TT");
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     uint8 public constant SPEC_MAJOR = 0;
@@ -151,43 +156,6 @@ contract ObjectDigitalPassport {
         string  auxCommitmentUri; // optional HTTPS hint; max 512 when hash non-zero; both zero when unused
         /// Wallet that executed the mint for `creator`’s profile; `address(0)` = principal minted themselves.
         address mintAgent;
-    }
-
-    /// @dev Bundles digital mint fields to avoid stack-too-deep in IR pipeline.
-    struct DigitalMintInputs {
-        uint32 year;
-        uint8 month;
-        bytes32 dataHash;
-        string dataUrl;
-        bytes32 imageHash;
-        string imageUrl;
-        bytes32 imageHash2;
-        string imageUrl2;
-        bytes32 imageHash3;
-        string imageUrl3;
-        bytes32 fileHash;
-        bytes32 auxCommitmentHash;
-        string auxCommitmentUri;
-    }
-
-    /// @dev Bundles physical mint fields to avoid stack-too-deep in IR pipeline.
-    struct PhysicalMintInputs {
-        uint32 year;
-        uint8 month;
-        bytes32 dataHash;
-        string dataUrl;
-        bytes32 imageHash;
-        string imageUrl;
-        uint8 sealType;
-        bytes32 sealHash;
-        bytes nfcPublicKey;
-        string nfcModel;
-        bytes32 imageHash2;
-        string imageUrl2;
-        bytes32 imageHash3;
-        string imageUrl3;
-        bytes32 auxCommitmentHash;
-        string auxCommitmentUri;
     }
 
     struct ProofRecord {
@@ -433,7 +401,7 @@ contract ObjectDigitalPassport {
         if (!(bytes(_walletToCreatorId[msg.sender]).length == 0)) revert EC(53);
 
         uint64 number = _generateCreatorNumber();
-        creatorId     = _buildCreatorId(typePrefix, number);
+        creatorId     = ODPPassportLib.buildCreatorId(typePrefix, number);
 
         _creators[creatorId] = CreatorRecord({
             creatorId:  creatorId,
@@ -707,245 +675,7 @@ contract ObjectDigitalPassport {
 
     // ─── Passport Registry — Physical ─────────────────────────────────────────
 
-    function _validateOptionalImageSlots(
-        bytes32 imageHash2,
-        string memory imageUrl2,
-        bytes32 imageHash3,
-        string memory imageUrl3
-    ) internal pure {
-        if (imageHash2 == bytes32(0)) {
-            if (!(bytes(imageUrl2).length == 0)) revert EC(41);
-        } else {
-            if (!(bytes(imageUrl2).length <= 512)) revert EC(40);
-        }
-        if (imageHash3 == bytes32(0)) {
-            if (!(bytes(imageUrl3).length == 0)) revert EC(39);
-        } else {
-            if (!(bytes(imageUrl3).length <= 512)) revert EC(38);
-            if (!(imageHash2 != bytes32(0))) revert EC(37);
-        }
-    }
-
-    /// @dev If `auxHash` is zero, `auxUri` must be empty; else URI max 512 chars.
-    function _validateAuxCommitmentFields(bytes32 auxHash, string memory auxUri) internal pure {
-        if (auxHash == bytes32(0)) {
-            if (!(bytes(auxUri).length == 0)) revert EC(70);
-        } else {
-            if (!(bytes(auxUri).length <= 512)) revert EC(24);
-        }
-    }
-
-    function _validatePhysicalUnpacked(
-        uint32 year,
-        uint8 month,
-        bytes32 dataHash,
-        string memory dataUrl,
-        bytes32 imageHash,
-        string memory imageUrl,
-        uint8 sealType,
-        bytes32 sealHash,
-        bytes memory nfcPublicKey,
-        string memory nfcModel,
-        bytes32 imageHash2,
-        string memory imageUrl2,
-        bytes32 imageHash3,
-        string memory imageUrl3
-    ) internal pure {
-        if (!(year > 0)) revert EC(9);
-        if (!(month >= 1 && month <= 12)) revert EC(8);
-        if (!(dataHash != bytes32(0))) revert EC(30);
-        if (!(bytes(dataUrl).length <= 512)) revert EC(24);
-        if (!(bytes(imageUrl).length <= 512)) revert EC(23);
-        if (!(sealType >= 1 && sealType <= 3)) revert EC(36);
-        if (!(sealHash != bytes32(0))) revert EC(35);
-
-        if (sealType == 1 || sealType == 3) {
-            if (!(nfcPublicKey.length > 0)) revert EC(34);
-            if (!(keccak256(bytes(nfcModel)) == NFC_NTAG424DNA_TT_HASH)) revert EC(33);
-        } else {
-            if (!(bytes(nfcModel).length == 0)) revert EC(32);
-        }
-
-        if (imageHash == bytes32(0)) {
-            if (!(bytes(imageUrl).length == 0)) revert EC(28);
-        }
-
-        _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
-    }
-
-    function _validatePhysicalMintInputs(PhysicalMintInputs memory m) internal pure {
-        _validatePhysicalUnpacked(
-            m.year,
-            m.month,
-            m.dataHash,
-            m.dataUrl,
-            m.imageHash,
-            m.imageUrl,
-            m.sealType,
-            m.sealHash,
-            m.nfcPublicKey,
-            m.nfcModel,
-            m.imageHash2,
-            m.imageUrl2,
-            m.imageHash3,
-            m.imageUrl3
-        );
-    }
-
-    function _validateDigitalMintInputs(DigitalMintInputs memory dm) internal pure {
-        _validateDigitalMintUnpacked(
-            dm.year,
-            dm.month,
-            dm.dataHash,
-            dm.dataUrl,
-            dm.imageHash,
-            dm.imageUrl,
-            dm.imageHash2,
-            dm.imageUrl2,
-            dm.imageHash3,
-            dm.imageUrl3,
-            dm.fileHash,
-            dm.auxCommitmentHash,
-            dm.auxCommitmentUri
-        );
-    }
-
-    function _decodeDigitalExtensionNorm(bytes memory norm) internal pure returns (DigitalMintInputs memory dm) {
-        (
-            dm.year,
-            dm.month,
-            dm.dataHash,
-            dm.dataUrl,
-            dm.imageHash,
-            dm.imageUrl,
-            dm.imageHash2,
-            dm.imageUrl2,
-            dm.imageHash3,
-            dm.imageUrl3,
-            dm.fileHash,
-            dm.auxCommitmentHash,
-            dm.auxCommitmentUri
-        ) = abi.decode(
-            norm,
-            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32, bytes32, string)
-        );
-    }
-
-    function _decodePhysicalExtensionNorm(bytes memory norm) internal pure returns (PhysicalMintInputs memory pm) {
-        (
-            pm.year,
-            pm.month,
-            pm.dataHash,
-            pm.dataUrl,
-            pm.imageHash,
-            pm.imageUrl,
-            pm.sealType,
-            pm.sealHash,
-            pm.nfcPublicKey,
-            pm.nfcModel,
-            pm.imageHash2,
-            pm.imageUrl2,
-            pm.imageHash3,
-            pm.imageUrl3,
-            pm.auxCommitmentHash,
-            pm.auxCommitmentUri
-        ) = abi.decode(
-            norm,
-            (uint32, uint8, bytes32, string, bytes32, string, uint8, bytes32, bytes, string, bytes32, string, bytes32, string, bytes32, string)
-        );
-    }
-
-    /// @dev Strip trailing ASCII `/` only (repeated). Does not normalize `//` in the middle of the path;
-    ///      callers should pass a clean HTTPS folder base; malformed bases may resolve to odd URLs.
-    function _trimTrailingSlashBytes(bytes memory b) internal pure returns (bytes memory) {
-        uint256 end = b.length;
-        while (end > 0 && b[end - 1] == 0x2f) {
-            unchecked {
-                end--;
-            }
-        }
-        if (end == b.length) {
-            return b;
-        }
-        bytes memory out = new bytes(end);
-        for (uint256 i = 0; i < end; i++) {
-            out[i] = b[i];
-        }
-        return out;
-    }
-
-    function _stripTrailingSlash(string calldata s) internal pure returns (string memory) {
-        bytes memory b = bytes(s);
-        b = _trimTrailingSlashBytes(b);
-        return string(b);
-    }
-
-    function _stripTrailingSlashMemory(string memory s) internal pure returns (string memory) {
-        return string(_trimTrailingSlashBytes(bytes(s)));
-    }
-
-    /// @param dataUrl When `dataUrlIsFolderBase` is true, this is the HTTPS folder root only (no filename); the stored URL becomes `folderBase + "/" + humanId + ".json"` after `humanId` is known.
-    function _resolveMintDataUrl(
-        string calldata dataUrl,
-        bool dataUrlIsFolderBase,
-        string memory humanId
-    ) internal pure returns (string memory) {
-        if (bytes(dataUrl).length == 0) {
-            if (!(!dataUrlIsFolderBase)) revert EC(31);
-            return "";
-        }
-        if (!dataUrlIsFolderBase) {
-            return string(abi.encodePacked(dataUrl));
-        }
-        string memory base = _stripTrailingSlash(dataUrl);
-        return string(abi.encodePacked(base, "/", humanId, ".json"));
-    }
-
-    function _resolveMintDataUrlMemory(
-        string memory dataUrl,
-        bool dataUrlIsFolderBase,
-        string memory humanId
-    ) internal pure returns (string memory) {
-        if (bytes(dataUrl).length == 0) {
-            if (!(!dataUrlIsFolderBase)) revert EC(31);
-            return "";
-        }
-        if (!dataUrlIsFolderBase) {
-            return dataUrl;
-        }
-        string memory base = _stripTrailingSlashMemory(dataUrl);
-        return string(abi.encodePacked(base, "/", humanId, ".json"));
-    }
-
-    function _validateDigitalMintUnpacked(
-        uint32 year,
-        uint8 month,
-        bytes32 dataHash,
-        string memory dataUrl,
-        bytes32 imageHash,
-        string memory imageUrl,
-        bytes32 imageHash2,
-        string memory imageUrl2,
-        bytes32 imageHash3,
-        string memory imageUrl3,
-        bytes32 fileHash,
-        bytes32 auxCommitmentHash,
-        string memory auxCommitmentUri
-    ) internal pure {
-        if (!(year > 0)) revert EC(9);
-        if (!(month >= 1 && month <= 12)) revert EC(8);
-        if (!(dataHash != bytes32(0))) revert EC(30);
-        if (!(bytes(dataUrl).length <= 512)) revert EC(24);
-        if (!(bytes(imageUrl).length <= 512)) revert EC(23);
-        if (!(fileHash != bytes32(0))) revert EC(29);
-        if (imageHash == bytes32(0)) {
-            if (!(bytes(imageUrl).length == 0)) revert EC(28);
-        }
-        _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
-        _validateAuxCommitmentFields(auxCommitmentHash, auxCommitmentUri);
-    }
-
-    /// @dev Assumes `_validateDigitalMintUnpacked` already applied. Writes digital `Passport` and emits `PassportMinted`.
+    /// @dev Assumes `ODPPassportLib.validateDigitalMintInputs` already applied. Writes digital `Passport` and emits `PassportMinted`.
     /// @param principalWallet Issuer wallet on record (`Passport.creator` / initial `owner`).
     /// @param mintAgentForPassport `address(0)` if `msg.sender == principalWallet`; else executing delegate.
     function _mintDigitalCommit(
@@ -956,7 +686,7 @@ contract ObjectDigitalPassport {
         address mintAgentForPassport
     ) internal returns (string memory humanId) {
         humanId = _generatePassportId(m.year, m.month);
-        string memory resolvedDataUrl = _resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
+        string memory resolvedDataUrl = ODPPassportLib.resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
         if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
 
         _passports[humanId] = Passport({
@@ -996,7 +726,7 @@ contract ObjectDigitalPassport {
                             m.year, m.month, m.dataHash, 0, "", block.timestamp, mintAgentForPassport);
     }
 
-    /// @dev After `_validatePhysicalUnpacked` and `_validateAuxCommitmentFields`.
+    /// @dev After `ODPPassportLib` physical + aux validation.
     function _mintPhysicalCommit(
         string memory creatorId,
         PhysicalMintInputs memory m,
@@ -1005,7 +735,7 @@ contract ObjectDigitalPassport {
         address mintAgentForPassport
     ) internal returns (string memory humanId) {
         humanId = _generatePassportId(m.year, m.month);
-        string memory resolvedDataUrl = _resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
+        string memory resolvedDataUrl = ODPPassportLib.resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
         if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
 
         _passports[humanId] = Passport({
@@ -1085,8 +815,7 @@ contract ObjectDigitalPassport {
             auxCommitmentHash: auxCommitmentHash,
             auxCommitmentUri: auxCommitmentUri
         });
-        _validatePhysicalMintInputs(m);
-        _validateAuxCommitmentFields(m.auxCommitmentHash, m.auxCommitmentUri);
+        ODPPassportLib.validatePhysicalMintForMint(m);
         return _mintPhysicalCommit(creatorId, m, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
     }
 
@@ -1144,7 +873,7 @@ contract ObjectDigitalPassport {
             auxCommitmentHash: auxCommitmentHash,
             auxCommitmentUri: auxCommitmentUri
         });
-        _validateDigitalMintInputs(dm);
+        ODPPassportLib.validateDigitalMintInputs(dm);
         return _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
     }
 
@@ -1169,8 +898,7 @@ contract ObjectDigitalPassport {
         IODPExtension(ext).validate(payload);
         bytes memory norm = IODPExtension(ext).normalize(payload);
 
-        DigitalMintInputs memory dm = _decodeDigitalExtensionNorm(norm);
-        _validateDigitalMintInputs(dm);
+        DigitalMintInputs memory dm = ODPPassportLib.decodeAndValidateDigitalExtensionNorm(norm);
         humanId = _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
         emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_DIGITAL, humanId);
     }
@@ -1194,9 +922,7 @@ contract ObjectDigitalPassport {
         IODPExtension(ext).validate(payload);
         bytes memory norm = IODPExtension(ext).normalize(payload);
 
-        PhysicalMintInputs memory pm = _decodePhysicalExtensionNorm(norm);
-        _validatePhysicalMintInputs(pm);
-        _validateAuxCommitmentFields(pm.auxCommitmentHash, pm.auxCommitmentUri);
+        PhysicalMintInputs memory pm = ODPPassportLib.decodeAndValidatePhysicalExtensionNorm(norm);
 
         humanId = _mintPhysicalCommit(creatorId, pm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
         emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_PHYSICAL, humanId);
@@ -1292,7 +1018,7 @@ contract ObjectDigitalPassport {
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(11);
         if (!(msg.sender == p.creator || msg.sender == governance)) revert EC(67);
-        _validateAuxCommitmentFields(newHash, newUri);
+        ODPPassportLib.validateAuxCommitmentFields(newHash, newUri);
         p.auxCommitmentHash = newHash;
         p.auxCommitmentUri = newUri;
         emit PassportAuxCommitmentUpdated(humanId, newHash, newUri, msg.sender, block.timestamp);
@@ -1497,17 +1223,21 @@ contract ObjectDigitalPassport {
         _mintCount[principalWallet][ym] = count + 1;
     }
 
-    /**
-     * Returns current year*100+month as uint32 key.
-     * Used for calendar-month rate limiting.
-     */
     function _currentYearMonth() internal view returns (uint32) {
-        uint32 year  = _currentYear();
-        uint8  month = _currentMonth();
-        // Note: approximate calculation may have ±1 month drift at year boundaries.
-        // This affects only rate limit buckets, not passport/proof records.
-        // Rate limit resets are cosmetic — a slight drift is acceptable.
+        uint32 year = _currentYear();
+        uint8 month = _currentMonth();
         return year * 100 + uint32(month);
+    }
+
+    function _currentYear() internal view returns (uint32) {
+        return uint32(1970 + block.timestamp / 31_556_952);
+    }
+
+    function _currentMonth() internal view returns (uint8) {
+        uint256 secsInYear = block.timestamp % 31_556_952;
+        uint256 m = secsInYear / 2_629_746 + 1;
+        if (m > 12) m = 12;
+        return uint8(m);
     }
 
     /**
@@ -1578,12 +1308,7 @@ contract ObjectDigitalPassport {
             if (!_passportNumberTaken[key][n]) {
                 _passportNonce = baseNonce + i + 1;
                 _passportNumberTaken[key][n] = true;
-                return string(abi.encodePacked(
-                    "ODP-",
-                    _yearToString(year), "-",
-                    _monthToString(month), "-",
-                    _pad9(n)
-                ));
+                return ODPPassportLib.formatOdpHumanId(year, month, n);
             }
         }
         revert EC(61);
@@ -1611,90 +1336,12 @@ contract ObjectDigitalPassport {
             if (!_proofNumberTaken[key][n]) {
                 _proofNonce = baseNonce + i + 1;
                 _proofNumberTaken[key][n] = true;
-                return string(abi.encodePacked(
-                    "PRF-",
-                    _yearToString(year), "-",
-                    _monthToString(month), "-",
-                    _pad8(n)
-                ));
+                return ODPPassportLib.formatProofHumanId(year, month, n);
             }
         }
         revert EC(60);
     }
 
-    // ─── Internal: string builders ────────────────────────────────────────────
+    // Approximate calendar from block.timestamp: rate-limit buckets only (±1 month drift acceptable).
 
-    // "C-482-930-174-005"
-    function _buildCreatorId(bytes1 typePrefix, uint64 number)
-        internal pure returns (string memory)
-    {
-        return string(abi.encodePacked(
-            string(abi.encodePacked(typePrefix)), "-",
-            _pad3(uint32(number / 1_000_000_000)), "-",
-            _pad3(uint32((number / 1_000_000) % 1_000)), "-",
-            _pad3(uint32((number / 1_000) % 1_000)), "-",
-            _pad3(uint32(number % 1_000))
-        ));
-    }
-
-    // ─── Internal: time helpers ───────────────────────────────────────────────
-    //
-    // These functions compute approximate year and month from block.timestamp.
-    // They are used ONLY for generating cosmetic ProofRecord IDs (PRF-YYYY-MM-...).
-    // The exact blockchain timestamp is always stored separately in ProofRecord.timestamp.
-    // A slight drift (±1 month at year boundaries) does not affect security or correctness.
-
-    function _currentYear() internal view returns (uint32) {
-        // Average Gregorian year = 365.2425 days = 31,556,952 seconds
-        return uint32(1970 + block.timestamp / 31_556_952);
-    }
-
-    function _currentMonth() internal view returns (uint8) {
-        // Seconds elapsed within the current year (approximate)
-        uint256 secsInYear = block.timestamp % 31_556_952;
-        // Average month = 31,556,952 / 12 = 2,629,746 seconds
-        uint256 m = secsInYear / 2_629_746 + 1;
-        if (m > 12) m = 12;
-        return uint8(m);
-    }
-
-    // ─── Internal: string formatters ──────────────────────────────────────────
-
-    function _yearToString(uint32 v) internal pure returns (string memory) {
-        // Dynamic length — no leading zeros for historical years (e.g. "823", not "0823")
-        if (v == 0) return "0";
-        uint32 temp = v;
-        uint len = 0;
-        while (temp > 0) { len++; temp /= 10; }
-        bytes memory b = new bytes(len);
-        for (uint i = len; i > 0; i--) { b[i-1] = bytes1(uint8(48 + v % 10)); v /= 10; }
-        return string(b);
-    }
-
-    function _monthToString(uint8 v) internal pure returns (string memory) {
-        bytes memory b = new bytes(2);
-        b[1] = bytes1(uint8(48 + v % 10));
-        b[0] = bytes1(uint8(48 + (v / 10) % 10));
-        return string(b);
-    }
-
-    function _pad8(uint32 v) internal pure returns (string memory) {
-        bytes memory b = new bytes(8);
-        for (uint i = 8; i > 0; i--) { b[i-1] = bytes1(uint8(48 + v % 10)); v /= 10; }
-        return string(b);
-    }
-
-    function _pad9(uint32 v) internal pure returns (string memory) {
-        bytes memory b = new bytes(9);
-        for (uint i = 9; i > 0; i--) { b[i-1] = bytes1(uint8(48 + v % 10)); v /= 10; }
-        return string(b);
-    }
-
-    function _pad3(uint32 v) internal pure returns (string memory) {
-        bytes memory b = new bytes(3);
-        b[2] = bytes1(uint8(48 + v % 10));
-        b[1] = bytes1(uint8(48 + (v / 10) % 10));
-        b[0] = bytes1(uint8(48 + (v / 100) % 10));
-        return string(b);
-    }
 }

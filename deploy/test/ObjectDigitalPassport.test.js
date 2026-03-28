@@ -56,7 +56,15 @@ function encodePhysicalMintPayload(args) {
 
 describe("ObjectDigitalPassport", function () {
   async function deployFixture() {
-    const Factory = await ethers.getContractFactory("ObjectDigitalPassport");
+    const LibFactory = await ethers.getContractFactory("ODPPassportLib");
+    const lib = await LibFactory.deploy();
+    await lib.waitForDeployment();
+    const libAddress = await lib.getAddress();
+    const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
+      libraries: {
+        "contracts/ODPPassportLib.sol:ODPPassportLib": libAddress,
+      },
+    });
     const contract = await Factory.deploy();
     await contract.waitForDeployment();
     return contract;

@@ -43,7 +43,7 @@
 - **`revokePassport`** (creator или адрес **`governance`**) с **`revocationReasonHash`**
 - До **трёх** якорей изображения: **`imageHash`**, **`imageHash2`**, **`imageHash3`** (и подсказки URL **`imageUrl`**, **`imageUrl2`**, **`imageUrl3`**)
 - **Аудит P-affiliation**: **`getPAffiliationAudit`**, **`detachPAffiliation`** (родитель P); метки времени join / detach
-- **Компактные revert**: ошибки через **`error EC(uint16 code)`** — расшифровка по исходнику задеплоенного контракта (строковые сообщения убраны из-за лимита 24 KiB). Артефакт **v0.3** может всё ещё превышать **24 KiB** до разбиения/оптимизации; в **Hardhat** допускается **`allowUnlimitedContractSize`** — перед mainnet проверьте размер байткода.
+- **Компактные revert**: ошибки через **`error EC(uint16 code)`** — расшифровка по исходнику (строковые сообщения убраны ради размера байткода). Референсный **v0.3** **`ObjectDigitalPassport`** деплоится **с линкуемой библиотекой** **`ODPPassportLib`** (общий **`error EC`**), чтобы **реестр** укладывался в **24 KiB (EIP-170)**; сначала библиотека, затем контракт (см. скрипты деплоя в репозитории). В **Hardhat** допускается **`allowUnlimitedContractSize`**; перед mainnet проверьте вывод **`[ODP] EIP-170:`** после `compile`.
 
 **Убрано из референсного байткода v0.3 `ObjectDigitalPassport` (EIP-170):** on-chain **counterfeit concern** (`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`). Эти entry points остаются на деплойментах **v0.2**, где они ещё есть; референсный **Passport** UI скрывает блоки counterfeit, если в ABI их нет.
 
