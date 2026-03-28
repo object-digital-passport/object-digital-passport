@@ -138,6 +138,18 @@ Described in **[`SPEC.md`](SPEC.md)** for roadmap alignment only:
 
 ---
 
+## Third-party static analysis (e.g. Remix)
+
+**Informal snapshot only — not a substitute for a professional audit.**
+
+A pass through **Remix** (or similar IDE/static tooling) on the reference **`ObjectDigitalPassport.sol`** reported **no major on-chain issues** immediately suggesting direct theft or classic scam patterns, and noted sensible patterns: **custom errors**, **input validation**, **role checks** (`governance`, creator, owner paths), **`notFrozen`** on writes, and limited reentrancy surface on core paths.
+
+**Limits of this class of tools:** they do **not** model **off-chain** trust (`dataUrl` / hosted files), **governance** policy (malicious extensions, revocation power), **economic** abuse (e.g. a **mint agent** burning a principal’s **C/B** monthly quota), or deployment/configuration mistakes. **`mint*ViaExtension`** uses **`staticcall`** into **governance-approved** extension contracts — not classic reentrancy into this registry, but a **trust boundary** on the extension’s correctness.
+
+Treat **formal verification**, **timelocks** for governance (off-chain multisig process if bytecode stays minimal), and **event** consistency as **production hardening**, not conclusions from a single static run.
+
+---
+
 ## Reporting security issues
 
 Open an issue at:
