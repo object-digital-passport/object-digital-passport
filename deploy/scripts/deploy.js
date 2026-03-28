@@ -95,9 +95,13 @@ async function main() {
     }
     console.log(`     ✅ Passport ID: ${humanId}`);
 
-    // 3. Verify resolvePassport works
-    console.log("\n  3. Resolving passport...");
-    const [passport, creator, proofCount, version] = await contract.resolvePassport(humanId);
+    // 3. Verify getPassport + getCreator + proofs (resolvePassport removed from bytecode in v0.3)
+    console.log("\n  3. Resolving passport (multi-call)...");
+    const passport = await contract.getPassport(humanId);
+    const creator = await contract.getCreator(passport.creatorId);
+    const proofIds = await contract.getProofsForPassport(humanId);
+    const proofCount = proofIds.length;
+    const version = await contract.CONTRACT_VERSION();
     console.log(`     ✅ contractVersion: ${version}`);
     console.log(`     ✅ objectType:      ${passport.objectType}`);
     console.log(`     ✅ creatorId:       ${passport.creatorId}`);

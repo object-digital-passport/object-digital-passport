@@ -609,23 +609,29 @@ function verifyReadContractsOrdered() {
 
 /** Collect all proof IDs using paged reads when available (avoids huge single RPC responses). */
 async function fetchProofIdsForPassport(readContract, humanId) {
-  const page = 40;
-  if (readContract && typeof readContract.getProofsForPassportPaged === "function") {
-    const ids = [];
-    let offset = 0;
-    let total = 1;
-    while (offset < total) {
-      const [slice, t] = await readContract.getProofsForPassportPaged(humanId, offset, page);
-      total = Number(t || 0);
-      const arr = Array.isArray(slice) ? slice : [];
-      for (let i = 0; i < arr.length; i++) ids.push(arr[i]);
-      offset += arr.length;
-      if (arr.length === 0) break;
-    }
-    return ids;
-  }
   const all = await readContract.getProofsForPassport(humanId);
   return Array.isArray(all) ? all : [];
+}
+
+/** v0.3+: `resolvePassport` removed from contract — same data via `getPassport` + `getCreator` + proof list length. */
+async function fetchResolvedPassport(reader, humanId) {
+  const passport = await reader.getPassport(humanId);
+  const creator = await reader.getCreator(passport.creatorId);
+  let proofCount = 0;
+  try {
+    const ids = await fetchProofIdsForPassport(reader, humanId);
+    proofCount = ids.length;
+  } catch {
+    /* ignore */
+  }
+  let version = 3;
+  try {
+    const v = await reader.CONTRACT_VERSION();
+    version = typeof v.toNumber === "function" ? v.toNumber() : Number(v);
+  } catch {
+    /* ignore */
+  }
+  return { passport, creator, proofCount, version };
 }
 
 let idExistsHintTimer = null;
@@ -912,13 +918,13 @@ async function verifyFromOdpBundleQuick(file) {
     let readContract = null;
     for (const c of verifyReadContractsOrdered()) {
       try {
-        res = await c.resolvePassport(humanId);
+        res = await fetchResolvedPassport(c, humanId);
         readContract = c;
         break;
       } catch (e) {
         const m = String(e && (e.reason || e.message) || "");
         if (m.includes("Passport not found")) continue;
-        throw e;
+        continue;
       }
     }
     if (!res || !readContract) {
@@ -1051,7 +1057,7 @@ async function verify() {
     let readContract = null;
     for (const c of verifyReadContractsOrdered()) {
       try {
-        res = await c.resolvePassport(humanId);
+        res = await fetchResolvedPassport(c, humanId);
         readContract = c;
         break;
       } catch (e) {
@@ -1059,7 +1065,7 @@ async function verify() {
         if (m.includes("Passport not found")) {
           continue;
         }
-        throw e;
+        continue;
       }
     }
     if (!res || !readContract) {
@@ -1804,6 +1810,24 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>
 
+        ${
+          typeof rec.auxCommitmentHash !== "undefined" && odpNonZeroBytes32(rec.auxCommitmentHash)
+            ? `<div class="vrow" style="margin-top:10px">
+          <span class="vbadge na">Aux</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Auxiliary commitment (SHA-256)</div>
+            <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(odpBytes32HexLower(rec.auxCommitmentHash))}</div>
+            ${
+              rec.auxCommitmentUri
+                ? `<div style="margin-top:8px"><a class="ext-link" href="${esc(String(rec.auxCommitmentUri))}" target="_blank" rel="noopener noreferrer">Hint URL ↗</a></div>`
+                : ""
+            }
+            <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">Separate from passport JSON <code>dataHash</code>; verify this file independently.</p>
+          </div>
+        </div>`
+            : ""
+        }
+
         <div class="section-title">${esc(t("verify.detail.localOdpTitle"))}</div>
         <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
           ${esc(t("verify.detail.localOdpLead"))}
@@ -2489,6 +2513,10 @@ async function attestDocumentFromVerify() {
 async function verifyDocAttestation() {
   const out = document.getElementById("docVerifyResult");
   if (!out) return;
+  if (odpContractGeneration != null && typeof odpSupportsExternalDocAttest === "function" && !odpSupportsExternalDocAttest(odpContractGeneration)) {
+    out.innerHTML = `<div class="info neutral" style="line-height:1.55">This registry generation (v0.3+) does not include <code class="mono">attestExternalDocument</code>. Historical attestations may still appear on older deployments in <code class="mono">previousContracts</code>.</div>`;
+    return;
+  }
   if (!contract) {
     out.innerHTML = `<div class="err-box">RPC not ready.</div>`;
     return;
@@ -2510,6 +2538,7 @@ async function verifyDocAttestation() {
 
     for (const c of verifyReadContractsOrdered()) {
       try {
+        if (typeof c.getExternalDocumentAttestation !== "function") continue;
         const logs = await c.provider.getLogs({
           address: c.address,
           fromBlock: 0,

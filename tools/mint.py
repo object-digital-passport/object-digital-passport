@@ -113,6 +113,8 @@ CONTRACT_ABI = [
             {"name": "imageHash3",   "type": "bytes32"},
             {"name": "imageUrl3",    "type": "string"},
             {"name": "dataUrlIsFolderBase", "type": "bool"},
+            {"name": "auxCommitmentHash", "type": "bytes32"},
+            {"name": "auxCommitmentUri", "type": "string"},
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
     },
@@ -134,6 +136,8 @@ CONTRACT_ABI = [
             {"name": "imageUrl3",  "type": "string"},
             {"name": "fileHash",  "type": "bytes32"},
             {"name": "dataUrlIsFolderBase", "type": "bool"},
+            {"name": "auxCommitmentHash", "type": "bytes32"},
+            {"name": "auxCommitmentUri", "type": "string"},
         ],
         "outputs": [{"name": "humanId", "type": "string"}],
     },
@@ -188,6 +192,8 @@ CONTRACT_ABI = [
                 {"name": "revoked",      "type": "bool"},
                 {"name": "revokedAt",    "type": "uint256"},
                 {"name": "revocationReasonHash", "type": "bytes32"},
+                {"name": "auxCommitmentHash", "type": "bytes32"},
+                {"name": "auxCommitmentUri", "type": "string"},
             ]
         }],
     },
@@ -732,6 +738,8 @@ def cmd_mint(args):
             ZERO_BYTES32,
             "",
             False,           # dataUrlIsFolderBase — CLI uses full dataUrl; use web UI for folder-base mint
+            ZERO_BYTES32,
+            "",
         )
     else:
         fn = contract.functions.mintDigital(
@@ -747,6 +755,8 @@ def cmd_mint(args):
             "",
             to_bytes32(file_hash_bytes),
             False,           # dataUrlIsFolderBase
+            ZERO_BYTES32,
+            "",
         )
 
     tx_hash, receipt = send_tx(w3, account, fn, net)

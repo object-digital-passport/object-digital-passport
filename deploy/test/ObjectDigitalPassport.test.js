@@ -24,6 +24,33 @@ function nonZeroFileHash(n) {
 
 /** v0.3: optional second/third image hashes + URLs before fileHash */
 const NO_EXTRA_IMAGES = [ethers.ZeroHash, "", ethers.ZeroHash, ""];
+/** v0.3: optional aux commitment (hash 0 ⇒ URI must be empty) */
+const AUX_EMPTY = [ethers.ZeroHash, ""];
+
+function encodePhysicalMintPayload(args) {
+  const coder = ethers.AbiCoder.defaultAbiCoder();
+  return coder.encode(
+    [
+      "uint32",
+      "uint8",
+      "bytes32",
+      "string",
+      "bytes32",
+      "string",
+      "uint8",
+      "bytes32",
+      "bytes",
+      "string",
+      "bytes32",
+      "string",
+      "bytes32",
+      "string",
+      "bytes32",
+      "string",
+    ],
+    args
+  );
+}
 
 describe("ObjectDigitalPassport", function () {
   async function deployFixture() {
@@ -65,7 +92,8 @@ describe("ObjectDigitalPassport", function () {
         "",
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(1),
-        false
+        false,
+        ...AUX_EMPTY
       );
       expect(await c.getRemainingMints(w.address)).to.equal(lim - 1n);
     });
@@ -85,7 +113,8 @@ describe("ObjectDigitalPassport", function () {
         "",
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(2),
-        false
+        false,
+        ...AUX_EMPTY
       );
       expect(await c.getRemainingMints(wB.address)).to.equal(lim - 1n);
     });
@@ -105,7 +134,8 @@ describe("ObjectDigitalPassport", function () {
         "",
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(3),
-        false
+        false,
+        ...AUX_EMPTY
       );
       expect(await c.getRemainingMints(wP.address)).to.equal(max32);
     });
@@ -125,7 +155,8 @@ describe("ObjectDigitalPassport", function () {
         "",
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(31),
-        false
+        false,
+        ...AUX_EMPTY
       );
       expect(await c.getRemainingMints(wM.address)).to.equal(max32);
     });
@@ -144,6 +175,7 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(41),
         false,
+        ...AUX_EMPTY,
       ]);
       await c.connect(wM).registerCreator(TYPE_M);
       const tx = await c.connect(wM).submitProof(humanId, zeroHash(), "", 2031, 6);
@@ -169,6 +201,7 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(10),
         true,
+        ...AUX_EMPTY,
       ]);
       const p = await c.getPassport(humanId);
       const expectUrl = `https://example.com/passports/${humanId}.json`;
@@ -190,25 +223,10 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(12),
         true,
+        ...AUX_EMPTY,
       ]);
       const p = await c.getPassport(humanId);
       expect(p.dataUrl).to.equal(`https://example.com/foo//bar/${humanId}.json`);
-    });
-
-    it("attestExternalDocument stores hash and getExternalDocumentAttestation reads it", async function () {
-      const c = await deployFixture();
-      const [w] = await ethers.getSigners();
-      await c.connect(w).registerCreator(TYPE_C);
-      const docHash = ethers.keccak256(ethers.toUtf8Bytes("fake-pdf-bytes"));
-      await c.connect(w).attestExternalDocument(docHash, "");
-      const r = await c.getExternalDocumentAttestation(w.address, docHash);
-      expect(r.attested).to.equal(true);
-      expect(r.creatorId).to.match(/^C-/);
-      expect(r.timestamp > 0n).to.equal(true);
-      await expect(c.connect(w).attestExternalDocument(docHash, "")).to.be.revertedWithCustomError(
-        c,
-        "EC"
-      );
     });
 
     it("updatePassportUrls sets literal URLs (no folder resolution)", async function () {
@@ -225,6 +243,7 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(11),
         true,
+        ...AUX_EMPTY,
       ]);
       const dh = nonZeroDataHash(11);
       const full = `https://other.host/${humanId}.json`;
@@ -249,6 +268,7 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(501),
         false,
+        ...AUX_EMPTY,
       ]);
       let p = await c.getPassport(humanId);
       expect(p.owner).to.equal(wA.address);
@@ -272,6 +292,7 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(502),
         false,
+        ...AUX_EMPTY,
       ]);
       const reason = ethers.keccak256(ethers.toUtf8Bytes("test-revoke"));
       await c.connect(wA).revokePassport(humanId, reason);
@@ -319,6 +340,7 @@ describe("ObjectDigitalPassport", function () {
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(503),
         false,
+        ...AUX_EMPTY,
       ]);
       const rh = ethers.keccak256(ethers.toUtf8Bytes("fake"));
       await c.connect(wP).raiseCounterfeitConcern(humanId, rh);
@@ -348,6 +370,8 @@ describe("ObjectDigitalPassport", function () {
           "bytes32",
           "string",
           "bytes32",
+          "bytes32",
+          "string",
         ],
         args
       );
@@ -370,15 +394,28 @@ describe("ObjectDigitalPassport", function () {
         "",
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(900),
+        ...AUX_EMPTY,
       ];
       const payload = encodeDigitalMintPayload(args);
       const tx = await c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false);
-      await tx.wait();
+      const receipt = await tx.wait();
       const ids = await c.getPassportsByCreator(w.address);
       const humanId = ids[ids.length - 1];
       const p = await c.getPassport(humanId);
       expect(p.objectType).to.equal("digital");
       expect(p.dataHash).to.equal(nonZeroDataHash(900));
+      const ev = receipt.logs
+        .map((l) => {
+          try {
+            return c.interface.parseLog(l);
+          } catch {
+            return null;
+          }
+        })
+        .find((x) => x && x.name === "ExtensionMintUsed");
+      expect(ev).to.not.equal(undefined);
+      expect(ev.args.kind).to.equal(0);
+      expect(ev.args.humanId).to.equal(humanId);
     });
 
     it("reverts EC(64) when extension not registered", async function () {
@@ -394,6 +431,7 @@ describe("ObjectDigitalPassport", function () {
         "",
         ...NO_EXTRA_IMAGES,
         nonZeroFileHash(901),
+        ...AUX_EMPTY,
       ]);
       await expect(c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false))
         .to.be.revertedWithCustomError(c, "EC")
@@ -425,6 +463,126 @@ describe("ObjectDigitalPassport", function () {
       await expect(c.connect(w2).setMintExtension(MINT_CLASS_V, ext.target))
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(56n);
+    });
+  });
+
+  describe("v0.3 aux commitment and physical extension", function () {
+    const MINT_CLASS_W = "0x57";
+
+    it("mintDigital stores aux commitment when provided", async function () {
+      const c = await deployFixture();
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const auxH = nonZeroFileHash(777);
+      const humanId = await mintDigitalAndId(c, w, [
+        2026,
+        3,
+        nonZeroDataHash(777),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(778),
+        false,
+        auxH,
+        "https://coa.example/cert.pdf",
+      ]);
+      const p = await c.getPassport(humanId);
+      expect(p.auxCommitmentHash).to.equal(auxH);
+      expect(p.auxCommitmentUri).to.equal("https://coa.example/cert.pdf");
+    });
+
+    it("creator and governance may updatePassportAuxCommitment", async function () {
+      const c = await deployFixture();
+      const [gov, w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const humanId = await mintDigitalAndId(c, w, [
+        2026,
+        3,
+        nonZeroDataHash(600),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(600),
+        false,
+        ...AUX_EMPTY,
+      ]);
+      const h1 = nonZeroFileHash(601);
+      await c.connect(w).updatePassportAuxCommitment(humanId, h1, "https://a.example/a.pdf");
+      let p = await c.getPassport(humanId);
+      expect(p.auxCommitmentHash).to.equal(h1);
+      const h2 = nonZeroFileHash(602);
+      await c.connect(gov).updatePassportAuxCommitment(humanId, h2, "https://b.example/b.pdf");
+      p = await c.getPassport(humanId);
+      expect(p.auxCommitmentHash).to.equal(h2);
+    });
+
+    it("non-creator non-governance cannot updatePassportAuxCommitment", async function () {
+      const c = await deployFixture();
+      const [_, w, w2] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const humanId = await mintDigitalAndId(c, w, [
+        2026,
+        3,
+        nonZeroDataHash(610),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(610),
+        false,
+        ...AUX_EMPTY,
+      ]);
+      await c.connect(w2).registerCreator(TYPE_B);
+      await expect(
+        c.connect(w2).updatePassportAuxCommitment(humanId, nonZeroFileHash(611), "https://x.example/x.pdf")
+      )
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(67n);
+    });
+
+    it("mintPhysicalViaExtension mints physical and emits ExtensionMintUsed kind=1", async function () {
+      const c = await deployFixture();
+      const Ext = await ethers.getContractFactory("ODPPassThroughPhysicalExtension");
+      const ext = await Ext.deploy();
+      await ext.waitForDeployment();
+      await c.setMintExtension(MINT_CLASS_W, ext.target);
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const phyArgs = [
+        2026,
+        3,
+        nonZeroDataHash(920),
+        "",
+        zeroHash(),
+        "",
+        2,
+        nonZeroFileHash(920),
+        "0x",
+        "",
+        ...NO_EXTRA_IMAGES,
+        ...AUX_EMPTY,
+      ];
+      const payload = encodePhysicalMintPayload(phyArgs);
+      const tx = await c.connect(w).mintPhysicalViaExtension(MINT_CLASS_W, payload, false);
+      const receipt = await tx.wait();
+      const ids = await c.getPassportsByCreator(w.address);
+      const humanId = ids[ids.length - 1];
+      const p = await c.getPassport(humanId);
+      expect(p.objectType).to.equal("physical");
+      const ev = receipt.logs
+        .map((l) => {
+          try {
+            return c.interface.parseLog(l);
+          } catch {
+            return null;
+          }
+        })
+        .find((x) => x && x.name === "ExtensionMintUsed");
+      expect(ev).to.not.equal(undefined);
+      expect(ev.args.kind).to.equal(1);
+      expect(ev.args.humanId).to.equal(humanId);
     });
   });
 });

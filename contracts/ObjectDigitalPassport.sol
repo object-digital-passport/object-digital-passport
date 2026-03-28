@@ -25,13 +25,14 @@ pragma solidity ^0.8.20;
  *   Protocol updates require a new contract (v0.2, v0.3, etc.).
  *   v0.3 adds: owner/transfer, account-scoped publishing agent for hosted URLs, revocation,
  *   extra image hashes, P-affiliation detach + timestamps, P/M counterfeit concern flag,
- *   governance (revocation). Type-definition governance is off-chain / SPEC (saves bytecode).
+ *   governance (revocation), optional aux commitment + IODPExtension mint routes (digital/physical).
+ *   Type-definition governance is off-chain / SPEC where noted (saves bytecode).
  *
  * SECURITY NOTES:
  *   - v0.2+: no protocol fee — native token only pays network gas (no POL routed to fee burn)
- *   - No external calls — reentrancy not possible
+ *   - Extension mint uses staticcalls to registered `IODPExtension` (view) then state writes — no reentrancy loop into core
  *   - Solidity 0.8.20 — overflow/underflow protection built in
- *   - Access control enforced via require() on all write functions
+ *   - Access control enforced via `if (!(…)) revert EC(n);` on write paths
  *   - On-chain randomness (block.prevrandao + gasleft) is not
  *     cryptographically secure but is acceptable here since IDs
  *     carry no financial value — only human-readability
@@ -56,17 +57,13 @@ pragma solidity ^0.8.20;
  * Profile letters are fixed at `registerCreator`; this hook is for **alternate passport
  * mint pipelines** (illustrative bytes e.g. \"V\", \"G\" in docs — not implemented in v0.3).
  *
- * Extensions would validate/normalize a payload before the core stores the passport.
- * v0.3: interface + empty mapping only — no code reads typeToExtension; mint is native only.
- *
- * Sketch flow (future version, not live):
- *   mintPassport(typeByte, data) → typeToExtension[typeByte] → validate → normalize → store
+ * Digital `normalize` output: 13-tuple ending with `auxCommitmentHash` + `auxCommitmentUri` (see `_validateAuxCommitmentFields`).
+ * Physical `normalize` output: 16-tuple — physical mint params + same aux pair (see `mintPhysicalViaExtension` NatSpec).
  */
 interface IODPExtension {
     /// Validate type-specific data. Reverts if invalid.
     function validate(bytes calldata data) external view;
-    /// @dev For **digital** extension mint, return `abi.encode` of
-    /// `(uint32 year,uint8 month,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 imageHash2,string imageUrl2,bytes32 imageHash3,string imageUrl3,bytes32 fileHash)` — same field semantics as `mintDigital`.
+    /// @dev Return `abi.encode` of either the **digital** 13-tuple or **physical** 16-tuple documented on `mintDigitalViaExtension` / `mintPhysicalViaExtension`.
     function normalize(bytes calldata data) external view returns (bytes memory);
 }
 
@@ -139,6 +136,46 @@ contract ObjectDigitalPassport {
         bool    revoked;       // passport revoked (creator or governance)
         uint256 revokedAt;
         bytes32 revocationReasonHash; // keccak256 of UTF-8 reason; 0 if not revoked
+        /// Optional second commitment (e.g. PDF COA); independent of `dataHash`. Mutable by creator or governance.
+        bytes32 auxCommitmentHash;
+        string  auxCommitmentUri; // optional HTTPS hint; max 512 when hash non-zero; both zero when unused
+    }
+
+    /// @dev Bundles digital mint fields to avoid stack-too-deep in IR pipeline.
+    struct DigitalMintInputs {
+        uint32 year;
+        uint8 month;
+        bytes32 dataHash;
+        string dataUrl;
+        bytes32 imageHash;
+        string imageUrl;
+        bytes32 imageHash2;
+        string imageUrl2;
+        bytes32 imageHash3;
+        string imageUrl3;
+        bytes32 fileHash;
+        bytes32 auxCommitmentHash;
+        string auxCommitmentUri;
+    }
+
+    /// @dev Bundles physical mint fields to avoid stack-too-deep in IR pipeline.
+    struct PhysicalMintInputs {
+        uint32 year;
+        uint8 month;
+        bytes32 dataHash;
+        string dataUrl;
+        bytes32 imageHash;
+        string imageUrl;
+        uint8 sealType;
+        bytes32 sealHash;
+        bytes nfcPublicKey;
+        string nfcModel;
+        bytes32 imageHash2;
+        string imageUrl2;
+        bytes32 imageHash3;
+        string imageUrl3;
+        bytes32 auxCommitmentHash;
+        string auxCommitmentUri;
     }
 
     struct ProofRecord {
@@ -149,15 +186,6 @@ contract ObjectDigitalPassport {
         bytes32 noteHash;        // SHA-256 of attached document. bytes32(0) = none
         string  noteUrl;
         uint256 timestamp;
-    }
-
-    /// Off-chain document (e.g. PDF contract): creator anchors SHA-256 on-chain — verifiers compare file bytes.
-    struct ExternalDocAttestation {
-        address creator;
-        string  creatorId;
-        bytes32 documentHash;
-        uint256 timestamp;
-        string  documentUri; // optional HTTPS link to the same file; max 512 chars
     }
 
     // ─── Storage ──────────────────────────────────────────────────────────────
@@ -185,9 +213,6 @@ contract ObjectDigitalPassport {
     // Rate limiting — mints per wallet per calendar month (C/B tiers; P skips limit)
     // key = address → (yearMonth uint32 e.g. 202603) → count
     mapping(address => mapping(uint32 => uint32)) private _mintCount;
-
-    // External document attestations — key = keccak256(abi.encodePacked(wallet, documentHash))
-    mapping(bytes32 => ExternalDocAttestation) private _externalDocAttest;
 
     // P-affiliation (one-level): child P -> exactly one parent P.
     // Handshake is two-step to reduce spam:
@@ -228,10 +253,11 @@ contract ObjectDigitalPassport {
     /// Type-definition governance is documented in SPEC; on-chain timelock registry was omitted for bytecode size.
     address public governance;
 
-    // ── Extension Registry (reserved; unused in v0.3) ─────────────────────────
     // Mint-class byte → extension. NOT creator profile prefix (C/B/P/M).
-    // Never written or read in v0.3 — forward-compatible slot + public ABI surface only.
     mapping(bytes1 => address) public typeToExtension;
+
+    uint8 private constant EXT_MINT_KIND_DIGITAL  = 0;
+    uint8 private constant EXT_MINT_KIND_PHYSICAL = 1;
 
     // ── Freeze (for v0 → v1 migration) ─────────────────────────────────────────────
     // When v1 is ready, this contract can be frozen to stop new writes.
@@ -281,14 +307,6 @@ contract ObjectDigitalPassport {
     );
 
     event ContractFrozen(uint256 timestamp);
-
-    event ExternalDocumentAttested(
-        string  indexed creatorId,
-        address indexed creator,
-        bytes32         documentHash,
-        string          documentUri,
-        uint256         timestamp
-    );
 
     event PAffiliationProposed(
         string indexed parentPId,
@@ -340,6 +358,17 @@ contract ObjectDigitalPassport {
     );
 
     event GovernanceTransferred(address indexed previous, address indexed next, uint256 timestamp);
+
+    event PassportAuxCommitmentUpdated(
+        string  humanId,
+        bytes32 newHash,
+        string  newUri,
+        address updatedBy,
+        uint256 timestamp
+    );
+
+    /// @dev `kind`: 0 = digital extension mint, 1 = physical extension mint. Emitted with `PassportMinted`.
+    event ExtensionMintUsed(bytes1 indexed mintClass, uint8 indexed kind, string humanId);
 
     // ─── Constructor ──────────────────────────────────────────────────────────
 
@@ -432,56 +461,6 @@ contract ObjectDigitalPassport {
     }
 
     /**
-     * Anchor SHA-256 of an off-chain document (e.g. PDF) for the caller's profile ID.
-     * At most one attestation per (wallet, documentHash). Verifiers re-hash the file and compare.
-     * Does not prove legal validity — only that this wallet recorded this hash on-chain.
-     *
-     * @param documentHash SHA-256 of raw file bytes (same encoding as passport fileHash).
-     * @param documentUri  Optional HTTPS URL where the same file is hosted; may be "".
-     */
-    function attestExternalDocument(bytes32 documentHash, string calldata documentUri)
-        external
-        notFrozen
-    {
-        if (!(documentHash != bytes32(0))) revert EC(52);
-        if (!(bytes(documentUri).length <= 512)) revert EC(51);
-        string memory creatorId = _requireRegistered();
-        bytes32 key = keccak256(abi.encodePacked(msg.sender, documentHash));
-        if (!(_externalDocAttest[key].creator == address(0))) revert EC(50);
-
-        _externalDocAttest[key] = ExternalDocAttestation({
-            creator:      msg.sender,
-            creatorId:    creatorId,
-            documentHash: documentHash,
-            timestamp:    block.timestamp,
-            documentUri:  documentUri
-        });
-
-        emit ExternalDocumentAttested(creatorId, msg.sender, documentHash, documentUri, block.timestamp);
-    }
-
-    /**
-     * Check whether a wallet attested a document hash and return metadata.
-     */
-    function getExternalDocumentAttestation(address wallet, bytes32 documentHash)
-        external
-        view
-        returns (
-            bool attested,
-            string memory creatorId,
-            uint256 timestamp,
-            string memory documentUri
-        )
-    {
-        bytes32 key = keccak256(abi.encodePacked(wallet, documentHash));
-        ExternalDocAttestation storage a = _externalDocAttest[key];
-        if (a.creator == address(0)) {
-            return (false, "", 0, "");
-        }
-        return (true, a.creatorId, a.timestamp, a.documentUri);
-    }
-
-    /**
      * Propose P-affiliation: caller (child P) requests linking to parent P.
      * One child P can have at most one active parent P.
      */
@@ -490,10 +469,10 @@ contract ObjectDigitalPassport {
         notFrozen
     {
         string memory childPId = _requireRegistered();
-        _requireTypeP(childPId, "Only P-type child can propose affiliation");
+        _requireTypeP(childPId);
         if (!(bytes(parentPId).length > 0)) revert EC(49);
         if (!(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)))) revert EC(46);
-        _requireTypeP(parentPId, "Parent must be P-type");
+        _requireTypeP(parentPId);
         if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
         if (!(_pPendingParentsCountByChild[childPId] < MAX_P_PENDING_PARENTS_PER_CHILD)) revert EC(48);
 
@@ -514,8 +493,8 @@ contract ObjectDigitalPassport {
         notFrozen
     {
         string memory parentPId = _requireRegistered();
-        _requireTypeP(parentPId, "Only P-type parent can confirm affiliation");
-        _requireTypeP(childPId, "Child must be P-type");
+        _requireTypeP(parentPId);
+        _requireTypeP(childPId);
         if (!(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)))) revert EC(46);
         if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
 
@@ -546,8 +525,8 @@ contract ObjectDigitalPassport {
         notFrozen
     {
         string memory parentPId = _requireRegistered();
-        _requireTypeP(parentPId, "Only P-type parent can detach");
-        _requireTypeP(childPId, "Child must be P-type");
+        _requireTypeP(parentPId);
+        _requireTypeP(childPId);
         if (!(keccak256(bytes(_pParentOf[childPId])) == keccak256(bytes(parentPId)))) revert EC(43);
 
         _removeChildFromParentList(parentPId, childPId);
@@ -600,7 +579,7 @@ contract ObjectDigitalPassport {
         notFrozen
     {
         string memory childPId = _requireRegistered();
-        _requireTypeP(childPId, "Only P-type child can cancel affiliation request");
+        _requireTypeP(childPId);
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
         if (!(_pendingPAffiliation[k])) revert EC(42);
         delete _pendingPAffiliation[k];
@@ -631,33 +610,6 @@ contract ObjectDigitalPassport {
         return _pChildrenOf[parentPId];
     }
 
-    /**
-     * Paginated affiliated children (v0.2 standard-friendly read endpoint).
-     * For large lists, frontends MUST use this method to avoid heavy responses.
-     *
-     * @return result children slice in range [offset, min(offset+limit, total))
-     * @return total total count of active affiliated children for parentPId
-     */
-    function getPAffiliatedChildrenPaged(
-        string calldata parentPId,
-        uint256 offset,
-        uint256 limit
-    )
-        external
-        view
-        returns (string[] memory result, uint256 total)
-    {
-        string[] storage all = _pChildrenOf[parentPId];
-        total = all.length;
-        if (offset >= total) return (new string[](0), total);
-        uint256 end = offset + limit;
-        if (end > total) end = total;
-        result = new string[](end - offset);
-        for (uint256 i = offset; i < end; i++) {
-            result[i - offset] = all[i];
-        }
-    }
-
     // ─── Passport Registry — Physical ─────────────────────────────────────────
 
     function _validateOptionalImageSlots(
@@ -679,41 +631,30 @@ contract ObjectDigitalPassport {
         }
     }
 
-    /**
-     * Register a PHYSICAL object.
-     *
-     * Caller must be registered (profile ID mandatory).
-     * At least one seal is required: sealType must be 1, 2, or 3.
-     *
-     * @param year          Any year > 0 (e.g. 1823 for historical art)
-     * @param month         1–12
-     * @param dataHash      SHA-256 of minified passport.json
-     * @param dataUrl       Public URL of passport.json (max 512 chars). May be "" — verifiers cannot fetch JSON without a URL.
-     * @param imageHash     SHA-256 of image. bytes32(0) = no image
-     * @param imageUrl      Image URL hint. "" = no image
-     * @param sealType      1 = NFC only, 2 = numbered only, 3 = both
-     * @param sealHash      SHA-256 of seal object in passport.json
-     * @param nfcPublicKey  NFC chip public key. "" = no NFC seal
-     * @param nfcModel      Must be "NTAG424DNA_TT" if using NFC seal. "" = no NFC seal.
-     *                      Only TagTamper variant accepted — standard NTAG424DNA is rejected.
-     *                      TagTamper permanently records if seal is physically removed.
-     * @param imageHash2/3  Optional additional image SHA-256 (max 3 hashes total including primary imageHash).
-     */
-    function _validatePhysical(
+    /// @dev If `auxHash` is zero, `auxUri` must be empty; else URI max 512 chars.
+    function _validateAuxCommitmentFields(bytes32 auxHash, string memory auxUri) internal pure {
+        if (auxHash == bytes32(0)) {
+            if (!(bytes(auxUri).length == 0)) revert EC(70);
+        } else {
+            if (!(bytes(auxUri).length <= 512)) revert EC(24);
+        }
+    }
+
+    function _validatePhysicalUnpacked(
         uint32 year,
         uint8 month,
         bytes32 dataHash,
-        string calldata dataUrl,
+        string memory dataUrl,
         bytes32 imageHash,
-        string calldata imageUrl,
+        string memory imageUrl,
         uint8 sealType,
         bytes32 sealHash,
-        bytes calldata nfcPublicKey,
-        string calldata nfcModel,
+        bytes memory nfcPublicKey,
+        string memory nfcModel,
         bytes32 imageHash2,
-        string calldata imageUrl2,
+        string memory imageUrl2,
         bytes32 imageHash3,
-        string calldata imageUrl3
+        string memory imageUrl3
     ) internal pure {
         if (!(year > 0)) revert EC(9);
         if (!(month >= 1 && month <= 12)) revert EC(8);
@@ -810,7 +751,9 @@ contract ObjectDigitalPassport {
         string memory imageUrl2,
         bytes32 imageHash3,
         string memory imageUrl3,
-        bytes32 fileHash
+        bytes32 fileHash,
+        bytes32 auxCommitmentHash,
+        string memory auxCommitmentUri
     ) internal pure {
         if (!(year > 0)) revert EC(9);
         if (!(month >= 1 && month <= 12)) revert EC(8);
@@ -822,26 +765,17 @@ contract ObjectDigitalPassport {
             if (!(bytes(imageUrl).length == 0)) revert EC(28);
         }
         _validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
+        _validateAuxCommitmentFields(auxCommitmentHash, auxCommitmentUri);
     }
 
     /// @dev Assumes `_validateDigitalMintUnpacked` already applied. Writes digital `Passport` and emits `PassportMinted`.
     function _mintDigitalCommit(
         string memory creatorId,
-        uint32 year,
-        uint8 month,
-        bytes32 dataHash,
-        string memory dataUrl,
-        bytes32 imageHash,
-        string memory imageUrl,
-        bytes32 imageHash2,
-        string memory imageUrl2,
-        bytes32 imageHash3,
-        string memory imageUrl3,
-        bytes32 fileHash,
+        DigitalMintInputs memory m,
         bool dataUrlIsFolderBase
     ) internal returns (string memory humanId) {
-        humanId = _generatePassportId(year, month);
-        string memory resolvedDataUrl = _resolveMintDataUrlMemory(dataUrl, dataUrlIsFolderBase, humanId);
+        humanId = _generatePassportId(m.year, m.month);
+        string memory resolvedDataUrl = _resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
         if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
 
         _passports[humanId] = Passport({
@@ -850,32 +784,80 @@ contract ObjectDigitalPassport {
             creator:         msg.sender,
             owner:           msg.sender,
             creatorId:       creatorId,
-            year:            year,
-            month:           month,
+            year:            m.year,
+            month:           m.month,
             objectType:      OBJECT_DIGITAL,
-            dataHash:        dataHash,
-            imageHash:       imageHash,
-            imageHash2:      imageHash2,
-            imageHash3:      imageHash3,
-            fileHash:        fileHash,
+            dataHash:        m.dataHash,
+            imageHash:       m.imageHash,
+            imageHash2:      m.imageHash2,
+            imageHash3:      m.imageHash3,
+            fileHash:        m.fileHash,
             sealType:        0,
             sealHash:        bytes32(0),
             nfcPublicKey:    "",
             nfcModel:        "",
             dataUrl:         resolvedDataUrl,
-            imageUrl:        imageUrl,
-            imageUrl2:       imageUrl2,
-            imageUrl3:       imageUrl3,
+            imageUrl:        m.imageUrl,
+            imageUrl2:       m.imageUrl2,
+            imageUrl3:       m.imageUrl3,
             timestamp:       block.timestamp,
             revoked:         false,
             revokedAt:       0,
-            revocationReasonHash: bytes32(0)
+            revocationReasonHash: bytes32(0),
+            auxCommitmentHash: m.auxCommitmentHash,
+            auxCommitmentUri:  m.auxCommitmentUri
         });
 
         _creatorPassports[msg.sender].push(humanId);
 
         emit PassportMinted(humanId, msg.sender, creatorId, OBJECT_DIGITAL,
-                            year, month, dataHash, 0, "", block.timestamp);
+                            m.year, m.month, m.dataHash, 0, "", block.timestamp);
+    }
+
+    /// @dev After `_validatePhysicalUnpacked` and `_validateAuxCommitmentFields`.
+    function _mintPhysicalCommit(
+        string memory creatorId,
+        PhysicalMintInputs memory m,
+        bool dataUrlIsFolderBase
+    ) internal returns (string memory humanId) {
+        humanId = _generatePassportId(m.year, m.month);
+        string memory resolvedDataUrl = _resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
+        if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
+
+        _passports[humanId] = Passport({
+            humanId:         humanId,
+            contractVersion: CONTRACT_VERSION,
+            creator:         msg.sender,
+            owner:           msg.sender,
+            creatorId:       creatorId,
+            year:            m.year,
+            month:           m.month,
+            objectType:      OBJECT_PHYSICAL,
+            dataHash:        m.dataHash,
+            imageHash:       m.imageHash,
+            imageHash2:      m.imageHash2,
+            imageHash3:      m.imageHash3,
+            fileHash:        bytes32(0),
+            sealType:        m.sealType,
+            sealHash:        m.sealHash,
+            nfcPublicKey:    m.nfcPublicKey,
+            nfcModel:        m.nfcModel,
+            dataUrl:         resolvedDataUrl,
+            imageUrl:        m.imageUrl,
+            imageUrl2:       m.imageUrl2,
+            imageUrl3:       m.imageUrl3,
+            timestamp:       block.timestamp,
+            revoked:         false,
+            revokedAt:       0,
+            revocationReasonHash: bytes32(0),
+            auxCommitmentHash: m.auxCommitmentHash,
+            auxCommitmentUri:  m.auxCommitmentUri
+        });
+
+        _creatorPassports[msg.sender].push(humanId);
+
+        emit PassportMinted(humanId, msg.sender, creatorId, OBJECT_PHYSICAL,
+                            m.year, m.month, m.dataHash, m.sealType, m.nfcModel, block.timestamp);
     }
 
     function mintPhysical(
@@ -893,11 +875,13 @@ contract ObjectDigitalPassport {
         string  calldata imageUrl2,
         bytes32 imageHash3,
         string  calldata imageUrl3,
-        bool dataUrlIsFolderBase
+        bool dataUrlIsFolderBase,
+        bytes32 auxCommitmentHash,
+        string  calldata auxCommitmentUri
     ) external notFrozen returns (string memory humanId) {
         string memory creatorId = _beginMint();
 
-        _validatePhysical(
+        _validatePhysicalUnpacked(
             year,
             month,
             dataHash,
@@ -913,45 +897,26 @@ contract ObjectDigitalPassport {
             imageHash3,
             imageUrl3
         );
+        _validateAuxCommitmentFields(auxCommitmentHash, auxCommitmentUri);
 
-        humanId = _generatePassportId(year, month);
-
-        string memory resolvedDataUrl = _resolveMintDataUrl(dataUrl, dataUrlIsFolderBase, humanId);
-        if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
-
-        _passports[humanId] = Passport({
-            humanId:         humanId,
-            contractVersion: CONTRACT_VERSION,
-            creator:         msg.sender,
-            owner:           msg.sender,
-            creatorId:       creatorId,
-            year:            year,
-            month:           month,
-            objectType:      OBJECT_PHYSICAL,
-            dataHash:     dataHash,
-            imageHash:    imageHash,
-            imageHash2:   imageHash2,
-            imageHash3:   imageHash3,
-            fileHash:     bytes32(0),
-            sealType:     sealType,
-            sealHash:     sealHash,
-            nfcPublicKey: nfcPublicKey,
-            nfcModel:     nfcModel,
-            dataUrl:      resolvedDataUrl,
-            imageUrl:     imageUrl,
-            imageUrl2:    imageUrl2,
-            imageUrl3:    imageUrl3,
-            timestamp:    block.timestamp,
-            revoked:      false,
-            revokedAt:    0,
-            revocationReasonHash: bytes32(0)
-        });
-
-        _creatorPassports[msg.sender].push(humanId);
-
-        emit PassportMinted(humanId, msg.sender, creatorId, OBJECT_PHYSICAL,
-                            year, month, dataHash, sealType, nfcModel, block.timestamp);
-        return humanId;
+        PhysicalMintInputs memory m;
+        m.year = year;
+        m.month = month;
+        m.dataHash = dataHash;
+        m.dataUrl = dataUrl;
+        m.imageHash = imageHash;
+        m.imageUrl = imageUrl;
+        m.sealType = sealType;
+        m.sealHash = sealHash;
+        m.nfcPublicKey = nfcPublicKey;
+        m.nfcModel = nfcModel;
+        m.imageHash2 = imageHash2;
+        m.imageUrl2 = imageUrl2;
+        m.imageHash3 = imageHash3;
+        m.imageUrl3 = imageUrl3;
+        m.auxCommitmentHash = auxCommitmentHash;
+        m.auxCommitmentUri = auxCommitmentUri;
+        return _mintPhysicalCommit(creatorId, m, dataUrlIsFolderBase);
     }
 
     // ─── Passport Registry — Digital ──────────────────────────────────────────
@@ -970,6 +935,8 @@ contract ObjectDigitalPassport {
      * @param imageUrl      Preview image URL hint. "" = none
      * @param fileHash      SHA-256 of the original digital file. Required.
      * @param dataUrlIsFolderBase If true, `dataUrl` is folder root only; stored URL is `folderBase/humanId.json`.
+     * @param auxCommitmentHash Optional second document commitment (0 with empty URI if unused).
+     * @param auxCommitmentUri Optional HTTPS hint for that document (max 512 chars if hash set).
      */
     function mintDigital(
         uint32  year,
@@ -983,7 +950,9 @@ contract ObjectDigitalPassport {
         bytes32 imageHash3,
         string  calldata imageUrl3,
         bytes32 fileHash,
-        bool dataUrlIsFolderBase
+        bool dataUrlIsFolderBase,
+        bytes32 auxCommitmentHash,
+        string  calldata auxCommitmentUri
     ) external notFrozen returns (string memory humanId) {
         string memory creatorId = _beginMint();
         _validateDigitalMintUnpacked(
@@ -997,32 +966,33 @@ contract ObjectDigitalPassport {
             imageUrl2,
             imageHash3,
             imageUrl3,
-            fileHash
-        );
-        return _mintDigitalCommit(
-            creatorId,
-            year,
-            month,
-            dataHash,
-            dataUrl,
-            imageHash,
-            imageUrl,
-            imageHash2,
-            imageUrl2,
-            imageHash3,
-            imageUrl3,
             fileHash,
-            dataUrlIsFolderBase
+            auxCommitmentHash,
+            auxCommitmentUri
         );
+        DigitalMintInputs memory dm;
+        dm.year = year;
+        dm.month = month;
+        dm.dataHash = dataHash;
+        dm.dataUrl = dataUrl;
+        dm.imageHash = imageHash;
+        dm.imageUrl = imageUrl;
+        dm.imageHash2 = imageHash2;
+        dm.imageUrl2 = imageUrl2;
+        dm.imageHash3 = imageHash3;
+        dm.imageUrl3 = imageUrl3;
+        dm.fileHash = fileHash;
+        dm.auxCommitmentHash = auxCommitmentHash;
+        dm.auxCommitmentUri = auxCommitmentUri;
+        return _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase);
     }
 
     /**
      * @notice DIGITAL mint where `payload` is validated/normalized by a governance-registered `IODPExtension`.
      * @param mintClass Route byte (not C/B/P/M). Must have `typeToExtension[mintClass] != address(0)`.
      * @param payload Opaque input forwarded to the extension.
-     * @dev Extension `normalize` **must** return `abi.encode` of
-     *      `(uint32 year,uint8 month,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 imageHash2,string imageUrl2,bytes32 imageHash3,string imageUrl3,bytes32 fileHash)`
-     *      — same semantics as `mintDigital` after decode. Core re-validates with `_validateDigitalMintUnpacked`.
+     * @dev Extension `normalize` **must** return `abi.encode` of the **13-tuple** (digital + aux):
+     *      `(year,month,dataHash,dataUrl,imageHash,imageUrl,imageHash2,imageUrl2,imageHash3,imageUrl3,fileHash,auxCommitmentHash,auxCommitmentUri)`.
      */
     function mintDigitalViaExtension(
         bytes1 mintClass,
@@ -1037,51 +1007,106 @@ contract ObjectDigitalPassport {
         IODPExtension(ext).validate(payload);
         bytes memory norm = IODPExtension(ext).normalize(payload);
 
+        DigitalMintInputs memory dm;
         (
-            uint32 year,
-            uint8 month,
-            bytes32 dataHash,
-            string memory dataUrl,
-            bytes32 imageHash,
-            string memory imageUrl,
-            bytes32 imageHash2,
-            string memory imageUrl2,
-            bytes32 imageHash3,
-            string memory imageUrl3,
-            bytes32 fileHash
+            dm.year,
+            dm.month,
+            dm.dataHash,
+            dm.dataUrl,
+            dm.imageHash,
+            dm.imageUrl,
+            dm.imageHash2,
+            dm.imageUrl2,
+            dm.imageHash3,
+            dm.imageUrl3,
+            dm.fileHash,
+            dm.auxCommitmentHash,
+            dm.auxCommitmentUri
         ) = abi.decode(
             norm,
-            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32)
+            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32, bytes32, string)
         );
 
         _validateDigitalMintUnpacked(
-            year,
-            month,
-            dataHash,
-            dataUrl,
-            imageHash,
-            imageUrl,
-            imageHash2,
-            imageUrl2,
-            imageHash3,
-            imageUrl3,
-            fileHash
+            dm.year,
+            dm.month,
+            dm.dataHash,
+            dm.dataUrl,
+            dm.imageHash,
+            dm.imageUrl,
+            dm.imageHash2,
+            dm.imageUrl2,
+            dm.imageHash3,
+            dm.imageUrl3,
+            dm.fileHash,
+            dm.auxCommitmentHash,
+            dm.auxCommitmentUri
         );
-        humanId = _mintDigitalCommit(
-            creatorId,
-            year,
-            month,
-            dataHash,
-            dataUrl,
-            imageHash,
-            imageUrl,
-            imageHash2,
-            imageUrl2,
-            imageHash3,
-            imageUrl3,
-            fileHash,
-            dataUrlIsFolderBase
+        humanId = _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase);
+        emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_DIGITAL, humanId);
+    }
+
+    /**
+     * @notice PHYSICAL mint via `IODPExtension`. Same `mintClass` registry as digital; decode shape differs.
+     * @dev `normalize` **must** return `abi.encode` of:
+     *      `(year,month,dataHash,dataUrl,imageHash,imageUrl,sealType,sealHash,nfcPublicKey,nfcModel,imageHash2,imageUrl2,imageHash3,imageUrl3,auxCommitmentHash,auxCommitmentUri)`.
+     */
+    function mintPhysicalViaExtension(
+        bytes1 mintClass,
+        bytes calldata payload,
+        bool dataUrlIsFolderBase
+    ) external notFrozen returns (string memory humanId) {
+        address ext = typeToExtension[mintClass];
+        if (!(ext != address(0))) revert EC(64);
+
+        string memory creatorId = _beginMint();
+
+        IODPExtension(ext).validate(payload);
+        bytes memory norm = IODPExtension(ext).normalize(payload);
+
+        PhysicalMintInputs memory pm;
+        (
+            pm.year,
+            pm.month,
+            pm.dataHash,
+            pm.dataUrl,
+            pm.imageHash,
+            pm.imageUrl,
+            pm.sealType,
+            pm.sealHash,
+            pm.nfcPublicKey,
+            pm.nfcModel,
+            pm.imageHash2,
+            pm.imageUrl2,
+            pm.imageHash3,
+            pm.imageUrl3,
+            pm.auxCommitmentHash,
+            pm.auxCommitmentUri
+        ) = abi.decode(
+            norm,
+            (uint32, uint8, bytes32, string, bytes32, string, uint8, bytes32, bytes, string, bytes32, string, bytes32, string, bytes32, string)
         );
+
+        _validatePhysicalUnpacked(
+            pm.year,
+            pm.month,
+            pm.dataHash,
+            pm.dataUrl,
+            pm.imageHash,
+            pm.imageUrl,
+            pm.sealType,
+            pm.sealHash,
+            pm.nfcPublicKey,
+            pm.nfcModel,
+            pm.imageHash2,
+            pm.imageUrl2,
+            pm.imageHash3,
+            pm.imageUrl3
+        );
+        _validateAuxCommitmentFields(pm.auxCommitmentHash, pm.auxCommitmentUri);
+
+        humanId = _mintPhysicalCommit(creatorId, pm, dataUrlIsFolderBase);
+        emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_PHYSICAL, humanId);
     }
 
     // ─── Passport — Update ────────────────────────────────────────────────────
@@ -1159,6 +1184,25 @@ contract ObjectDigitalPassport {
         p.imageUrl = newImageUrl;
 
         emit PassportUrlsUpdated(humanId, newDataUrl, newImageUrl);
+    }
+
+    /**
+     * Update optional second commitment (e.g. COA PDF) and its URL hint. Does not change `dataHash` / image hashes.
+     * @dev Only **creator** or **governance**. Revoked passports cannot be updated. `(bytes32(0), "")` clears the aux slot.
+     */
+    function updatePassportAuxCommitment(
+        string calldata humanId,
+        bytes32 newHash,
+        string calldata newUri
+    ) external notFrozen {
+        Passport storage p = _passports[humanId];
+        if (!(p.creator != address(0))) revert EC(12);
+        if (!(!p.revoked)) revert EC(11);
+        if (!(msg.sender == p.creator || msg.sender == governance)) revert EC(67);
+        _validateAuxCommitmentFields(newHash, newUri);
+        p.auxCommitmentHash = newHash;
+        p.auxCommitmentUri = newUri;
+        emit PassportAuxCommitmentUpdated(humanId, newHash, newUri, msg.sender, block.timestamp);
     }
 
     /// Current owner (starts as creator) may transfer the passport record to a new wallet.
@@ -1246,65 +1290,10 @@ contract ObjectDigitalPassport {
         return _passports[humanId].creator != address(0);
     }
 
-    /**
-     * Unified passport resolver — v1 architecture.
-     *
-     * Returns passport + creator + proof count in one call.
-     * Verifiers use this as the single entry point regardless of contract version.
-     * In v1, this function will also handle legacy lookups via merkle proof.
-     *
-     * Returns: (passport, creatorRecord, proofCount, contractVersion)
-     */
-    function resolvePassport(string calldata humanId)
-        external
-        view
-        returns (
-            Passport    memory passport,
-            CreatorRecord memory creator,
-            uint256             proofCount,
-            uint8               version
-        )
-    {
-        passport   = _passports[humanId];
-        if (!(passport.creator != address(0))) revert EC(12);
-        creator    = _creators[passport.creatorId];
-        proofCount = _passportProofs[humanId].length;
-        version    = CONTRACT_VERSION;
-    }
-
     function getPassportsByCreator(address creator)
         external view returns (string[] memory)
     {
         return _creatorPassports[creator];
-    }
-
-    // Paginated — use when creator may have many passports
-    function getPassportsByCreatorPaged(address creator, uint256 offset, uint256 limit)
-        external view returns (string[] memory result, uint256 total)
-    {
-        string[] storage all = _creatorPassports[creator];
-        total = all.length;
-        if (offset >= total) return (new string[](0), total);
-        uint256 end = offset + limit;
-        if (end > total) end = total;
-        result = new string[](end - offset);
-        for (uint256 i = offset; i < end; i++) {
-            result[i - offset] = all[i];
-        }
-    }
-
-    function getProofsForPassportPaged(string calldata humanId, uint256 offset, uint256 limit)
-        external view returns (string[] memory result, uint256 total)
-    {
-        string[] storage all = _passportProofs[humanId];
-        total = all.length;
-        if (offset >= total) return (new string[](0), total);
-        uint256 end = offset + limit;
-        if (end > total) end = total;
-        result = new string[](end - offset);
-        for (uint256 i = offset; i < end; i++) {
-            result[i - offset] = all[i];
-        }
     }
 
     // ─── Proof Registry ───────────────────────────────────────────────────────
@@ -1400,10 +1389,10 @@ contract ObjectDigitalPassport {
         return t == TYPE_C || t == TYPE_B || t == TYPE_P || t == TYPE_M;
     }
 
-    function _requireTypeP(string memory creatorId, string memory err) internal view {
+    function _requireTypeP(string memory creatorId) internal view {
         CreatorRecord storage c = _creators[creatorId];
         if (!(bytes(c.creatorId).length > 0)) revert EC(2);
-        require(c.typePrefix == TYPE_P, err);
+        if (!(c.typePrefix == TYPE_P)) revert EC(71);
     }
 
     /**

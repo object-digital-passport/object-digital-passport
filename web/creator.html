@@ -520,6 +520,7 @@ function bindPAffiliationHandlers() {
   const limit = 12;
   let loaded = [];
   let total = 0;
+  let allChildrenCache = [];
 
   async function refresh() {
     try {
@@ -531,6 +532,7 @@ function bindPAffiliationHandlers() {
       childrenMeta.textContent = "";
       loaded = [];
       total = 0;
+      allChildrenCache = [];
       loadMoreBtn.disabled = true;
 
       const parentPId = await contract.getPAffiliatedParent(creatorId);
@@ -538,15 +540,10 @@ function bindPAffiliationHandlers() {
       activeParentVal.textContent = hasParent ? parentPId : "—";
       proposeBtn.disabled = hasParent;
 
-      if (typeof contract.getPAffiliatedChildrenPaged === "function") {
-        const [slice, t] = await contract.getPAffiliatedChildrenPaged(creatorId, 0, limit);
-        total = Number(t || 0);
-        loaded = Array.isArray(slice) ? slice : [];
-      } else {
-        const children = await contract.getPAffiliatedChildren(creatorId);
-        loaded = Array.isArray(children) ? children : [];
-        total = loaded.length;
-      }
+      const children = await contract.getPAffiliatedChildren(creatorId);
+      allChildrenCache = Array.isArray(children) ? children.slice() : [];
+      total = allChildrenCache.length;
+      loaded = allChildrenCache.slice(0, limit);
 
       childrenList.textContent = loaded.length ? loaded.join(", ") : "—";
       childrenMeta.textContent = loaded.length ? `${loaded.length} / ${total}` : `0 / ${total}`;
@@ -657,9 +654,7 @@ function bindPAffiliationHandlers() {
     try {
       loadMoreBtn.disabled = true;
       const nextOffset = loaded.length;
-      const [slice, t] = await contract.getPAffiliatedChildrenPaged(creatorId, nextOffset, limit);
-      total = Number(t || total);
-      const more = Array.isArray(slice) ? slice : [];
+      const more = allChildrenCache.slice(nextOffset, nextOffset + limit);
       loaded = loaded.concat(more);
       childrenList.textContent = loaded.length ? loaded.join(", ") : "—";
       childrenMeta.textContent = loaded.length ? `${loaded.length} / ${total}` : `0 / ${total}`;

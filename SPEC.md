@@ -569,23 +569,28 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 | `revoked` | `bool` | yes | **Irreversible** revocation flag |
 | `revokedAt` | `uint256` | yes | Unix seconds when revoked; **0** if not revoked |
 | `revocationReasonHash` | `bytes32` | no | **`keccak256(UTF-8 reason)`**; **0** if not revoked |
+| `auxCommitmentHash` | `bytes32` | no | Optional **second** commitment (e.g. PDF COA), independent of `dataHash`. **0** = unused; if **0**, `auxCommitmentUri` MUST be empty |
+| `auxCommitmentUri` | `string` | no | HTTPS hint for the aux file (max **512** chars when hash non-zero); **empty** when hash is **0** |
 
 **Derived:** chain time is interpreted in **UTC** for off-chain display; no separate `timestampTimeZone` field.
 
-**Hash immutability after mint:** `dataHash`, **`imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` **never** change on-chain.
+**Hash immutability after mint:** `dataHash`, **`imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` **never** change on-chain. **`auxCommitmentHash` / `auxCommitmentUri` are mutable** via **`updatePassportAuxCommitment`** ( **`creator` or `governance`** only; passport must not be revoked).
 
 **Folder-base `dataUrl` at mint:** If `dataUrlIsFolderBase` is true, the caller passes an HTTPS **folder root** only; the contract stores `stripTrailingSlash(folder) + "/" + humanId + ".json"` after the Passport ID is known. **`updatePassportUrls`** always sets **literal** strings (no folder resolution) and updates **only** `dataUrl` and **primary** `imageUrl` — not `imageUrl2` / `imageUrl3`.
 
 ### Reference contract — mint (v0.3)
 
-- **`mintPhysical(year, month, dataHash, dataUrl, imageHash, imageUrl, sealType, sealHash, nfcPublicKey, nfcModel, imageHash2, imageUrl2, imageHash3, imageUrl3, dataUrlIsFolderBase)`**
-- **`mintDigital(year, month, dataHash, dataUrl, imageHash, imageUrl, imageHash2, imageUrl2, imageHash3, imageUrl3, fileHash, dataUrlIsFolderBase)`**
+- **`mintPhysical(..., imageHash3, imageUrl3, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
+- **`mintDigital(..., imageHash3, imageUrl3, fileHash, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
+- **`mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** / **`mintPhysicalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** — governance-registered **`IODPExtension`**; **`normalize`** returns `abi.encode` of the **13-tuple** (digital + aux) or **16-tuple** (physical fields + aux, **without** `dataUrlIsFolderBase`). On success the contract emits **`ExtensionMintUsed(mintClass, kind, humanId)`** with **`kind`**: `0` = digital, `1` = physical, in addition to **`PassportMinted`**.
+- **`updatePassportAuxCommitment(humanId, newHash, newUri)`** — **`creator` or `governance`**; enforces the same aux empty/hash rules as at mint; emits **`PassportAuxCommitmentUpdated`**.
 
 ### Reference contract — ownership, URLs, revocation (v0.3)
 
 | Function | Who may call | Notes |
 |----------|----------------|-------|
 | `updatePassportUrls(humanId, newDataUrl, newImageUrl, confirmedDataHash)` | **`creator` or `owner`**, or the **issuer’s active publishing agent** | Requires `confirmedDataHash == dataHash`; revoked passports rejected |
+| `updatePassportAuxCommitment(humanId, newHash, newUri)` | **`creator` or `governance`** | Revoked passports rejected; aux field rules same as mint |
 | `transferPassport(humanId, newOwner)` | **`owner`** | `newOwner != address(0)` |
 | `delegateCreatorPublishing(agent, expiresAt)` | **Registered profile** (`msg.sender`); stored per **`msg.sender`** wallet | Single active agent per issuer wallet; `expiresAt > block.timestamp` |
 | `revokeCreatorPublishing()` | **Registered profile** (clears own slot) | |
@@ -1060,7 +1065,9 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**On-chain (reference contract, generation ≥ 2):**
+**v0.3 reference bytecode:** these entry points were **removed** to satisfy the **EIP-170** deploy limit. They remain available on **v0.2** (`CONTRACT_VERSION` **2**) deployments. For a **second document anchor tied to a passport** on v0.3, use **`auxCommitmentHash` / `auxCommitmentUri`** (mint or **`updatePassportAuxCommitment`**).
+
+**On-chain (reference contract, generation 2 / v0.2 only):**
 
 - `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)`.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — returns `attested`, `creatorId`, timestamp, and `documentUri`.
@@ -1154,10 +1161,9 @@ This section defines the practical read/write surface integrators should align w
 
 Level 1 (core reading)
 - `exists(humanId) -> bool` (no revert)
-- `resolvePassport(humanId) -> (passport, creator, proofCount, contractVersion)` (reverts if not found)
 - `getPassport(humanId) -> Passport` (full struct; reverts if not found)
 - `getCreator(creatorId) -> CreatorRecord`
-- `getProofsForPassportPaged(humanId, offset, limit) -> (proofIds[], total)` (pagination returns slice `[offset, offset+limit)`; does not copy full arrays first)
+- `getProofsForPassport(humanId) -> string[]` (proof IDs; verifiers SHOULD paginate **client-side** if the list may be large)
 - `getProof(proofId) -> ProofRecord`
 - `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
 - `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)`
@@ -1165,7 +1171,9 @@ Level 1 (core reading)
 - `governance() -> address` · `deployer() -> address` · `frozen() -> bool`
 
 Optional Level 1 list endpoints
-- `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> (humanIds[], total)`
+- `getPassportsByCreator(creatorWallet) -> string[]` (full list; UIs SHOULD slice client-side — **v0.3** bytecode omits on-chain paged variants for size)
+
+**Composite read (replacing removed `resolvePassport`):** `getPassport` + `getCreator(passport.creatorId)` + `getProofsForPassport(humanId).length` + `CONTRACT_VERSION` (public constant).
 
 Core guarantees (invariants)
 - Hashes are immutable after mint: `dataHash`, **`imageHash`, `imageHash2`, `imageHash3`**, `fileHash`, `sealHash`.
@@ -1174,13 +1182,12 @@ Core guarantees (invariants)
 - **`submitProof` reverts** if the passport is **revoked**.
 
 Affiliation note (P → P, one-level)
-- `getPAffiliatedChildrenPaged(parentPId, offset, limit) -> (children[], total)` is the preferred pagination endpoint for verifiers/frontends.
-- `getPAffiliatedChildren(parentPId) -> string[]` returns the entire list in v0.2. Verifier/frontends MUST treat the result as potentially large and apply UI/Network caps.
+- `getPAffiliatedChildren(parentPId) -> string[]` returns the full list; verifiers/frontends MUST treat the result as potentially large and apply **client-side** pagination or caps (**v0.3** has no `getPAffiliatedChildrenPaged`).
 - Hard caps in v0.2: a single parent `P` can have at most **100 active child `P`**, and a single child `P` can have at most **100 pending parent proposals** at any moment.
 
-Document anchoring
-- `getExternalDocumentAttestation(wallet, documentHash)` returns metadata for a single `(wallet, hash)` attestation.
-- Reference `verify.html` (v0.2) behaviour for document anchor + global hash check is specified under **Level 1C** above.
+Document anchoring (v0.2 deployments only)
+- `getExternalDocumentAttestation(wallet, documentHash)` returns metadata for a single `(wallet, hash)` attestation when present in bytecode.
+- Reference `verify.html` hides document-anchor tools when `CONTRACT_VERSION` ≥ **3**; **Level 1C** UI remains for **v0.2** registry generations.
 
 ```
 verify(humanId) → VerificationResult
@@ -1217,7 +1224,6 @@ detachPAffiliation(childPId)   // active parent P only
 cancelPAffiliationRequest(parentPId)
 isPAffiliationPending(parentPId, childPId) → bool
 getPAffiliatedParent(childPId) → string
-getPAffiliatedChildrenPaged(parentPId, offset, limit) → (children[], total)
 getPAffiliatedChildren(parentPId) → string[]
 
 transferPassport(humanId, newOwner)

@@ -569,23 +569,28 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 | `revoked` | `bool` | да | Флаг **необратимой** отмены |
 | `revokedAt` | `uint256` | да | Unix-секунды отзыва; **0**, если не отозван |
 | `revocationReasonHash` | `bytes32` | нет | **`keccak256(UTF-8 reason)`**; **0**, если не отозван |
+| `auxCommitmentHash` | `bytes32` | нет | Опциональный **второй** коммитмент (напр. PDF COA), независимый от `dataHash`. **0** = не используется; при **0** поле `auxCommitmentUri` **ДОЛЖНО** быть пустым |
+| `auxCommitmentUri` | `string` | нет | HTTPS-подсказка для aux-файла (макс. **512** символов при ненулевом хэше); **пусто**, если хэш **0** |
 
 **Выводимое:** время цепи для off-chain отображают в **UTC**; отдельного поля `timestampTimeZone` нет.
 
-**Неизменяемость хэшей после mint:** `dataHash`, **`imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` **никогда** не меняются on-chain.
+**Неизменяемость хэшей после mint:** `dataHash`, **`imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` **никогда** не меняются on-chain. **`auxCommitmentHash` / `auxCommitmentUri` изменяемы** через **`updatePassportAuxCommitment`** (только **`creator` или `governance`**; паспорт не должен быть отозван).
 
 **Папочный `dataUrl` при mint:** если `dataUrlIsFolderBase` = true, в вызов передаётся только **корень HTTPS-папки**; контракт сохраняет `stripTrailingSlash(folder) + "/" + humanId + ".json"` после известного Passport ID. **`updatePassportUrls`** всегда задаёт **буквальные** строки (без разрешения папки) и обновляет **только** `dataUrl` и **основной** `imageUrl` — не `imageUrl2` / `imageUrl3`.
 
 ### Референсный контракт — mint (v0.3)
 
-- **`mintPhysical(year, month, dataHash, dataUrl, imageHash, imageUrl, sealType, sealHash, nfcPublicKey, nfcModel, imageHash2, imageUrl2, imageHash3, imageUrl3, dataUrlIsFolderBase)`**
-- **`mintDigital(year, month, dataHash, dataUrl, imageHash, imageUrl, imageHash2, imageUrl2, imageHash3, imageUrl3, fileHash, dataUrlIsFolderBase)`**
+- **`mintPhysical(..., imageHash3, imageUrl3, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
+- **`mintDigital(..., imageHash3, imageUrl3, fileHash, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
+- **`mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** / **`mintPhysicalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** — зарегистрированный governance **`IODPExtension`**; **`normalize`** возвращает `abi.encode` **13-кортежа** (digital + aux) или **16-кортежа** (physical + aux, **без** `dataUrlIsFolderBase`). При успехе эмитится **`ExtensionMintUsed(mintClass, kind, humanId)`** (**`kind`**: `0` digital, `1` physical), дополнительно к **`PassportMinted`**.
+- **`updatePassportAuxCommitment(humanId, newHash, newUri)`** — **`creator` или `governance`**; те же правила пустоты aux, что при mint; событие **`PassportAuxCommitmentUpdated`**.
 
 ### Референсный контракт — владение, URL, отзыв (v0.3)
 
 | Функция | Кто может вызывать | Примечания |
 |----------|----------------|-------|
 | `updatePassportUrls(humanId, newDataUrl, newImageUrl, confirmedDataHash)` | **`creator` или `owner`**, либо **активный агент публикации эмитента** | Нужно `confirmedDataHash == dataHash`; отозванные паспорты отклоняются |
+| `updatePassportAuxCommitment(humanId, newHash, newUri)` | **`creator` или `governance`** | Отозванные паспорты отклоняются; правила aux как при mint |
 | `transferPassport(humanId, newOwner)` | **`owner`** | `newOwner != address(0)` |
 | `delegateCreatorPublishing(agent, expiresAt)` | **Зарегистрированный профиль** (`msg.sender`); слот на кошелёк **`msg.sender`** | Один активный агент на кошелёк эмитента; `expiresAt > block.timestamp` |
 | `revokeCreatorPublishing()` | **Зарегистрированный профиль** (очищает свой слот) | |
@@ -1060,7 +1065,9 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 
 **Назначение:** связать on-chain **SHA-256** оффчейн-файла (например PDF-контракт) с **кошельком Creator**, чтобы контрагенты могли проверить те же байты без доверия только email-вложениям.
 
-**On-chain (референсный контракт, generation ≥ 2):**
+**Референсный байткод v0.3:** эти entry points **удалены** ради лимита **EIP-170**. Они остаются на деплойментах **v0.2** (`CONTRACT_VERSION` **2**). Для **второго якоря документа, привязанного к паспорту**, в v0.3 используйте **`auxCommitmentHash` / `auxCommitmentUri`** (mint или **`updatePassportAuxCommitment`**).
+
+**On-chain (референсный контракт, generation 2 / v0.2 только):**
 
 - `attestExternalDocument(bytes32 documentHash, string documentUri)` — вызывающий должен быть зарегистрирован; `documentHash` — это SHA-256 от raw-байтов файла (то же, что используется для кодирования `fileHash`); `documentUri` опциональный HTTPS URL (макс. 512 символов); **не более одной** аттестации на `(wallet, documentHash)`.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — возвращает `attested`, `creatorId`, timestamp и `documentUri`.
@@ -1154,10 +1161,9 @@ odp://ODP-2026-03-004829301
 
 Уровень 1 (основное чтение)
 - `exists(humanId) -> bool` (не делает revert)
-- `resolvePassport(humanId) -> (passport, creator, proofCount, contractVersion)` (reverts если не найден)
 - `getPassport(humanId) -> Passport` (полная структура; reverts если не найден)
 - `getCreator(creatorId) -> CreatorRecord`
-- `getProofsForPassportPaged(humanId, offset, limit) -> (proofIds[], total)` (pagination возвращает срез `[offset, offset+limit)`; не копирует весь массив до среза)
+- `getProofsForPassport(humanId) -> string[]` (ID доказательств; верификаторы SHOULD пагинировать **на клиенте**, если список может быть большим)
 - `getProof(proofId) -> ProofRecord`
 - `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
 - `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)`
@@ -1165,7 +1171,9 @@ odp://ODP-2026-03-004829301
 - `governance() -> address` · `deployer() -> address` · `frozen() -> bool`
 
 Опциональные списки Уровня 1
-- `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> (humanIds[], total)`
+- `getPassportsByCreator(creatorWallet) -> string[]` (полный список; UI SHOULD нарезать на клиенте — в байткоде **v0.3** нет on-chain пагинации из-за размера)
+
+**Составное чтение (вместо удалённого `resolvePassport`):** `getPassport` + `getCreator(passport.creatorId)` + `getProofsForPassport(humanId).length` + `CONTRACT_VERSION` (публичная константа).
 
 Инварианты (гарантии)
 - Хэши неизменяемы после mint: `dataHash`, **`imageHash`, `imageHash2`, `imageHash3`**, `fileHash`, `sealHash`.
@@ -1174,13 +1182,12 @@ odp://ODP-2026-03-004829301
 - **`submitProof` reverts**, если паспорт **отозван**.
 
 Аффилиация (P → P, один уровень)
-- `getPAffiliatedChildrenPaged(parentPId, offset, limit) -> (children[], total)` — предпочтительный endpoint пагинации для верификаторов/фронтов.
-- `getPAffiliatedChildren(parentPId) -> string[]` возвращает весь список. Верификаторы/фронтенды MUST считать результат потенциально большим и применять UI/Network caps.
+- `getPAffiliatedChildren(parentPId) -> string[]` возвращает весь список. Верификаторы/фронтенды MUST считать результат потенциально большим и применять **клиентскую** пагинацию или лимиты (в **v0.3** нет `getPAffiliatedChildrenPaged`).
 - Hard caps: у одного parent `P` максимум **100** активных child `P`, у одного child `P` максимум **100** ожидающих предложений parent.
 
-Закрепление документов
-- `getExternalDocumentAttestation(wallet, documentHash)` возвращает метаданные для одной аттестации `(wallet, hash)`.
-- Поведение референсного `verify.html` для закрепления документа и глобальной проверки по хэшу описано выше в разделе **Уровень 1C**.
+Закрепление документов (только деплойменты v0.2)
+- `getExternalDocumentAttestation(wallet, documentHash)` возвращает метаданные для одной аттестации `(wallet, hash)`, если функция есть в байткоде.
+- Референсный `verify.html` скрывает инструменты закрепления при `CONTRACT_VERSION` ≥ **3**; UI уровня **1C** остаётся для реестров **v0.2**.
 
 ```
 verify(humanId) → VerificationResult
@@ -1217,7 +1224,6 @@ detachPAffiliation(childPId)   // только активный parent P
 cancelPAffiliationRequest(parentPId)
 isPAffiliationPending(parentPId, childPId) → bool
 getPAffiliatedParent(childPId) → string
-getPAffiliatedChildrenPaged(parentPId, offset, limit) → (children[], total)
 getPAffiliatedChildren(parentPId) → string[]
 
 transferPassport(humanId, newOwner)

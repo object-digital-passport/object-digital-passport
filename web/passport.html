@@ -121,8 +121,9 @@ let selectedImageFile2 = null, selectedImageFile3 = null;
 let walletConnectError = null;
 /** When true, `walletConnectError` is trusted HTML (neutral hint, not escaped). */
 let walletConnectErrorNeutral = false;
-/** Paginated on-chain list in `loadMyPassports`. */
+/** Client-paginated on-chain list in `loadMyPassports` (contract no longer exposes paged reads in v0.3). */
 let myPassportsLoaded = [];
+let myPassportsAllIds = [];
 let myPassportsTotal = 0;
 const MY_PASSPORTS_LIMIT = 20;
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
@@ -365,6 +366,7 @@ async function loadMyPassports(reset) {
   if (reset) {
     el.innerHTML = `<div class="pl-loading">${esc(t("passport.list.loading"))}</div>`;
     myPassportsLoaded = [];
+    myPassportsAllIds = [];
     myPassportsTotal = 0;
     if (btn) btn.disabled = true;
     if (row) row.style.display = "none";
@@ -373,16 +375,15 @@ async function loadMyPassports(reset) {
     btn.disabled = true;
   }
   try {
-    if (typeof contract.getPassportsByCreatorPaged === "function") {
-      const offset = reset ? 0 : myPassportsLoaded.length;
-      const [slice, total] = await contract.getPassportsByCreatorPaged(wallet, offset, MY_PASSPORTS_LIMIT);
-      myPassportsTotal = Number(total || 0);
-      const part = Array.isArray(slice) ? slice : [];
-      myPassportsLoaded = reset ? part.slice() : myPassportsLoaded.concat(part);
-    } else {
+    if (reset) {
       const ids = await contract.getPassportsByCreator(wallet);
-      myPassportsLoaded = Array.isArray(ids) ? ids.slice() : [];
-      myPassportsTotal = myPassportsLoaded.length;
+      myPassportsAllIds = Array.isArray(ids) ? ids.slice() : [];
+      myPassportsTotal = myPassportsAllIds.length;
+      myPassportsLoaded = myPassportsAllIds.slice(0, MY_PASSPORTS_LIMIT);
+    } else {
+      const offset = myPassportsLoaded.length;
+      const more = myPassportsAllIds.slice(offset, offset + MY_PASSPORTS_LIMIT);
+      myPassportsLoaded = myPassportsLoaded.concat(more);
     }
 
     if (myPassportsLoaded.length === 0) {
@@ -432,7 +433,7 @@ async function loadMyPassports(reset) {
           .join("")}
       </div>`;
 
-    if (typeof contract.getPassportsByCreatorPaged === "function" && row && btn && meta) {
+    if (row && btn && meta && myPassportsTotal > MY_PASSPORTS_LIMIT) {
       row.style.display = "flex";
       meta.textContent = t("passport.list.pageMeta")
         .replace("{n}", String(myPassportsLoaded.length))
@@ -1601,6 +1602,15 @@ function renderForm() {
       </div>
     </div>
 
+    <div class="section" id="auxCommitmentV03" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
+      <div class="section-label">Auxiliary commitment (v0.3, optional)</div>
+      <p class="fhint" style="margin:0 0 12px;line-height:1.55">Second on-chain anchor (e.g. PDF certificate) — independent of passport <code>dataHash</code>. Leave hash empty to skip. If hash is set, HTTPS hint optional (max 512 chars).</p>
+      <div class="field"><label>auxCommitmentHash</label>
+        <input type="text" id="f_aux_hash" placeholder="0x + 64 hex or empty" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label>auxCommitmentUri</label>
+        <input type="url" id="f_aux_uri" placeholder="https://…" autocomplete="off"></div>
+    </div>
+
     <div class="section" id="v03OptionalMeta" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
       <div class="section-label">Optional object metadata (v0.3)</div>
       <p class="fhint" style="margin:0 0 12px">All optional; included in <code>dataHash</code> when set (SPEC §18).</p>
@@ -2192,6 +2202,16 @@ function validate() {
     if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return t("passport.form.validateNfc");
     if ((sealType===2||sealType===3) && (!v("f_snum")||!v("f_stype"))) return t("passport.form.validateSeal");
   }
+  if (typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)) {
+    const auxRaw = (document.getElementById("f_aux_hash") && document.getElementById("f_aux_hash").value || "").trim();
+    const auxU = (document.getElementById("f_aux_uri") && document.getElementById("f_aux_uri").value || "").trim();
+    if (auxU.length > 512) return "Auxiliary URI must be at most 512 characters.";
+    if (!auxRaw && auxU) return "Set an auxiliary commitment hash, or clear the auxiliary URL.";
+    if (auxRaw) {
+      const norm = auxRaw.startsWith("0x") ? auxRaw : "0x" + auxRaw;
+      if (!/^0x[a-fA-F0-9]{64}$/.test(norm)) return "Auxiliary hash must be 32 bytes (0x + 64 hex).";
+    }
+  }
   return null;
 }
 
@@ -2329,6 +2349,23 @@ async function executeMint() {
     }
   }
 
+  let auxCommitmentHash = ZERO32;
+  let auxCommitmentUri = "";
+  if (typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)) {
+    const rawAux = (document.getElementById("f_aux_hash") && document.getElementById("f_aux_hash").value || "").trim();
+    auxCommitmentUri = (document.getElementById("f_aux_uri") && document.getElementById("f_aux_uri").value || "").trim();
+    if (rawAux) {
+      try {
+        auxCommitmentHash = ethers.utils.hexlify(ethers.utils.arrayify(rawAux.startsWith("0x") ? rawAux : "0x" + rawAux));
+      } catch {
+        auxCommitmentHash = ZERO32;
+        auxCommitmentUri = "";
+      }
+    } else {
+      auxCommitmentUri = "";
+    }
+  }
+
   document.getElementById("app").innerHTML = `
     <div style="text-align:center;padding:48px 0">
       <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
@@ -2347,6 +2384,9 @@ async function executeMint() {
           sealType,sealHash_,nfcBytes,nfcModelStr,
           ...imgEx,
           dataUrlIsFolderBase,
+          ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+            ? [auxCommitmentHash, auxCommitmentUri]
+            : []),
           mintTxOpts()
         );
       } else {
@@ -2354,6 +2394,9 @@ async function executeMint() {
           year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
           sealType,sealHash_,nfcBytes,nfcModelStr,
           ...imgEx,
+          ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+            ? [auxCommitmentHash, auxCommitmentUri]
+            : []),
           mintTxOpts()
         );
       }
@@ -2362,6 +2405,9 @@ async function executeMint() {
         year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
         ...imgEx,
         fileHashBytes32,dataUrlIsFolderBase,
+        ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+          ? [auxCommitmentHash, auxCommitmentUri]
+          : []),
         mintTxOpts()
       );
     } else {
@@ -2369,6 +2415,9 @@ async function executeMint() {
         year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
         ...imgEx,
         fileHashBytes32,
+        ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+          ? [auxCommitmentHash, auxCommitmentUri]
+          : []),
         mintTxOpts()
       );
     }

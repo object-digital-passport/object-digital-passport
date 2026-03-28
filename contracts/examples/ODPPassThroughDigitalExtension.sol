@@ -3,8 +3,8 @@ pragma solidity ^0.8.20;
 
 import { IODPExtension } from "../ObjectDigitalPassport.sol";
 
-/// @dev Test / reference `IODPExtension`: `payload` is already `abi.encode` of the 11-tuple expected by
-///      `ObjectDigitalPassport.mintDigitalViaExtension` after `normalize` (same layout as core decode).
+/// @dev Test / reference `IODPExtension`: `payload` is already `abi.encode` of the 13-tuple expected by
+///      `ObjectDigitalPassport.mintDigitalViaExtension` after `normalize` (digital fields + aux pair).
 contract ODPPassThroughDigitalExtension is IODPExtension {
     error InvalidPayload();
 
@@ -12,7 +12,7 @@ contract ODPPassThroughDigitalExtension is IODPExtension {
         if (payload.length == 0) revert InvalidPayload();
         abi.decode(
             payload,
-            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32)
+            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32, bytes32, string)
         );
     }
 

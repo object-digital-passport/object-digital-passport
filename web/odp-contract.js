@@ -35,7 +35,7 @@
     return generation >= 3;
   }
 
-  /** getPassport / resolvePassport passport tuple — v0.2 layout (CONTRACT_VERSION packed < 3). */
+  /** getPassport passport tuple — v0.2 layout (CONTRACT_VERSION packed < 3). */
   function odpPassportTupleComponentsV02() {
     return [
       { name: "humanId", type: "string" },
@@ -86,6 +86,8 @@
       { name: "revoked", type: "bool" },
       { name: "revokedAt", type: "uint256" },
       { name: "revocationReasonHash", type: "bytes32" },
+      { name: "auxCommitmentHash", type: "bytes32" },
+      { name: "auxCommitmentUri", type: "string" },
     ];
   }
 
@@ -357,8 +359,9 @@
     return "Site " + ODP_SITE_VERSION + " · on-chain generation " + g + " — " + spec;
   }
 
+  /** v0.3+ bytecode removed `attestExternalDocument` (EIP-170 size); v0.2 registries may still expose it. */
   function odpSupportsExternalDocAttest(generation) {
-    return generation >= 2;
+    return generation === 2;
   }
 
   /** Long disclosure copy (also in `odp-site-trust-disclosure.html` for the modal). */
@@ -664,6 +667,16 @@
       mintPhysicalInputs.push({ name: "dataUrlIsFolderBase", type: "bool" });
       mintDigitalInputs.push({ name: "dataUrlIsFolderBase", type: "bool" });
     }
+    if (odpSupportsV03(generation)) {
+      mintDigitalInputs.push(
+        { name: "auxCommitmentHash", type: "bytes32" },
+        { name: "auxCommitmentUri", type: "string" }
+      );
+      mintPhysicalInputs.push(
+        { name: "auxCommitmentHash", type: "bytes32" },
+        { name: "auxCommitmentUri", type: "string" }
+      );
+    }
 
     var passportAbi = [
       {
@@ -732,20 +745,6 @@
           stateMutability: "view",
           inputs: [],
           outputs: [{ name: "", type: "uint32" }],
-        },
-        {
-          name: "getPassportsByCreatorPaged",
-          type: "function",
-          stateMutability: "view",
-          inputs: [
-            { name: "creator", type: "address" },
-            { name: "offset", type: "uint256" },
-            { name: "limit", type: "uint256" },
-          ],
-          outputs: [
-            { name: "result", type: "string[]" },
-            { name: "total", type: "uint256" },
-          ],
         },
         {
           name: "submitProof",
@@ -837,6 +836,17 @@
           inputs: [
             { name: "humanId", type: "string" },
             { name: "reasonHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "updatePassportAuxCommitment",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "humanId", type: "string" },
+            { name: "newHash", type: "bytes32" },
+            { name: "newUri", type: "string" },
           ],
           outputs: [],
         },
@@ -991,45 +1001,6 @@
           outputs: [{ name: "", type: "string[]" }],
         },
         {
-          name: "getPAffiliatedChildrenPaged",
-          type: "function",
-          stateMutability: "view",
-          inputs: [
-            { name: "parentPId", type: "string" },
-            { name: "offset", type: "uint256" },
-            { name: "limit", type: "uint256" },
-          ],
-          outputs: [
-            { name: "", type: "string[]" },
-            { name: "total", type: "uint256" },
-          ],
-        },
-        {
-          name: "attestExternalDocument",
-          type: "function",
-          stateMutability: "nonpayable",
-          inputs: [
-            { name: "documentHash", type: "bytes32" },
-            { name: "documentUri", type: "string" },
-          ],
-          outputs: [],
-        },
-        {
-          name: "getExternalDocumentAttestation",
-          type: "function",
-          stateMutability: "view",
-          inputs: [
-            { name: "wallet", type: "address" },
-            { name: "documentHash", type: "bytes32" },
-          ],
-          outputs: [
-            { name: "attested", type: "bool" },
-            { name: "creatorId", type: "string" },
-            { name: "timestamp", type: "uint256" },
-            { name: "documentUri", type: "string" },
-          ],
-        },
-        {
           name: "submitProof",
           type: "function",
           stateMutability: "nonpayable",
@@ -1121,31 +1092,6 @@
         ],
       },
       {
-        name: "resolvePassport",
-        type: "function",
-        stateMutability: "view",
-        inputs: [{ name: "humanId", type: "string" }],
-        outputs: [
-          {
-            name: "passport",
-            type: "tuple",
-            components: passComps,
-          },
-          {
-            name: "creator",
-            type: "tuple",
-            components: [
-              { name: "creatorId", type: "string" },
-              { name: "wallet", type: "address" },
-              { name: "typePrefix", type: "bytes1" },
-              { name: "timestamp", type: "uint256" },
-            ],
-          },
-          { name: "proofCount", type: "uint256" },
-          { name: "version", type: "uint8" },
-        ],
-      },
-      {
         name: "exists",
         type: "function",
         stateMutability: "view",
@@ -1183,20 +1129,6 @@
         stateMutability: "view",
         inputs: [{ name: "humanId", type: "string" }],
         outputs: [{ name: "", type: "string[]" }],
-      },
-      {
-        name: "getProofsForPassportPaged",
-        type: "function",
-        stateMutability: "view",
-        inputs: [
-          { name: "humanId", type: "string" },
-          { name: "offset", type: "uint256" },
-          { name: "limit", type: "uint256" },
-        ],
-        outputs: [
-          { name: "result", type: "string[]" },
-          { name: "total", type: "uint256" },
-        ],
       },
       {
         name: "getProof",
@@ -1242,20 +1174,6 @@
         stateMutability: "view",
         inputs: [{ name: "parentPId", type: "string" }],
         outputs: [{ name: "", type: "string[]" }],
-      },
-      {
-        name: "getPAffiliatedChildrenPaged",
-        type: "function",
-        stateMutability: "view",
-        inputs: [
-          { name: "parentPId", type: "string" },
-          { name: "offset", type: "uint256" },
-          { name: "limit", type: "uint256" },
-        ],
-        outputs: [
-          { name: "", type: "string[]" },
-          { name: "total", type: "uint256" },
-        ],
       },
     ];
     if (odpSupportsV03(gen)) {
@@ -1303,21 +1221,23 @@
         }
       );
     }
-    abi.push({
-      name: "getExternalDocumentAttestation",
-      type: "function",
-      stateMutability: "view",
-      inputs: [
-        { name: "wallet", type: "address" },
-        { name: "documentHash", type: "bytes32" },
-      ],
-      outputs: [
-        { name: "attested", type: "bool" },
-        { name: "creatorId", type: "string" },
-        { name: "timestamp", type: "uint256" },
-        { name: "documentUri", type: "string" },
-      ],
-    });
+    if (odpSupportsExternalDocAttest(gen)) {
+      abi.push({
+        name: "getExternalDocumentAttestation",
+        type: "function",
+        stateMutability: "view",
+        inputs: [
+          { name: "wallet", type: "address" },
+          { name: "documentHash", type: "bytes32" },
+        ],
+        outputs: [
+          { name: "attested", type: "bool" },
+          { name: "creatorId", type: "string" },
+          { name: "timestamp", type: "uint256" },
+          { name: "documentUri", type: "string" },
+        ],
+      });
+    }
     return abi;
   }
 
