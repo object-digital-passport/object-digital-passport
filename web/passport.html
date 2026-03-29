@@ -570,10 +570,18 @@ function scrollToElId(id) {
   scrollToPassportSection(document.getElementById(id));
 }
 
+/** Profile IDs are `C-…`, `B-…`, `P-…`, `M-…` (ASCII). Ignores BOM/trim; requires the hyphen so stray strings do not match. */
+function odpPassportProfileTypeLetter(id) {
+  if (id == null) return "";
+  const s = String(id).replace(/^\uFEFF/, "").trim();
+  const m = /^([CBPM])-/i.exec(s);
+  return m ? m[1].toUpperCase() : "";
+}
+
 function canShowPassportPmProof() {
+  const letter = odpPassportProfileTypeLetter(creatorId);
   return (
-    creatorId &&
-    (creatorId.charAt(0) === "P" || creatorId.charAt(0) === "M") &&
+    (letter === "P" || letter === "M") &&
     odpContractGeneration >= 2 &&
     contract &&
     typeof contract.submitProof === "function"
@@ -875,7 +883,7 @@ async function passportV03RefreshState() {
     if (instBlock)
       instBlock.style.display =
         hasCounterfeitOnChain && !revoked && canShowPassportPmProof() ? "block" : "none";
-    if (paffBlock) paffBlock.style.display = creatorId && String(creatorId).charAt(0) === "P" ? "block" : "none";
+    if (paffBlock) paffBlock.style.display = odpPassportProfileTypeLetter(creatorId) === "P" ? "block" : "none";
     const canClearCf = ccActive && ccProver && creatorId && ccProver === creatorId;
     const cfRaise = document.getElementById("passportV03CfRaiseBtn");
     const cfClear = document.getElementById("passportV03CfClearBtn");
@@ -1821,10 +1829,14 @@ function renderForm() {
     syncHostingInputs();
     if (canShowPassportPmProof()) bindPMProofHandlers();
     bindPassportV03Operations();
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'run-ui-'+Date.now(),hypothesisId:'H5',location:'web/passport.html:renderForm:default-tool-postfix',message:'renderForm selects mint as default tool',data:{call:'activatePassportTool(\"mint\", false)',queryTool:String((new URLSearchParams(window.location.search).get('tool')||'')),expectedMintVisible:true},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    activatePassportTool("mint", false);
+    // P/M: keep mint workspace behind the menu until the user opens it (or ?tool=mint). C/B: go straight to mint.
+    if (canShowPassportPmProof()) {
+      const qTool = (new URLSearchParams(window.location.search).get("tool") || "").trim();
+      if (qTool === "mint") activatePassportTool("mint", false);
+      else activatePassportTool("", false);
+    } else {
+      activatePassportTool("mint", false);
+    }
   });
 }
 
@@ -2519,9 +2531,6 @@ async function executeMint() {
     }
 
     // dataHash on-chain is sha256(passportForHash). Bundle JSON = same object + real passportId (verify minify maps ID → null to match hash).
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H3',location:'passport.html:mint:beforeShowSuccess',message:'mint reached pre-showSuccess',data:{humanId:String(humanId||''),humanIdSource:String(humanIdSource||''),receiptLogCount:(receipt&&receipt.logs&&receipt.logs.length)||0,jsZipType:typeof JSZip,registeredDataUrlLen:(registeredDataUrl&&String(registeredDataUrl).length)||0},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     const passportOut = JSON.parse(JSON.stringify(passportForHash));
     passportOut.passportId = humanId;
     const finalJson = canonicalJsonString(passportOut);
@@ -2811,9 +2820,6 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
 }
 
 function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
-  // #region agent log
-  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H3',location:'passport.html:showSuccess:entry',message:'showSuccess entered',data:{humanId:String(humanId||''),jsonLen:(json&&json.length)||0,jsZipType:typeof JSZip},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   const net = NET;
   const rel = getVerifyRelativePath(humanId);
   const hasPublicUrl = dataUrlOnChain && String(dataUrlOnChain).trim().length > 0;
@@ -2956,11 +2962,7 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
       downloadJsonBlob(doc, `${safeFilePart(humanId)}-did-document.json`);
     };
   }
-  void downloadPassportOdp(humanId, json, bundleMeta).catch((e) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H1',location:'passport.html:showSuccess:downloadReject',message:'downloadPassportOdp rejected',data:{err:String((e&&e.message)||e)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  });
+  void downloadPassportOdp(humanId, json, bundleMeta).catch(() => {});
 }
 
 /** Returns true if the system share sheet completed successfully; false if Web Share with files is unavailable. */
@@ -3004,9 +3006,6 @@ function blobDownloadOdp(humanId, blob) {
 
 /** SPEC §15 + §15.1.1 — `.odpass` ZIP: `originals/<role>__<file>` + `manifest.originals` paths; aligned with `tools/mint.py`. */
 async function createPassportOdpBlob(humanId, json, bundleMeta) {
-  // #region agent log
-  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H4',location:'passport.html:createPassportOdpBlob:entry',message:'createPassportOdpBlob',data:{jsZipType:typeof JSZip,hasOriginal:!!(bundleMeta&&bundleMeta.originalFile),hasImg:!!(bundleMeta&&bundleMeta.imageFile)},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
   const zip = new JSZip();
   zip.file("passport.json", json);
@@ -3090,24 +3089,8 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
 }
 
 async function downloadPassportOdp(humanId, json, bundleMeta) {
-  // #region agent log
-  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H1',location:'passport.html:downloadPassportOdp:entry',message:'downloadPassportOdp start',data:{humanId:String(humanId||'')},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-  try {
-    const blob = await createPassportOdpBlob(humanId, json, bundleMeta);
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H2',location:'passport.html:downloadPassportOdp:blob',message:'zip blob ready',data:{blobSize:blob&&blob.size},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    blobDownloadOdp(humanId, blob);
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H2',location:'passport.html:downloadPassportOdp:afterClick',message:'blobDownloadOdp invoked',data:{humanId:String(humanId||'')},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-  } catch (e) {
-    // #region agent log
-    fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:'mint',hypothesisId:'H1',location:'passport.html:downloadPassportOdp:catch',message:'downloadPassportOdp threw',data:{err:String((e&&e.message)||e)},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-    throw e;
-  }
+  const blob = await createPassportOdpBlob(humanId, json, bundleMeta);
+  blobDownloadOdp(humanId, blob);
 }
 
 function fmtSz(b) {

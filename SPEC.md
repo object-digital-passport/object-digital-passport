@@ -313,6 +313,12 @@ Only the act of publicly publishing the profile ID on a real website — combine
 institution's existing real-world reputation — provides the basis for trust.
 Verifiers display only the profile ID, never a self-declared name.
 
+### Optional public allowlist of institution IDs (off-chain, anti-spam)
+
+Implementers of verifiers, marketplaces, or institutional UIs **may** maintain an **off-chain** allowlist or directory of `P` (and optionally `M`) profile IDs they choose to **highlight** or **show by default**, as a **spam-reduction** or UX convenience measure. This is **not** enforced by the smart contract and **does not** change open registration on-chain.
+
+**Normative guidance for any published directory marketed as trustworthy:** each listed profile ID **must** be accompanied by at least one **HTTPS URL** on the **organization’s own official website** — specifically a page (or stable section) where that **same** profile ID is visibly published, so end users can confirm the mapping without relying solely on the directory operator. Directories that list IDs **without** such verifiable on-site links **must not** be presented as authoritative; they are at best informal curation.
+
 ### Optional P-affiliation (one parent per child)
 
 When two Proof Institutions should appear linked in a simple hierarchy (head office
