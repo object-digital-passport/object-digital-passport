@@ -538,10 +538,8 @@ function htmlCategoryOptionsDigital() {
   return `<option value="digital">${esc(t("passport.form.catDigitalOnly"))}</option>`;
 }
 function defaultIssuerRoleFromCreatorId(cid) {
-  const p = String(cid || "")
-    .trim()
-    .charAt(0)
-    .toUpperCase();
+  const p =
+    typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(cid) : "";
   if (p === "B") return "brand";
   if (p === "P") return "proof_institution";
   if (p === "M") return "museum";
@@ -1287,7 +1285,8 @@ async function updatePassportMintsRow() {
     const remBn = await contract.getRemainingMints(wallet);
     const remN = remBn && typeof remBn.toNumber === "function" ? remBn.toNumber() : Number(remBn);
     const maxU32 = 4294967295;
-    const prefix = creatorId ? String(creatorId).charAt(0).toUpperCase() : "";
+    const prefix =
+      typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "";
     if (remN === maxU32 || prefix === "P" || prefix === "M") {
       el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(t("passport.mints.unlimited"))}</div>`;
       return;

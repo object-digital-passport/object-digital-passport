@@ -106,7 +106,7 @@
   <p class="fhint" id="idExistsHint" style="min-height:1.25em;margin-top:8px;font-size:12px;color:var(--text3);max-width:42rem;line-height:1.5" aria-live="polite"></p>
 </div>
 
-<section class="card verify-paff-audit-card" id="verifyPaffAuditSection" style="margin-top:18px;max-width:42rem">
+<section class="card verify-paff-audit-card" id="verifyPaffAuditSection" hidden style="margin-top:18px;max-width:42rem;display:none" aria-hidden="true">
   <div class="card-head" data-i18n="verify.paffAudit.title">P affiliation — on-chain audit</div>
   <div class="card-body" style="padding-top:12px">
     <p class="fhint" style="margin:0 0 12px;line-height:1.55" data-i18n="verify.paffAudit.lead">
@@ -442,6 +442,36 @@ let docAttestContract = null;
 const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
 let verifyWalletCreatorId = "";
 
+/** P-affiliation audit: same audience as Profile «structure» — registered P profiles only (v0.3 registry). */
+function verifyWalletProfileLetter() {
+  if (typeof odpPassportProfileTypeLetter === "function") {
+    return odpPassportProfileTypeLetter(verifyWalletCreatorId);
+  }
+  const id = verifyWalletCreatorId;
+  if (!id) return "";
+  const s = String(id).replace(/^\uFEFF/, "").trim();
+  const m = /^([CBPM])-/i.exec(s);
+  return m ? m[1].toUpperCase() : "";
+}
+
+function syncVerifyPaffAuditVisibility() {
+  const sec = document.getElementById("verifyPaffAuditSection");
+  if (!sec) return;
+  const genOk =
+    typeof odpSupportsV03 === "function" &&
+    odpSupportsV03(odpContractGeneration != null ? odpContractGeneration : 0);
+  const show = genOk && verifyWalletProfileLetter() === "P" && !!String(verifyWalletCreatorId || "").trim();
+  if (show) {
+    sec.hidden = false;
+    sec.style.display = "";
+    sec.setAttribute("aria-hidden", "false");
+  } else {
+    sec.hidden = true;
+    sec.style.display = "none";
+    sec.setAttribute("aria-hidden", "true");
+  }
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function init() {
@@ -596,6 +626,7 @@ async function initVerifyWalletBar() {
     } catch {}
   }
   syncDocAttestPreviews();
+  syncVerifyPaffAuditVisibility();
 }
 
 async function disconnectVerifyWallet() {
@@ -614,6 +645,7 @@ async function disconnectVerifyWallet() {
   if (uriIn) uriIn.value = "";
   syncDocAttestPreviews();
   setVerifyWalletBar("");
+  syncVerifyPaffAuditVisibility();
 }
 
 async function connect() {
@@ -634,6 +666,7 @@ async function connect() {
           lbl.innerHTML = "";
         }
         odpContractGeneration = null;
+        syncVerifyPaffAuditVisibility();
         return;
       }
       const probed = await odpProbeContractGenerationCached(c.contract, c.chainId, POLYGON_RPC_FALLBACKS, ethers);
@@ -655,6 +688,7 @@ async function connect() {
         if (docSec) docSec.hidden = true;
         if (docAttestSec) docAttestSec.hidden = true;
         setNet("warn", `${c.name} — ${t("verify.net.legacyNotSupported")}`);
+        syncVerifyPaffAuditVisibility();
         return;
       }
       verifyReadAbi = odpBuildVerifyReadAbi(odpContractGeneration);
@@ -680,6 +714,7 @@ async function connect() {
       }
       setNet("on", `${c.name}${t("verify.net.genLabel")}${odpContractGeneration}`);
       if (typeof odpPersistRegistryContractToSession === "function") odpPersistRegistryContractToSession(c);
+      syncVerifyPaffAuditVisibility();
       return;
     } catch (e) {
       lastErr = e;
@@ -699,6 +734,7 @@ async function connect() {
     lbl.hidden = true;
     lbl.setAttribute("aria-hidden", "true");
   }
+  syncVerifyPaffAuditVisibility();
 }
 
 function setNet(state, label) {
@@ -2764,6 +2800,7 @@ async function connectDocAttestWallet() {
     const hashNow = (document.getElementById("docAttestHash") && document.getElementById("docAttestHash").textContent || "").replace(/^SHA-256:\s*/i, "").trim();
     syncDocAttestPreviews();
     if (out) out.innerHTML = "";
+    syncVerifyPaffAuditVisibility();
   } catch (e) {
     if (out) out.innerHTML = `<div class="err-box">${esc(e && (e.reason || e.message) ? String(e.reason || e.message) : String(e))}</div>`;
   }
@@ -3115,6 +3152,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         setVerifyWalletBar(addr);
         setDocAttestWalletLabel(addr);
         syncDocAttestPreviews();
+        syncVerifyPaffAuditVisibility();
       });
     });
   }

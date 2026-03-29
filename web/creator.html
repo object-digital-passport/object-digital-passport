@@ -151,7 +151,12 @@ function render() {
     app.innerHTML = renderAlready();
     bindCreatorShare();
     if (typeof odpBindPassportV03Operations === "function") odpBindPassportV03Operations();
-    if (creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2 && contract && typeof contract.getPAffiliatedChildren === "function") {
+    if (
+      (typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "") === "P" &&
+      odpContractGeneration >= 2 &&
+      contract &&
+      typeof contract.getPAffiliatedChildren === "function"
+    ) {
       bindPAffiliationHandlers();
     }
     queueMicrotask(() => {
@@ -777,7 +782,8 @@ function renderAlready() {
         : ""
     }
     ${
-      creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2
+      (typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "") === "P" &&
+      odpContractGeneration >= 2
         ? `
     <div class="card" style="margin-top:20px">
       <div class="card-head">${esc(t("creator.pAff.cardTitle"))}</div>
