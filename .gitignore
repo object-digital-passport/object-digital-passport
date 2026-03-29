@@ -7,6 +7,7 @@
 # Never commit private keys
 .env
 deploy/.env
+deploy/user-setup/private.local.env
 
 # Node
 node_modules/

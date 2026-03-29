@@ -1,14 +1,31 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
+const fs = require("fs");
 const path = require("path");
 const { task } = require("hardhat/config");
 
-// Load from .env file — never commit private keys to git
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+// deploy/.env then deploy/user-setup/private.local.env (override) — see deploy/user-setup/README.md
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+const userSetupEnvPath = path.join(__dirname, "user-setup", "private.local.env");
+require("dotenv").config({
+  path: userSetupEnvPath,
+  override: true,
+});
+
+const PRIVATE_KEY = (process.env.PRIVATE_KEY || "").trim();
 const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "";
+// Use ODP_* so a broken POLYGON_RPC_URL from ~/.zshrc (dead Alchemy) does not override.
+const POLYGON_RPC_URL =
+  process.env.ODP_POLYGON_RPC_URL || "https://polygon-bor-rpc.publicnode.com";
+const AMOY_RPC_URL =
+  process.env.ODP_AMOY_RPC_URL || "https://rpc-amoy.polygon.technology";
 
 if (!PRIVATE_KEY) {
-  console.warn("WARNING: PRIVATE_KEY not set in .env — deploy will fail");
+  const exists = fs.existsSync(userSetupEnvPath);
+  console.warn(
+    exists
+      ? `WARNING: PRIVATE_KEY missing or empty in ${userSetupEnvPath} (one line: PRIVATE_KEY=64hex without 0x). Do not put secrets in private.local.env.example.`
+      : `WARNING: PRIVATE_KEY not set — copy deploy/user-setup/private.local.env.example to deploy/user-setup/private.local.env and fill PRIVATE_KEY (see deploy/user-setup/README.md).`
+  );
 }
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -41,14 +58,14 @@ module.exports = {
 
     // Polygon Amoy — testnet (free, faucet available)
     amoy: {
-      url: "https://rpc-amoy.polygon.technology",
+      url: AMOY_RPC_URL,
       chainId: 80002,
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
 
     // Polygon PoS — mainnet (~$0.01 per mint)
     polygon: {
-      url: "https://polygon-rpc.com",
+      url: POLYGON_RPC_URL,
       chainId: 137,
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },

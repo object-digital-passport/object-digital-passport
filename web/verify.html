@@ -245,12 +245,12 @@ const NET = {
   chainId:  137,
   rpc:      POLYGON_RPC_FALLBACKS[0],
   explorer: "https://polygonscan.com",
-  contract: "0x6c83c8C2e18c183a2776431a23187832b42FfFBb",
+  contract: "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
   /** Optional `ODPWalletDocumentAnchor` for `attestExternalDocument` when the main registry is v0.3+ (EIP-170). */
-  docAnchor: null,
+  docAnchor: "0xA040E5e6e270b9e7303ce75421937e0D455F2eA5",
   contractGenerationFallback: null,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
-  previousContracts: [],
+  previousContracts: ["0x6c83c8C2e18c183a2776431a23187832b42FfFBb"],
 };
 
 /** Filled in `connect()` after RPC probe sets `odpContractGeneration` (tuple layout differs v0.2 vs v0.3). */
