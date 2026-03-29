@@ -2,7 +2,7 @@
  * ODP shared UI — dual-theme (Fraunces + DM Mono)
  * Author: Andrei Chernikov
  * Used by creator.html, passport.html, verify.html
- * Themes: dark (default), blue (light) — switched via data-theme on <html>
+ * Themes: blue (light, default), dark — switched via data-theme on <html> (see odp-theme.js)
  */
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Mono:wght@300;400;500&display=swap');
 
@@ -48,6 +48,21 @@
   /* Single content column: matches .page width (680px ≈ 42.5rem @ 16px) */
   --page-max: 680px;
   --text-measure: min(100%, 42rem);
+  /* Passport form panels on page — same geometry as light (blue) theme */
+  --page-section-bg: var(--bg3);
+  --page-section-border: var(--border);
+  --page-section-label-border: var(--border);
+  --page-tt-bg: var(--bg2);
+  --page-tt-border: var(--border);
+  --page-tt-hover-bg: var(--bg2);
+  --page-tt-hover-border: var(--border2);
+  --page-tt-sel-bg: var(--bg3);
+  --page-tt-sel-border: var(--accent2);
+  --page-fdrop-bg: var(--bg2);
+  --page-fdrop-border: var(--border2);
+  --page-fdrop-hover-bg: var(--bg3);
+  --page-fdrop-hover-border: var(--accent2);
+  --nav-active-bg: rgba(255, 255, 255, 0.06);
 }
 
 /* ── Blue theme (light) ── */
@@ -93,6 +108,20 @@ html[data-theme="blue"] {
   --on-bg2:  rgba(255, 255, 255, 0.95);
   --on-bg3:  rgba(255, 255, 255, 0.80);
   --on-bg-border: rgba(255, 255, 255, 0.28);
+  --page-section-bg: rgba(255, 255, 255, 0.10);
+  --page-section-border: rgba(255, 255, 255, 0.18);
+  --page-section-label-border: rgba(255, 255, 255, 0.25);
+  --page-tt-bg: rgba(255, 255, 255, 0.07);
+  --page-tt-border: rgba(255, 255, 255, 0.18);
+  --page-tt-hover-bg: rgba(255, 255, 255, 0.12);
+  --page-tt-hover-border: rgba(255, 255, 255, 0.40);
+  --page-tt-sel-bg: rgba(255, 255, 255, 0.15);
+  --page-tt-sel-border: var(--accent);
+  --page-fdrop-bg: rgba(255, 255, 255, 0.07);
+  --page-fdrop-border: rgba(255, 255, 255, 0.22);
+  --page-fdrop-hover-bg: rgba(255, 255, 255, 0.14);
+  --page-fdrop-hover-border: rgba(255, 255, 255, 0.40);
+  --nav-active-bg: rgba(255, 255, 255, 0.10);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -141,11 +170,19 @@ header {
 }
 
 header.header-row {
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   text-align: left;
+}
+
+/* Italic display serif reads uneven next to the mono subline; keep page titles stable */
+header.header-row h1 {
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: -0.015em;
 }
 
 .header-left {
@@ -162,6 +199,43 @@ header.header-row {
   flex-shrink: 0;
 }
 
+/* Wallet disconnect — compact red control in header (replaces bottom wallet bar) */
+.odp-header-disconnect {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: #c0392b;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, transform 0.1s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+/* Author `display` on the button overrides UA `[hidden]` (same specificity) — force hide when disconnected */
+.odp-header-disconnect[hidden] {
+  display: none !important;
+}
+.odp-header-disconnect:hover {
+  background: #a93226;
+}
+.odp-header-disconnect:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.odp-header-disconnect svg {
+  display: block;
+  stroke: currentColor;
+  fill: none;
+}
+html[data-theme="blue"] .odp-header-disconnect {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
 .odp-lang-switch {
   display: flex;
   align-items: center;
@@ -170,13 +244,33 @@ header.header-row {
 
 /* Matches .net-pill: one closed control; other locales only in the native dropdown list */
 .odp-lang-wrap {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
   border: 1px solid var(--border);
   border-radius: 100px;
   background: var(--bg2);
-  padding: 0 2px 0 0;
+  padding: 0;
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+/* Chevron on wrapper — WebKit often tiles background-image on <select> (repeat glitch) */
+.odp-lang-wrap::after {
+  content: "";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px 14px;
+}
+.odp-lang-wrap:hover::after,
+.odp-lang-wrap:focus-within::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%23e8e6e3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .odp-lang-wrap:hover {
@@ -188,22 +282,24 @@ header.header-row {
   box-shadow: 0 0 0 1px var(--focus-ring);
 }
 
+/* No chevron on <select> — see .odp-lang-wrap::after */
 .odp-lang-select {
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
-  padding: 7px 26px 7px 12px;
+  padding: 8px 26px 8px 10px;
   border: none;
   border-radius: 100px;
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8580' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
-  background-size: 12px 12px;
-  font-size: 13px;
+  background-color: transparent;
+  background-image: none;
+  font-size: 11px;
   font-family: var(--mono);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--text2);
   cursor: pointer;
-  min-width: 5.5rem;
-  max-width: 10rem;
+  min-width: 0;
+  width: fit-content;
+  max-width: 11rem;
 }
 
 .odp-lang-select:hover {
@@ -239,20 +335,30 @@ h1 {
   line-height: 1.12;
   overflow-wrap: break-word;
   word-break: normal;
-  text-wrap: balance;
+  /* `balance` can split short titles oddly when the title column is narrow */
+  text-wrap: wrap;
   max-width: 100%;
 }
 
 .sub {
   font-size: 12px;
   color: var(--text2);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   margin-top: 8px;
-  line-height: 1.5;
+  line-height: 1.45;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: manual;
+  max-width: 42rem;
 }
 
-.header-left .sub { margin-top: 6px; }
+.header-left .sub {
+  margin-top: 6px;
+  max-width: none;
+  text-wrap: balance;
+  line-height: 1.4;
+}
 
 /* Network pill */
 .net-pill {
@@ -301,9 +407,13 @@ h1 {
   transition: all 0.15s;
 }
 
-.nav a:hover, .nav a.active {
+.nav a:hover,
+.nav a.active {
   color: var(--accent);
   border-color: var(--accent2);
+}
+.nav a.active {
+  background: var(--nav-active-bg);
 }
 
 /* Steps (creator) */
@@ -517,6 +627,134 @@ a.btn-sec:hover {
 
 .btn-sec:hover { border-color: var(--text2); color: var(--text); }
 
+/* Profile — institution structure (P parent/child): avoid full-width .btn stacks */
+.creator-p-aff-card .p-aff-lead {
+  font-size: 12px;
+  color: var(--text2);
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
+.creator-p-aff-card .p-aff-status {
+  margin-bottom: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.creator-p-aff-card .p-aff-section {
+  margin-bottom: 20px;
+}
+.creator-p-aff-card .p-aff-section:last-of-type {
+  margin-bottom: 16px;
+}
+.creator-p-aff-card .search-label {
+  font-size: 13px;
+  font-family: var(--mono);
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text2);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.creator-p-aff-card .p-aff-input {
+  display: block;
+  width: 100%;
+  max-width: 28rem;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+.creator-p-aff-card .p-aff-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+}
+.creator-p-aff-card .p-aff-actions .btn,
+.creator-p-aff-card .p-aff-actions .btn-sec {
+  flex: 1 1 12rem;
+  min-width: 0;
+  width: auto;
+  margin-top: 0;
+  min-height: 44px;
+  padding: 12px 18px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+}
+.creator-p-aff-card .p-aff-actions--single .btn,
+.creator-p-aff-card .p-aff-actions--single .btn-sec {
+  flex: 0 1 auto;
+  max-width: min(100%, 22rem);
+}
+.creator-p-aff-card .p-aff-result {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.creator-p-aff-card .p-aff-result + .p-aff-result {
+  margin-top: 6px;
+}
+.creator-p-aff-card .p-aff-hint {
+  font-size: 11px;
+  color: var(--text3);
+  margin: 10px 0 0;
+  line-height: 1.45;
+}
+.creator-p-aff-card .p-aff-children-title {
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+.creator-p-aff-card .p-aff-children-list {
+  font-size: 12px;
+  word-break: break-word;
+  line-height: 1.45;
+}
+.creator-p-aff-card .p-aff-children-footer {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.creator-p-aff-card .p-aff-children-meta {
+  flex: 1 1 140px;
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.35;
+  min-width: 0;
+}
+.creator-p-aff-card .p-aff-children-footer .btn,
+.creator-p-aff-card .p-aff-children-footer .btn-sec {
+  flex: 0 0 auto;
+  width: auto;
+  margin-top: 0;
+  min-height: 40px;
+  padding: 10px 18px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+@media (max-width: 520px) {
+  .creator-p-aff-card .p-aff-actions .btn,
+  .creator-p-aff-card .p-aff-actions .btn-sec {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+  }
+  .creator-p-aff-card .p-aff-actions--single .btn,
+  .creator-p-aff-card .p-aff-actions--single .btn-sec {
+    max-width: none;
+  }
+}
+
 .result-id {
   font-family: var(--mono);
   font-size: 28px;
@@ -600,7 +838,21 @@ button.wbar-dis {
 }
 
 /* Passport form */
-.section { margin-bottom: 28px; }
+.section {
+  margin-bottom: 28px;
+  background: var(--page-section-bg);
+  border: 1px solid var(--page-section-border);
+  border-radius: 10px;
+  padding: 20px;
+}
+/* Nested workflow blocks inside tool cards must not double the panel */
+.card .section {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  margin-bottom: 28px;
+}
 .section-label {
   font-size: 12px;
   letter-spacing: 0.14em;
@@ -609,6 +861,12 @@ button.wbar-dis {
   margin-bottom: 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
+}
+.section .section-label {
+  border-bottom-color: var(--page-section-label-border);
+}
+.card .section .section-label {
+  border-bottom-color: var(--border);
 }
 
 .field { margin-bottom: 14px; }
@@ -673,14 +931,33 @@ select option { background: var(--bg2); }
 }
 .tt-opt:hover { border-color: var(--border2); }
 .tt-opt.sel   { border-color: var(--accent2); background: var(--bg3); }
+.section .tt-opt {
+  background: var(--page-tt-bg);
+  border-color: var(--page-tt-border);
+}
+.section .tt-opt:hover {
+  border-color: var(--page-tt-hover-border);
+  background: var(--page-tt-hover-bg);
+}
+.section .tt-opt.sel {
+  border-color: var(--page-tt-sel-border);
+  background: var(--page-tt-sel-bg);
+}
 .tt-icon { font-size: 22px; margin-bottom: 8px; }
 .tt-name { font-size: 14px; color: var(--text); margin-bottom: 3px; font-family: var(--serif); font-style: italic; }
 .tt-desc { font-size: 13px; color: var(--text3); }
 
 .creator-banner {
-  padding: 14px 18px; border: 1px solid var(--border2); border-radius: 3px;
-  background: var(--bg2); margin-bottom: 28px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 14px 18px;
+  border: 1px solid var(--page-section-border);
+  border-radius: 10px;
+  background: var(--page-section-bg);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .cb-label { font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); margin-bottom: 3px; }
 .cb-val   { font-size: 15px; font-weight: 500; letter-spacing: 0.06em; color: var(--accent); }
@@ -690,6 +967,14 @@ select option { background: var(--bg2); }
   text-align: center; cursor: pointer; transition: all 0.15s; background: var(--bg2);
 }
 .fdrop:hover { border-color: var(--accent2); background: var(--bg3); }
+.section .fdrop {
+  background: var(--page-fdrop-bg);
+  border-color: var(--page-fdrop-border);
+}
+.section .fdrop:hover {
+  background: var(--page-fdrop-hover-bg);
+  border-color: var(--page-fdrop-hover-border);
+}
 .fdrop input { display: none; }
 .fdrop-icon { font-size: 20px; margin-bottom: 7px; opacity: 0.5; }
 .fdrop-text { font-size: 14px; color: var(--text3); line-height: 1.6; }
@@ -767,6 +1052,12 @@ select option { background: var(--bg2); }
   font-size: 13px;
   box-sizing: border-box;
 }
+textarea.pm-proof-textarea {
+  min-height: 4.25rem;
+  resize: vertical;
+  font-family: var(--mono, ui-monospace, monospace);
+  line-height: 1.45;
+}
 .pm-proof-fdrop-wrap {
   max-width: 28rem;
   margin: 0 auto 8px;
@@ -827,6 +1118,53 @@ select option { background: var(--bg2); }
 
 .btn-row { display: flex; gap: 10px; margin-top: 28px; }
 .btn-row .btn { flex: 1; }
+
+/* Passport mint: compact fee copy + prominent CTA */
+.passport-mint-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px 22px;
+  margin-top: 28px;
+}
+.passport-mint-fee {
+  flex: 1 1 14rem;
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.45;
+  max-width: min(100%, 36rem);
+}
+.passport-mint-bar .passport-mint-btn {
+  flex: 0 1 auto;
+  width: auto;
+  min-width: 12.5rem;
+  max-width: 100%;
+  padding: 18px 34px;
+  min-height: 56px;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  white-space: normal;
+  text-align: center;
+}
+@media (max-width: 640px) {
+  .passport-mint-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .passport-mint-fee {
+    max-width: none;
+    font-size: 10.5px;
+  }
+  .passport-mint-bar .passport-mint-btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 58px;
+    padding: 20px 24px;
+    font-size: 15px;
+  }
+}
 .btn-ghost {
   background: transparent; color: var(--text2); border: 1px solid var(--border2);
   flex: 0; padding: 14px 20px; width: auto;
@@ -980,8 +1318,8 @@ select option { background: var(--bg2); }
 .pl-row {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 12px;
+  padding: 16px 14px;
   border-bottom: 1px solid var(--border);
   background: var(--bg3);
   font-size: 14px;
@@ -990,28 +1328,50 @@ select option { background: var(--bg2); }
 .pl-row:hover { background: var(--bg4); }
 .pl-id {
   font-family: var(--mono);
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--accent);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  color: var(--text);
   overflow-wrap: break-word;
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
 }
-.pl-meta { color: var(--text3); font-size: 13px; }
+.pl-meta { color: var(--text2); font-size: 13px; }
 .pl-actions {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  align-items: stretch;
+}
+/* Пять действий (2 колонки): последняя кнопка на всю ширину */
+.pl-actions > *:nth-child(5):last-child {
+  grid-column: 1 / -1;
+}
+@media (min-width: 640px) {
+  .pl-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .pl-actions > *:nth-child(5):last-child {
+    grid-column: auto;
+  }
+  /* Четыре действия (3 колонки): нижняя строка одна кнопка на всю ширину */
+  .pl-actions > *:nth-child(4):last-child {
+    grid-column: 1 / -1;
+  }
 }
 .pl-actions a,
 .pl-actions button.pl-url-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1.1;
+  line-height: 1.2;
   box-sizing: border-box;
-  min-height: 36px;
-  padding: 6px 10px;
+  min-height: 38px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
   font-size: 11px;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -1026,8 +1386,19 @@ select option { background: var(--bg2); }
 .pl-actions a {
   color: var(--text2);
   text-decoration: none;
+  background: transparent;
 }
-.pl-actions a:hover { color: var(--accent); border-color: var(--accent2); }
+/* Gold accent on light --bg3 rows was unreadable; match readable .btn-sec-style hover */
+.pl-actions a:hover,
+.pl-actions a:focus-visible {
+  color: var(--text);
+  border-color: var(--accent2);
+  background: var(--bg2);
+}
+.pl-actions a:focus-visible {
+  outline: 2px solid var(--accent2);
+  outline-offset: 2px;
+}
 
 .pl-actions button.pl-url-btn {
   color: var(--text2);
@@ -1036,8 +1407,24 @@ select option { background: var(--bg2); }
   -webkit-appearance: none;
   appearance: none;
 }
-.pl-actions button.pl-url-btn:hover { color: var(--accent); border-color: var(--accent2); }
+.pl-actions button.pl-url-btn:hover,
+.pl-actions button.pl-url-btn:focus-visible {
+  color: var(--text);
+  border-color: var(--accent2);
+  background: var(--bg2);
+}
+.pl-actions button.pl-url-btn:focus-visible {
+  outline: 2px solid var(--accent2);
+  outline-offset: 2px;
+}
 .pl-actions button.pl-url-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pl-actions button.pl-url-btn:disabled:hover,
+.pl-actions button.pl-url-btn:disabled:focus-visible {
+  color: var(--text2);
+  background: transparent;
+  border-color: var(--border2);
+  outline: none;
+}
 
 /* Modal — update passport URLs */
 .modal-backdrop {
@@ -1844,10 +2231,9 @@ a, button, .btn, label[for], select {
   }
   .odp-lang-select {
     min-height: 48px;
-    padding-top: 10px;
-    padding-bottom: 10px;
+    padding: 12px 30px 12px 12px;
   }
-  .w-switch, .wbar-dis, .share-modal-x {
+  .w-switch, .wbar-dis, .share-modal-x, .odp-header-disconnect {
     min-width: 48px;
     min-height: 48px;
     touch-action: manipulation;
@@ -1856,6 +2242,60 @@ a, button, .btn, label[for], select {
   .pl-actions button.pl-url-btn {
     min-height: 44px;
     padding: 8px 12px;
+  }
+}
+
+/* Verify / ID search: avoid one cramped row (input + QR + action) between ~520–768px */
+@media (max-width: 768px) {
+  .search-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: stretch;
+  }
+  .search-row input[type="text"] {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+  }
+  .search-row .btn-qr-scan,
+  .search-row .btn:not(.btn-qr-scan) {
+    width: 100%;
+    min-width: 0;
+  }
+  .search-row .btn:not(.btn-qr-scan) {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}
+
+/* Header: before this breakpoint title + toolbar stay in one row and squeeze the title into a very narrow column → broken words (e.g. «Про/вер/ка»). Stack earlier. */
+@media (max-width: 880px) {
+  header.header-row {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .header-left {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    text-align: center;
+  }
+  .header-toolbar {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  h1 {
+    max-width: min(22rem, 92vw);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .header-left .sub {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: min(36rem, 94vw);
   }
 }
 
@@ -1869,18 +2309,13 @@ a, button, .btn, label[for], select {
   .type-toggle { grid-template-columns: 1fr; }
   .fields { grid-template-columns: 1fr; }
   .field.full { grid-column: 1; }
-  .search-row { flex-direction: column; }
-  .search-row .btn-qr-scan {
-    width: 100%;
-    min-height: 48px;
-  }
   header {
     padding: 28px 0 24px;
     margin-bottom: 24px;
   }
   header.header-row {
-    flex-direction: column;
-    align-items: center;
+    grid-template-columns: 1fr;
+    justify-items: center;
     text-align: center;
   }
   .header-left {
@@ -1891,11 +2326,14 @@ a, button, .btn, label[for], select {
     width: 100%;
     justify-content: center;
     flex-wrap: wrap;
-    margin-top: 16px;
+    margin-top: 0;
   }
   h1 {
-    font-size: clamp(1.5rem, 7vw, 2.25rem);
+    font-size: clamp(1.65rem, 7.5vw, 2.25rem);
     line-height: 1.15;
+    text-wrap: wrap;
+    overflow-wrap: normal;
+    max-width: 100%;
   }
   .sub {
     font-size: 11px;
@@ -1928,17 +2366,28 @@ a, button, .btn, label[for], select {
     font-size: 11px;
   }
   footer {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     align-items: center;
-    text-align: center;
-    row-gap: 8px;
-    column-gap: 0;
+    align-content: center;
+    row-gap: 6px;
+    column-gap: 10px;
     margin-top: 36px;
-    padding-top: 20px;
+    padding-top: 18px;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+  footer > * {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    text-align: center;
   }
   footer > :nth-child(1),
   footer > :nth-child(2),
-  footer > :nth-child(3) {
+  footer > :nth-child(3),
+  footer > :nth-child(4),
+  footer > :nth-child(5) {
     text-align: center;
   }
 }
@@ -1946,12 +2395,42 @@ a, button, .btn, label[for], select {
 @media (max-width: 480px) {
   .type-grid { grid-template-columns: 1fr; }
   .wallet-options-grid { grid-template-columns: 1fr; }
+  .odp-stack-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .odp-stack-details-btn {
+    margin-left: 0;
+    align-self: stretch;
+    text-align: center;
+  }
+  .odp-stack-flag {
+    align-self: flex-start;
+  }
   .header-toolbar {
     gap: 8px;
   }
   .net-pill {
     font-size: 11px;
     padding: 5px 10px;
+  }
+  .odp-lang-wrap {
+    border-width: 2px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  }
+}
+
+@media (max-width: 380px) {
+  .nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .nav a {
+    flex: none;
+    width: 100%;
+    justify-content: center;
   }
 }
 
@@ -1961,7 +2440,8 @@ a, button, .btn, label[for], select {
     padding-right: 12px;
   }
   h1 {
-    font-size: 1.4rem;
+    font-size: clamp(1.5rem, 9vw, 1.85rem);
+    line-height: 1.12;
   }
   .nav a {
     padding: 10px 6px;
@@ -2007,6 +2487,12 @@ a, button, .btn, label[for], select {
   color: var(--red);
   border-color: var(--red-bd);
   background: var(--red-bg);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  letter-spacing: 0.07em;
+  border-radius: 6px;
+  line-height: 1.25;
 }
 .odp-stack-flag--yellow {
   color: var(--amber);
@@ -2021,7 +2507,8 @@ a, button, .btn, label[for], select {
 .odp-stack-meta {
   color: var(--text2);
   flex: 1;
-  min-width: 12rem;
+  min-width: 0;
+  line-height: 1.35;
 }
 .odp-stack-meta strong {
   color: var(--text);
@@ -2041,6 +2528,9 @@ a, button, .btn, label[for], select {
 .odp-stack-block--compact .odp-stack-row {
   margin-bottom: 0;
   align-items: center;
+}
+.odp-stack-block--compact .odp-stack-meta {
+  font-size: 13px;
 }
 .odp-stack-details-btn {
   margin-left: auto;
@@ -2066,6 +2556,33 @@ a, button, .btn, label[for], select {
 }
 .odp-passport-stack-strip {
   margin: 0 0 16px;
+}
+
+/* Passport: single CTA in #passportToolsMenu — avoid transparent .btn-sec on card (reads as two stacked whites) */
+.passport-tools-menu-inner {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.passport-tools-mint-btn {
+  margin-top: 0;
+  width: 100%;
+  max-width: 28rem;
+  background: var(--bg3);
+  border-color: var(--border2);
+}
+.passport-tools-mint-btn:hover {
+  background: var(--bg4);
+  border-color: var(--border2);
+}
+html[data-theme="blue"] #passportToolsMenu .passport-tools-mint-btn {
+  background: var(--bg3);
+  color: var(--text2);
+  border-color: var(--border2);
+}
+html[data-theme="blue"] #passportToolsMenu .passport-tools-mint-btn:hover {
+  background: var(--bg4);
+  color: var(--text);
+  border-color: var(--text3);
 }
 
 /* Verify tool sub-navigation (back + current tool label) */
@@ -2114,27 +2631,42 @@ a, button, .btn, label[for], select {
 .odp-modal-backdrop[hidden] {
   display: none !important;
 }
+/*
+ * Always use a light “paper” panel + dark ink — matches light-theme cards and stays
+ * readable even if page theme variables (--bg / --text) would fight the cascade.
+ */
 .odp-modal-dialog {
   width: 100%;
   max-width: 26rem;
   max-height: min(85vh, 32rem);
   overflow: auto;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  box-shadow: 0 16px 48px var(--shadow-dialog);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  color: #2a3142;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
   padding: 18px 18px 16px;
 }
 .odp-modal-title {
   margin: 0 0 12px;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 17px;
+  font-weight: 500;
+  font-family: var(--serif);
+  letter-spacing: -0.01em;
+  color: #121520;
 }
 .odp-modal-body {
   font-size: 14px;
   line-height: 1.6;
-  color: var(--text2);
+  color: #3d4454;
+}
+.odp-modal-body .odp-stack-note {
+  color: #3d4454;
+  border-top-color: rgba(0, 0, 0, 0.12);
+}
+.odp-modal-body .odp-stack-note strong {
+  color: #121520;
+  font-weight: 600;
 }
 .odp-modal-body .odp-stack-note:first-of-type {
   margin-top: 0;
@@ -2145,6 +2677,9 @@ a, button, .btn, label[for], select {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+.odp-modal-actions .btn {
+  color: #1a1d2e;
 }
 .odp-prior-deploy-note {
   font-size: 13px;
@@ -2231,19 +2766,31 @@ html[data-theme="blue"] .odp-theme-btn:hover {
   background: rgba(255,255,255,0.22);
   border-color: rgba(255,255,255,0.40);
 }
+/* Light “chip” so label stays readable (dark text); avoids white-on-white on mobile */
 html[data-theme="blue"] .odp-lang-wrap {
-  border-color: var(--on-bg-border);
-  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.42);
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 html[data-theme="blue"] .odp-lang-wrap:hover {
-  border-color: rgba(255,255,255,0.40);
+  border-color: rgba(255,255,255,0.65);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 html[data-theme="blue"] .odp-lang-select {
-  color: var(--on-bg2);
+  color: var(--text2);
+  background-color: transparent;
+  background-image: none;
 }
 html[data-theme="blue"] .odp-lang-select:hover,
 html[data-theme="blue"] .odp-lang-select:focus {
-  color: var(--on-bg);
+  color: var(--text);
+}
+html[data-theme="blue"] .odp-lang-wrap::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%23334155' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+html[data-theme="blue"] .odp-lang-wrap:hover::after,
+html[data-theme="blue"] .odp-lang-wrap:focus-within::after {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%231e293b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 html[data-theme="blue"] .net-pill {
   border-color: var(--on-bg-border);
@@ -2270,7 +2817,7 @@ html[data-theme="blue"] .nav a:hover {
 html[data-theme="blue"] .nav a.active {
   color: var(--on-bg);
   border-color: var(--on-bg);
-  background: rgba(255,255,255,0.10);
+  background: var(--nav-active-bg);
 }
 
 /* Footer */
@@ -2381,18 +2928,9 @@ html[data-theme="blue"] .card .btn-sec:hover {
 
 /*
  * ── Blue theme: form elements on --bg ──
- * Sections (.section) get a frosted panel; text and controls are white-on-blue.
+ * Section panels use the same layout as dark via --page-section-* tokens.
  * Inside white cards (.card) normal dark-text colors are restored.
  */
-
-/* Frosted section panels */
-html[data-theme="blue"] .page .section {
-  background: rgba(255,255,255,0.10);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 28px;
-}
 
 /* Text colours on blue bg */
 html[data-theme="blue"] .page label {
@@ -2422,7 +2960,6 @@ html[data-theme="blue"] .page .info.error {
 }
 html[data-theme="blue"] .page .section-label {
   color: var(--on-bg);
-  border-bottom-color: rgba(255,255,255,0.25);
 }
 
 /* Inputs: translucent white — blends with the frosted panel */
@@ -2446,24 +2983,12 @@ html[data-theme="blue"] .page textarea::placeholder {
   color: #6a70888a;
 }
 
-/* Drop zones */
-html[data-theme="blue"] .page .fdrop {
-  background: rgba(255,255,255,0.07);
-  border-color: rgba(255,255,255,0.22);
-}
-html[data-theme="blue"] .page .fdrop:hover {
-  background: rgba(255,255,255,0.14);
-  border-color: rgba(255,255,255,0.40);
-}
+/* Drop zones on blue page (outside section panels); in-section uses .section .fdrop */
 html[data-theme="blue"] .page .fdrop-text {
   color: var(--on-bg2);
 }
 
 /* Creator banner */
-html[data-theme="blue"] .page .creator-banner {
-  background: rgba(255,255,255,0.10);
-  border-color: rgba(255,255,255,0.18);
-}
 html[data-theme="blue"] .page .cb-label {
   color: var(--on-bg3);
 }
@@ -2471,19 +2996,7 @@ html[data-theme="blue"] .page .cb-val {
   color: var(--accent);
 }
 
-/* Type-toggle (.tt-opt) */
-html[data-theme="blue"] .page .tt-opt {
-  background: rgba(255,255,255,0.07);
-  border-color: rgba(255,255,255,0.18);
-}
-html[data-theme="blue"] .page .tt-opt:hover {
-  border-color: rgba(255,255,255,0.40);
-  background: rgba(255,255,255,0.12);
-}
-html[data-theme="blue"] .page .tt-opt.sel {
-  border-color: var(--accent);
-  background: rgba(255,255,255,0.15);
-}
+/* Type-toggle: contrast on blue page (--page-tt-* handles section surface) */
 html[data-theme="blue"] .page .tt-name {
   color: var(--on-bg);
 }
@@ -2561,14 +3074,15 @@ html[data-theme="blue"] .card .fhint {
 html[data-theme="blue"] .card .search-label {
   color: var(--text);
 }
+html[data-theme="blue"] .card.creator-p-aff-card .search-label {
+  font-size: 13px;
+  font-family: var(--mono);
+  font-style: normal;
+  font-weight: 500;
+  color: var(--text2);
+}
 html[data-theme="blue"] .card .info {
   color: inherit;
-}
-html[data-theme="blue"] .card .section {
-  background: transparent;
-  border: none;
-  padding: 0;
-  margin-bottom: 28px;
 }
 html[data-theme="blue"] .card .section-title {
   color: var(--text2);
@@ -2585,6 +3099,12 @@ html[data-theme="blue"] .card textarea {
   background: var(--bg3);
   border-color: var(--border);
   color: var(--text);
+}
+/* Card inputs sit on light --bg3; .page placeholder (#6a70888a) is too faint here */
+html[data-theme="blue"] .card input::placeholder,
+html[data-theme="blue"] .card textarea::placeholder {
+  color: var(--text2);
+  opacity: 1;
 }
 html[data-theme="blue"] .card input:focus,
 html[data-theme="blue"] .card select:focus,

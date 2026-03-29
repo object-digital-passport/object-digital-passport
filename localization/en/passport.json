@@ -3,7 +3,7 @@
     "meta": {
       "documentTitle": "ODP v0.3 — Create Passport",
       "h1": "Create Passport",
-      "sub": "Object Digital Passport · version 0.3"
+      "sub": "Object Digital Passport · version\u00a00.3"
     },
     "appLoading": "Connecting wallet…",
     "connect": {
@@ -45,10 +45,10 @@
       "mintSubnavTitle": "Mint or update passports"
     },
     "v03Ops": {
-      "cardTitle": "Passport in the registry — status and actions",
-      "lead": "Type the passport number (ODP-…) and tap “Load from registry.” You will see what is stored publicly and, if this wallet is allowed, buttons to transfer ownership, update file links, revoke the passport, and similar actions. The “Your passports” list below only includes passports you minted with this wallet — if someone transferred a passport to you, it will not be in that list; enter its number here instead.",
+      "cardTitle": "Passport actions (wallet)",
+      "leadProfile": "Enter an ODP passport ID and tap Show record to load who issued it, the current owner, revocation, delegation to a link-updater wallet, and fingerprints. If this wallet may act on that passport, use the sections below (transfer ownership, trusted helper for links, revoke, etc.). To mint new passports or see only what you issued from this wallet, use the Passport page — «Your passports» lists passports you created here.",
       "passportIdLabel": "Passport number (ODP-…)",
-      "loadBtn": "Load from registry",
+      "loadBtn": "Show record",
       "stateTitle": "Status in the registry",
       "creator": "Creator (issuer wallet)",
       "owner": "Current owner",
@@ -132,7 +132,20 @@
       "urlTooLong": "Link is too long (max 512 characters).",
       "urlNeedsHash": "To add a link, upload a file first so a fingerprint exists (the registry requires both together).",
       "sending": "Sending…",
-      "done": "Confirmation saved."
+      "done": "Confirmation saved.",
+      "secCfTitle": "Authenticity concern (counterfeit flag)",
+      "secCfLead": "Separate from a positive proof attestation: record that your institution (P / M) has an authenticity concern about this passport. Only a hash of your note is stored on-chain; keep the full text off-chain. Use the same Passport ID (ODP-…) as in the section above.",
+      "cfReasonLabel": "Note (full text stays off-chain; only a hash is stored on-chain)",
+      "cfRaiseBtn": "Record concern",
+      "cfClearBtn": "Clear concern",
+      "cfRefreshStatusBtn": "Refresh status",
+      "cfStatusLoading": "Checking on-chain record…",
+      "cfStatusInactive": "No active concern flag for this passport in the registry.",
+      "cfStatusActive": "Flag active — raised by profile {prover}",
+      "cfClearOnlyProver": "Only the same profile that raised the flag can clear it.",
+      "cfResultRaise": "Concern recorded.",
+      "cfResultClear": "Concern cleared.",
+      "cfRevertNoMethod": "This registry contract does not support this action (different deployment version)."
     },
     "form": {
       "yourPassports": "Your passports",
@@ -219,11 +232,6 @@
       "labelImage2Url": "Second image link (optional)",
       "labelImage3Url": "Third image link (optional)",
       "phHttpsShort": "https://…",
-      "auxSection": "Extra proof file (optional)",
-      "auxHint": "Optional second fingerprint — for example a PDF certificate. Leave empty to skip. If you set a fingerprint, you can add a public https link (up to 512 characters).",
-      "labelAuxHash": "Fingerprint for the extra file",
-      "labelAuxUri": "Link to that file (optional)",
-      "phAuxHash": "empty = skip, or 0x plus 64 characters",
       "v03MetaSection": "Extra details about the object (optional)",
       "v03MetaHint": "All optional. Anything you enter becomes part of the public passport fingerprint.",
       "labelWidth": "Width",
@@ -236,7 +244,7 @@
       "labelDepth": "Depth",
       "labelDepthUnit": "Depth unit",
       "labelCreationDate": "When the work was made",
-      "phCreationDate": "e.g. 2024-06-15",
+      "phCreationDate": "e.g. 15.06.2024",
       "labelListingPrice": "Rough price / listing note",
       "phListingPrice": "e.g. 1200 USD — not a legal offer",
       "labelInternalTag": "Your inventory note",
@@ -314,9 +322,6 @@
       "validateSeal": "Seal number and type are required",
       "validateC2pa": "The manifest fingerprint must look like a long hex code from your tool (often shown as sha256:… or starting with 0x).",
       "validateExtraImagesFirst": "Add the main preview image above before extra images.",
-      "validateAuxUriLen": "That link is too long (512 characters max).",
-      "validateAuxNeedHash": "Either add a fingerprint for the extra file or clear the link field.",
-      "validateAuxHash": "The extra fingerprint must be 0x followed by 64 hex characters.",
       "mintWaiting": "Waiting for wallet…",
       "mintConfirmWallet": "Please confirm the transaction in your wallet",
       "mintConfirming": "Confirming…",

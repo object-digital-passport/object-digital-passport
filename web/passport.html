@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="blue">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f0e0c">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#2B4C9B">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
@@ -13,8 +13,9 @@
 <link rel="stylesheet" href="odp.css">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3.0"></script>
-<script src="odp-i18n.js?v=6"></script>
+<script src="odp-contract.js?v=0.3.2"></script>
+<script src="odp-date-format.js?v=1"></script>
+<script src="odp-i18n.js?v=8"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 </head>
@@ -40,6 +41,9 @@ window.addEventListener('load',function(){var hdr=document.querySelector('header
       <div class="net-dot" id="netDot"></div>
       <span id="netLabel">…</span>
     </div>
+    <button type="button" class="odp-header-disconnect" id="odpHeaderDisconnect" hidden aria-hidden="true" data-i18n-title="passport.walletBar.disconnect" title="Disconnect" onclick="disconnectWallet()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
   </div>
 </header>
 
@@ -198,10 +202,19 @@ function mintTxOpts() {
 
 // ── Connect ───────────────────────────────────────────────────────────────────
 
+function syncOdpHeaderDisconnect() {
+  const btn = document.getElementById("odpHeaderDisconnect");
+  if (!btn) return;
+  const on = !!wallet;
+  btn.hidden = !on;
+  btn.setAttribute("aria-hidden", on ? "false" : "true");
+}
+
 async function connect() {
   setMintSuccessLeavingGuard(false);
   const app = document.getElementById("app");
   app.innerHTML = renderConnectUI();
+  syncOdpHeaderDisconnect();
 }
 
 async function disconnectWallet() {
@@ -395,6 +408,7 @@ async function _finish(p) {
     const msg = fin.message || (typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined" ? ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG : "Legacy contract not supported.");
     walletConnectError = msg;
     document.getElementById("connectErr").innerHTML = `<div class="info e">${esc(msg)}</div>`;
+    syncOdpHeaderDisconnect();
     return;
   }
   odpContractGeneration = fin.generation;
@@ -408,6 +422,7 @@ async function _finish(p) {
         ${esc(t("passport.noCreator.title"))}<br>
         <a href="creator.html" style="color:var(--accent)">${esc(t("passport.noCreator.link"))}</a>
       </div>`;
+    syncOdpHeaderDisconnect();
     return;
   }
   renderForm();
@@ -456,7 +471,7 @@ async function loadMyPassports(reset) {
         try {
           const p = await contract.getPassport(hid);
           const ts = Number(p.timestamp) * 1000;
-          const dateStr = ts ? new Date(ts).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" }) : "—";
+          const dateStr = ts ? odpFormatDateDDMMYYYY(new Date(ts)) : "—";
           return { hid, objectType: p.objectType, dateStr };
         } catch {
           return { hid, objectType: "?", dateStr: "—" };
@@ -483,7 +498,7 @@ async function loadMyPassports(reset) {
               <button type="button" class="pl-url-btn" onclick='openPassportUrlEditor(${JSON.stringify(r.hid)})'>${esc(t("passport.list.urls"))}</button>
               ${
                 showManage
-                  ? `<a class="pl-url-btn" href="creator.html?${new URLSearchParams({ v03hid: r.hid }).toString()}" style="text-decoration:none;display:inline-block">${esc(t("passport.list.manageOps"))}</a>`
+                  ? `<a class="pl-url-btn" href="creator.html?${new URLSearchParams({ v03hid: r.hid }).toString()}">${esc(t("passport.list.manageOps"))}</a>`
                   : ""
               }
             </div>
@@ -686,6 +701,20 @@ function htmlPassportPmProofCard() {
           <div id="pmProofSubmitResult" style="margin-top:12px;font-size:12px;text-align:center"></div>
         </div>
 
+        <div class="pm-proof-list-block">
+          <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secCfTitle"))}</div>
+          <p class="pm-proof-hint">${esc(t("passport.pmProof.secCfLead"))}</p>
+          <label class="search-label" for="pmCfReason">${esc(t("passport.pmProof.cfReasonLabel"))}</label>
+          <textarea id="pmCfReason" class="pm-proof-input pm-proof-textarea" rows="3" autocomplete="off"></textarea>
+          <div id="pmCfChainStatus" class="fhint" style="margin-top:8px;text-align:center;font-size:12px;line-height:1.5;min-height:1.25em"></div>
+          <div class="pm-proof-actions">
+            <button type="button" class="btn" id="pmCfRaiseBtn">${esc(t("passport.pmProof.cfRaiseBtn"))}</button>
+            <button type="button" class="btn btn-sec" id="pmCfClearBtn" disabled>${esc(t("passport.pmProof.cfClearBtn"))}</button>
+            <button type="button" class="btn btn-sec" id="pmCfRefreshStatusBtn">${esc(t("passport.pmProof.cfRefreshStatusBtn"))}</button>
+          </div>
+          <div id="pmCfResult" style="margin-top:10px;font-size:12px;text-align:center"></div>
+        </div>
+
         <div class="pm-proof-list-block info neutral" style="padding:14px 16px;border-radius:8px;margin-top:8px">
           <div class="pm-proof-list-title">${esc(t("passport.pmProof.listTitle"))}</div>
           <div id="pmProofList" class="mono" style="font-size:12px;word-break:break-word;white-space:pre-wrap;text-align:left"></div>
@@ -695,7 +724,9 @@ function htmlPassportPmProofCard() {
 }
 
 
-function activatePassportTool(tool, updateUrl) {
+/** @param doScroll Omit or true when the user explicitly switched tools; false on initial page sync (avoid jumping on nav). */
+function activatePassportTool(tool, updateUrl, doScroll) {
+  const scroll = doScroll !== false;
   let slug = String(tool ?? "").trim();
   const q = new URLSearchParams(window.location.search);
   const qTool = (q.get("tool") || "").trim();
@@ -720,14 +751,18 @@ function activatePassportTool(tool, updateUrl) {
     if (subnav) subnav.style.display = "none";
     if (menu) menu.hidden = false;
     if (mintSec) mintSec.hidden = true;
-    scrollToPassportSection(document.getElementById("passportToolsMenu") || document.getElementById("passportToolsHeading"));
+    if (scroll) {
+      scrollToPassportSection(document.getElementById("passportToolsMenu") || document.getElementById("passportToolsHeading"));
+    }
     return;
   }
   if (menu) menu.hidden = true;
   if (subnav) subnav.style.display = "";
   if (subTitle) subTitle.textContent = t("passport.tools.mintSubnavTitle");
   if (mintSec) mintSec.hidden = false;
-  scrollToPassportSection(mintSec);
+  if (scroll) {
+    scrollToPassportSection(mintSec);
+  }
 }
 
 const PM_PROOF_ZERO32 = "0x" + "0".repeat(64);
@@ -783,7 +818,7 @@ function bindPMProofHandlers() {
               ? ethers.utils.hexlify(pr.noteHash)
               : String((pr && pr.noteHash) || "");
           const ts = pr && pr.timestamp != null ? Number(pr.timestamp) * 1000 : 0;
-          const when = ts ? new Date(ts).toLocaleString() : "—";
+          const when = ts ? odpFormatDateTimeLocalDDMMYYYY(new Date(ts)) : "—";
           lines.push(
             `${pid}\n  ${t("passport.pmProof.listPassport")} ${pr.humanId}\n  ${t("passport.pmProof.listWhen")} ${when}\n  noteHash: ${nh}\n  noteUrl: ${(pr && pr.noteUrl) || "—"}\n`
           );
@@ -833,12 +868,140 @@ function bindPMProofHandlers() {
     });
   }
 
+  const pmCfChainStatus = document.getElementById("pmCfChainStatus");
+  const pmCfRaiseBtn = document.getElementById("pmCfRaiseBtn");
+  const pmCfClearBtn = document.getElementById("pmCfClearBtn");
+  const pmCfRefreshStatusBtn = document.getElementById("pmCfRefreshStatusBtn");
+  const pmCfResult = document.getElementById("pmCfResult");
+  const pmCfReason = document.getElementById("pmCfReason");
+
+  function pmCfKeccakUtf8(s) {
+    return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(s));
+  }
+
+  async function refreshCfStatus() {
+    if (!pmCfChainStatus || !contract || typeof contract.getCounterfeitConcern !== "function") return;
+    const humanId = humanIn.value ? String(humanIn.value).trim() : "";
+    if (!humanId || !/^ODP-/i.test(humanId)) {
+      pmCfChainStatus.textContent = "";
+      if (pmCfClearBtn) pmCfClearBtn.disabled = true;
+      return;
+    }
+    pmCfChainStatus.textContent = t("passport.pmProof.cfStatusLoading");
+    try {
+      const cc = await contract.getCounterfeitConcern(humanId);
+      const active = cc.active !== undefined ? cc.active : cc[0];
+      const prover = cc.proverCreatorId !== undefined ? String(cc.proverCreatorId) : String(cc[1] || "");
+      if (!active) {
+        pmCfChainStatus.textContent = t("passport.pmProof.cfStatusInactive");
+        if (pmCfClearBtn) pmCfClearBtn.disabled = true;
+      } else {
+        pmCfChainStatus.textContent = t("passport.pmProof.cfStatusActive").replace("{prover}", prover || "—");
+        const canClear = !!(creatorId && prover && creatorId === prover);
+        if (pmCfClearBtn) {
+          pmCfClearBtn.disabled = !canClear;
+          pmCfClearBtn.title = canClear ? "" : t("passport.pmProof.cfClearOnlyProver");
+        }
+      }
+    } catch (e) {
+      const msg = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+      pmCfChainStatus.textContent =
+        /execution reverted|CALL_EXCEPTION|missing revert|BAD_DATA|0x/i.test(msg) ? "" : msg.slice(0, 220);
+      if (pmCfClearBtn) pmCfClearBtn.disabled = true;
+    }
+  }
+
+  let pmCfInputTimer = null;
+  humanIn.addEventListener("input", () => {
+    clearTimeout(pmCfInputTimer);
+    pmCfInputTimer = setTimeout(() => {
+      void refreshCfStatus();
+    }, 450);
+  });
+  humanIn.addEventListener("blur", () => {
+    void refreshCfStatus();
+  });
+
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
       void refreshList();
+      void refreshCfStatus();
     });
   }
   void refreshList();
+  void refreshCfStatus();
+
+  if (pmCfRefreshStatusBtn) {
+    pmCfRefreshStatusBtn.addEventListener("click", () => {
+      void refreshCfStatus();
+    });
+  }
+
+  if (pmCfRaiseBtn && pmCfReason) {
+    pmCfRaiseBtn.addEventListener("click", async () => {
+      if (!contract) return;
+      if (pmCfResult) pmCfResult.innerHTML = "";
+      const humanId = humanIn.value ? String(humanIn.value).trim() : "";
+      const reason = pmCfReason.value ? String(pmCfReason.value).trim() : "";
+      if (!humanId || !/^ODP-/i.test(humanId)) {
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.needHumanId"))}</div>`;
+        return;
+      }
+      if (!reason.length) {
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.v03Ops.needReason"))}</div>`;
+        return;
+      }
+      if (typeof contract.raiseCounterfeitConcern !== "function") {
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.cfRevertNoMethod"))}</div>`;
+        return;
+      }
+      pmCfRaiseBtn.disabled = true;
+      if (pmCfResult) pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.sending"))}</div>`;
+      try {
+        const rh = pmCfKeccakUtf8(reason);
+        const tx = await contract.raiseCounterfeitConcern(humanId, rh);
+        await tx.wait();
+        if (pmCfResult)
+          pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.cfResultRaise"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+        await refreshCfStatus();
+      } catch (e) {
+        const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+        const hint = /execution reverted|CALL_EXCEPTION|missing revert/i.test(m) ? t("passport.pmProof.cfRevertNoMethod") : m;
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info error">${esc(hint)}</div>`;
+      }
+      pmCfRaiseBtn.disabled = false;
+    });
+  }
+
+  if (pmCfClearBtn) {
+    pmCfClearBtn.addEventListener("click", async () => {
+      if (!contract) return;
+      if (pmCfResult) pmCfResult.innerHTML = "";
+      const humanId = humanIn.value ? String(humanIn.value).trim() : "";
+      if (!humanId || !/^ODP-/i.test(humanId)) {
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.needHumanId"))}</div>`;
+        return;
+      }
+      if (typeof contract.clearCounterfeitConcern !== "function") {
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.cfRevertNoMethod"))}</div>`;
+        return;
+      }
+      pmCfClearBtn.disabled = true;
+      if (pmCfResult) pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.sending"))}</div>`;
+      try {
+        const tx = await contract.clearCounterfeitConcern(humanId);
+        await tx.wait();
+        if (pmCfResult)
+          pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.cfResultClear"))} <code class="mono">${esc(tx.hash)}</code></div>`;
+        await refreshCfStatus();
+      } catch (e) {
+        const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
+        const hint = /execution reverted|CALL_EXCEPTION|missing revert/i.test(m) ? t("passport.pmProof.cfRevertNoMethod") : m;
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info error">${esc(hint)}</div>`;
+        await refreshCfStatus();
+      }
+    });
+  }
 
   submitBtn.addEventListener("click", async () => {
     if (!contract) return;
@@ -880,6 +1043,7 @@ function bindPMProofHandlers() {
       if (noteUrlIn) noteUrlIn.value = "";
       syncPmProofFileDropEmpty();
       await refreshList();
+      await refreshCfStatus();
     } catch (e) {
       const m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
       submitResult.innerHTML = `<div class="info error">${esc(m)}</div>`;
@@ -901,13 +1065,6 @@ function renderForm() {
   const showWorkspaceNavigator = canShowPassportPmProof();
   document.getElementById("app").innerHTML = `
 
-    <div class="wbar">
-      <div class="wdot on"></div>
-      <div class="wbar-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <div class="wbar-id">${esc(creatorId)}</div>
-      <button type="button" class="wbar-dis" onclick="disconnectWallet()">${esc(t("passport.walletBar.disconnect"))}</button>
-    </div>
-
     ${passportStackStripHtml()}
 
     ${htmlPassportPmProofCard()}
@@ -919,8 +1076,8 @@ function renderForm() {
     </div>
 
     <section class="card" id="passportToolsMenu">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
-        <button type="button" class="btn btn-sec" data-tool="mint" onclick="activatePassportTool('mint', true)">${esc(t("passport.tools.mintBtn"))}</button>
+      <div class="card-body passport-tools-menu-inner">
+        <button type="button" class="btn btn-sec passport-tools-mint-btn" data-tool="mint" onclick="activatePassportTool('mint', true)">${esc(t("passport.tools.mintBtn"))}</button>
       </div>
     </section>
 
@@ -1126,15 +1283,6 @@ function renderForm() {
       </div>
     </div>
 
-    <div class="section" id="auxCommitmentV03" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-      <div class="section-label">${esc(t("passport.form.auxSection"))}</div>
-      <p class="fhint" style="margin:0 0 12px;line-height:1.55">${esc(t("passport.form.auxHint"))}</p>
-      <div class="field"><label>${esc(t("passport.form.labelAuxHash"))}</label>
-        <input type="text" id="f_aux_hash" placeholder="${esc(t("passport.form.phAuxHash"))}" autocomplete="off" spellcheck="false"></div>
-      <div class="field"><label>${esc(t("passport.form.labelAuxUri"))}</label>
-        <input type="url" id="f_aux_uri" placeholder="${esc(t("passport.form.phHttpsShort"))}" autocomplete="off"></div>
-    </div>
-
     <!-- Physical seal -->
     <div id="sealSection">
       <div class="section">
@@ -1162,7 +1310,7 @@ function renderForm() {
               <div class="field"><label>${esc(t("passport.form.labelChipUid"))}<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="${esc(t("passport.form.phChipUid"))}"></div>
               <div class="field"><label>${esc(t("passport.form.labelPubKey"))}<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="${esc(t("passport.form.phPubKey"))}"></div>
               <div class="row2">
-                <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label><input type="text" id="f_ndate" value="${new Date().toISOString().slice(0,10)}"></div>
+                <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label><input type="text" id="f_ndate" value="${odpFormatDateDDMMYYYY(new Date())}"></div>
                 <div class="field"><label>${esc(t("passport.form.labelNfcNotes"))}</label><input type="text" id="f_nnotes" placeholder="${esc(t("passport.form.phNfcNotes"))}"></div>
               </div>
             </div>
@@ -1192,11 +1340,11 @@ function renderForm() {
     <div id="formErr"></div>
 
     <!-- Submit -->
-    <div class="btn-row">
-      <p class="fhint" style="width:100%;margin:0 0 12px;line-height:1.65">
+    <div class="passport-mint-bar">
+      <p class="passport-mint-fee fhint">
         ${esc(t("passport.form.feeLine").replace("{gen}", String(odpContractGeneration)))}
       </p>
-      <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn" style="width:100%">${esc(t("passport.form.btnMint"))}</button>
+      <button type="button" class="btn passport-mint-btn" onclick="openPreMintModal()" id="submitBtn">${esc(t("passport.form.btnMint"))}</button>
     </div>
 
     <div id="preMintModal" class="modal-backdrop" onclick="if(event.target===this)closePreMintModal()">
@@ -1309,6 +1457,7 @@ function renderForm() {
     </div>
     </section>
   `;
+  syncOdpHeaderDisconnect();
   queueMicrotask(() => {
     loadMyPassports(true);
     updatePassportMintsRow();
@@ -1319,10 +1468,10 @@ function renderForm() {
     // P/M: keep mint workspace behind the menu until the user opens it (or ?tool=mint). C/B: go straight to mint.
     if (canShowPassportPmProof()) {
       const qTool = (new URLSearchParams(window.location.search).get("tool") || "").trim();
-      if (qTool === "mint") activatePassportTool("mint", false);
-      else activatePassportTool("", false);
+      if (qTool === "mint") activatePassportTool("mint", false, false);
+      else activatePassportTool("", false, false);
     } else {
-      activatePassportTool("mint", false);
+      activatePassportTool("mint", false, false);
     }
   });
 }
@@ -1719,16 +1868,6 @@ function validate() {
     if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return t("passport.form.validateNfc");
     if ((sealType===2||sealType===3) && (!v("f_snum")||!v("f_stype"))) return t("passport.form.validateSeal");
   }
-  if (typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)) {
-    const auxRaw = (document.getElementById("f_aux_hash") && document.getElementById("f_aux_hash").value || "").trim();
-    const auxU = (document.getElementById("f_aux_uri") && document.getElementById("f_aux_uri").value || "").trim();
-    if (auxU.length > 512) return t("passport.form.validateAuxUriLen");
-    if (!auxRaw && auxU) return t("passport.form.validateAuxNeedHash");
-    if (auxRaw) {
-      const norm = auxRaw.startsWith("0x") ? auxRaw : "0x" + auxRaw;
-      if (!/^0x[a-fA-F0-9]{64}$/.test(norm)) return t("passport.form.validateAuxHash");
-    }
-  }
   return null;
 }
 
@@ -1867,23 +2006,6 @@ async function executeMint() {
     }
   }
 
-  let auxCommitmentHash = ZERO32;
-  let auxCommitmentUri = "";
-  if (typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)) {
-    const rawAux = (document.getElementById("f_aux_hash") && document.getElementById("f_aux_hash").value || "").trim();
-    auxCommitmentUri = (document.getElementById("f_aux_uri") && document.getElementById("f_aux_uri").value || "").trim();
-    if (rawAux) {
-      try {
-        auxCommitmentHash = ethers.utils.hexlify(ethers.utils.arrayify(rawAux.startsWith("0x") ? rawAux : "0x" + rawAux));
-      } catch {
-        auxCommitmentHash = ZERO32;
-        auxCommitmentUri = "";
-      }
-    } else {
-      auxCommitmentUri = "";
-    }
-  }
-
   document.getElementById("app").innerHTML = `
     <div style="text-align:center;padding:48px 0">
       <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
@@ -1910,7 +2032,7 @@ async function executeMint() {
           ...imgEx,
           dataUrlIsFolderBase,
           ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-            ? [auxCommitmentHash, auxCommitmentUri, ""]
+            ? [ZERO32, "", ""]
             : []),
           mintTxOpts()
         );
@@ -1920,7 +2042,7 @@ async function executeMint() {
           sealType,sealHash_,nfcBytes,nfcModelStr,
           ...imgEx,
           ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-            ? [auxCommitmentHash, auxCommitmentUri, ""]
+            ? [ZERO32, "", ""]
             : []),
           mintTxOpts()
         );
@@ -1931,7 +2053,7 @@ async function executeMint() {
         ...imgEx,
         fileHashBytes32,dataUrlIsFolderBase,
         ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [auxCommitmentHash, auxCommitmentUri, ""]
+          ? [ZERO32, "", ""]
           : []),
         mintTxOpts()
       );
@@ -1941,7 +2063,7 @@ async function executeMint() {
         ...imgEx,
         fileHashBytes32,
         ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [auxCommitmentHash, auxCommitmentUri, ""]
+          ? [ZERO32, "", ""]
           : []),
         mintTxOpts()
       );
@@ -2610,6 +2732,7 @@ function bindMintSuccessLeavingGuards() {
 document.addEventListener("DOMContentLoaded", async () => {
   bindMintSuccessLeavingGuards();
   await odpInitI18n({ page: "passport", pageTitleKey: "passport.meta.documentTitle" });
+  if (typeof odpMaybeAutoShowSiteTrustModal === "function") odpMaybeAutoShowSiteTrustModal();
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
@@ -2677,6 +2800,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         ${esc(t("passport.noCreator.title"))}<br>
         <a href="creator.html" style="color:var(--accent)">${esc(t("passport.noCreator.link"))}</a>
       </div>`;
+              syncOdpHeaderDisconnect();
               initNetPill();
               return;
             }

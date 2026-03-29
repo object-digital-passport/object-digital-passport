@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="blue">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f0e0c">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#2B4C9B">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
@@ -13,9 +13,10 @@
 <link rel="stylesheet" href="odp.css">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3.0"></script>
-<script src="odp-passport-v03-ops.js?v=0.3.0"></script>
-<script src="odp-i18n.js?v=6"></script>
+<script src="odp-contract.js?v=0.3.2"></script>
+<script src="odp-date-format.js?v=1"></script>
+<script src="odp-passport-v03-ops.js?v=0.3.1"></script>
+<script src="odp-i18n.js?v=8"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 
@@ -40,6 +41,9 @@ window.addEventListener('load',function(){var hdr=document.querySelector('header
       <div class="net-dot" id="netDot"></div>
       <span id="netLabel">…</span>
     </div>
+    <button type="button" class="odp-header-disconnect" id="odpHeaderDisconnect" hidden aria-hidden="true" data-i18n-title="creator.walletBar.disconnect" title="Disconnect" onclick="disconnect()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
   </div>
 </header>
 
@@ -128,11 +132,20 @@ const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
+function syncOdpHeaderDisconnect() {
+  const btn = document.getElementById("odpHeaderDisconnect");
+  if (!btn) return;
+  const on = !!wallet;
+  btn.hidden = !on;
+  btn.setAttribute("aria-hidden", on ? "false" : "true");
+}
+
 function render() {
   const app = document.getElementById("app");
 
   if (!wallet) {
     app.innerHTML = renderConnect();
+    syncOdpHeaderDisconnect();
     return;
   }
 
@@ -179,11 +192,13 @@ function render() {
         } catch {}
       }
     });
+    syncOdpHeaderDisconnect();
     return;
   }
 
   app.innerHTML = renderForm();
   updateTypeUI();
+  syncOdpHeaderDisconnect();
 }
 
 function esc(s) {
@@ -251,12 +266,6 @@ function renderSecurity() {
 
     ${creatorStackStripHtml()}
 
-    <div class="wallet-bar">
-      <div class="w-dot on"></div>
-      <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <button type="button" class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</button>
-    </div>
-
     <div class="card">
       <div class="card-head">${esc(t("creator.security.cardTitle"))}</div>
       <div class="card-body">
@@ -322,12 +331,6 @@ function renderForm() {
     </div>
 
     ${creatorStackStripHtml()}
-
-    <div class="wallet-bar">
-      <div class="w-dot on"></div>
-      <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <button type="button" class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</button>
-    </div>
 
     <div class="card">
       <div class="card-head">${esc(t("creator.register.cardTitle"))}</div>
@@ -719,12 +722,6 @@ function renderAlready() {
   const net = NET;
   const rel = getVerifyRelativePath(creatorId);
   return `
-    <div class="wallet-bar">
-      <div class="w-dot on"></div>
-      <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <button type="button" class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</button>
-    </div>
-
     ${creatorStackStripHtml()}
 
     <div class="card">
@@ -784,42 +781,42 @@ function renderAlready() {
       (typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "") === "P" &&
       odpContractGeneration >= 2
         ? `
-    <div class="card" style="margin-top:20px">
+    <div class="card creator-p-aff-card" style="margin-top:20px">
       <div class="card-head">${esc(t("creator.pAff.cardTitle"))}</div>
       <div class="card-body">
-        <p style="font-size:12px;color:var(--text2);margin:0 0 12px;line-height:1.6">
-          ${esc(t("creator.pAff.body"))}
-        </p>
+        <p class="p-aff-lead">${esc(t("creator.pAff.body"))}</p>
 
-        <div class="info neutral" style="margin-bottom:12px;font-size:12px">
+        <div class="info neutral p-aff-status">
           ${esc(t("creator.pAff.activeParentLabel"))} <span id="pAffActiveParentVal" class="mono"></span>
         </div>
 
-        <div style="margin-bottom:12px">
+        <div class="p-aff-section">
           <label class="search-label" for="pAffParentInput">${esc(t("creator.pAff.parentInputLabel"))}</label>
-          <input type="text" id="pAffParentInput" placeholder="P-…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" spellcheck="false">
-          <button type="button" class="btn" id="pAffProposeBtn">${esc(t("creator.pAff.proposeBtn"))}</button>
-          <button type="button" class="btn btn-sec" id="pAffCancelBtn" style="margin-left:8px">${esc(t("creator.pAff.cancelBtn"))}</button>
-          <div id="pAffProposeResult" style="margin-top:10px;font-size:12px"></div>
-          <div id="pAffCancelResult" style="margin-top:8px;font-size:12px"></div>
-          <p style="font-size:11px;color:var(--text3);margin:10px 0 0;line-height:1.45">${esc(t("creator.pAff.cancelHint"))}</p>
-        </div>
-
-        <div style="margin-bottom:12px">
-          <label class="search-label" for="pAffChildInput">${esc(t("creator.pAff.childInputLabel"))}</label>
-          <input type="text" id="pAffChildInput" placeholder="P-…" style="width:100%;max-width:28rem;padding:10px 12px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:13px;margin-bottom:12px" autocomplete="off" spellcheck="false">
-          <button type="button" class="btn btn-sec" id="pAffConfirmBtn">${esc(t("creator.pAff.confirmBtn"))}</button>
-          <div id="pAffConfirmResult" style="margin-top:10px;font-size:12px"></div>
-        </div>
-
-        <div class="info neutral">
-          <div style="font-size:11px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">
-            ${esc(t("creator.pAff.childrenTitle"))}
+          <input type="text" id="pAffParentInput" class="p-aff-input" placeholder="P-…" autocomplete="off" spellcheck="false">
+          <div class="p-aff-actions">
+            <button type="button" class="btn" id="pAffProposeBtn">${esc(t("creator.pAff.proposeBtn"))}</button>
+            <button type="button" class="btn btn-sec" id="pAffCancelBtn">${esc(t("creator.pAff.cancelBtn"))}</button>
           </div>
-          <div id="pAffChildrenList" class="mono" style="font-size:12px;word-break:break-word"></div>
-          <div style="margin-top:10px;display:flex;align-items:center;gap:10px">
-            <div id="pAffChildrenMeta" style="font-size:11px;color:var(--text3);line-height:1.35"></div>
-            <button type="button" class="btn btn-sec" id="pAffLoadMoreBtn" style="padding:10px 12px" disabled>
+          <div id="pAffProposeResult" class="p-aff-result"></div>
+          <div id="pAffCancelResult" class="p-aff-result"></div>
+          <p class="p-aff-hint">${esc(t("creator.pAff.cancelHint"))}</p>
+        </div>
+
+        <div class="p-aff-section">
+          <label class="search-label" for="pAffChildInput">${esc(t("creator.pAff.childInputLabel"))}</label>
+          <input type="text" id="pAffChildInput" class="p-aff-input" placeholder="P-…" autocomplete="off" spellcheck="false">
+          <div class="p-aff-actions p-aff-actions--single">
+            <button type="button" class="btn btn-sec" id="pAffConfirmBtn">${esc(t("creator.pAff.confirmBtn"))}</button>
+          </div>
+          <div id="pAffConfirmResult" class="p-aff-result"></div>
+        </div>
+
+        <div class="info neutral p-aff-children">
+          <div class="p-aff-children-title">${esc(t("creator.pAff.childrenTitle"))}</div>
+          <div id="pAffChildrenList" class="mono p-aff-children-list"></div>
+          <div class="p-aff-children-footer">
+            <div id="pAffChildrenMeta" class="p-aff-children-meta"></div>
+            <button type="button" class="btn btn-sec" id="pAffLoadMoreBtn" disabled>
               ${esc(t("creator.pAff.loadMoreBtn"))}
             </button>
           </div>
@@ -1072,6 +1069,7 @@ async function _finish(web3p) {
 
   // Show security step first
   document.getElementById("app").innerHTML = renderSecurity();
+  syncOdpHeaderDisconnect();
 }
 
 // ── Register ──────────────────────────────────────────────────────────────────
@@ -1135,6 +1133,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     pageTitleKey: "creator.meta.documentTitle",
     mergePages: ["passport"],
   });
+  if (typeof odpMaybeAutoShowSiteTrustModal === "function") odpMaybeAutoShowSiteTrustModal();
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;

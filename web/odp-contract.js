@@ -365,6 +365,25 @@
     return generation >= 2;
   }
 
+  function odpStackSpecForGeneration(generation) {
+    if (generation === 0) {
+      return odpStackT("stack.spec.legacy", "legacy CONTRACT_VERSION 0 — not supported by this UI");
+    }
+    if (generation >= 3) {
+      return odpStackT(
+        "stack.spec.v03",
+        "ODP v0.3 — ownership, account-scoped publishing agent (updatePassportUrls), revocation, 3 image hashes, P-affiliation detach"
+      );
+    }
+    if (generation >= 2) {
+      return odpStackT(
+        "stack.spec.v02",
+        "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
+      );
+    }
+    return odpStackT("stack.spec.unknown", "unknown generation");
+  }
+
   /** Long disclosure copy (also in `odp-site-trust-disclosure.html` for the modal). */
   function odpStackDisclosureParagraphsHtml() {
     var L = ODP_LATEST_STABLE_MAJOR;
@@ -389,10 +408,26 @@
       "stack.disclosure.odpassPara",
       "<strong>Verify</strong> can open a <strong>.odpass</strong> file on your computer (it’s a ZIP). Inside is <strong>passport.json</strong>. The page checks that this file still matches what was saved in the public registry (a fingerprint of the data). Extra files (original artwork, pictures) sit in the <strong>originals/</strong> folder; the bundle lists their paths. Previews are built on your device — nothing is uploaded to this website. Older bundle layouts still work."
     );
+    var gen =
+      typeof global.odpContractGeneration === "number" && !isNaN(global.odpContractGeneration)
+        ? global.odpContractGeneration
+        : null;
+    var registryBlock = "";
+    if (gen !== null) {
+      registryBlock =
+        '<p class="odp-stack-note">' +
+        odpStackTpl(
+          "stack.disclosure.registryPara",
+          "<strong>On-chain registry generation {gen}.</strong> {spec}",
+          { gen: String(gen), spec: odpStackSpecForGeneration(gen) }
+        ) +
+        "</p>";
+    }
     return (
       '<p class="odp-stack-note">' +
         noteRead +
         "</p>" +
+        registryBlock +
         '<p class="odp-stack-note">' +
         noteOdpass +
         "</p>" +
@@ -407,28 +442,11 @@
    */
   function odpFormatStackSummaryHtml(generation) {
     var g = generation == null ? "?" : String(generation);
-    var spec;
-    if (generation === 0) {
-      spec = odpStackT("stack.spec.legacy", "legacy CONTRACT_VERSION 0 — not supported by this UI");
-    } else if (generation >= 3) {
-      spec = odpStackT(
-        "stack.spec.v03",
-        "ODP v0.3 — ownership, account-scoped publishing agent (updatePassportUrls), revocation, 3 image hashes, P-affiliation detach"
-      );
-    } else if (generation >= 2) {
-      spec = odpStackT(
-        "stack.spec.v02",
-        "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)"
-      );
-    } else {
-      spec = odpStackT("stack.spec.unknown", "unknown generation");
-    }
     var trust = odpSiteSemverTrust(ODP_SITE_VERSION, ODP_LATEST_STABLE_MAJOR);
     var flagClass = "odp-stack-flag--" + trust.level;
-    var metaLine = odpStackTpl("stack.summaryMeta", "Site {siteVer} · on-chain gen {gen} — {spec}", {
+    var metaLine = odpStackTpl("stack.summaryLine", "Site {siteVer} · on-chain registry generation {gen}.", {
       siteVer: ODP_SITE_VERSION,
       gen: g,
-      spec: spec,
     });
     return (
       '<div class="odp-stack-block odp-stack-block--compact">' +
@@ -470,8 +488,10 @@
     if (!doc) return;
     var titleEl = doc.getElementById("odpSiteTrustModalTitle");
     var okEl = doc.getElementById("odpSiteTrustModalOk");
+    var bodyEl = doc.getElementById("odpSiteTrustModalBody");
     if (titleEl) titleEl.textContent = odpStackT("stack.modalTitle", "Site release & trust");
     if (okEl) okEl.textContent = odpStackT("stack.modalOk", "Got it");
+    if (bodyEl) bodyEl.innerHTML = odpStackDisclosureParagraphsHtml();
   }
 
   function odpOpenSiteTrustModal() {
@@ -489,43 +509,14 @@
         '<div id="odpSiteTrustModalBody" class="odp-modal-body"></div>' +
         '<div class="odp-modal-actions"><button type="button" class="btn" id="odpSiteTrustModalOk"></button></div></div>';
       doc.body.appendChild(backdrop);
-      odpRefreshSiteTrustModalChrome();
       doc.getElementById("odpSiteTrustModalOk").onclick = function () {
         odpCloseSiteTrustModal();
       };
       backdrop.addEventListener("click", function (ev) {
         if (ev.target === backdrop) odpCloseSiteTrustModal();
       });
-    } else {
-      odpRefreshSiteTrustModalChrome();
     }
-    var body = doc.getElementById("odpSiteTrustModalBody");
-    function fillBody(html) {
-      body.innerHTML = html;
-    }
-    function fillFallback() {
-      fillBody(odpStackDisclosureParagraphsHtml());
-    }
-    var localeRu = typeof global.odpGetLocale === "function" && global.odpGetLocale() === "ru";
-    if (localeRu) {
-      fillFallback();
-    } else if (typeof global.location !== "undefined" && global.location && global.location.href) {
-      var url = new URL("odp-site-trust-disclosure.html", global.location.href);
-      url.searchParams.set("_", String(Date.now()));
-      global
-        .fetch(url.toString(), { cache: "no-store" })
-        .then(function (r) {
-          return r.ok ? r.text() : Promise.reject();
-        })
-        .then(function (html) {
-          var m = html.match(/<div[^>]*class="[^"]*odp-site-trust-disclosure[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-          if (m && m[1]) fillBody(m[1].trim());
-          else fillFallback();
-        })
-        .catch(fillFallback);
-    } else {
-      fillFallback();
-    }
+    odpRefreshSiteTrustModalChrome();
     backdrop.hidden = false;
     backdrop.setAttribute("aria-hidden", "false");
   }
@@ -552,11 +543,6 @@
       },
       true
     );
-    global.document.addEventListener("DOMContentLoaded", function () {
-      setTimeout(function () {
-        odpMaybeAutoShowSiteTrustModal();
-      }, 0);
-    });
   }
 
   async function odpRequireSingleEthereumAccount(eth) {
@@ -802,6 +788,35 @@
                 { name: "timestamp", type: "uint256" },
               ],
             },
+          ],
+        },
+        {
+          name: "raiseCounterfeitConcern",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "humanId", type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "clearCounterfeitConcern",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "humanId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "getCounterfeitConcern",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "humanId", type: "string" }],
+          outputs: [
+            { name: "active", type: "bool" },
+            { name: "proverCreatorId", type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+            { name: "timestamp", type: "uint256" },
           ],
         }
       );
@@ -1214,6 +1229,18 @@
               { name: "timestamp", type: "uint256" },
             ],
           },
+        ],
+      },
+      {
+        name: "getCounterfeitConcern",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "humanId", type: "string" }],
+        outputs: [
+          { name: "active", type: "bool" },
+          { name: "proverCreatorId", type: "string" },
+          { name: "reasonHash", type: "bytes32" },
+          { name: "timestamp", type: "uint256" },
         ],
       },
       {

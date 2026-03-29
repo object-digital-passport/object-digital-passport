@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="blue">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f0e0c">
-<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#2B4C9B">
+<meta name="color-scheme" content="light">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
@@ -16,7 +16,7 @@
   Author: Andrei Chernikov
   Specification v0.3
 
-  Shared styles: odp.css (same dark theme as Creator / Passport)
+  Shared styles: odp.css (same themes as Creator / Passport; default is light/blue)
 
   To use offline:
     1. Save ethers.js locally: https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js
@@ -28,8 +28,9 @@
 <link rel="stylesheet" href="odp.css">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3.0"></script>
-<script src="odp-i18n.js?v=6"></script>
+<script src="odp-contract.js?v=0.3.2"></script>
+<script src="odp-date-format.js?v=1"></script>
+<script src="odp-i18n.js?v=8"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 </head>
@@ -37,7 +38,7 @@
 <body>
 <script>
 // #region agent log
-window.addEventListener('load',function(){var hdr=document.querySelector('header.header-row');var toolbar=document.querySelector('.header-toolbar');var nav=document.querySelector('.nav');var cs=function(el,p){return el?getComputedStyle(el)[p]:null;};fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'verify.html:onload',message:'verify-mobile-layout',data:{viewportW:window.innerWidth,hdrFlexDir:cs(hdr,'flexDirection'),hdrAlignItems:cs(hdr,'alignItems'),toolbarJustify:cs(toolbar,'justifyContent'),navGap:cs(nav,'gap'),theme:document.documentElement.dataset.theme||'dark',lang:document.documentElement.lang,savedTheme:localStorage.getItem('odp_theme'),savedLocale:localStorage.getItem('odp_locale'),navLang:navigator.language},timestamp:Date.now()})}).catch(function(){});});
+window.addEventListener('load',function(){var hdr=document.querySelector('header.header-row');var toolbar=document.querySelector('.header-toolbar');var nav=document.querySelector('.nav');var cs=function(el,p){return el?getComputedStyle(el)[p]:null;};fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'verify.html:onload',message:'verify-mobile-layout',data:{viewportW:window.innerWidth,hdrFlexDir:cs(hdr,'flexDirection'),hdrAlignItems:cs(hdr,'alignItems'),toolbarJustify:cs(toolbar,'justifyContent'),navGap:cs(nav,'gap'),theme:document.documentElement.dataset.theme||'blue',lang:document.documentElement.lang,savedTheme:localStorage.getItem('odp_theme'),savedLocale:localStorage.getItem('odp_locale'),navLang:navigator.language},timestamp:Date.now()})}).catch(function(){});});
 // #endregion
 </script>
 <div class="page">
@@ -47,7 +48,6 @@ window.addEventListener('load',function(){var hdr=document.querySelector('header
     <h1 data-i18n="verify.meta.h1">Verify</h1>
     <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.3</p>
     <div id="odpStackLabelHeader" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
-    <p class="fhint" style="margin-top:6px" data-i18n="verify.meta.hint">Check that a passport or profile ID is registered.</p>
   </div>
   <div class="header-toolbar">
     <div id="odpThemeSwitch"></div>
@@ -56,6 +56,9 @@ window.addEventListener('load',function(){var hdr=document.querySelector('header
       <div class="net-dot" id="netDot"></div>
       <span id="netLabel" data-i18n="verify.net.connecting">Connecting...</span>
     </div>
+    <button type="button" class="odp-header-disconnect" id="odpHeaderDisconnect" hidden aria-hidden="true" data-i18n-title="verify.walletBar.disconnect" title="Disconnect" onclick="disconnectVerifyWallet()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
   </div>
 </header>
 
@@ -65,13 +68,6 @@ window.addEventListener('load',function(){var hdr=document.querySelector('header
   <a href="verify.html" class="active" aria-current="page" data-i18n="nav.verify">Verify</a>
 </div>
 
-
-<div class="wallet-bar" id="verifyWalletBar" style="display:none;margin-bottom:16px">
-  <div class="wdot on"></div>
-  <div class="wbar-addr" id="verifyWalletAddr">—</div>
-  <div class="wbar-id" id="verifyWalletCreatorId">—</div>
-  <button type="button" class="w-switch" id="verifyWalletDisconnect" onclick="disconnectVerifyWallet()" data-i18n="verify.walletBar.disconnect">Disconnect</button>
-</div>
 
 <div id="odpStackLabel" class="fhint odp-stack-wrap odp-passport-stack-strip" style="display:none;line-height:1.5" hidden aria-hidden="true"></div>
 
@@ -479,7 +475,8 @@ function syncVerifyPaffAuditVisibility() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 async function init() {
-  await odpInitI18n({ page: "verify", pageTitleKey: "verify.meta.documentTitle" });
+  await odpInitI18n({ page: "verify", pageTitleKey: "verify.meta.documentTitle", mergePages: ["passport"] });
+  if (typeof odpMaybeAutoShowSiteTrustModal === "function") odpMaybeAutoShowSiteTrustModal();
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
   await connect();
@@ -492,7 +489,7 @@ async function init() {
     await verify();
   }
   await initVerifyWalletBar();
-  activateVerifyTool("", false);
+  activateVerifyTool("", false, false);
   }
 
 function injectedEthereum() {
@@ -527,20 +524,16 @@ async function resolveCreatorIdByWallet(address) {
 }
 
 function setVerifyWalletBar(address) {
-  const bar = document.getElementById("verifyWalletBar");
-  const addrEl = document.getElementById("verifyWalletAddr");
-  const creatorEl = document.getElementById("verifyWalletCreatorId");
-  if (!bar || !addrEl || !creatorEl) return;
-  if (!address) {
-    bar.style.display = "none";
-    addrEl.textContent = "—";
-    creatorEl.textContent = "—";
-    return;
+  const headBtn = document.getElementById("odpHeaderDisconnect");
+  if (headBtn) {
+    if (!address) {
+      headBtn.hidden = true;
+      headBtn.setAttribute("aria-hidden", "true");
+    } else {
+      headBtn.hidden = false;
+      headBtn.setAttribute("aria-hidden", "false");
+    }
   }
-  const a = String(address);
-  addrEl.textContent = a.length > 14 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a;
-  creatorEl.textContent = verifyWalletCreatorId || "—";
-  bar.style.display = "";
 }
 
 function setDocAttestWalletLabel(address) {
@@ -832,7 +825,9 @@ function scrollToVerifySection(el) {
   } catch {}
 }
 
-function activateVerifyTool(tool, updateUrl) {
+/** @param doScroll Omit or true for explicit tool switch; false on init (no jump when opening Verify from the menu). */
+function activateVerifyTool(tool, updateUrl, doScroll) {
+  const scroll = doScroll !== false;
   const t = String(tool || "").trim();
   if (updateUrl) {
     const u = new URL(window.location.href);
@@ -872,8 +867,12 @@ function activateVerifyTool(tool, updateUrl) {
     if (subnav) subnav.style.display = "none";
     if (toolsMenu) toolsMenu.hidden = false;
     if (idSec) idSec.hidden = false;
-    scrollToVerifySection(document.getElementById("verifyIdSection"));
-    document.getElementById("idInput")?.focus();
+    if (scroll) scrollToVerifySection(document.getElementById("verifyIdSection"));
+    const idIn = document.getElementById("idInput");
+    if (idIn) {
+      if (scroll) idIn.focus();
+      else idIn.focus({ preventScroll: true });
+    }
     return;
   }
   if (selectedTool === "doc-attest") {
@@ -882,8 +881,12 @@ function activateVerifyTool(tool, updateUrl) {
     if (toolsMenu) toolsMenu.hidden = true;
     if (subnav) subnav.style.display = "";
     if (subnavTitle) subnavTitle.textContent = typeof window.odpT === "function" ? window.odpT("verify.tools.docAttest") : "Document attest";
-    scrollToVerifySection(document.getElementById("docAttestSection"));
-    document.getElementById("docAttestFile")?.focus();
+    if (scroll) scrollToVerifySection(document.getElementById("docAttestSection"));
+    const f = document.getElementById("docAttestFile");
+    if (f) {
+      if (scroll) f.focus();
+      else f.focus({ preventScroll: true });
+    }
     markActive("doc-attest");
     return;
   }
@@ -893,8 +896,12 @@ function activateVerifyTool(tool, updateUrl) {
     if (toolsMenu) toolsMenu.hidden = true;
     if (subnav) subnav.style.display = "";
     if (subnavTitle) subnavTitle.textContent = typeof window.odpT === "function" ? window.odpT("verify.tools.docCheck") : "Document hash check";
-    scrollToVerifySection(document.getElementById("docVerifySection"));
-    document.getElementById("docVerifyFile")?.focus();
+    if (scroll) scrollToVerifySection(document.getElementById("docVerifySection"));
+    const f = document.getElementById("docVerifyFile");
+    if (f) {
+      if (scroll) f.focus();
+      else f.focus({ preventScroll: true });
+    }
     markActive("doc-check");
   }
 }
@@ -1442,8 +1449,8 @@ function formatUnixUtcSeconds(sec) {
     ":" +
     String(d.getUTCSeconds()).padStart(2, "0") +
     "Z";
-  const human = d.toLocaleString("en-GB", { timeZone: "UTC", dateStyle: "long", timeStyle: "medium" });
-  return { iso: iso, human: human + " · UTC" };
+  const human = odpFormatDateTimeUtcDDMMYYYY(d);
+  return { iso: iso, human: human };
 }
 
 /** Fields from hosted passport.json that the main card does not show (version, seal details, provenance, …). */
@@ -1543,7 +1550,12 @@ function renderPassportJsonExtras(passport, isDigital) {
       const n = p.seal.nfc;
       if (n.uid) rows.push(`<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcChipId"))}</div><div class="fv mono">${esc(String(n.uid))}</div></div>`);
       if (n.model) rows.push(`<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcChipType"))}</div><div class="fv">${esc(String(n.model))}</div></div>`);
-      if (n.installedAt) rows.push(`<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcInstalledOn"))}</div><div class="fv">${esc(String(n.installedAt))}</div></div>`);
+      if (n.installedAt)
+        rows.push(
+          `<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcInstalledOn"))}</div><div class="fv">${esc(
+            odpFormatDateStringForDisplay(String(n.installedAt))
+          )}</div></div>`
+        );
       if (n.publicKey) {
         const pk = String(n.publicKey);
         rows.push(
@@ -1626,7 +1638,7 @@ async function verifyFetchDelegationOpts(readContract, creatorWallet) {
       if (agent && String(agent).toLowerCase() !== ZERO) {
         out.delegationAgent = String(agent);
         out.delegationExpiresAt = expSec;
-        out.delegationExpiresLabel = expSec ? new Date(expSec * 1000).toLocaleString() : "—";
+        out.delegationExpiresLabel = expSec ? odpFormatDateTimeLocalDDMMYYYY(new Date(expSec * 1000)) : "—";
       }
     }
   } catch {
@@ -1801,7 +1813,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           <div class="proof-item" style="margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)">
             <div class="proof-id" style="font-family:var(--mono);font-size:11px;color:var(--ink3)">${esc(p.proofId)}</div>
             <div style="font-family:var(--mono);font-size:16px;font-weight:600;margin:6px 0 4px;letter-spacing:0.04em">${esc(p.prover)}</div>
-            <div style="font-size:11px;color:var(--ink3);font-family:var(--mono)">${new Date(Number(p.timestamp) * 1000).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" })}</div>
+            <div style="font-size:11px;color:var(--ink3);font-family:var(--mono)">${odpFormatDateDDMMYYYY(new Date(Number(p.timestamp) * 1000))}</div>
             <div style="font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.6">
               ${esc(t("verify.instProof.findProverLead"))} <strong style="font-family:var(--mono)">${esc(p.prover)}</strong> ${esc(t("verify.instProof.findProverTail"))}
             </div>
@@ -2922,7 +2934,7 @@ async function verifyDocAttestation() {
     const itemsHtml = all.length
       ? all
           .map((a) => {
-            const when = a.timestamp ? new Date(a.timestamp * 1000).toLocaleString() : "—";
+            const when = a.timestamp ? odpFormatDateTimeLocalDDMMYYYY(new Date(a.timestamp * 1000)) : "—";
             return `<div style="padding:8px 0;border-top:1px solid var(--line);font-size:12px;line-height:1.6">
               <div><strong>${esc(a.creatorId || "—")}</strong></div>
               <div class="mono">${esc(a.wallet)}</div>
@@ -2967,7 +2979,7 @@ function verifyPaffFmtTs(sec) {
   const n = Number(sec);
   if (!n || Number.isNaN(n)) return "—";
   try {
-    return new Date(n * 1000).toLocaleString();
+    return odpFormatDateTimeLocalDDMMYYYY(new Date(n * 1000));
   } catch {
     return "—";
   }

@@ -3,7 +3,7 @@
     "meta": {
       "documentTitle": "ODP v0.3 — Register profile",
       "h1": "Profile",
-      "sub": "Object Digital Passport · version 0.3"
+      "sub": "Object Digital Passport · version\u00a00.3"
     },
     "steps": {
       "wallet": "Wallet",

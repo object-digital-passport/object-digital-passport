@@ -89,7 +89,7 @@
       "</div>" +
       '<div class="card-body">' +
       '<p class="fhint" style="margin:0 0 14px;line-height:1.6;max-width:52rem">' +
-      esc(t("passport.v03Ops.lead")) +
+      esc(t("passport.v03Ops.leadProfile")) +
       "</p>" +
       '<div id="passportV03GovStrip" class="info neutral" style="display:none;margin-bottom:14px;padding:12px 14px;border-radius:8px;line-height:1.55">' +
       '<div class="section-label" style="margin-bottom:8px">' +
@@ -264,7 +264,7 @@
       passportV03Last = { humanId: hid, p: p };
       var govAddr = null;
       if (typeof contract.governance === "function") govAddr = await contract.governance();
-      var wl = wallet.toLowerCase();
+      var wl = wallet && typeof wallet === "string" && wallet.trim() ? String(wallet).toLowerCase() : "";
       var ownerAddr = p.owner !== undefined ? p.owner : p.creator;
       var creatorAddr = p.creator;
       var ZERO = "0x0000000000000000000000000000000000000000";
@@ -298,7 +298,7 @@
         agent && agent.toLowerCase() !== ZERO
           ? t("passport.v03Ops.delegationLine")
               .replace("{agent}", passportV03ShortAddr(String(agent)))
-              .replace("{exp}", expSec ? new Date(expSec * 1000).toLocaleString() : "—")
+              .replace("{exp}", expSec ? odpFormatDateTimeLocalDDMMYYYY(new Date(expSec * 1000)) : "—")
           : t("passport.v03Ops.delegationNone");
       var cfLine = ccActive
         ? esc(t("passport.v03Ops.counterfeitActive").replace("{prover}", ccProver || "—"))

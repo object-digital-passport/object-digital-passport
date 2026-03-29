@@ -54,11 +54,11 @@
   }
 
   function currentTheme() {
-    return getSaved() || "dark";
+    return getSaved() || "blue";
   }
 
   function applyTheme(theme) {
-    if (!THEME_META[theme]) theme = "dark";
+    if (!THEME_META[theme]) theme = "blue";
     var root = global.document.documentElement;
     if (theme === "dark") {
       root.removeAttribute("data-theme");
