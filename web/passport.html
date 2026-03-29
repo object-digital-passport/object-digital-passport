@@ -129,6 +129,51 @@ let myPassportsTotal = 0;
 const MY_PASSPORTS_LIMIT = 20;
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
 
+function addExtraMetaRow() {
+  const wrap = document.getElementById("extraMetaRows");
+  if (!wrap) return;
+  const row = document.createElement("div");
+  row.className = "row2 extra-meta-row";
+  row.style.marginTop = "8px";
+  const fk = document.createElement("div");
+  fk.className = "field";
+  const lk = document.createElement("label");
+  lk.className = "fhint";
+  lk.textContent = t("passport.form.extraMetaKey");
+  const ik = document.createElement("input");
+  ik.type = "text";
+  ik.className = "extra-meta-key";
+  ik.placeholder = t("passport.form.extraMetaKeyPh");
+  fk.appendChild(lk);
+  fk.appendChild(ik);
+  const fv = document.createElement("div");
+  fv.className = "field";
+  const lv = document.createElement("label");
+  lv.className = "fhint";
+  lv.textContent = t("passport.form.extraMetaValue");
+  const inner = document.createElement("div");
+  inner.style.cssText = "display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap";
+  const iv = document.createElement("input");
+  iv.type = "text";
+  iv.className = "extra-meta-val";
+  iv.style.flex = "1";
+  iv.style.minWidth = "120px";
+  iv.placeholder = t("passport.form.extraMetaValuePh");
+  const rm = document.createElement("button");
+  rm.type = "button";
+  rm.className = "btn btn-ghost";
+  rm.setAttribute("aria-label", t("passport.form.extraMetaRemove"));
+  rm.textContent = "×";
+  rm.onclick = () => row.remove();
+  inner.appendChild(iv);
+  inner.appendChild(rm);
+  fv.appendChild(lv);
+  fv.appendChild(inner);
+  row.appendChild(fk);
+  row.appendChild(fv);
+  wrap.appendChild(row);
+}
+
 function passportStackStripHtml() {
   if (typeof odpFormatStackSummaryHtml !== "function" || odpContractGeneration == null) return "";
   return '<div class="odp-passport-stack-strip">' + odpFormatStackSummaryHtml(odpContractGeneration) + "</div>";
@@ -948,6 +993,36 @@ function renderForm() {
       </div>
       <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
         <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
+
+      <div id="passportAdditionalV03" style="margin-top:14px;${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
+        <div class="acc" id="additionalAcc">
+          <div class="acc-head" onclick="tog('additionalAcc')">${esc(t("passport.form.additionalAccordionTitle"))}<span class="acc-arr">▶</span></div>
+          <div class="acc-body">
+            <p class="fhint" style="margin:0 0 14px;line-height:1.55">${esc(t("passport.form.additionalAccordionLead"))}</p>
+            <div class="section-label" style="margin-top:4px;font-size:12px;opacity:0.95">${esc(t("passport.form.extraMetaSection"))}</div>
+            <p class="fhint" style="margin:4px 0 10px;line-height:1.5">${esc(t("passport.form.extraMetaHint"))}</p>
+            <div id="extraMetaRows"></div>
+            <button type="button" class="btn btn-sec" style="margin-top:10px" onclick="addExtraMetaRow()">${esc(t("passport.form.extraMetaAdd"))}</button>
+            <div class="section-label" style="margin-top:20px;font-size:12px;opacity:0.95">${esc(t("passport.form.v03MetaSubheading"))}</div>
+            <div class="row2" style="margin-top:10px">
+              <div class="field"><label>${esc(t("passport.form.labelWidth"))}</label><input type="number" id="f_dim_w" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
+              <div class="field"><label>${esc(t("passport.form.labelHeight"))}</label><input type="number" id="f_dim_h" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
+            </div>
+            <div class="field"><label>${esc(t("passport.form.labelDimUnit"))}</label><input type="text" id="f_dim_unit" placeholder="${esc(t("passport.form.phUnitCm"))}"></div>
+            <div class="row2">
+              <div class="field"><label>${esc(t("passport.form.labelWeight"))}</label><input type="number" id="f_weight" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
+              <div class="field"><label>${esc(t("passport.form.labelWeightUnit"))}</label><input type="text" id="f_weight_unit" placeholder="${esc(t("passport.form.phUnitKg"))}"></div>
+            </div>
+            <div class="row2">
+              <div class="field"><label>${esc(t("passport.form.labelDepth"))}</label><input type="number" id="f_depth" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
+              <div class="field"><label>${esc(t("passport.form.labelDepthUnit"))}</label><input type="text" id="f_depth_unit" placeholder="${esc(t("passport.form.phUnitCm"))}"></div>
+            </div>
+            <div class="field"><label>${esc(t("passport.form.labelCreationDate"))}</label><input type="text" id="f_creation_date" placeholder="${esc(t("passport.form.phCreationDate"))}"></div>
+            <div class="field"><label>${esc(t("passport.form.labelListingPrice"))}</label><input type="text" id="f_listing_price" placeholder="${esc(t("passport.form.phListingPrice"))}"></div>
+            <div class="field"><label>${esc(t("passport.form.labelInternalTag"))}</label><input type="text" id="f_internal_tag" placeholder="${esc(t("passport.form.phInternalTag"))}"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Passport URL -->
@@ -1044,27 +1119,6 @@ function renderForm() {
         <input type="text" id="f_aux_hash" placeholder="${esc(t("passport.form.phAuxHash"))}" autocomplete="off" spellcheck="false"></div>
       <div class="field"><label>${esc(t("passport.form.labelAuxUri"))}</label>
         <input type="url" id="f_aux_uri" placeholder="${esc(t("passport.form.phHttpsShort"))}" autocomplete="off"></div>
-    </div>
-
-    <div class="section" id="v03OptionalMeta" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-      <div class="section-label">${esc(t("passport.form.v03MetaSection"))}</div>
-      <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.v03MetaHint"))}</p>
-      <div class="row2">
-        <div class="field"><label>${esc(t("passport.form.labelWidth"))}</label><input type="number" id="f_dim_w" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
-        <div class="field"><label>${esc(t("passport.form.labelHeight"))}</label><input type="number" id="f_dim_h" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelDimUnit"))}</label><input type="text" id="f_dim_unit" placeholder="cm"></div>
-      <div class="row2">
-        <div class="field"><label>${esc(t("passport.form.labelWeight"))}</label><input type="number" id="f_weight" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
-        <div class="field"><label>${esc(t("passport.form.labelWeightUnit"))}</label><input type="text" id="f_weight_unit" placeholder="kg"></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label>${esc(t("passport.form.labelDepth"))}</label><input type="number" id="f_depth" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
-        <div class="field"><label>${esc(t("passport.form.labelDepthUnit"))}</label><input type="text" id="f_depth_unit" placeholder="cm"></div>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelCreationDate"))}</label><input type="text" id="f_creation_date" placeholder="${esc(t("passport.form.phCreationDate"))}"></div>
-      <div class="field"><label>${esc(t("passport.form.labelListingPrice"))}</label><input type="text" id="f_listing_price" placeholder="${esc(t("passport.form.phListingPrice"))}"></div>
-      <div class="field"><label>${esc(t("passport.form.labelInternalTag"))}</label><input type="text" id="f_internal_tag" placeholder="${esc(t("passport.form.phInternalTag"))}"></div>
     </div>
 
     <!-- Physical seal -->
@@ -1546,6 +1600,18 @@ function buildPassport(humanId) {
   // JSON field matches mint.py: f"sha256:{hex}"; on-chain still uses 0x bytes32 (imageHash)
   if (imageHash!==ZERO32) p.image = { url:imageUrl, hash: "sha256:"+imageHash.slice(2) };
   if (useV03) {
+    const custom = {};
+    const metaRoot = document.getElementById("extraMetaRows");
+    if (metaRoot) {
+      metaRoot.querySelectorAll(".extra-meta-row").forEach((row) => {
+        const kEl = row.querySelector(".extra-meta-key");
+        const vEl = row.querySelector(".extra-meta-val");
+        const k = kEl && kEl.value != null ? String(kEl.value).trim() : "";
+        const val = vEl && vEl.value != null ? String(vEl.value).trim() : "";
+        if (k) custom[k] = val;
+      });
+    }
+    if (Object.keys(custom).length) p.custom = custom;
     const extras = [];
     if (imageHash2 !== ZERO32) extras.push({ url: v("f_imgUrl2"), hash: "sha256:" + imageHash2.slice(2) });
     if (imageHash3 !== ZERO32) extras.push({ url: v("f_imgUrl3"), hash: "sha256:" + imageHash3.slice(2) });
