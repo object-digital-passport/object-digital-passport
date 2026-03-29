@@ -2323,13 +2323,6 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
       <span class="success-id">${esc(humanId)}</span>
       <p class="success-sub">${esc(t("passport.form.successRegisteredOn").replace("{net}", net.name))}</p>
 
-      <div class="qr-share-block">
-        <p class="qr-share-caption">${esc(t("passport.form.successShareCaption"))}</p>
-        <div class="qr-share-actions">
-          <button type="button" class="btn btn-sec" id="sharePassportBtn">${esc(t("passport.form.successShareBtn"))}</button>
-        </div>
-      </div>
-
       <div class="next-steps">
         <div class="ns-item"><div class="ns-num">1</div><div>${uploadHint}</div></div>
         <div class="ns-item"><div class="ns-num">2</div><div>${esc(t("passport.form.successStep2"))}</div></div>
@@ -2342,7 +2335,7 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
 
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;align-items:center">
         <button type="button" class="btn" id="successDlOdpBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDlOdp"))}</button>
-        <button type="button" class="btn btn-sec" id="successShareOdpBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successShareOdp"))}</button>
+        <button type="button" class="btn btn-sec" id="successShareVerifyBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successShareBtn"))}</button>
         <button type="button" class="btn btn-sec" id="successDidBtn" style="flex:0;padding:13px 20px">${esc(t("passport.form.successDidDoc"))}</button>
         <button type="button" class="btn btn-ghost" id="successExplorerBtn">${esc(t("passport.form.successExplorer"))}</button>
         <button type="button" class="btn btn-ghost" id="successVerifyBtn">${esc(t("passport.form.successVerify"))}</button>
@@ -2380,8 +2373,8 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
     </div>`;
 
   bindShareModalCloseHandlers();
-  const shareBtn = document.getElementById("sharePassportBtn");
-  if (shareBtn) shareBtn.addEventListener("click", () => fillPassportShareModal(humanId));
+  const shareVerifyBtn = document.getElementById("successShareVerifyBtn");
+  if (shareVerifyBtn) shareVerifyBtn.addEventListener("click", () => fillPassportShareModal(humanId));
 
   const successMain = document.getElementById("successMainBlock");
   const critBackdrop = document.getElementById("odpassCriticalBackdrop");
@@ -2435,10 +2428,8 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
     sessionStorage.setItem("odp_passport_json_" + humanId, json);
   } catch (e) {}
   const dlOdp = document.getElementById("successDlOdpBtn");
-  const shOdp = document.getElementById("successShareOdpBtn");
   const didBtn = document.getElementById("successDidBtn");
   if (dlOdp) dlOdp.onclick = () => void downloadPassportOdp(humanId, json, bundleMeta);
-  if (shOdp) shOdp.onclick = () => void sharePassportOdpFile(humanId, json, bundleMeta);
   if (didBtn) {
     didBtn.onclick = () => {
       const doc = buildOdpDidDocument({
@@ -2451,26 +2442,6 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
     };
   }
   void downloadPassportOdp(humanId, json, bundleMeta).catch(() => {});
-}
-
-/** Returns true if the system share sheet completed successfully; false if Web Share with files is unavailable. */
-async function trySharePassportOdpFile(humanId, json, bundleMeta) {
-  const blob = await createPassportOdpBlob(humanId, json, bundleMeta);
-  const filename = `${safeFilePart(humanId)}.odpass`;
-  const file = new File([blob], filename, { type: "application/zip" });
-  if (!navigator.canShare || !navigator.canShare({ files: [file] })) return false;
-  await navigator.share({ files: [file], title: "ODPass bundle", text: filename });
-  return true;
-}
-
-async function sharePassportOdpFile(humanId, json, bundleMeta) {
-  try {
-    const ok = await trySharePassportOdpFile(humanId, json, bundleMeta);
-    if (ok) return;
-  } catch (e) {
-    if (e && e.name === "AbortError") return;
-  }
-  await downloadPassportOdp(humanId, json, bundleMeta);
 }
 
 async function sha256HexFromBuffer(buf) {
