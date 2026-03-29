@@ -98,7 +98,7 @@ window.addEventListener('load',function(){var hdr=document.querySelector('header
   <div class="odp-quick-verify-wrap odp-quick-verify-wrap--tight">
     <label class="search-label odp-quick-verify-label" for="odpQuickInput" data-i18n="verify.odpQuick.label">Or drop a .odpass file</label>
     <div class="drop-zone json-drop" id="odpQuickDrop">
-      <input type="file" id="odpQuickInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
+      <input type="file" id="odpQuickInput" accept=".odpass,application/zip,application/octet-stream,.zip">
       <p><span data-i18n="verify.odpQuick.dropLine1">Drop .odpass here or click to select</span><br>
       <span style="opacity:0.6" data-i18n="verify.odpQuick.dropLine2">Processed locally — not uploaded</span></p>
     </div>
@@ -1045,6 +1045,13 @@ function decodeTypePrefix(tp) {
 
 // ── Verify ────────────────────────────────────────────────────────────────────
 
+function rejectLegacyOdpExtension(file) {
+  const name = (file && file.name ? String(file.name) : "").toLowerCase();
+  if (name.endsWith(".odp") && !name.endsWith(".odpass")) {
+    throw new Error(t("verify.odpQuick.rejectLegacyOdp"));
+  }
+}
+
 async function verifyFromOdpBundleQuick(file) {
   const el = document.getElementById("result");
   const btn = document.getElementById("verifyBtn");
@@ -1057,6 +1064,7 @@ async function verifyFromOdpBundleQuick(file) {
   if (btn) btn.disabled = true;
   el.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.odpQuick.reading"))}</span></div>`;
   try {
+    rejectLegacyOdpExtension(file);
     if (typeof JSZip === "undefined") throw new Error(t("verify.odpQuick.jszipMissing"));
     const zip = await JSZip.loadAsync(file);
     const passportEntry = zip.file("passport.json");
@@ -1276,7 +1284,7 @@ async function verify() {
           const onchain = rec.dataHash.toLowerCase();
           dataStatus = hash === onchain ? "authentic" : "tampered";
           passport = JSON.parse(rawJ);
-          if (hostedAs === "odp") verifyRenderOpts.dataUrlHostedAsOdp = true;
+          if (hostedAs === "odpass") verifyRenderOpts.dataUrlHostedAsOdpass = true;
         }
       } catch {}
     }
@@ -1843,7 +1851,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             : ""
         }
         ${
-          renderOpts && renderOpts.dataUrlHostedAsOdp
+          renderOpts && renderOpts.dataUrlHostedAsOdpass
             ? `<p class="info neutral" style="font-size:12px;margin:0 0 14px;line-height:1.55;border-left:3px solid var(--accent);padding-left:10px">${esc(t("verify.dataUrl.odpHostedBanner"))}</p>`
             : ""
         }
@@ -2025,7 +2033,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             ${esc(t("verify.detail.localOdpLead"))}
           </p>
           <div class="drop-zone json-drop" id="odpDrop">
-            <input type="file" id="odpInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
+            <input type="file" id="odpInput" accept=".odpass,application/zip,application/octet-stream,.zip">
             <p>${esc(t("verify.detail.localOdpDrop1"))}<br>
             <span style="opacity:0.6">${esc(t("verify.detail.localOdpDrop2"))}</span></p>
           </div>
@@ -2351,6 +2359,7 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
   revokeOdpBundleSidecarPreviewUrl();
   out.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>${esc(t("verify.bundle.reading"))}</span></div>`;
   try {
+    rejectLegacyOdpExtension(file);
     if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
     const zip = await JSZip.loadAsync(file);
     const passportEntry = zip.file("passport.json");
@@ -2643,13 +2652,13 @@ function sortKeysDeep(obj) {
   return obj;
 }
 
-function urlPathIndicatesOdp(u) {
+function urlPathIndicatesOdpassBundle(u) {
   try {
     const p = new URL(u).pathname;
-    return /\.odpass$/i.test(p) || /\.odp$/i.test(p);
+    return /\.odpass$/i.test(p);
   } catch {
     const s = String(u || "");
-    return /\.odpass(\?|#|$)/i.test(s) || /\.odp(\?|#|$)/i.test(s);
+    return /\.odpass(\?|#|$)/i.test(s);
   }
 }
 
@@ -2661,20 +2670,20 @@ function bodyLooksLikeZipStart(buf) {
 }
 
 /**
- * HTTP 200 body from `dataUrl`: raw `passport.json` text, or extract `passport.json` from hosted `.odpass` (SPEC §15; legacy `.odp` accepted).
- * @returns {Promise<{ rawJ: string, hostedAs: "json" | "odp" }>}
+ * HTTP 200 body from `dataUrl`: raw `passport.json` text, or extract `passport.json` from hosted ZIP (SPEC §15 `.odpass` layout).
+ * @returns {Promise<{ rawJ: string, hostedAs: "json" | "odpass" }>}
  */
 async function passportJsonTextFromDataUrlResponse(resp, publicDataUrl) {
   const buf = await resp.arrayBuffer();
-  const treatAsOdpBundle = urlPathIndicatesOdp(publicDataUrl) || bodyLooksLikeZipStart(buf);
+  const treatAsOdpassBundle = urlPathIndicatesOdpassBundle(publicDataUrl) || bodyLooksLikeZipStart(buf);
 
-  if (treatAsOdpBundle) {
+  if (treatAsOdpassBundle) {
     if (typeof JSZip === "undefined") throw new Error(t("verify.odpQuick.jszipMissing"));
     const zip = await JSZip.loadAsync(buf);
     const pe = zip.file("passport.json");
     if (!pe) throw new Error(t("verify.dataUrl.noPassportInZip"));
     const rawJ = await pe.async("text");
-    return { rawJ, hostedAs: "odp" };
+    return { rawJ, hostedAs: "odpass" };
   }
 
   const rawJ = new TextDecoder("utf-8").decode(buf);

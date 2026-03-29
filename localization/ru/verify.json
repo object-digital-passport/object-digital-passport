@@ -140,7 +140,8 @@
       "noPassportJson": "В архиве нет passport.json.",
       "badJson": "passport.json не является корректным JSON.",
       "badPassportId": "В passport.json должен быть корректный Passport ID (ODP-…).",
-      "jszipMissing": "Не удалось загрузить JSZip. Проверьте сеть и обновите страницу."
+      "jszipMissing": "Не удалось загрузить JSZip. Проверьте сеть и обновите страницу.",
+      "rejectLegacyOdp": "Эталонная проверка принимает только архивы с расширением «.odpass». Если у вас старый файл «.odp» с тем же содержимым ZIP — переименуйте в «.odpass», либо снова выгрузите пакет с актуальной страницы «Паспорт»."
     },
     "paffAudit": {
       "title": "P-affiliation — аудит в сети",

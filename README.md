@@ -11,11 +11,10 @@ No platform lock-in, no subscription, no central gatekeeper.
 - [Start Here](#start-here)
 - [Quick Start (5 minutes)](#quick-start-5-minutes)
 - [How ODP Works](#how-odp-works)
+- [Positioning](#positioning)
 - [Live Demo](#live-demo)
 - [Current Release](#current-release)
 - [Terms You Need](#terms-you-need)
-- [Technical Notes](#technical-notes)
-- [Repository Structure](#repository-structure)
 - [Security and Verification Model](#security-and-verification-model)
 - [Costs and Network](#costs-and-network)
 - [Roadmap](#roadmap)
@@ -26,191 +25,147 @@ No platform lock-in, no subscription, no central gatekeeper.
 
 If you are new:
 
-1. Read this README for the practical overview.
-2. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
-3. Use [`RELEASE_v0.3.md`](RELEASE_v0.3.md) for the current v0.3 operator snapshot. The older **v0.2** deployed line is summarized under [**Current release**](#current-release) below and in [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md). **Hardhat mainnet deploy (commands, `.env`, EIP-170 check):** [`deploy/README.md`](deploy/README.md).
+1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Official getting-started material: [MetaMask — user guide](https://support.metamask.io/start/user-guide-new/). On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
+2. Read this README for the practical overview.
+3. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
+4. Use [`RELEASE_v0.3.md`](RELEASE_v0.3.md) for operator-facing v0.3 notes. **Deploying your own registry:** [`deploy/README.md`](deploy/README.md).
 
 Translated version:
+
 - Russian README: [`localization/ru/README.md`](localization/ru/README.md)
 
-Important context about version lines:
-- `0.x` means proof-of-concept stage.
-- Deployments are separate registries (address A is not address B).
-- Profile/passport records do not auto-migrate between deployments.
-- **v0.3 is not backward compatible with v0.2 or v0.1** (different bytecode and ABI); **v0.2** and **v0.1** are likewise separate registries. The **v0.3** line is specified so a future **stable v1** can define migration / dual-read — see **[`SPEC.md`](SPEC.md)** (*IMPORTANT: registry versions…*).
+**0.x** means proof-of-concept: behaviour and deployments can change. Each contract address is its **own** registry; passport and profile records do **not** move between deployments by themselves. **This repository documents the reference v0.3 line** (on-chain generation **3**); a future stable **v1** may define migration or dual-read — see versioning notes in [`SPEC.md`](SPEC.md) and [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md).
 
 ## Quick Start (5 minutes)
 
-### 1) Prepare wallet and gas
+### 1) Prepare wallet and network fees
 
 - Use an EIP-1193 wallet (MetaMask, Rabby, Coinbase Wallet, Brave Wallet, etc.).
-- Keep a small POL balance for gas.
-- **Use a dedicated wallet for ODP only** — not for savings, DeFi, or trading (limits damage if a dapp is malicious).
+- Keep a small **POL** (Polygon’s native token) balance so writes can confirm.
+- **Use a dedicated wallet for ODP** — not for long-term savings, DeFi, or trading (this limits impact if a dapp is malicious).
 
 ### 2) Register your profile
 
 - Open [Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html).
 - Register once to receive your profile ID (`C-...`, `B-...`, `P-...`, `M-...`).
 
-### 3) Mint a passport
+### 3) Issue a passport
 
 - Open [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html).
-- Fill form and mint.
-- Download your `.odp` bundle (`passport.json` + `manifest.json` + optional files).
+- Complete the form and confirm the transaction on-chain.
+- Download your **`.odpass`** bundle (`passport.json`, `manifest.json`, and any attached originals as defined in the spec).
 
 ### 4) Publish `passport.json` (optional but recommended)
 
-- Host raw JSON at your `dataUrl` (HTTPS).
-- Do not edit bytes after mint if you want hash verification to pass.
+- Host the canonical JSON at your `dataUrl` (**HTTPS**). For folder-style hosting, the reference examples use a sibling **`.odpass`** ZIP; verifiers resolve `passport.json` inside it.
+- Do not change the committed bytes after registration if you expect hash verification to keep matching.
 
 ### 5) Verify
 
 - Open [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
-- Enter Passport ID, paste `odp://...`, or drop `.odpass` / `.odp` file.
+- Enter a Passport ID, paste an `odp://...` link, or drop a **`.odpass`** file. (Legacy files named **`.odp`** are not accepted by the reference UI — rename to **`.odpass`** if the layout matches, or export again from Passport.)
 
 ## How ODP Works
 
-Simple mental model:
+End-to-end flow:
 
-1. Register issuer profile on-chain.
-2. Mint object passport on-chain (hashes + links + metadata).
-3. Share Passport ID and optional hosted `passport.json`.
-4. Anyone verifies by recomputing hashes and reading chain state.
+1. **Profile** — the issuing party registers a profile on-chain and gets a stable **Profile ID**.
+2. **Passport** — they record a passport: content hashes, optional URLs, and metadata anchored in the **v0.3** registry (and optional auxiliary commitments per spec).
+3. **Share** — they distribute the **Passport ID** (`ODP-...`) and, when used, a hosted **`passport.json`** (or **`dataUrl`** pointing at a **`.odpass`** bundle).
+4. **Verify** — anyone recomputes hashes, reads **read-only** chain state, and checks the **`.odpass`** package (or hosted bytes) against what the registry stores. No wallet is required to verify.
 
-ID naming:
+**ID naming**
 
-- Human-readable concept: **Passport ID** (`ODP-YYYY-MM-NNNNNNNNN`).
-- In JSON: field is **`passportId`**.
-- In contract ABI/wire payloads: field name remains **`humanId`** (legacy wire name).
+- Human-readable object id: **Passport ID** (`ODP-YYYY-MM-…`).
+- In JSON: field **`passportId`**.
+- In contract ABI / wire payloads: **`humanId`** (historic wire name).
+
+## Positioning
+
+ODP does **not** replace human expertise, institutional provenance work, or other standards. It is meant to complement them — for example **digital product passport (DPP)** programmes, **GS1** data, **IIIF** media delivery, and **C2PA** content credentials (see [`SPEC.md`](SPEC.md) §18 for narrative alignment). One design idea is a **verifiable registry**: verification can show which deployment and rules produced a record, alongside checks on file integrity.
+
+**Spam and abuse:** requiring writes on-chain is partly a sketch for reducing noise in a shared index, but the right balance for a stable product is still open — expect this to evolve before a stable release.
+
+**Interfaces:** this specification does **not** normatively define visual design for apps or sites; that can be revisited with the community toward stability.
 
 ## Live Demo
 
 Base URL:
+
 - [https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)
 
 Pages:
+
 - Verify (no wallet): [verify.html](https://object-digital-passport.github.io/object-digital-passport/verify.html)
-- Profile (wallet + gas): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
-- Passport (wallet + gas): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
+- Profile (wallet + network fees): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
+- Passport (wallet + network fees): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
 ## Current Release
 
+Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s static UI defaults:
+
 | Item | Value |
 |:--|:--|
-| Recommended PoC line | **v0.3** (this repo) / **v0.2** (deployed mainnet below) |
-| Mainnet contract (v0.2 line) | [`0x6c83c8C2e18c183a2776431a23187832b42FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) — *v0.3 bytecode is in-repo; deploy a new address to use new ABI features* |
-| Legacy contract (v0.1, unsupported by current UI) | [`0x380092fA9C708BF01a552247909CF5DeceFb469E`](https://polygonscan.com/address/0x380092fA9C708BF01a552247909CF5DeceFb469E) |
+| Protocol line | **v0.3** (on-chain `CONTRACT_VERSION` / generation **3**) |
+| Main registry `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
+| Wallet document anchor `ODPWalletDocumentAnchor` (satellite) | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
 
-Operator-facing release notes:
-- [`RELEASE_v0.3.md`](RELEASE_v0.3.md)
+Operator notes: [`RELEASE_v0.3.md`](RELEASE_v0.3.md).
 
 ## Terms You Need
 
 | Term | Meaning in ODP |
 |:--|:--|
 | Register | One-time profile registration (`registerCreator`) |
-| Mint | Create new passport record on-chain |
-| Passport ID | Human-readable object ID (`ODP-...`) |
+| Issue / mint | Create a new passport record on-chain (user-facing “issue”; ABI may say *mint*) |
+| Passport ID | Human-readable object id (`ODP-...`) |
 | Profile ID | Issuer identity (`C/B/P/M-...`) |
 | `passport.json` | Canonical off-chain object document |
-| `dataUrl` | Optional HTTPS location of that JSON |
+| `dataUrl` | Optional HTTPS location for that JSON or **`.odpass`** bundle |
 | Verify | Read-only checks (no wallet, no protocol fee) |
-
-## Technical Notes
-
-### Site version vs contract generation
-
-- Site/doc patch changes: `ODP_SITE_VERSION` in [`web/odp-contract.js`](web/odp-contract.js).
-- Protocol behavior compatibility: on-chain `CONTRACT_VERSION`.
-- Current v0.2 line is `CONTRACT_VERSION = 2`.
-
-### Compiler note
-
-For this contract:
-- `optimizer.enabled = true` (recommended `runs = 200`)
-- `viaIR = true`
-
-### Hosting pattern
-
-Recommended naming:
-- `https://host/path/<Passport ID>.json`
-
-Where `<Passport ID>` is the same value as:
-- JSON `passportId`
-- ABI/wire `humanId` (legacy naming)
-
-### Wallet support
-
-Works with injected `window.ethereum` providers (EIP-1193).  
-WalletConnect-style flows are not wired in static pages of this repo by default.
-
-## Repository Structure
-
-```
-/
-├── SPEC.md
-├── SECURITY.md
-├── RELEASE_v0.3.md
-├── docs/
-│   ├── README.md
-│   ├── VERSIONING_AND_RELEASES.md
-│   ├── V0.2-DRAFT.md
-│   └── V0.3.md
-├── e2e/
-│   ├── README.md
-│   ├── package.json
-│   ├── playwright.config.cjs
-│   └── smoke.spec.ts
-├── contracts/
-│   └── ObjectDigitalPassport.sol
-├── deploy/
-│   ├── hardhat.config.js
-│   └── scripts/deploy.js
-├── tools/
-│   ├── mint.py
-│   └── README.md
-└── web/
-    ├── creator.html
-    ├── passport.html
-    └── verify.html
-```
 
 ## Security and Verification Model
 
 For threat model and trust boundaries:
+
 - [`SECURITY.md`](SECURITY.md)
 
 Verification basics:
-- On-chain hashes are source of truth.
-- `passport.json` bytes must match `dataHash`.
-- `.odp` `manifest.json` is UX metadata, not a trust anchor.
 
-For exact normative rules:
+- On-chain hashes are the anchor for what was registered.
+- **`passport.json`** (or the bytes inside **`.odpass`**) must match the stored **`dataHash`** (and related fields per spec).
+- **`manifest.json`** inside **`.odpass`** is packaging metadata for tools, not a separate trust root.
+
+Normative rules:
+
 - [`SPEC.md`](SPEC.md)
 
-Deploy / bytecode (EIP-170) and how audit follow-up relates to shipped features:
+Deploy layout (EIP-170 split, library + satellite):
+
 - [`docs/PROTOCOL_TRACKS.md`](docs/PROTOCOL_TRACKS.md)
 - [`docs/EIP170_STRATEGY.md`](docs/EIP170_STRATEGY.md)
 
 ## Costs and Network
 
-Network:
-- Polygon PoS (`chainId = 137`)
-- Testnet: Amoy (`chainId = 80002`)
+**Network**
 
-Typical v0.2 costs:
-- Register profile: ~US$0.01 (gas only)
-- Mint passport: ~US$0.01 (gas only)
-- Submit proof: ~US$0.01 (gas only)
-- Verify/read: free
+- Polygon PoS (`chainId` 137)
+- Testnet: Amoy (`chainId` 80002)
+
+**Money**
+
+- There is **no protocol fee** — you only pay **network fees** (often a small amount on Polygon for typical profile registration, passport issuance, and proof submission).
+- Reading chain data and using **Verify** costs you nothing beyond your own internet access.
+
+Exact fee amounts fluctuate with network load; there is no separate ODP markup.
 
 ## Roadmap
 
-- v0.2: current PoC baseline.
-- 0.x line: changes are expected.
-- v1.0: target stable line (see spec/versioning docs).
+- **0.x:** expect iterative changes; gather feedback on the standard and tooling.
+- **Stable target:** aim for a **stable v1-class release by January 2027**, shaped by community review (protocol text, security, UX, localization).
 
-More details:
+Pointers:
+
 - [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)
 - [`docs/V0.3.md`](docs/V0.3.md)
 
@@ -220,15 +175,14 @@ More details:
 - Code of Conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 - Docs index: [`docs/README.md`](docs/README.md)
 
-Contributions are welcome for:
-- protocol text,
-- contract/tooling improvements,
-- UI clarity and localization.
+Contributions are welcome **across the whole project**: protocol and spec review, smart-contract and tooling work, UX and visual design, **editing and translation**, accessibility, and documentation. The goal is broad participation — not only code — so ODP can converge on a trustworthy, understandable standard by the **January 2027** stability milestone.
 
 ## Author and License
 
 Author:
+
 - Andrei Chernikov
 
 License:
+
 - [MIT](LICENSE)

@@ -24,6 +24,10 @@ This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By part
 5. **Open a PR** into **`main`** — the PR template will prompt for summary and checklist.
 6. **Respond** to review feedback; maintainers aim to reply within a few days (small projects vary by availability).
 
+## Beyond code
+
+Reviews of English and translated copy, UX, visual design, accessibility, and localization ([`localization/`](localization/)) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on [`SPEC.md`](SPEC.md) and the static pages helps.
+
 ## Areas of the repo
 
 | Area | Notes |

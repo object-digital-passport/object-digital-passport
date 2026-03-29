@@ -140,7 +140,8 @@
       "noPassportJson": "passport.json not found inside the bundle.",
       "badJson": "passport.json is not valid JSON.",
       "badPassportId": "passport.json must contain a valid Passport ID (ODP-…).",
-      "jszipMissing": "JSZip failed to load. Check your network and reload the page."
+      "jszipMissing": "JSZip failed to load. Check your network and reload the page.",
+      "rejectLegacyOdp": "The reference verifier only accepts “.odpass” bundles. Rename a legacy “.odp” file to “.odpass” if it is the same ZIP layout, or export again from the current Passport page."
     },
     "paffAudit": {
       "title": "P affiliation — on-chain audit",
