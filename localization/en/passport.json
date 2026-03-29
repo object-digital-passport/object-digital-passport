@@ -45,9 +45,9 @@
       "mintSubnavTitle": "Mint or update passports"
     },
     "v03Ops": {
-      "cardTitle": "Passport operations (v0.3)",
-      "lead": "Load a passport by Passport ID. If you received ownership by transfer, your wallet will not appear under “Your passports” (that list is minted-by-this-wallet only) — paste the ID here. On-chain governance is a single address (often a multisig or Safe); there is no built-in multisig bytecode.",
-      "passportIdLabel": "Passport ID",
+      "cardTitle": "Passport actions on-chain",
+      "lead": "Enter the passport number (ODP-…) and tap “Load on-chain.” “Your passports” below only lists items you minted from this wallet; if you became owner by transfer, paste the ID here. The registry has one admin wallet (often a shared org wallet); there is no built-in “signing committee” in the contract code.",
+      "passportIdLabel": "Passport number (ODP-…)",
       "loadBtn": "Load on-chain",
       "stateTitle": "On-chain state",
       "creator": "Creator (issuer wallet)",

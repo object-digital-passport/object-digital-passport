@@ -84,6 +84,14 @@
       "short": "Short:",
       "full": "Full:"
     },
+    "passportHelp": {
+      "cardTitle": "Passport already on-chain — what next",
+      "lead": "The Passport page has a section for records already written to the blockchain. In short:",
+      "li1": "Enter the passport number (ODP-…) and use “Load on-chain.”",
+      "li2": "“Your passports” only lists items you minted from this wallet. If someone transferred a passport to you, it will not appear there — paste the number manually in that section.",
+      "li3": "The contract has one administrative wallet for registry rules (often a shared org wallet). There is no built-in “multi-signer committee” inside the contract code itself.",
+      "cta": "Open Passport page"
+    },
     "share": {
       "title": "Share profile",
       "shareBtn": "Share",

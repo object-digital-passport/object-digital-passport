@@ -783,6 +783,23 @@ function renderAlready() {
     </div>`
         : ""
     }
+    ${
+      typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+        ? `
+    <div class="card" style="margin-top:20px">
+      <div class="card-head">${esc(t("creator.passportHelp.cardTitle"))}</div>
+      <div class="card-body">
+        <p class="fhint" style="margin:0 0 12px;line-height:1.65;max-width:48rem">${esc(t("creator.passportHelp.lead"))}</p>
+        <ul style="margin:0 0 16px;padding-left:1.25rem;line-height:1.65;font-size:13px;color:var(--text2);max-width:48rem">
+          <li style="margin-bottom:8px">${esc(t("creator.passportHelp.li1"))}</li>
+          <li style="margin-bottom:8px">${esc(t("creator.passportHelp.li2"))}</li>
+          <li>${esc(t("creator.passportHelp.li3"))}</li>
+        </ul>
+        <a href="passport.html"><button type="button" class="btn">${esc(t("creator.passportHelp.cta"))}</button></a>
+      </div>
+    </div>`
+        : ""
+    }
     `;
 }
 
