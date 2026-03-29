@@ -45,8 +45,8 @@
       "mintSubnavTitle": "Mint or update passports"
     },
     "v03Ops": {
-      "cardTitle": "Passport actions in the registry",
-      "lead": "Enter the passport number (ODP-…) and tap “Load from registry.” “Your passports” below only lists items you created from this wallet; if you received a passport by transfer, paste the ID here. The registry has one administrative wallet (often a shared organisation wallet); there is no built-in “many signers” panel in the code itself.",
+      "cardTitle": "Passport in the registry — status and actions",
+      "lead": "Type the passport number (ODP-…) and tap “Load from registry.” You will see what is stored publicly and, if this wallet is allowed, buttons to transfer ownership, update file links, revoke the passport, and similar actions. The “Your passports” list below only includes passports you minted with this wallet — if someone transferred a passport to you, it will not be in that list; enter its number here instead.",
       "passportIdLabel": "Passport number (ODP-…)",
       "loadBtn": "Load from registry",
       "stateTitle": "Status in the registry",
