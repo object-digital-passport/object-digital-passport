@@ -157,8 +157,9 @@
   }
 
   /**
-   * @param {{ page: string, pageTitleKey?: string }} opts
+   * @param {{ page: string, pageTitleKey?: string, mergePages?: string[] }} opts
    * page: creator | passport | verify | index
+   * mergePages: extra locale JSON filenames without path, e.g. ["passport"] → en/passport.json
    */
   function odpInitI18n(opts) {
     opts = opts || {};
@@ -207,7 +208,23 @@
             return r.json();
           })
           .then(function (enPage) {
-            return deepMerge(enCommon, enPage);
+            var acc = deepMerge(enCommon, enPage);
+            var mergeNames = opts.mergePages || [];
+            var ei = 0;
+            function mergeNextEn(a) {
+              if (ei >= mergeNames.length) return Promise.resolve(a);
+              var name = mergeNames[ei++];
+              return global
+                .fetch(new URL("en/" + name + ".json", base).toString(), { cache: "no-store" })
+                .then(function (r) {
+                  if (!r.ok) throw new Error("i18n merge en/" + name + " failed: " + r.status);
+                  return r.json();
+                })
+                .then(function (j) {
+                  return mergeNextEn(deepMerge(a, j));
+                });
+            }
+            return mergeNextEn(acc);
           });
       })
       .then(function (enAll) {
@@ -231,6 +248,24 @@
               .then(function (ruPage) {
                 return deepMerge(ruCommon, ruPage);
               });
+          })
+          .then(function (ruAll) {
+            var mergeNames = opts.mergePages || [];
+            var ri = 0;
+            function mergeNextRu(a) {
+              if (ri >= mergeNames.length) return Promise.resolve(a);
+              var name = mergeNames[ri++];
+              return global
+                .fetch(new URL("ru/" + name + ".json", base).toString(), { cache: "no-store" })
+                .then(function (r) {
+                  if (!r.ok) throw new Error("i18n merge ru/" + name + " failed: " + r.status);
+                  return r.json();
+                })
+                .then(function (j) {
+                  return mergeNextRu(deepMerge(a, j));
+                });
+            }
+            return mergeNextRu(ruAll);
           })
           .then(function (ruAll) {
             _merged = deepMerge(enAll, ruAll);

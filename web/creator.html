@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="odp.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.3.0"></script>
+<script src="odp-passport-v03-ops.js?v=0.3.0"></script>
 <script src="odp-i18n.js?v=6"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -128,11 +129,43 @@ function render() {
   }
 
   if (creatorId) {
+    if (typeof odpPassportV03OpsInstall === "function") {
+      odpPassportV03OpsInstall({
+        getContract: () => contract,
+        getWallet: () => wallet,
+        getCreatorId: () => creatorId,
+        getGeneration: () => odpContractGeneration,
+        t,
+        esc,
+        isProfilePage: true,
+        scrollToV03Card: () => {
+          const el = document.getElementById("passportV03OpsCard");
+          if (el) {
+            try {
+              el.scrollIntoView({ behavior: "smooth", block: "start" });
+            } catch {}
+          }
+        },
+      });
+    }
     app.innerHTML = renderAlready();
     bindCreatorShare();
+    if (typeof odpBindPassportV03Operations === "function") odpBindPassportV03Operations();
     if (creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2 && contract && typeof contract.getPAffiliatedChildren === "function") {
       bindPAffiliationHandlers();
     }
+    queueMicrotask(() => {
+      const q = new URLSearchParams(location.search);
+      const hid = (q.get("v03hid") || "").trim();
+      if (hid && /^ODP-/i.test(hid) && typeof odpPrefillPassportV03Ops === "function") {
+        odpPrefillPassportV03Ops(hid);
+        try {
+          const u = new URL(location.href);
+          u.searchParams.delete("v03hid");
+          history.replaceState({}, "", u.pathname + u.search + u.hash);
+        } catch {}
+      }
+    });
     return;
   }
 
@@ -737,6 +770,13 @@ function renderAlready() {
       </div>
     </div>
     ${
+      typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+        ? typeof odpHtmlPassportV03OperationsCard === "function"
+          ? odpHtmlPassportV03OperationsCard()
+          : ""
+        : ""
+    }
+    ${
       creatorId && creatorId.charAt(0) === "P" && odpContractGeneration >= 2
         ? `
     <div class="card" style="margin-top:20px">
@@ -779,23 +819,6 @@ function renderAlready() {
             </button>
           </div>
         </div>
-      </div>
-    </div>`
-        : ""
-    }
-    ${
-      typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-        ? `
-    <div class="card" style="margin-top:20px">
-      <div class="card-head">${esc(t("creator.passportHelp.cardTitle"))}</div>
-      <div class="card-body">
-        <p class="fhint" style="margin:0 0 12px;line-height:1.65;max-width:48rem">${esc(t("creator.passportHelp.lead"))}</p>
-        <ul style="margin:0 0 16px;padding-left:1.25rem;line-height:1.65;font-size:13px;color:var(--text2);max-width:48rem">
-          <li style="margin-bottom:8px">${esc(t("creator.passportHelp.li1"))}</li>
-          <li style="margin-bottom:8px">${esc(t("creator.passportHelp.li2"))}</li>
-          <li>${esc(t("creator.passportHelp.li3"))}</li>
-        </ul>
-        <a href="passport.html"><button type="button" class="btn">${esc(t("creator.passportHelp.cta"))}</button></a>
       </div>
     </div>`
         : ""
@@ -1102,12 +1125,11 @@ document.addEventListener("keydown", (e) => {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const __bootStart = Date.now();
-  const __bootRunId = "run-" + __bootStart;
-  // #region agent log
-  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__bootRunId,hypothesisId:'H1',location:'web/creator.html:DOMContentLoaded:start',message:'Creator page bootstrap start',data:{path:location.pathname,search:location.search},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-  await odpInitI18n({ page: "creator", pageTitleKey: "creator.meta.documentTitle" });
+  await odpInitI18n({
+    page: "creator",
+    pageTitleKey: "creator.meta.documentTitle",
+    mergePages: ["passport"],
+  });
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
   if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
@@ -1178,9 +1200,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
   render();
-  // #region agent log
-  fetch('http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'7d72c7'},body:JSON.stringify({sessionId:'7d72c7',runId:__bootRunId,hypothesisId:'H1',location:'web/creator.html:DOMContentLoaded:end',message:'Creator page bootstrap end',data:{durationMs:Date.now()-__bootStart,hasWallet:!!wallet,hasCreatorId:!!creatorId},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 });
 </script>
 </body>

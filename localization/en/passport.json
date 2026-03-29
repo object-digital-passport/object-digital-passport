@@ -94,6 +94,7 @@
       "pAffChildLabel": "Child Profile ID (P-…)",
       "pAffDetachBtn": "Detach child",
       "pAffProfileLink": "Open Profile for propose / confirm →",
+      "pAffLeadOnProfile": "This block only detaches a child P profile. To propose or confirm affiliation, use “Institution structure” above on this page.",
       "loading": "Loading…",
       "sending": "Sending…",
       "doneTx": "Transaction sent:",

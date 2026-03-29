@@ -1359,6 +1359,14 @@
   global.odpFinalizeWalletContract = odpFinalizeWalletContract;
   global.odpRequireSingleEthereumAccount = odpRequireSingleEthereumAccount;
   global.odpInstallSingleAccountGuard = odpInstallSingleAccountGuard;
+  /** Profile IDs are `C-…`, `B-…`, `P-…`, `M-…` (ASCII). Ignores BOM/trim; requires the hyphen. */
+  function odpPassportProfileTypeLetter(id) {
+    if (id == null) return "";
+    var s = String(id).replace(/^\uFEFF/, "").trim();
+    var m = /^([CBPM])-/i.exec(s);
+    return m ? m[1].toUpperCase() : "";
+  }
+  global.odpPassportProfileTypeLetter = odpPassportProfileTypeLetter;
   global.ODP_CREATOR_PROOF_PREFIX = ODP_CREATOR_PROOF_PREFIX;
   global.odpBuildCreatorProofMessageV1 = odpBuildCreatorProofMessageV1;
   global.odpGenerateCreatorProofNonce = odpGenerateCreatorProofNonce;
