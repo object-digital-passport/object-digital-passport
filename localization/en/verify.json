@@ -104,7 +104,7 @@
       "docCheck": "Document hash check"
     },
     "dataUrl": {
-      "odpHostedBanner": "Hosted dataUrl returned a .odpass ZIP — passport.json was read from inside the bundle and hashed the same way as raw JSON.",
+      "odpassHostedBanner": "Hosted dataUrl returned a .odpass ZIP — passport.json was read from inside the bundle and hashed the same way as raw JSON.",
       "noPassportInZip": "Hosted URL looks like a ZIP/.odpass, but passport.json is missing inside."
     },
     "bundle": {
@@ -141,7 +141,7 @@
       "badJson": "passport.json is not valid JSON.",
       "badPassportId": "passport.json must contain a valid Passport ID (ODP-…).",
       "jszipMissing": "JSZip failed to load. Check your network and reload the page.",
-      "rejectLegacyOdp": "The reference verifier only accepts “.odpass” bundles. Rename a legacy “.odp” file to “.odpass” if it is the same ZIP layout, or export again from the current Passport page."
+      "rejectNonOdpassFilename": "The reference verifier only accepts bundles whose filename ends with “.odpass”. Export again from the Passport page if needed."
     },
     "paffAudit": {
       "title": "P affiliation — on-chain audit",

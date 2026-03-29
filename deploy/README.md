@@ -73,7 +73,28 @@ npx hardhat run scripts/deploy.js --network polygon
 2. Попытается задеплоить **`ODPWalletDocumentAnchor`** (спутник для якорей файлов); при ошибке выведет предупреждение.
 3. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
 
-Дальше по **[`RELEASE_v0.3.md`](../RELEASE_v0.3.md)**: прописать адрес контракта в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** (`NET.contract`), для v0.3+ при необходимости **`NET.docAnchor`** в **`verify.html`**.
+После деплоя пропишите адрес в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** (`NET.contract`); для v0.3+ при необходимости **`NET.docAnchor`** в **`verify.html`**. Отличия v0.3 от v0.2 — **[`RELEASE_v0.3.md`](../RELEASE_v0.3.md)**.
+
+---
+
+## Только спутник `ODPWalletDocumentAnchor` (реестр уже задеплоен)
+
+Если основной **`ObjectDigitalPassport`** уже в сети, а **`ODPWalletDocumentAnchor`** не деплоили (или нужен новый адрес якоря):
+
+```bash
+cd deploy
+ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon
+```
+
+Либо:
+
+```bash
+npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
+```
+
+Скрипт проверит, что по адресу есть байткод, задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`walletDocumentAnchorAddress`**). Дальше пропишите этот адрес в **`NET.docAnchor`** в **`web/verify.html`**.
+
+Эталонный деплой в репозитории уже содержит оба адреса — см. **`deployments/polygon.json`** и таблицу «Current release» в **[`README.md`](../README.md)**.
 
 ---
 

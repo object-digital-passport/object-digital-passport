@@ -1352,6 +1352,70 @@
     return { contract: contract, generation: gen, abi: abi, legacyUnsupported: false };
   }
 
+  /** MetaMask / EIP-1193: pick one provider when `window.ethereum.providers` exists. */
+  function odpInjectedEthereum() {
+    var w = global.ethereum;
+    if (!w) return null;
+    if (w.providers && w.providers.length) {
+      return w.providers.find(function (p) {
+        return p && p.isMetaMask;
+      }) || w.providers[0];
+    }
+    return w;
+  }
+
+  /** Public Polygon RPC endpoints for `wallet_addEthereumChain` when the wallet has no chain yet. */
+  function odpDefaultPolygonRpcUrls(cfg) {
+    var out = [];
+    var seen = {};
+    function push(u) {
+      if (!u || typeof u !== "string") return;
+      var k = u.trim();
+      if (!k || seen[k]) return;
+      seen[k] = true;
+      out.push(k);
+    }
+    if (cfg && Array.isArray(cfg.rpcUrls)) {
+      for (var i = 0; i < cfg.rpcUrls.length; i++) push(cfg.rpcUrls[i]);
+    }
+    if (cfg && cfg.rpc) push(String(cfg.rpc));
+    push("https://polygon-bor.publicnode.com");
+    push("https://1rpc.io/matic");
+    push("https://polygon.drpc.org");
+    return out.length ? out : ["https://polygon-bor.publicnode.com"];
+  }
+
+  /** Ask the injected wallet to use `cfg.chainId` (Polygon PoS in reference builds). */
+  function odpEnsureWalletChain(eth, cfg) {
+    if (!eth || !cfg) return Promise.resolve();
+    var target = cfg.chainId;
+    return eth.request({ method: "eth_chainId" }).then(function (hex) {
+      var cur = parseInt(hex, 16);
+      if (cur === target) return;
+      var chainIdHex = "0x" + target.toString(16);
+      var rpcList = odpDefaultPolygonRpcUrls(cfg);
+      return eth
+        .request({ method: "wallet_switchEthereumChain", params: [{ chainId: chainIdHex }] })
+        .catch(function (e) {
+          if (e && e.code === 4902) {
+            return eth.request({
+              method: "wallet_addEthereumChain",
+              params: [
+                {
+                  chainId: chainIdHex,
+                  chainName: cfg.name || "Polygon PoS",
+                  nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
+                  rpcUrls: rpcList,
+                  blockExplorerUrls: cfg.explorer ? [String(cfg.explorer)] : ["https://polygonscan.com"],
+                },
+              ],
+            });
+          }
+          throw e;
+        });
+    });
+  }
+
   global.ODP_SITE_VERSION = ODP_SITE_VERSION;
   global.ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG = ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG;
   global.ODP_LIVE_BASE = ODP_LIVE_BASE;
@@ -1392,4 +1456,6 @@
   global.ODP_CREATOR_PROOF_PREFIX = ODP_CREATOR_PROOF_PREFIX;
   global.odpBuildCreatorProofMessageV1 = odpBuildCreatorProofMessageV1;
   global.odpGenerateCreatorProofNonce = odpGenerateCreatorProofNonce;
+  global.odpInjectedEthereum = odpInjectedEthereum;
+  global.odpEnsureWalletChain = odpEnsureWalletChain;
 })(typeof window !== "undefined" ? window : globalThis);

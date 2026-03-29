@@ -25,10 +25,10 @@ No platform lock-in, no subscription, no central gatekeeper.
 
 If you are new:
 
-1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Official getting-started material: [MetaMask — user guide](https://support.metamask.io/start/user-guide-new/). On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
+1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Follow **your wallet vendor’s official documentation** (for example the [MetaMask Help Center](https://support.metamask.io/), [Rabby](https://rabby.io/), or your provider’s site). **No particular wallet brand is required** — any EIP-1193–compatible browser wallet may work. **Reference testing** of the static pages in this repository has been done **primarily with MetaMask**; others are expected to work but are less routinely exercised. On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
 2. Read this README for the practical overview.
 3. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
-4. Use [`RELEASE_v0.3.md`](RELEASE_v0.3.md) for operator-facing v0.3 notes. **Deploying your own registry:** [`deploy/README.md`](deploy/README.md).
+4. [`RELEASE_v0.3.md`](RELEASE_v0.3.md) summarizes **v0.3 vs v0.2** (what changed). **Deploying your own registry and `NET.*`:** [`deploy/README.md`](deploy/README.md).
 
 Translated version:
 
@@ -55,15 +55,15 @@ Translated version:
 - Complete the form and confirm the transaction on-chain.
 - Download your **`.odpass`** bundle (`passport.json`, `manifest.json`, and any attached originals as defined in the spec).
 
-### 4) Publish `passport.json` (optional but recommended)
+### 4) Publish canonical data at `dataUrl` (optional but recommended)
 
-- Host the canonical JSON at your `dataUrl` (**HTTPS**). For folder-style hosting, the reference examples use a sibling **`.odpass`** ZIP; verifiers resolve `passport.json` inside it.
-- Do not change the committed bytes after registration if you expect hash verification to keep matching.
+- Serve over **HTTPS** the same bytes that were hashed into **`dataHash`**. You may publish **raw `passport.json`**, or the full **`.odpass`** ZIP (same layout as the download from Passport); verifiers accept both, and for the ZIP they read **`passport.json`** from inside the archive.
+- After registration, do not change those bytes if you expect hash verification to keep matching.
 
 ### 5) Verify
 
 - Open [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
-- Enter a Passport ID, paste an `odp://...` link, or drop a **`.odpass`** file. (Legacy files named **`.odp`** are not accepted by the reference UI — rename to **`.odpass`** if the layout matches, or export again from Passport.)
+- Enter a Passport ID, paste an `odp://...` link, or drop a **`.odpass`** file.
 
 ## How ODP Works
 
@@ -71,7 +71,7 @@ End-to-end flow:
 
 1. **Profile** — the issuing party registers a profile on-chain and gets a stable **Profile ID**.
 2. **Passport** — they record a passport: content hashes, optional URLs, and metadata anchored in the **v0.3** registry (and optional auxiliary commitments per spec).
-3. **Share** — they distribute the **Passport ID** (`ODP-...`) and, when used, a hosted **`passport.json`** (or **`dataUrl`** pointing at a **`.odpass`** bundle).
+3. **Share** — they distribute the **Passport ID** (`ODP-...`) and, when used, hosted bytes at **`dataUrl`** (raw **`passport.json`** or a **§15 `.odpass`** ZIP) so verifiers can fetch and check **`dataHash`**.
 4. **Verify** — anyone recomputes hashes, reads **read-only** chain state, and checks the **`.odpass`** package (or hosted bytes) against what the registry stores. No wallet is required to verify.
 
 **ID naming**
@@ -110,7 +110,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 | Main registry `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
 | Wallet document anchor `ODPWalletDocumentAnchor` (satellite) | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
 
-Operator notes: [`RELEASE_v0.3.md`](RELEASE_v0.3.md).
+v0.3 vs v0.2: [`RELEASE_v0.3.md`](RELEASE_v0.3.md).
 
 ## Terms You Need
 
@@ -174,6 +174,7 @@ Pointers:
 - Guide: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Code of Conduct: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
 - Docs index: [`docs/README.md`](docs/README.md)
+- Russian: [`localization/ru/CONTRIBUTING.md`](localization/ru/CONTRIBUTING.md), [`localization/ru/CODE_OF_CONDUCT.md`](localization/ru/CODE_OF_CONDUCT.md), [`localization/ru/docs/README.md`](localization/ru/docs/README.md)
 
 Contributions are welcome **across the whole project**: protocol and spec review, smart-contract and tooling work, UX and visual design, **editing and translation**, accessibility, and documentation. The goal is broad participation — not only code — so ODP can converge on a trustworthy, understandable standard by the **January 2027** stability milestone.
 

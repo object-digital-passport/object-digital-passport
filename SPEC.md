@@ -6,6 +6,29 @@
 > An open standard for physical and digital object authentication
 > via blockchain and human-readable identifiers.
 
+## Table of Contents
+
+- [IMPORTANT: 0.x deployments, the reference v0.3 line, and alignment toward v1](#important-0x-deployments-the-reference-v03-line-and-alignment-toward-v1)
+- [Translated versions (informational)](#translated-versions-informational)
+- [1. Overview](#1-overview)
+- [2. Passport ID](#2-passport-id)
+- [3. Profile ID](#3-profile-id)
+- [4. Proof Institution](#4-proof-institution)
+- [5. Verification Label](#5-verification-label)
+- [6. Physical Seal](#6-physical-seal)
+- [7. Network](#7-network)
+- [8. On-Chain Record](#8-on-chain-record)
+- [9. Passport JSON](#9-passport-json)
+- [10. Hashing](#10-hashing)
+- [11. Verification Algorithm](#11-verification-algorithm)
+- [12. QR Code](#12-qr-code)
+- [13. SDK Requirements](#13-sdk-requirements)
+- [14. Versioning](#14-versioning)
+- [15. `.odpass` bundle (offline container)](#15-odpass-bundle-offline-container)
+- [16. What this protocol does NOT define](#16-what-this-protocol-does-not-define)
+- [17. Wallet & Key Management](#17-wallet--key-management)
+- [18. Interop, positioning, and DID (informative)](#18-interop-positioning-and-did-informative)
+
 ## IMPORTANT: 0.x deployments, the reference v0.3 line, and alignment toward v1
 
 This repository documents a **v0.X** protocol line. During **0.X**, contract rules may still change.
@@ -48,11 +71,11 @@ The **v0.3** contract (`CONTRACT_VERSION` packed byte **3**) extends the registr
 - **P-affiliation audit**: **`getPAffiliationAudit`**, **`detachPAffiliation`** (parent P); timestamps for join / detach
 - **Compact reverts**: failures use **`error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference **v0.3** **`ObjectDigitalPassport`** is deployed **with a linked library** **`ODPPassportLib`** (shared **`error EC`**) so the **registry** creation bytecode stays within the **24 KiB (EIP-170)** limit; deploy **library first**, then the registry (see repository deploy scripts). Local **Hardhat** tests may use **`allowUnlimitedContractSize`**; verify **`[ODP] EIP-170:`** output after compile before mainnet deploy.
 
-**Removed from reference v0.3 `ObjectDigitalPassport` bytecode (EIP-170):** on-chain **counterfeit concern** (`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`). Those entry points may still exist on **older** deployments; the reference **Passport** web UI hides institutional counterfeit controls when the connected ABI lacks them. **Product wording** MAY still describe disputes or authenticity concerns in **`passport.json`** and adjacent materials; that is **off-chain** unless a future line restores an on-chain flag.
+**Removed from reference v0.3 `ObjectDigitalPassport` bytecode (EIP-170):** on-chain **counterfeit concern** (`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`). Those entry points may still exist on **older** deployments; the reference **Passport** web UI hides institutional counterfeit controls when the connected ABI lacks them. **Product wording** MAY still describe disputes or authenticity concerns in **`passport.json`** and adjacent materials; that is **off-chain** unless a future line restores an on-chain flag. **Roadmap (informative):** a **future** specification / deployment **may** reintroduce or replace this on-chain mechanism; it is **out of scope** for the reference **v0.3** bytecode in this repository — see **`RELEASE_v0.3.md`**.
 
 **Type-definition governance with on-chain timelock** is not stored in the v0.3 bytecode; operate governance (multisig / DAO) off-chain and document hashes in releases if needed.
 
-**Portable bundle (normative extension):** **`.odpass`** (ZIP). **Historical note (non-normative):** some early tooling used the **`.odp`** extension for the same layout; **reference verifiers in this repository accept only `.odpass`** (users rename or re-export). Third-party verifiers MAY still accept `.odp` bytes if they choose, but **interoperability tests and examples use `.odpass` only**.
+**Portable bundle (normative extension):** **`.odpass`** (ZIP). **Reference verifiers and interoperability examples in this repository use `.odpass` only.**
 
 ---
 ## Translated versions (informational)
@@ -238,10 +261,10 @@ Every participant has two identity formats:
 
 ```
 Short:  C-482-930-174-005
-Full:   C-482-930-174-005 / 0x742d35Cc…4438f44e
+Full:   0x742d35Cc…4438f44e
 ```
 
-The **full** line for public materials is the short ID plus the **full** wallet address (EIP-55 checksum recommended when printed). An optional human-readable **name** label may appear **before** or **after** the address in marketing copy, but it is **not** part of the canonical ID string and is **not** verified on-chain.
+In public-facing materials, **Short** is the profile ID and **Full** is the **wallet address only** (EIP-55 checksum recommended when printed). An optional human-readable **name** label may appear **before** or **after** the address in marketing copy, but it is **not** part of the canonical ID string and is **not** verified on-chain.
 
 The full identity includes:
 - Short profile ID (**required**)
@@ -272,11 +295,11 @@ Participants should publish their identity transparently, with priority on place
 ```
 Creator on example.com:
   Short:  C-482-930-174-005
-  Full:   C-482-930-174-005 / 0x742d35Cc…4438f44e
+  Full:   0x742d35Cc…4438f44e
 
 Museum on museum.com:
   Short:  M-204-839-112-441
-  Full:   M-204-839-112-441 / 0xB3F924ee…1823A3c8A
+  Full:   0xB3F924ee…1823A3c8A
 ```
 
 **Important:** Institution names are not stored in the protocol and are not shown
@@ -297,6 +320,16 @@ C-482-930-174-005
 ```
 
 The short format is intentionally compact — easy to type, read aloud, or print.
+
+### Mint agent delegation (reference v0.3)
+
+The reference v0.3 contract supports a **mint agent**: another wallet that may **submit mint transactions** on behalf of a profile owner (**principal**), after a **two-step handshake** — the agent calls **`requestMintAgentRole(principalCreatorId)`**, then the principal (the wallet that owns that profile) calls **`confirmMintAgentRole(agent)`**. Pending requests, replacement of an existing agent, and revocation are defined on-chain (see §8).
+
+This is **not** the same as **publishing delegation** (**`delegateCreatorPublishing`**), which only lets a wallet call **`updatePassportUrls`** to change hosted links for passports the principal already issued.
+
+**Semantics for passports:** When an agent mints for a principal, the passport is still **issued under the principal’s profile**. On-chain **`Passport.creator`** and **`owner`** are the **principal’s wallet**; **`creatorId`** is the **principal’s profile ID**. The **`mintAgent`** field records the agent’s address if they executed the mint transaction, or **`address(0)`** if the principal minted without an agent. Verification and public messaging should attribute the object to the **principal**; the agent is only the transaction sender. Monthly **C** / **B** mint caps count against the **principal** wallet.
+
+**Typical use:** a brand, studio, or museum authorizes a contractor or operations wallet to mint operationally, while trust and registry lookups remain tied to the organization’s registered **profile ID** and principal wallet.
 
 ---
 
@@ -1142,7 +1175,7 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **v0.3 main registry (`ObjectDigitalPassport`):** `attestExternalDocument` / `getExternalDocumentAttestation` were **removed** from the main contract to satisfy **EIP-170**. They remain on **v0.2** (`CONTRACT_VERSION` **2**) deployments.
 
-**Satellite (v0.3+ deployments):** optional separate contract **`ODPWalletDocumentAnchor`** — deploy **after** the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s **`getCreatorByWallet`**, exposes the same write/read semantics (**`attestExternalDocument`**, **`getExternalDocumentAttestation`**), and emits **`ExternalDocumentAttested`** with **`documentHash` indexed** (plus indexed `creatorId` and **`attestor`** address) so verifiers can filter logs by hash. **At most one** attestation per `(wallet, documentHash)` per anchor contract.
+**Satellite (v0.3+ deployments):** optional separate contract **`ODPWalletDocumentAnchor`** — deploy **after** the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s **`getCreatorByWallet`**, exposes the same write/read semantics (**`attestExternalDocument`**, **`getExternalDocumentAttestation`**), and emits **`ExternalDocumentAttested`** with **`documentHash` indexed** (plus indexed `creatorId` and **`attestor`** address) so verifiers can filter logs by hash. **At most one** attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from **`deploy/scripts/deploy.js`**; to attach an anchor to an **already deployed** registry, use **`deploy/scripts/deploy-doc-anchor-only.js`** (see **`deploy/README.md`**). The reference Polygon deployment records both addresses in **`deployments/polygon.json`**.
 
 For a **second document anchor tied to a passport** on v0.3, use **`auxCommitmentHash` / `auxCommitmentUri`** (mint or **`updatePassportAuxCommitment`**) on the main registry.
 
@@ -1341,7 +1374,7 @@ computeImageHash(imageBytes) → bytes32
 
 ## 15. `.odpass` bundle (offline container)
 
-The **normative** portable file is **`.odpass`**: a ZIP container for distributing and backing up an ODP passport. **Historical note:** the **`.odp`** extension was used for the same inner layout in some early exports; **reference tooling and verifiers in this repository treat `.odpass` as the only accepted extension** (rename or re-export legacy files).
+The **normative** portable file is **`.odpass`**: a ZIP container for distributing and backing up an ODP passport.
 
 It is designed to enable offline verifiers to recompute hashes and validate them against on-chain records.
 The on-chain fields remain the cryptographic source of truth.
@@ -1423,7 +1456,7 @@ The protocol only requires a valid Ethereum-compatible wallet address
 to sign transactions. How the key is generated, stored, and secured
 is entirely the user's responsibility and choice.
 
-**Operational recommendation:** use a **dedicated wallet only for ODP** — not for holding meaningful balances, DeFi, trading, or day-to-day payments. This limits blast radius if a site is malicious or compromised. ODP does **not** require a second keypair: signing uses the wallet’s Ethereum keys. Optional **DID** documents (see §18) MAY declare extra verification keys for Verifiable Credentials; that is separate from basic register/mint flows.
+**Operational recommendation:** use a **dedicated wallet only for ODP** — not for holding meaningful balances, DeFi, trading, or day-to-day payments. This limits blast radius if a site is malicious or compromised. ODP does **not** require a second keypair: signing uses the wallet’s Ethereum keys. **Wallet choice:** follow **vendor documentation** for your tool (e.g. [MetaMask Help Center](https://support.metamask.io/)); **no specific wallet brand is normative**. **Reference implementations** in this repository (static web UI) have been **QA’d mainly with MetaMask**; other EIP-1193 wallets are expected to work but are not guaranteed to match every edge case. Optional **DID** documents (see §18) MAY declare extra verification keys for Verifiable Credentials; that is separate from basic register/mint flows.
 
 ### Key generation principle
 

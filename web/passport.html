@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="odp.css">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3.2"></script>
+<script src="odp-contract.js?v=0.3.5"></script>
 <script src="odp-date-format.js?v=1"></script>
 <script src="odp-i18n.js?v=8"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -21,11 +21,6 @@
 </head>
 
 <body>
-<script>
-// #region agent log
-window.addEventListener('load',function(){var hdr=document.querySelector('header.header-row');var toolbar=document.querySelector('.header-toolbar');var cs=function(el,p){return el?getComputedStyle(el)[p]:null;};fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'passport.html:onload',message:'passport-mobile-layout',data:{viewportW:window.innerWidth,hdrFlexDir:cs(hdr,'flexDirection'),toolbarJustify:cs(toolbar,'justifyContent'),savedTheme:localStorage.getItem('odp_theme'),savedLocale:localStorage.getItem('odp_locale'),navLang:navigator.language},timestamp:Date.now()})}).catch(function(){});});
-// #endregion
-</script>
 <div class="page">
 
 <header class="header-row">
@@ -37,10 +32,6 @@ window.addEventListener('load',function(){var hdr=document.querySelector('header
   <div class="header-toolbar">
     <div id="odpThemeSwitch"></div>
     <div id="odpLangSwitch"></div>
-    <div class="net-pill" data-i18n-title="netTitle" title="Polygon PoS mainnet">
-      <div class="net-dot" id="netDot"></div>
-      <span id="netLabel">…</span>
-    </div>
     <button type="button" class="odp-header-disconnect" id="odpHeaderDisconnect" hidden aria-hidden="true" data-i18n-title="passport.walletBar.disconnect" title="Disconnect" onclick="disconnectWallet()">
       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
@@ -83,6 +74,7 @@ const POLYGON_RPC_FALLBACKS = [
 const NET = {
   name: "Polygon PoS", chainId: 137,
   rpc: POLYGON_RPC_FALLBACKS[0],
+  rpcUrls: POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
   /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
   contract: "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
@@ -290,31 +282,7 @@ function openInMetaMaskAppUrl() {
 }
 
 async function ensureWalletChain(eth, cfg) {
-  const target = cfg.chainId;
-  const hex = await eth.request({ method: "eth_chainId" });
-  const cur = parseInt(hex, 16);
-  if (cur === target) {
-    return;
-  }
-  const chainIdHex = "0x" + target.toString(16);
-  try {
-    await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: chainIdHex }] });
-  } catch (e) {
-    if (e.code === 4902) {
-      await eth.request({
-        method: "wallet_addEthereumChain",
-        params: [{
-          chainId: chainIdHex,
-          chainName: cfg.name,
-          nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 },
-          rpcUrls: [cfg.rpc],
-          blockExplorerUrls: [cfg.explorer],
-        }],
-      });
-    } else {
-      throw e;
-    }
-  }
+  if (typeof odpEnsureWalletChain === "function") return odpEnsureWalletChain(eth, cfg);
 }
 
 function noWalletHtml() {
@@ -426,7 +394,6 @@ async function _finish(p) {
     return;
   }
   renderForm();
-  initNetPill();
 }
 
 // ── My passports (on-chain list) ─────────────────────────────────────────────
@@ -520,24 +487,6 @@ async function loadMyPassports(reset) {
     el.innerHTML = `<div class="info e">${esc(e.message || String(e))}</div>`;
     if (btn) btn.disabled = false;
   }
-}
-
-async function initNetPill() {
-  const dot = document.getElementById("netDot");
-  const label = document.getElementById("netLabel");
-  if (!dot || !label) return;
-  label.textContent = NET.name + " — …";
-  for (const rpcUrl of POLYGON_RPC_FALLBACKS) {
-    try {
-      const p = new ethers.providers.JsonRpcProvider(rpcUrl, { name: "polygon", chainId: NET.chainId });
-      await p.getBlockNumber();
-      dot.className = "net-dot on";
-      label.textContent = NET.name;
-      return;
-    } catch { /* try next */ }
-  }
-  dot.className = "net-dot off";
-  label.textContent = NET.name + " — offline";
 }
 
 function closeUrlModal() {
@@ -2792,7 +2741,6 @@ document.addEventListener("DOMContentLoaded", async () => {
               creatorId = await contract.getCreatorByWallet(wallet);
               if (creatorId) {
                 renderForm();
-                initNetPill();
                 return;
               }
               document.getElementById("app").innerHTML = `
@@ -2801,7 +2749,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         <a href="creator.html" style="color:var(--accent)">${esc(t("passport.noCreator.link"))}</a>
       </div>`;
               syncOdpHeaderDisconnect();
-              initNetPill();
               return;
             }
           }
@@ -2813,8 +2760,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
   }
-  connect();
-  initNetPill();
+  await connect();
 });
 </script>
 </body>

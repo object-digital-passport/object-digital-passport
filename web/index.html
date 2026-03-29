@@ -47,9 +47,6 @@
   </p>
 </div>
 <script>
-function t(key) {
-  return typeof window.odpT === "function" ? window.odpT(key) : key;
-}
 document.addEventListener("DOMContentLoaded", async function () {
   await odpInitI18n({ page: "index", pageTitleKey: "index.meta.documentTitle" });
 });

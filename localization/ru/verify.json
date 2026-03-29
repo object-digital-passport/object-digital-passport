@@ -104,7 +104,7 @@
       "docCheck": "Проверка хэша документа"
     },
     "dataUrl": {
-      "odpHostedBanner": "По dataUrl пришёл ZIP/.odpass — passport.json прочитан из бандла и хэширован так же, как сырой JSON.",
+      "odpassHostedBanner": "По dataUrl пришёл ZIP/.odpass — passport.json прочитан из бандла и хэширован так же, как сырой JSON.",
       "noPassportInZip": "URL похож на ZIP/.odpass, но внутри нет passport.json."
     },
     "bundle": {
@@ -141,7 +141,7 @@
       "badJson": "passport.json не является корректным JSON.",
       "badPassportId": "В passport.json должен быть корректный Passport ID (ODP-…).",
       "jszipMissing": "Не удалось загрузить JSZip. Проверьте сеть и обновите страницу.",
-      "rejectLegacyOdp": "Эталонная проверка принимает только архивы с расширением «.odpass». Если у вас старый файл «.odp» с тем же содержимым ZIP — переименуйте в «.odpass», либо снова выгрузите пакет с актуальной страницы «Паспорт»."
+      "rejectNonOdpassFilename": "Эталонная проверка принимает только файлы, имя которых заканчивается на «.odpass». При необходимости снова выгрузите пакет со страницы «Паспорт»."
     },
     "paffAudit": {
       "title": "P-affiliation — аудит в сети",

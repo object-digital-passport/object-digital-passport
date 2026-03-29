@@ -242,7 +242,7 @@ html[data-theme="blue"] .odp-header-disconnect {
   flex-shrink: 0;
 }
 
-/* Matches .net-pill: one closed control; other locales only in the native dropdown list */
+/* Closed chip control; other locales only in the native dropdown list */
 .odp-lang-wrap {
   position: relative;
   display: inline-flex;
@@ -359,31 +359,6 @@ h1 {
   text-wrap: balance;
   line-height: 1.4;
 }
-
-/* Network pill */
-.net-pill {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: 100px;
-  font-size: 13px;
-  font-family: var(--mono);
-  color: var(--text2);
-  background: var(--bg2);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.net-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--text3);
-  flex-shrink: 0;
-}
-.net-dot.on  { background: var(--green); box-shadow: 0 0 5px var(--green); }
-.net-dot.off { background: var(--red); }
 
 /* Nav */
 .nav {
@@ -2221,11 +2196,6 @@ a, button, .btn, label[for], select {
     display: inline-flex;
     align-items: center;
   }
-  .net-pill {
-    min-height: 48px;
-    display: inline-flex;
-    align-items: center;
-  }
   .odp-lang-wrap {
     min-height: 48px;
   }
@@ -2410,10 +2380,6 @@ a, button, .btn, label[for], select {
   }
   .header-toolbar {
     gap: 8px;
-  }
-  .net-pill {
-    font-size: 11px;
-    padding: 5px 10px;
   }
   .odp-lang-wrap {
     border-width: 2px;
@@ -2756,7 +2722,7 @@ html[data-theme="blue"] .header-left .fhint {
   color: var(--on-bg3);
 }
 
-/* Toolbar: theme + lang + net-pill */
+/* Toolbar: theme + lang */
 html[data-theme="blue"] .odp-theme-btn {
   border-color: var(--on-bg-border);
   background: rgba(255,255,255,0.12);
@@ -2791,18 +2757,6 @@ html[data-theme="blue"] .odp-lang-wrap::after {
 html[data-theme="blue"] .odp-lang-wrap:hover::after,
 html[data-theme="blue"] .odp-lang-wrap:focus-within::after {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'%3E%3Cpath stroke='%231e293b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-}
-html[data-theme="blue"] .net-pill {
-  border-color: var(--on-bg-border);
-  background: rgba(255,255,255,0.12);
-  color: var(--on-bg2);
-}
-html[data-theme="blue"] .net-dot {
-  background: var(--on-bg3);
-}
-html[data-theme="blue"] .net-dot.on {
-  background: #6EC48A;
-  box-shadow: 0 0 5px #6EC48A;
 }
 
 /* Nav tabs */
@@ -2996,11 +2950,11 @@ html[data-theme="blue"] .page .cb-val {
   color: var(--accent);
 }
 
-/* Type-toggle: contrast on blue page (--page-tt-* handles section surface) */
-html[data-theme="blue"] .page .tt-name {
+/* Type-toggle inside .section: light text on semi-transparent --page-tt-* (not plain .tt-opt on --bg2=white) */
+html[data-theme="blue"] .page .section .tt-name {
   color: var(--on-bg);
 }
-html[data-theme="blue"] .page .tt-desc {
+html[data-theme="blue"] .page .section .tt-desc {
   color: var(--on-bg3);
 }
 
