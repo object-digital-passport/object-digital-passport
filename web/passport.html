@@ -127,6 +127,11 @@ let myPassportsLoaded = [];
 let myPassportsAllIds = [];
 let myPassportsTotal = 0;
 const MY_PASSPORTS_LIMIT = 20;
+/** While mint success screen is visible — confirm before top nav or tab close. */
+let odpMintSuccessLeavingGuard = false;
+function setMintSuccessLeavingGuard(on) {
+  odpMintSuccessLeavingGuard = !!on;
+}
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
 
 function addExtraMetaRow() {
@@ -187,6 +192,7 @@ function mintTxOpts() {
 // ── Connect ───────────────────────────────────────────────────────────────────
 
 async function connect() {
+  setMintSuccessLeavingGuard(false);
   const app = document.getElementById("app");
   app.innerHTML = renderConnectUI();
 }
@@ -882,6 +888,7 @@ function resetV03MintOptionals() {
 }
 
 function renderForm() {
+  setMintSuccessLeavingGuard(false);
   resetV03MintOptionals();
   const net = NET;
   const showWorkspaceNavigator = canShowPassportPmProof();
@@ -2442,6 +2449,7 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
     };
   }
   void downloadPassportOdp(humanId, json, bundleMeta).catch(() => {});
+  setMintSuccessLeavingGuard(true);
 }
 
 async function sha256HexFromBuffer(buf) {
@@ -2565,9 +2573,37 @@ document.addEventListener("keydown", (e) => {
   if (m && !m.hidden) closeShareModal();
 });
 
+function bindMintSuccessLeavingGuards() {
+  const nav = document.querySelector(".nav");
+  if (nav) {
+    nav.addEventListener(
+      "click",
+      function (e) {
+        if (!odpMintSuccessLeavingGuard) return;
+        const tEl = e.target;
+        const a = tEl && typeof tEl.closest === "function" ? tEl.closest("a[href]") : null;
+        if (!a || !nav.contains(a)) return;
+        const href = a.getAttribute("href");
+        if (!href || href.startsWith("#")) return;
+        if (!confirmLeaveMintSuccessScreen()) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      },
+      true
+    );
+  }
+  window.addEventListener("beforeunload", (e) => {
+    if (!odpMintSuccessLeavingGuard) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener("DOMContentLoaded", async () => {
+  bindMintSuccessLeavingGuards();
   await odpInitI18n({ page: "passport", pageTitleKey: "passport.meta.documentTitle" });
   await odpMergeRegistryConfigAsync(NET);
   const fv = document.getElementById("footerSiteVer");
