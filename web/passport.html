@@ -933,18 +933,18 @@ function renderForm() {
             <select id="f_sub">${htmlSubtypeOptions()}</select></div>
           <div class="field"><label>${esc(t("passport.form.labelFormat"))}</label><input type="text" id="f_fmt" placeholder="${esc(t("passport.form.phFormat"))}"></div>
         </div>
-        <div class="section-label" style="margin-top:12px">C2PA (optional)</div>
+        <div class="section-label" style="margin-top:12px">${esc(t("passport.form.c2paSection"))}</div>
         <div class="row2">
           <div class="field">
-            <label>C2PA manifest hash (sha256)</label>
-            <input type="text" id="f_c2pa_manifest_hash" placeholder="sha256:... or 0x...">
+            <label>${esc(t("passport.form.c2paHashLabel"))}</label>
+            <input type="text" id="f_c2pa_manifest_hash" placeholder="${esc(t("passport.form.c2paPlaceholder"))}">
           </div>
           <div class="field">
-            <label>Active manifest label</label>
-            <input type="text" id="f_c2pa_manifest_label" placeholder="optional">
+            <label>${esc(t("passport.form.c2paLabelShort"))}</label>
+            <input type="text" id="f_c2pa_manifest_label" placeholder="${esc(t("passport.form.phOptionalShort"))}">
           </div>
         </div>
-        <p class="fhint">MVP: set this only if you extracted C2PA manifest hash with a dedicated C2PA tool.</p>
+        <p class="fhint">${esc(t("passport.form.c2paHint"))}</p>
       </div>
       <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
         <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
@@ -1013,58 +1013,58 @@ function renderForm() {
     </div>
 
     <div class="section" id="extraImagesV03" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-      <div class="section-label">Additional images (v0.3)</div>
-      <p class="fhint" style="margin:0 0 12px">Optional second and third images — each is anchored on-chain as <code>imageHash2</code> / <code>imageHash3</code>. Add the primary preview image above first.</p>
+      <div class="section-label">${esc(t("passport.form.extraImagesSection"))}</div>
+      <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.extraImagesHint"))}</p>
       <div class="fdrop" id="imgDrop2" onclick="document.getElementById('imgIn2').click()">
         <input type="file" id="imgIn2" accept="image/*" onchange="hashImg2(event)">
         <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">Image 2 (optional)</div>
+        <div class="fdrop-text">${esc(t("passport.form.fdropImg2"))}</div>
       </div>
       <div id="imgInfo2"></div>
       <div class="field" style="margin-top:10px">
-        <label>Image 2 URL (optional)</label>
-        <input type="url" id="f_imgUrl2" placeholder="https://…">
+        <label>${esc(t("passport.form.labelImage2Url"))}</label>
+        <input type="url" id="f_imgUrl2" placeholder="${esc(t("passport.form.phHttpsShort"))}">
       </div>
       <div class="fdrop" id="imgDrop3" style="margin-top:14px" onclick="document.getElementById('imgIn3').click()">
         <input type="file" id="imgIn3" accept="image/*" onchange="hashImg3(event)">
         <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">Image 3 (optional)</div>
+        <div class="fdrop-text">${esc(t("passport.form.fdropImg3"))}</div>
       </div>
       <div id="imgInfo3"></div>
       <div class="field" style="margin-top:10px">
-        <label>Image 3 URL (optional)</label>
-        <input type="url" id="f_imgUrl3" placeholder="https://…">
+        <label>${esc(t("passport.form.labelImage3Url"))}</label>
+        <input type="url" id="f_imgUrl3" placeholder="${esc(t("passport.form.phHttpsShort"))}">
       </div>
     </div>
 
     <div class="section" id="auxCommitmentV03" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-      <div class="section-label">Auxiliary commitment (v0.3, optional)</div>
-      <p class="fhint" style="margin:0 0 12px;line-height:1.55">Second on-chain anchor (e.g. PDF certificate) — independent of passport <code>dataHash</code>. Leave hash empty to skip. If hash is set, HTTPS hint optional (max 512 chars).</p>
-      <div class="field"><label>auxCommitmentHash</label>
-        <input type="text" id="f_aux_hash" placeholder="0x + 64 hex or empty" autocomplete="off" spellcheck="false"></div>
-      <div class="field"><label>auxCommitmentUri</label>
-        <input type="url" id="f_aux_uri" placeholder="https://…" autocomplete="off"></div>
+      <div class="section-label">${esc(t("passport.form.auxSection"))}</div>
+      <p class="fhint" style="margin:0 0 12px;line-height:1.55">${esc(t("passport.form.auxHint"))}</p>
+      <div class="field"><label>${esc(t("passport.form.labelAuxHash"))}</label>
+        <input type="text" id="f_aux_hash" placeholder="${esc(t("passport.form.phAuxHash"))}" autocomplete="off" spellcheck="false"></div>
+      <div class="field"><label>${esc(t("passport.form.labelAuxUri"))}</label>
+        <input type="url" id="f_aux_uri" placeholder="${esc(t("passport.form.phHttpsShort"))}" autocomplete="off"></div>
     </div>
 
     <div class="section" id="v03OptionalMeta" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-      <div class="section-label">Optional object metadata (v0.3)</div>
-      <p class="fhint" style="margin:0 0 12px">All optional; included in <code>dataHash</code> when set (SPEC §18).</p>
+      <div class="section-label">${esc(t("passport.form.v03MetaSection"))}</div>
+      <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.v03MetaHint"))}</p>
       <div class="row2">
-        <div class="field"><label>Width</label><input type="number" id="f_dim_w" placeholder="e.g. 60" min="0" step="any"></div>
-        <div class="field"><label>Height</label><input type="number" id="f_dim_h" placeholder="e.g. 40" min="0" step="any"></div>
+        <div class="field"><label>${esc(t("passport.form.labelWidth"))}</label><input type="number" id="f_dim_w" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
+        <div class="field"><label>${esc(t("passport.form.labelHeight"))}</label><input type="number" id="f_dim_h" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
       </div>
-      <div class="field"><label>Dimension unit</label><input type="text" id="f_dim_unit" placeholder="cm"></div>
+      <div class="field"><label>${esc(t("passport.form.labelDimUnit"))}</label><input type="text" id="f_dim_unit" placeholder="cm"></div>
       <div class="row2">
-        <div class="field"><label>Weight</label><input type="number" id="f_weight" placeholder="optional" min="0" step="any"></div>
-        <div class="field"><label>Weight unit</label><input type="text" id="f_weight_unit" placeholder="kg"></div>
+        <div class="field"><label>${esc(t("passport.form.labelWeight"))}</label><input type="number" id="f_weight" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
+        <div class="field"><label>${esc(t("passport.form.labelWeightUnit"))}</label><input type="text" id="f_weight_unit" placeholder="kg"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>Depth</label><input type="number" id="f_depth" placeholder="optional" min="0" step="any"></div>
-        <div class="field"><label>Depth unit</label><input type="text" id="f_depth_unit" placeholder="cm"></div>
+        <div class="field"><label>${esc(t("passport.form.labelDepth"))}</label><input type="number" id="f_depth" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
+        <div class="field"><label>${esc(t("passport.form.labelDepthUnit"))}</label><input type="text" id="f_depth_unit" placeholder="cm"></div>
       </div>
-      <div class="field"><label>Creation date (work)</label><input type="text" id="f_creation_date" placeholder="YYYY-MM-DD or ISO-8601"></div>
-      <div class="field"><label>Listing / ask price</label><input type="text" id="f_listing_price" placeholder="e.g. 1200 USD — not a legal offer"></div>
-      <div class="field"><label>Internal tag</label><input type="text" id="f_internal_tag" placeholder="inventory label"></div>
+      <div class="field"><label>${esc(t("passport.form.labelCreationDate"))}</label><input type="text" id="f_creation_date" placeholder="${esc(t("passport.form.phCreationDate"))}"></div>
+      <div class="field"><label>${esc(t("passport.form.labelListingPrice"))}</label><input type="text" id="f_listing_price" placeholder="${esc(t("passport.form.phListingPrice"))}"></div>
+      <div class="field"><label>${esc(t("passport.form.labelInternalTag"))}</label><input type="text" id="f_internal_tag" placeholder="${esc(t("passport.form.phInternalTag"))}"></div>
     </div>
 
     <!-- Physical seal -->
@@ -1620,7 +1620,7 @@ function validate() {
     (imageHash2 !== ZERO32 || imageHash3 !== ZERO32) &&
     imageHash === ZERO32
   ) {
-    return "Add the primary preview image before additional images (v0.3).";
+    return t("passport.form.validateExtraImagesFirst");
   }
   const skip =
     odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
@@ -1635,7 +1635,7 @@ function validate() {
   if (objType==="digital" && fileHashBytes32===ZERO32) return t("passport.form.validateDigitalFile");
   if (objType==="digital") {
     const c2 = v("f_c2pa_manifest_hash");
-    if (c2 && !normalizeSha256Text(c2)) return "C2PA manifest hash must be sha256:... or 0x... (32 bytes).";
+    if (c2 && !normalizeSha256Text(c2)) return t("passport.form.validateC2pa");
   }
   if (objType==="physical") {
     if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return t("passport.form.validateNfc");
@@ -1644,11 +1644,11 @@ function validate() {
   if (typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)) {
     const auxRaw = (document.getElementById("f_aux_hash") && document.getElementById("f_aux_hash").value || "").trim();
     const auxU = (document.getElementById("f_aux_uri") && document.getElementById("f_aux_uri").value || "").trim();
-    if (auxU.length > 512) return "Auxiliary URI must be at most 512 characters.";
-    if (!auxRaw && auxU) return "Set an auxiliary commitment hash, or clear the auxiliary URL.";
+    if (auxU.length > 512) return t("passport.form.validateAuxUriLen");
+    if (!auxRaw && auxU) return t("passport.form.validateAuxNeedHash");
     if (auxRaw) {
       const norm = auxRaw.startsWith("0x") ? auxRaw : "0x" + auxRaw;
-      if (!/^0x[a-fA-F0-9]{64}$/.test(norm)) return "Auxiliary hash must be 32 bytes (0x + 64 hex).";
+      if (!/^0x[a-fA-F0-9]{64}$/.test(norm)) return t("passport.form.validateAuxHash");
     }
   }
   return null;

@@ -14,8 +14,8 @@
   },
   "netTitle": "Polygon PoS mainnet",
   "registry": {
-    "hintLocal": "Set NET.contract, add registry-config.json, or open once with ?contract=0x… (40 hex chars).",
-    "hintProduction": "Set repository secret or variable ODP_CONTRACT_ADDRESS under Settings → Secrets and variables → Actions, then redeploy. Or open this page once with ?contract=0x… in the URL.",
+    "hintLocal": "The site doesn’t know which public registry to use yet. If you’re setting this up: follow the README, or open the page once with your registry address after ?contract= in the address bar (long text starting with 0x).",
+    "hintProduction": "The live site needs the registry address in your deployment settings (see README). Alternatively, open the page once with ?contract= and the address in the URL.",
     "readmeLink": "See README"
   },
   "stack": {
@@ -23,26 +23,26 @@
       "redLabel": "Red flag",
       "redTitle": "Site version 0.x — proof-of-concept; not production-stable.",
       "yellowLabel": "Yellow flag",
-      "yellowNewerTitle": "Site major is newer than the configured latest stable major — confirm release notes before trusting.",
-      "yellowOlderTitle": "Older stable major (not the latest). Review migration and trust assumptions.",
+      "yellowNewerTitle": "Site version is newer than the “latest stable” you configured — check release notes before trusting.",
+      "yellowOlderTitle": "This stable line is older than the newest one. Check upgrade notes and trust assumptions.",
       "greenLabel": "Stable",
-      "greenTitle": "Site major matches the current stable line (≥1.0)."
+      "greenTitle": "Site version matches the current stable line (≥1.0)."
     },
     "spec": {
-      "legacy": "legacy CONTRACT_VERSION 0 — not supported by this UI",
-      "v02": "ODP spec (gas-only, optional dataUrl, PDF/doc anchor; unlimited P/M; proofs P/M)",
-      "v03": "ODP v0.3 — ownership, revocation, three image hashes, P/M counterfeit concern, P-affiliation detach",
-      "unknown": "unknown generation"
+      "legacy": "Registry is too old — this interface cannot use it.",
+      "v02": "Older registry rules: you only pay network fees; optional public link to your file; museums/experts have more room to work.",
+      "v03": "Current rules (v0.3): transfer ownership, revoke a passport, more images, expert/museum concern flags, unlink child institutions.",
+      "unknown": "Unknown registry version"
     },
-    "summaryMeta": "Site {siteVer} · on-chain gen {gen} — {spec}",
+    "summaryMeta": "Site {siteVer} · registry version {gen} — {spec}",
     "detailsBtn": "Details",
     "modalTitle": "Site release & trust",
     "modalOk": "Got it",
     "disclosure": {
-      "odpassPara": "<strong>Verify</strong> can read a local <strong>.odpass</strong> ZIP: it canonicalizes <strong>passport.json</strong> against on-chain <strong>dataHash</strong>. Sidecar files (digital original + images) live under <strong>originals/</strong>; exact paths are listed in <strong>manifest.originals</strong> (bundle v0.3). The page hashes those bytes like mint and may show a <strong>local</strong> raster preview when a hash matches — the file is not uploaded. Legacy bundles with separate <strong>original/</strong> and <strong>image/</strong> folders are still accepted.",
-      "readPara": "The read ABI decodes prior <strong>contractVersion</strong> values on-chain. The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries).",
-      "semverLte1": "<strong>0.x</strong> site releases are <strong>red-flag</strong> (experimental). Stable SemVer starts at <strong>major 1</strong>. When <strong>several stable majors</strong> exist, any major below the latest stable is <strong>yellow-flag</strong> — verify upgrade notes.",
-      "semverGt1": "<strong>0.x</strong> = red-flag. <strong>Major {L}</strong> (latest stable) = green. <strong>Majors 1…{prevMajorsEnd}</strong> = yellow-flag — older stable lines; review migration. <strong>1.x</strong> patch releases under the same major stay green when that major is current."
+      "odpassPara": "<strong>Verify</strong> can open a <strong>.odpass</strong> file on your computer (it’s a ZIP). Inside is <strong>passport.json</strong>. The page checks that this file still matches what was saved in the public registry (a fingerprint of the data). Extra files (original artwork, pictures) sit in the <strong>originals/</strong> folder; the bundle lists their paths. Previews are built on your device — nothing is uploaded to this website. Older bundle layouts still work.",
+      "readPara": "The checker talks to the main registry first. If a record isn’t there, it may look at older registry addresses you configured — useful when data moved between deployments.",
+      "semverLte1": "<strong>0.x</strong> site releases are <strong>experimental</strong> (red flag). Stable numbering starts at <strong>major 1</strong>. If several stable lines exist, older majors are a <strong>yellow flag</strong> — read upgrade notes.",
+      "semverGt1": "<strong>0.x</strong> = red flag. <strong>Major {L}</strong> (latest stable) = green. <strong>Majors 1…{prevMajorsEnd}</strong> = yellow — older stable lines; check migration. Small updates under the same major stay green while that major is current."
     }
   }
 }

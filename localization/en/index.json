@@ -3,13 +3,13 @@
     "meta": {
       "documentTitle": "ODP v0.3 — Web demo",
       "h1": "Object Digital Passport",
-      "sub": "Reference web UI (v0.3) · same files as in the repo"
+      "sub": "Demo web pages (v0.3) — same files as in the project folder"
     },
     "cardTitle": "Open a page",
-    "lead": "These are static pages; connect a wallet where needed. Polygon PoS RPC is required for chain reads.",
-    "btnVerify": "Verify — no wallet",
+    "lead": "These pages open in your browser. Connect a wallet only where the page asks. You need internet access so the site can read the public registry on Polygon.",
+    "btnVerify": "Verify — no wallet needed",
     "btnCreator": "Register profile",
-    "btnPassport": "Mint a passport",
+    "btnPassport": "Create a passport",
     "source": "Source on GitHub",
     "readme": "README"
   }

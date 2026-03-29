@@ -372,27 +372,22 @@
     if (L <= 1) {
       noteSemver = odpStackT(
         "stack.disclosure.semverLte1",
-        "<strong>0.x</strong> site releases are <strong>red-flag</strong> (experimental). " +
-          "Stable SemVer starts at <strong>major 1</strong>. When <strong>several stable majors</strong> exist, " +
-          "any major below the latest stable is <strong>yellow-flag</strong> — verify upgrade notes."
+        "<strong>0.x</strong> site releases are <strong>experimental</strong> (red flag). Stable numbering starts at <strong>major 1</strong>. If several stable lines exist, older majors are a <strong>yellow flag</strong> — read upgrade notes."
       );
     } else {
       noteSemver = odpStackTpl(
         "stack.disclosure.semverGt1",
-        "<strong>0.x</strong> = red-flag. <strong>Major {L}</strong> (latest stable) = green. <strong>Majors 1…{prevMajorsEnd}</strong> = yellow-flag — older stable lines; review migration. <strong>1.x</strong> patch releases under the same major stay green when that major is current.",
+        "<strong>0.x</strong> = red flag. <strong>Major {L}</strong> (latest stable) = green. <strong>Majors 1…{prevMajorsEnd}</strong> = yellow — older stable lines; check migration. Small updates under the same major stay green while that major is current.",
         { L: String(L), prevMajorsEnd: String(L - 1) }
       );
     }
     var noteRead = odpStackT(
       "stack.disclosure.readPara",
-      "The read ABI decodes prior <strong>contractVersion</strong> values on-chain. " +
-        "The verifier uses the <strong>primary</strong> deployment first; if a record is missing, it tries <strong>previousContracts</strong> (older deployments — separate registries)."
+      "The checker talks to the main registry first. If a record isn’t there, it may look at older registry addresses you configured — useful when data moved between deployments."
     );
     var noteOdpass = odpStackT(
       "stack.disclosure.odpassPara",
-      "<strong>Verify</strong> can read a local <strong>.odpass</strong> ZIP: it canonicalizes <strong>passport.json</strong> against on-chain <strong>dataHash</strong>. " +
-        "Sidecar files live under <strong>originals/</strong>; exact paths are in <strong>manifest.originals</strong> (bundle v0.3). The page hashes those bytes like mint and may show a <strong>local</strong> raster preview when a hash matches — the file is not uploaded. " +
-        "Legacy bundles with separate <strong>original/</strong> and <strong>image/</strong> folders are still accepted."
+      "<strong>Verify</strong> can open a <strong>.odpass</strong> file on your computer (it’s a ZIP). Inside is <strong>passport.json</strong>. The page checks that this file still matches what was saved in the public registry (a fingerprint of the data). Extra files (original artwork, pictures) sit in the <strong>originals/</strong> folder; the bundle lists their paths. Previews are built on your device — nothing is uploaded to this website. Older bundle layouts still work."
     );
     return (
       '<p class="odp-stack-note">' +

@@ -1518,38 +1518,43 @@ function renderPassportJsonExtras(passport, isDigital) {
     const d = p.digital;
     if (d.fileHash) {
       rows.push(
-        `<div class="field full"><div class="fl">Digital fileHash</div><div class="vinfo-val" style="font-size:11px;word-break:break-all">${esc(String(d.fileHash))}</div></div>`
+        `<div class="field full"><div class="fl">${esc(t("verify.localPreview.digitalFileFingerprint"))}</div><div class="vinfo-val" style="font-size:11px;word-break:break-all">${esc(String(d.fileHash))}</div></div>`
       );
     }
     if (d.dataUrl) {
       rows.push(
-        `<div class="field full"><div class="fl">Digital dataUrl</div><div class="fv"><a class="ext-link" href="${esc(d.dataUrl)}" target="_blank" rel="noopener noreferrer">${esc(truncStr(d.dataUrl, 96))}</a></div></div>`
+        `<div class="field full"><div class="fl">${esc(t("verify.localPreview.hostedPassportLink"))}</div><div class="fv"><a class="ext-link" href="${esc(d.dataUrl)}" target="_blank" rel="noopener noreferrer">${esc(truncStr(d.dataUrl, 96))}</a></div></div>`
       );
     }
     if (d.c2pa && typeof d.c2pa === "object" && Object.keys(d.c2pa).length) {
       rows.push(
-        `<div class="field full"><div class="fl">C2PA</div><div class="fv mono" style="font-size:11px;white-space:pre-wrap;word-break:break-word">${esc(JSON.stringify(d.c2pa, null, 2))}</div></div>`
+        `<div class="field full"><div class="fl">${esc(t("verify.detail.c2paJsonLabel"))}</div><div class="fv mono" style="font-size:11px;white-space:pre-wrap;word-break:break-word">${esc(JSON.stringify(d.c2pa, null, 2))}</div></div>`
       );
     }
   }
   if (!isDigital && p.seal && typeof p.seal === "object") {
     if (p.seal.nfc && typeof p.seal.nfc === "object") {
       const n = p.seal.nfc;
-      if (n.uid) rows.push(`<div class="field"><div class="fl">NFC UID</div><div class="fv mono">${esc(String(n.uid))}</div></div>`);
-      if (n.model) rows.push(`<div class="field"><div class="fl">NFC model</div><div class="fv">${esc(String(n.model))}</div></div>`);
-      if (n.installedAt) rows.push(`<div class="field"><div class="fl">NFC installed</div><div class="fv">${esc(String(n.installedAt))}</div></div>`);
+      if (n.uid) rows.push(`<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcChipId"))}</div><div class="fv mono">${esc(String(n.uid))}</div></div>`);
+      if (n.model) rows.push(`<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcChipType"))}</div><div class="fv">${esc(String(n.model))}</div></div>`);
+      if (n.installedAt) rows.push(`<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcInstalledOn"))}</div><div class="fv">${esc(String(n.installedAt))}</div></div>`);
       if (n.publicKey) {
         const pk = String(n.publicKey);
         rows.push(
-          `<div class="field full"><div class="fl">NFC public key (JSON)</div><div class="vinfo-val" style="font-size:10px;word-break:break-all">${esc(pk.length > 200 ? pk.slice(0, 200) + "…" : pk)}</div></div>`
+          `<div class="field full"><div class="fl">${esc(t("verify.localPreview.nfcKeyShort"))}</div><div class="vinfo-val" style="font-size:10px;word-break:break-all">${esc(pk.length > 200 ? pk.slice(0, 200) + "…" : pk)}</div></div>`
         );
       }
-      if (n.notes) rows.push(`<div class="field full"><div class="fl">NFC notes</div><div class="fv">${esc(String(n.notes))}</div></div>`);
+      if (n.notes) rows.push(`<div class="field full"><div class="fl">${esc(t("verify.localPreview.nfcNotes"))}</div><div class="fv">${esc(String(n.notes))}</div></div>`);
     }
     if (p.seal.numbered && typeof p.seal.numbered === "object") {
       const s = p.seal.numbered;
+      const sealFl = {
+        color: t("verify.localPreview.sealColor"),
+        size: t("verify.localPreview.sealSize"),
+        notes: t("verify.localPreview.sealNotes"),
+      };
       ["color", "size", "notes"].forEach((k) => {
-        if (s[k]) rows.push(`<div class="field"><div class="fl">Seal ${esc(k)}</div><div class="fv">${esc(String(s[k]))}</div></div>`);
+        if (s[k]) rows.push(`<div class="field"><div class="fl">${esc(sealFl[k] || t("verify.localPreview.sealFieldFallback"))}</div><div class="fv">${esc(String(s[k]))}</div></div>`);
       });
     }
   }
@@ -1563,7 +1568,7 @@ function renderPassportJsonExtras(passport, isDigital) {
       })
       .filter(Boolean);
     if (bits.length) {
-      rows.push(`<div class="field full"><div class="fl">Materials (with notes)</div><div class="fv">${bits.join(", ")}</div></div>`);
+      rows.push(`<div class="field full"><div class="fl">${esc(t("verify.localPreview.materialsWithNotes"))}</div><div class="fv">${bits.join(", ")}</div></div>`);
     }
   }
   if (Array.isArray(p.provenance) && p.provenance.length) {
@@ -1577,18 +1582,18 @@ function renderPassportJsonExtras(passport, isDigital) {
       .filter(Boolean)
       .join("");
     if (lines) {
-      rows.push(`<div class="field full"><div class="fl">Provenance</div><div class="fv">${lines}</div></div>`);
+      rows.push(`<div class="field full"><div class="fl">${esc(t("verify.localPreview.provenance"))}</div><div class="fv">${lines}</div></div>`);
     }
   }
   if (p.custom && typeof p.custom === "object" && Object.keys(p.custom).length > 0) {
     rows.push(
-      `<div class="field full"><div class="fl">custom</div><div class="fv mono" style="font-size:11px;white-space:pre-wrap;word-break:break-word">${esc(JSON.stringify(p.custom, null, 2))}</div></div>`
+      `<div class="field full"><div class="fl">${esc(t("verify.localPreview.customFields"))}</div><div class="fv mono" style="font-size:11px;white-space:pre-wrap;word-break:break-word">${esc(JSON.stringify(p.custom, null, 2))}</div></div>`
     );
   }
 
   if (!rows.length) return "";
   return `
-        <div class="section-title" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">More from passport.json</div>
+        <div class="section-title" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">${esc(t("verify.localPreview.sectionMoreTitle"))}</div>
         <div class="fields">${rows.join("")}</div>`;
 }
 
@@ -2008,134 +2013,124 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div id="odpResult"></div>
 
         ${isDigital && passport?.digital?.c2pa?.manifestHash ? `
-        <div class="section-title" style="margin-top:16px">Verify C2PA manifest hash (manual)</div>
+        <div class="section-title" style="margin-top:16px">${esc(t("verify.detail.c2paManualTitle"))}</div>
         <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
-          Declared in passport: <code>${esc(passport.digital.c2pa.manifestHash)}</code>. MVP mode: paste the hash extracted by your C2PA tool.
+          ${esc(t("verify.detail.c2paManualLead").replace("{hash}", String(passport.digital.c2pa.manifestHash || "")))}
         </p>
         <div class="drop-zone json-drop" style="padding:12px">
-          <input type="text" id="c2paHashInput" placeholder="sha256:... or 0x..." style="width:100%;margin-bottom:8px">
-          <button type="button" class="btn btn-sec" id="c2paHashCheckBtn">Check C2PA hash</button>
+          <input type="text" id="c2paHashInput" placeholder="${esc(t("verify.detail.c2paPlaceholder"))}" style="width:100%;margin-bottom:8px">
+          <button type="button" class="btn btn-sec" id="c2paHashCheckBtn">${esc(t("verify.detail.c2paCheckBtn"))}</button>
         </div>
         <div id="c2paHashResult"></div>
         ` : ""}
 
         ${isDigital && hasFile ? `
         <div class="vrow">
-          <span class="vbadge na">Registered</span>
+          <span class="vbadge na">${esc(t("verify.detail.badgeInRegistry"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Original File (SHA-256)</div>
+            <div class="vinfo-label">${esc(t("verify.detail.origFileFingerprint"))}</div>
             <div class="vinfo-val">${esc(sidecarHashes.fileHash)}</div>
           </div>
         </div>` : ""}
 
         ${!isDigital ? `
         <div class="vrow">
-          <span class="vbadge na">${rec.sealType === 0 ? 'None' : rec.sealType === 1 ? 'NFC' : rec.sealType === 2 ? 'Numbered' : 'NFC + Numbered'}</span>
+          <span class="vbadge na">${rec.sealType === 0 ? esc(t("verify.detail.sealTypeNone")) : rec.sealType === 1 ? esc(t("verify.detail.sealTypeNfc")) : rec.sealType === 2 ? esc(t("verify.detail.sealTypeNum")) : esc(t("verify.detail.sealTypeBoth"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Physical Seal</div>
-            <div class="vinfo-val">${rec.sealHash !== ZERO32 ? rec.sealHash : "No seal data"}</div>
+            <div class="vinfo-label">${esc(t("verify.detail.physicalSealLabel"))}</div>
+            <div class="vinfo-val">${rec.sealHash !== ZERO32 ? rec.sealHash : esc(t("verify.detail.noSealData"))}</div>
           </div>
         </div>
         ${rec.sealType === 2 ? `
         <div class="vrow">
-          <span class="vbadge warn">⚠ Lower protection</span>
+          <span class="vbadge warn">⚠ ${esc(t("verify.detail.warnLowerProtection"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Numbered seal only</div>
-            <div class="vinfo-val">
-              This object uses a numbered sticker without a cryptographic NFC chip.
-              The seal number cannot be verified automatically — visual inspection required.
-              A determined attacker could copy the number onto a fake object.
-            </div>
+            <div class="vinfo-label">${esc(t("verify.detail.numberedSealTitle"))}</div>
+            <div class="vinfo-val" style="white-space:pre-wrap;line-height:1.55">${esc(t("verify.detail.numberedSealBody"))}</div>
           </div>
         </div>` : ""}
         ${hasNFC ? `
         <div class="vrow">
-          <span class="vbadge ok">NTAG424DNA_TT</span>
+          <span class="vbadge ok">${esc(t("verify.detail.nfcChipModelBadge"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">NFC Chip — TagTamper</div>
-            <div class="vinfo-val">
-              Cryptographic seal. Permanently records if physically removed.
-              Use a PPP-compatible app to run NFC challenge-response verification.
-            </div>
+            <div class="vinfo-label">${esc(t("verify.detail.nfcChipTitle"))}</div>
+            <div class="vinfo-val" style="white-space:pre-wrap;line-height:1.55">${esc(t("verify.detail.nfcChipBody"))}</div>
           </div>
         </div>
         <div class="vrow">
-          <span class="vbadge na">Public Key</span>
+          <span class="vbadge na">${esc(t("verify.detail.pubKeyBadge"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">NFC Chip Public Key</div>
+            <div class="vinfo-label">${esc(t("verify.detail.pubKeyLabel"))}</div>
             <div class="vinfo-val">${bytesToHex(rec.nfcPublicKey).slice(0, 40)}…</div>
           </div>
         </div>` : ""}` : ""}
 
         <div class="vrow">
-          <span class="vbadge na">${hasImage ? 'Registered' : 'None'}</span>
+          <span class="vbadge na">${hasImage ? esc(t("verify.detail.badgeInRegistry")) : esc(t("verify.detail.badgeNone"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Image 1 (SHA-256)</div>
-            <div class="vinfo-val">${hasImage ? esc(sidecarHashes.imageHash) : "No image registered"}</div>
+            <div class="vinfo-label">${esc(t("verify.detail.imageFingerprint1"))}</div>
+            <div class="vinfo-val">${hasImage ? esc(sidecarHashes.imageHash) : esc(t("verify.detail.noImageRegistered"))}</div>
           </div>
         </div>
         ${hasImage2 ? `
         <div class="vrow">
-          <span class="vbadge na">Registered</span>
+          <span class="vbadge na">${esc(t("verify.detail.badgeInRegistry"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Image 2 (SHA-256)</div>
+            <div class="vinfo-label">${esc(t("verify.detail.imageFingerprint2"))}</div>
             <div class="vinfo-val">${esc(sidecarHashes.imageHash2)}</div>
           </div>
         </div>` : ""}
         ${hasImage3 ? `
         <div class="vrow">
-          <span class="vbadge na">Registered</span>
+          <span class="vbadge na">${esc(t("verify.detail.badgeInRegistry"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Image 3 (SHA-256)</div>
+            <div class="vinfo-label">${esc(t("verify.detail.imageFingerprint3"))}</div>
             <div class="vinfo-val">${esc(sidecarHashes.imageHash3)}</div>
           </div>
         </div>` : ""}
         ${hasImage && !rec.imageUrl ? `
         <div class="vrow">
-          <span class="vbadge warn">No URL</span>
+          <span class="vbadge warn">${esc(t("verify.detail.noUrlBadge"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Image hash registered but no URL provided</div>
-            <div class="vinfo-val">
-              The image hash is on-chain but no download URL was specified.
-              You can verify the image manually by dropping the file below.
-            </div>
+            <div class="vinfo-label">${esc(t("verify.detail.noUrlTitle"))}</div>
+            <div class="vinfo-val" style="white-space:pre-wrap;line-height:1.55">${esc(t("verify.detail.noUrlBody"))}</div>
           </div>
         </div>` : ""}
 
         <!-- File verification (digital) -->
         ${isDigital && hasFile ? `
-        <div class="section-title">Verify Original File</div>
+        <div class="section-title">${esc(t("verify.detail.sectionVerifyOriginal"))}</div>
         <div class="drop-zone" id="fileDrop" onclick="document.getElementById('fileInput').click()">
           <input type="file" id="fileInput" onchange="verifyFile(event, '${esc(sidecarHashes.fileHash)}')">
-          <p>Drop original file here or click to select<br>
-          <span style="opacity:0.6">SHA-256 computed locally — file is never uploaded</span><br>
+          <p>${esc(t("verify.detail.dropOriginalL1"))}<br>
+          <span style="opacity:0.6">${esc(t("verify.detail.dropOriginalL2"))}</span><br>
           <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="fileResult"></div>` : ""}
 
         <!-- Image verification -->
         ${hasImage ? `
-        <div class="section-title">Verify image 1</div>
+        <div class="section-title">${esc(t("verify.detail.sectionVerifyImage1"))}</div>
         <div class="drop-zone" id="imgDrop" onclick="document.getElementById('imgInput').click()">
           <input type="file" id="imgInput" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash)}')">
-          <p>Drop image file here or click to select<br>
-          <span style="opacity:0.6">Computed locally — not uploaded</span><br>
+          <p>${esc(t("verify.detail.dropImageL1"))}<br>
+          <span style="opacity:0.6">${esc(t("verify.detail.dropImageL2"))}</span><br>
           <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="imgResult"></div>` : ""}
         ${hasImage2 ? `
-        <div class="section-title">Verify image 2</div>
+        <div class="section-title">${esc(t("verify.detail.sectionVerifyImage2"))}</div>
         <div class="drop-zone" id="imgDrop2" onclick="document.getElementById('imgInput2').click()">
           <input type="file" id="imgInput2" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash2)}', 'imgResult2', 'imgDrop2')">
-          <p>Drop second image or select file<br>
+          <p>${esc(t("verify.detail.dropImage2L1"))}<br>
           <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="imgResult2"></div>` : ""}
         ${hasImage3 ? `
-        <div class="section-title">Verify image 3</div>
+        <div class="section-title">${esc(t("verify.detail.sectionVerifyImage3"))}</div>
         <div class="drop-zone" id="imgDrop3" onclick="document.getElementById('imgInput3').click()">
           <input type="file" id="imgInput3" accept="image/*" onchange="verifyImage(event, '${esc(sidecarHashes.imageHash3)}', 'imgResult3', 'imgDrop3')">
-          <p>Drop third image or select file<br>
+          <p>${esc(t("verify.detail.dropImage3L1"))}<br>
           <span style="opacity:0.6">${esc(t("verify.detail.odpassSidecarPaths"))}</span></p>
         </div>
         <div id="imgResult3"></div>` : ""}
@@ -2203,7 +2198,7 @@ async function verifyFile(e, onchain) {
   const file = e.target.files[0];
   if (!file) return;
   const el = document.getElementById("fileResult");
-  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Computing SHA-256...</span></div>`;
+  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>${esc(t("verify.detail.computingFingerprint"))}</span></div>`;
 
   const buf  = await file.arrayBuffer();
   const hash = await crypto.subtle.digest("SHA-256", buf);
@@ -2213,16 +2208,13 @@ async function verifyFile(e, onchain) {
   document.getElementById("fileDrop").style.borderStyle = "solid";
   el.innerHTML = `
     <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
-      <span class="vbadge ${match ? 'ok' : 'bad'}">${match ? 'Authentic' : 'Mismatch'}</span>
+      <span class="vbadge ${match ? 'ok' : 'bad'}">${esc(match ? t("verify.detail.fileCompareMatch") : t("verify.detail.fileCompareMismatch"))}</span>
       <div class="vinfo">
-        <div class="vinfo-label">${file.name}</div>
+        <div class="vinfo-label">${esc(file.name)}</div>
         <div class="vinfo-val">${hex}</div>
       </div>
     </div>
-    ${!match ? `<div class="err-box" style="margin-top:8px;font-size:11px">
-      This file does not match the registered original.
-      The registered file hash: ${onchain}
-    </div>` : ""}`;
+    ${!match ? `<div class="err-box" style="margin-top:8px;font-size:11px">${esc(t("verify.detail.fileMismatchNote").replace("{expected}", String(onchain)))}</div>` : ""}`;
 }
 
 /** Show key passport fields after local file hash matches (same ideas as main card). */
@@ -2612,15 +2604,15 @@ function attachC2paHashCheck(declaredHashRaw) {
   btn.addEventListener("click", () => {
     const got = normalizeSha256Like(inp.value);
     if (!got) {
-      out.innerHTML = `<div class="err-box" style="margin-top:10px">Enter a valid hash: <code>sha256:...</code> or <code>0x...</code>.</div>`;
+      out.innerHTML = `<div class="err-box" style="margin-top:10px">${esc(t("verify.detail.c2paInvalidHash"))}</div>`;
       return;
     }
     const ok = got === declared;
     out.innerHTML = `
       <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
-        <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? "C2PA hash match" : "C2PA hash mismatch"}</span>
+        <span class="vbadge ${ok ? "ok" : "bad"}">${esc(ok ? t("verify.detail.c2paMatch") : t("verify.detail.c2paMismatch"))}</span>
         <div class="vinfo">
-          <div class="vinfo-label">Declared manifestHash</div>
+          <div class="vinfo-label">${esc(t("verify.detail.c2paStoredLabel"))}</div>
           <div class="vinfo-val">${esc(declared)}</div>
         </div>
       </div>
@@ -2635,7 +2627,7 @@ async function verifyImage(e, onchain, resultId, dropId) {
   const did = dropId || "imgDrop";
   const el = document.getElementById(rid);
   if (!el) return;
-  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>Computing SHA-256...</span></div>`;
+  el.innerHTML = `<div class="loading" style="margin-top:10px"><div class="spin"></div><span>${esc(t("verify.detail.computingFingerprint"))}</span></div>`;
 
   const buf  = await file.arrayBuffer();
   const hash = await crypto.subtle.digest("SHA-256", buf);
@@ -2646,9 +2638,9 @@ async function verifyImage(e, onchain, resultId, dropId) {
   if (dropEl) dropEl.style.borderStyle = "solid";
   el.innerHTML = `
     <div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
-      <span class="vbadge ${match ? 'ok' : 'bad'}">${match ? 'Authentic' : 'Replaced'}</span>
+      <span class="vbadge ${match ? 'ok' : 'bad'}">${esc(match ? t("verify.detail.imageCompareMatch") : t("verify.detail.imageCompareReplaced"))}</span>
       <div class="vinfo">
-        <div class="vinfo-label">${file.name}</div>
+        <div class="vinfo-label">${esc(file.name)}</div>
         <div class="vinfo-val">${hex}</div>
       </div>
     </div>`;
@@ -2817,7 +2809,7 @@ async function attestDocumentFromVerify() {
     return;
   }
   if (!odpDocAttestReadyForV03()) {
-    out.innerHTML = `<div class="err-box">v0.3 main registry has no on-core document anchor. Set <code class="mono">NET.docAnchor</code> to the deployed <code class="mono">ODPWalletDocumentAnchor</code> address (see README / SPEC).</div>`;
+    out.innerHTML = `<div class="err-box">${esc(t("verify.docAttest.docAnchorMissing"))}</div>`;
     return;
   }
   const f = fileEl.files && fileEl.files[0];

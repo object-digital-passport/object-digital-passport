@@ -3,7 +3,7 @@
     "meta": {
       "documentTitle": "ODP v0.3 — Register profile",
       "h1": "Profile",
-      "sub": "Object Digital Passport · Specification v0.3"
+      "sub": "Object Digital Passport · version 0.3"
     },
     "steps": {
       "wallet": "Wallet",
@@ -12,7 +12,7 @@
     },
     "connect": {
       "cardTitle": "Connect your wallet",
-      "lead": "Your wallet address becomes your identity in ODP. Your profile (ID) is permanently linked to your wallet. Make sure you have a backup of your key before proceeding.",
+      "lead": "Your wallet address becomes your identity in ODP. Your profile ID stays linked to this wallet. Make sure you have a backup of your key before continuing.",
       "btnName": "Connect wallet",
       "btnDesc": "Browser extension — MetaMask, Rabby, Brave Wallet, etc."
     },
@@ -26,17 +26,17 @@
       "li3t": "Never share your key or seed phrase with anyone",
       "li3": "No legitimate service or support team will ever ask for it. Ransomware and phishing specifically target seed phrases.",
       "li4t": "If you lose wallet access — your passports are safe",
-      "li4": "All passports you minted remain valid and verifiable forever. You only lose the ability to mint new passports under that identity.",
+      "li4": "All passports you created remain valid and checkable forever. You only lose the ability to create new passports under that identity.",
       "checkbox": "I have backed up my key and understand the risks. My seed phrase is on paper / I have a backup hardware device.",
       "continueBtn": "Continue to Registration"
     },
     "register": {
       "cardTitle": "Choose your type",
       "warn": "⚠ Your type prefix cannot be changed after registration. One profile per wallet. Permanent.",
-      "btn": "Register — Polygon gas only (~US$0.01 typ.)",
+      "btn": "Register — only a small network fee (~US$0.01 typical)",
       "waiting": "Waiting for wallet…",
       "confirming": "Confirming…",
-      "txPrefix": "Transaction sent:"
+      "txPrefix": "Request sent:"
     },
     "type": {
       "C": "Creator",
@@ -51,8 +51,8 @@
     "typeInfo": {
       "C": "Individual creator — artist, photographer, maker, or craftsperson. Use this if you are registering as a person.",
       "B": "Brand or collective — company, studio, label, or group. Use this for organizations; museums/collections should use M.",
-      "P": "Proof institution — expert, auction house, or certification body. P-type accounts can attach attestations to any passport.",
-      "M": "Museum or collection — mint passports for objects you hold in institutional custody (unlimited monthly mints). This is the required type for museums/collections digitizing holdings; can attach proofs like P."
+      "P": "Proof institution — expert, auction house, or certification body. P-type accounts can attach confirmations to any passport.",
+      "M": "Museum or collection — create passports for objects you hold in institutional custody (no monthly cap like smaller tiers). Use this for museums digitizing collections; you can attach confirmations like P-type institutions."
     },
     "walletBar": {
       "disconnect": "Disconnect"
@@ -62,12 +62,12 @@
       "walletPending": "A wallet request is already open. Use the wallet extension icon in your browser toolbar to approve or cancel — do not click Connect again until that finishes."
     },
     "noWallet": {
-      "line1": "No injected wallet (window.ethereum). On desktop, install",
+      "line1": "No wallet found in this browser. On a computer, install",
       "metaMask": "MetaMask",
-      "line2": "or another extension, then reload this page.",
+      "line2": "or another supported extension, then reload this page.",
       "mmOpen": "Open in MetaMask app",
       "mmHint": "iPhone / Safari: there is no extension — MetaMask runs as an app with a built-in browser. This link opens the same page there so Connect works.",
-      "fileProto": "Opening as file:// — many wallets do not inject on local files. Serve the web/ folder over http://localhost (any static server) or upload to HTTPS.",
+      "fileProto": "You opened this page as a local file — many wallets don’t work that way. Run a simple local web server for the web folder or use HTTPS hosting.",
       "httpsHint": "Use https:// or http://localhost if the wallet still does not appear."
     },
     "already": {
@@ -80,16 +80,16 @@
       "pl4": "In press releases and official communications",
       "btnPassport": "Create a Passport →",
       "btnVerify": "Verify profile ↗",
-      "btnExplorer": "View on Explorer ↗",
+      "btnExplorer": "View in block explorer ↗",
       "short": "Short:",
       "full": "Full:"
     },
     "passportHelp": {
-      "cardTitle": "Passport already on-chain — what next",
-      "lead": "The Passport page has a section for records already written to the blockchain. In short:",
-      "li1": "Enter the passport number (ODP-…) and use “Load on-chain.”",
-      "li2": "“Your passports” only lists items you minted from this wallet. If someone transferred a passport to you, it will not appear there — paste the number manually in that section.",
-      "li3": "The contract has one administrative wallet for registry rules (often a shared org wallet). There is no built-in “multi-signer committee” inside the contract code itself.",
+      "cardTitle": "Passport already in the registry — what next",
+      "lead": "On the Passport page you work with records that are already saved publicly. In short:",
+      "li1": "Enter the passport number (ODP-…) and tap “Load from registry.”",
+      "li2": "“Your passports” only lists items you created from this wallet. If someone transferred a passport to you, it won’t appear there — paste the number manually in that section.",
+      "li3": "The registry has one administrative wallet for rules (often a shared organisation wallet). There is no built-in “many signers” panel inside the code itself.",
       "cta": "Open Passport page"
     },
     "share": {
@@ -104,40 +104,40 @@
       "copied": "Copied to clipboard.",
       "linkCopied": "Link copied to clipboard."
     },
-    "qrFail": "QR library did not load (network / CDN blocked).",
+    "qrFail": "QR code library did not load (network or blocker).",
     "docAttest": {
-      "cardTitle": "Anchor a document (PDF, etc.) on-chain",
-      "body": "Upload the file (e.g. contract PDF). The page computes SHA-256 locally and sends only the hash in a transaction — gas only. Counterparties can hash their copy and check it matches this profile on Verify. This is not a qualified e-signature; it records that this wallet anchored this hash at a time.",
-      "uriLabel": "Optional public URL to the same file (HTTPS)",
-      "btn": "Record hash on-chain",
+      "cardTitle": "Stamp a document (PDF, etc.) in the registry",
+      "body": "Upload a file (for example a contract PDF). The page builds a fingerprint of the file on your device and only that fingerprint is saved in the public registry — you pay a small network fee. Others can fingerprint their copy and check it on Verify. This is not a full legal e-signature; it shows that this wallet recorded this file at a point in time.",
+      "uriLabel": "Optional public link to the same file (HTTPS)",
+      "btn": "Save fingerprint in registry",
       "chooseFile": "Choose a file first.",
-      "computingHash": "Computing hash…",
-      "urlTooLong": "URL is too long (max 512).",
+      "computingHash": "Working on fingerprint…",
+      "urlTooLong": "Link is too long (max 512 characters).",
       "confirmWallet": "Confirm in your wallet…",
       "sent": "Sent…",
-      "recorded": "Recorded on-chain. Hash"
+      "recorded": "Saved in the registry. Fingerprint"
     },
     "pAff": {
-      "cardTitle": "Institution structure (P affiliation)",
-      "body": "If your organization has multiple units, not every action needs a signature from head-office wallet: a unit registers its own P profile and works from its own wallet — the chain still shows who created each record. A two-step on-chain handshake links that P to a parent P, so units stay autonomous while verifiers can see they belong to a larger institution.",
-      "activeParentLabel": "Active parent",
-      "parentInputLabel": "Parent P (propose)",
+      "cardTitle": "Institution structure (parent / child links)",
+      "body": "Large organisations often have units. Each unit can register its own P profile and use its own wallet — the public record still shows who created what. In two short steps, a child P can be linked to a parent P so outsiders see they belong together while units stay independent.",
+      "activeParentLabel": "Linked parent",
+      "parentInputLabel": "Parent profile ID (propose link)",
       "proposeBtn": "Propose link",
       "cancelBtn": "Cancel pending request",
-      "cancelHint": "To withdraw a link request you sent, enter the same parent P ID and cancel — only works before the parent confirms.",
-      "cancelChecking": "Checking pending status…",
-      "cancelNoPending": "There is no pending request to this parent P from your profile.",
+      "cancelHint": "To withdraw a link request you sent, enter the same parent ID and cancel — only before the parent confirms.",
+      "cancelChecking": "Checking status…",
+      "cancelNoPending": "There is no pending request to this parent from your profile.",
       "cancelDone": "Pending request cancelled.",
-      "childInputLabel": "Child P (confirm)",
+      "childInputLabel": "Child profile ID (confirm link)",
       "confirmBtn": "Confirm link",
-      "childrenTitle": "Active affiliated child P IDs (children)",
+      "childrenTitle": "Linked child profiles",
       "loadMoreBtn": "Load more",
-      "parentRequired": "Enter a parent P profile ID first.",
+      "parentRequired": "Enter a parent profile ID first.",
       "sending": "Sending…",
-      "proposed": "Proposed. Waiting for parent confirmation.",
-      "childRequired": "Enter a child P profile ID first.",
+      "proposed": "Proposed. Waiting for parent to confirm.",
+      "childRequired": "Enter a child profile ID first.",
       "checkingPending": "Checking pending request…",
-      "noPending": "No pending request for this child under your parent affiliation.",
+      "noPending": "No pending request for this child under your parent link.",
       "confirmed": "Confirmed. Link is now active."
     },
     "multiAccount": "Multiple accounts connected"
