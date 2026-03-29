@@ -49,6 +49,16 @@
     return "en";
   }
 
+  /** Clears flash-guard from odp-i18n-boot.js (RU) or no-ops if not pending. */
+  function revealI18nUi() {
+    try {
+      var el = global.document && global.document.documentElement;
+      if (!el) return;
+      el.classList.remove("odp-i18n-pending");
+      el.classList.add("odp-i18n-ready");
+    } catch (eR) {}
+  }
+
   function t(key) {
     var parts = String(key).split(".");
     var cur = _merged;
@@ -165,6 +175,9 @@
     opts = opts || {};
     var page = opts.page || "index";
     _locale = odpResolveLocale();
+    if (_locale === "ru" && global.document && global.document.documentElement) {
+      global.document.documentElement.classList.add("odp-i18n-pending");
+    }
 
     if (typeof global.location === "undefined" || !global.location.href) {
       _merged = {};
@@ -173,6 +186,7 @@
         return _locale;
       };
       global.odpRegistryBannerHtml = odpRegistryBannerHtml;
+      revealI18nUi();
       return Promise.resolve();
     }
 
@@ -312,6 +326,9 @@
         try {
           odpRenderLangSwitch("odpLangSwitch");
         } catch (eSw) {}
+      })
+      .finally(function () {
+        revealI18nUi();
       });
   }
 

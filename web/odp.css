@@ -37,6 +37,15 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* RU: avoid English flash before async i18n (odp-i18n-boot.js + odpInitI18n reveal) */
+html.odp-i18n-pending body {
+  visibility: hidden;
+}
+html.odp-i18n-ready body {
+  visibility: visible;
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
