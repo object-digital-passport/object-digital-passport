@@ -1986,16 +1986,16 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         ${
           typeof rec.auxCommitmentHash !== "undefined" && odpNonZeroBytes32(rec.auxCommitmentHash)
             ? `<div class="vrow" style="margin-top:10px">
-          <span class="vbadge na">Aux</span>
+          <span class="vbadge na">${esc(t("verify.detail.auxBadge"))}</span>
           <div class="vinfo">
-            <div class="vinfo-label">Auxiliary commitment (SHA-256)</div>
+            <div class="vinfo-label">${esc(t("verify.detail.auxFingerprintLabel"))}</div>
             <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(odpBytes32HexLower(rec.auxCommitmentHash))}</div>
             ${
               rec.auxCommitmentUri
-                ? `<div style="margin-top:8px"><a class="ext-link" href="${esc(String(rec.auxCommitmentUri))}" target="_blank" rel="noopener noreferrer">Hint URL ↗</a></div>`
+                ? `<div style="margin-top:8px"><a class="ext-link" href="${esc(String(rec.auxCommitmentUri))}" target="_blank" rel="noopener noreferrer">${esc(t("verify.detail.auxOpenLink"))}</a></div>`
                 : ""
             }
-            <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">Separate from passport JSON <code>dataHash</code>; verify this file independently.</p>
+            <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(t("verify.detail.auxExplain"))}</p>
           </div>
         </div>`
             : ""
