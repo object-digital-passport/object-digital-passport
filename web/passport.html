@@ -11,6 +11,7 @@
 <script src="odp-i18n-boot.js?v=1"></script>
 <title>ODP v0.3 — Create Passport</title>
 <link rel="stylesheet" href="odp.css">
+<script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.3.0"></script>
 <script src="odp-i18n.js?v=6"></script>
@@ -19,15 +20,21 @@
 </head>
 
 <body>
+<script>
+// #region agent log
+window.addEventListener('load',function(){var hdr=document.querySelector('header.header-row');var toolbar=document.querySelector('.header-toolbar');var cs=function(el,p){return el?getComputedStyle(el)[p]:null;};fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'passport.html:onload',message:'passport-mobile-layout',data:{viewportW:window.innerWidth,hdrFlexDir:cs(hdr,'flexDirection'),toolbarJustify:cs(toolbar,'justifyContent'),savedTheme:localStorage.getItem('odp_theme'),savedLocale:localStorage.getItem('odp_locale'),navLang:navigator.language},timestamp:Date.now()})}).catch(function(){});});
+// #endregion
+</script>
 <div class="page">
 
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="passport.meta.h1">Create Passport</h1>
     <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.3</p>
-    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
+    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
   <div class="header-toolbar">
+    <div id="odpThemeSwitch"></div>
     <div id="odpLangSwitch"></div>
     <div class="net-pill" data-i18n-title="netTitle" title="Polygon PoS mainnet">
       <div class="net-dot" id="netDot"></div>
@@ -38,7 +45,7 @@
 
 <div class="nav">
   <a href="creator.html" data-i18n="nav.creator">Profile</a>
-  <a href="passport.html" class="active" data-i18n="nav.passport">Passport</a>
+  <a href="passport.html" class="active" aria-current="page" data-i18n="nav.passport">Passport</a>
   <a href="verify.html" data-i18n="nav.verify">Verify</a>
 </div>
 
@@ -219,7 +226,7 @@ function renderConnectUI() {
   walletConnectError = null;
   walletConnectErrorNeutral = false;
   return `
-    <div style="max-width:400px;margin:0 auto;text-align:center">
+    <div style="max-width:520px;margin:0 auto;text-align:center">
       ${errBanner}
       <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.7">
         ${esc(t("passport.connect.lead1"))}<br>
@@ -898,7 +905,7 @@ function renderForm() {
       <div class="wdot on"></div>
       <div class="wbar-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
       <div class="wbar-id">${esc(creatorId)}</div>
-      <div class="wbar-dis" onclick="disconnectWallet()">${esc(t("passport.walletBar.disconnect"))}</div>
+      <button type="button" class="wbar-dis" onclick="disconnectWallet()">${esc(t("passport.walletBar.disconnect"))}</button>
     </div>
 
     ${passportStackStripHtml()}
@@ -1136,13 +1143,13 @@ function renderForm() {
 
         <div class="seal-grid">
           <div class="seal-opt" id="s1" onclick="setSeal(1)">
-            <span class="seal-icon">📡</span>${esc(t("passport.form.sealNfc"))}<br><small style="color:var(--text3)">${esc(t("passport.form.sealNfcSmall"))}</small>
+            <span class="seal-icon">📡</span>${esc(t("passport.form.sealNfc"))}<br><small class="seal-sub">${esc(t("passport.form.sealNfcSmall"))}</small>
           </div>
           <div class="seal-opt sel" id="s2" onclick="setSeal(2)">
-            <span class="seal-icon">🔢</span>${esc(t("passport.form.sealNum"))}<br><small style="color:var(--text3)">${esc(t("passport.form.sealNumSmall"))}</small>
+            <span class="seal-icon">🔢</span>${esc(t("passport.form.sealNum"))}<br><small class="seal-sub">${esc(t("passport.form.sealNumSmall"))}</small>
           </div>
           <div class="seal-opt" id="s3" onclick="setSeal(3)">
-            <span class="seal-icon">🔐</span>${esc(t("passport.form.sealBoth"))}<br><small style="color:var(--text3)">${esc(t("passport.form.sealBothSmall"))}</small>
+            <span class="seal-icon">🔐</span>${esc(t("passport.form.sealBoth"))}<br><small class="seal-sub">${esc(t("passport.form.sealBothSmall"))}</small>
           </div>
         </div>
 
@@ -1189,10 +1196,8 @@ function renderForm() {
       <p class="fhint" style="width:100%;margin:0 0 12px;line-height:1.65">
         ${esc(t("passport.form.feeLine").replace("{gen}", String(odpContractGeneration)))}
       </p>
-      <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn">${esc(t("passport.form.btnMint"))}</button>
-      <button type="button" class="btn btn-ghost" onclick="previewJson()">${esc(t("passport.form.btnPreviewJson"))}</button>
+      <button type="button" class="btn" onclick="openPreMintModal()" id="submitBtn" style="width:100%">${esc(t("passport.form.btnMint"))}</button>
     </div>
-    <div id="jsonPreview"></div>
 
     <div id="preMintModal" class="modal-backdrop" onclick="if(event.target===this)closePreMintModal()">
       <div class="modal-panel card" onclick="event.stopPropagation()">

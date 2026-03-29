@@ -2,6 +2,12 @@
   "lang": {
     "switchLabel": "Language"
   },
+  "theme": {
+    "switchAria": "Switch color theme",
+    "switchTitle": "Current theme: {name}",
+    "nameBlue": "Light (blue)",
+    "nameDark": "Dark"
+  },
   "nav": {
     "creator": "Profile",
     "passport": "Passport",
@@ -20,9 +26,9 @@
   },
   "stack": {
     "trust": {
-      "redLabel": "Red flag",
+      "redLabel": "🚩 Red flag",
       "redTitle": "Site version 0.x — proof-of-concept; not production-stable.",
-      "yellowLabel": "Yellow flag",
+      "yellowLabel": "⚠️ Yellow flag",
       "yellowNewerTitle": "Site version is newer than the “latest stable” you configured — check release notes before trusting.",
       "yellowOlderTitle": "This stable line is older than the newest one. Check upgrade notes and trust assumptions.",
       "greenLabel": "Stable",

@@ -26,6 +26,7 @@
 -->
 
 <link rel="stylesheet" href="odp.css">
+<script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.3.0"></script>
 <script src="odp-i18n.js?v=6"></script>
@@ -34,16 +35,22 @@
 </head>
 
 <body>
+<script>
+// #region agent log
+window.addEventListener('load',function(){var hdr=document.querySelector('header.header-row');var toolbar=document.querySelector('.header-toolbar');var nav=document.querySelector('.nav');var cs=function(el,p){return el?getComputedStyle(el)[p]:null;};fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'verify.html:onload',message:'verify-mobile-layout',data:{viewportW:window.innerWidth,hdrFlexDir:cs(hdr,'flexDirection'),hdrAlignItems:cs(hdr,'alignItems'),toolbarJustify:cs(toolbar,'justifyContent'),navGap:cs(nav,'gap'),theme:document.documentElement.dataset.theme||'dark',lang:document.documentElement.lang,savedTheme:localStorage.getItem('odp_theme'),savedLocale:localStorage.getItem('odp_locale'),navLang:navigator.language},timestamp:Date.now()})}).catch(function(){});});
+// #endregion
+</script>
 <div class="page">
 
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="verify.meta.h1">Verify</h1>
     <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.3</p>
-    <div id="odpStackLabelHeader" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
-    <p class="fhint" style="margin-top:6px;max-width:42rem" data-i18n="verify.meta.hint">Check that a passport or profile ID is registered.</p>
+    <div id="odpStackLabelHeader" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
+    <p class="fhint" style="margin-top:6px" data-i18n="verify.meta.hint">Check that a passport or profile ID is registered.</p>
   </div>
   <div class="header-toolbar">
+    <div id="odpThemeSwitch"></div>
     <div id="odpLangSwitch"></div>
     <div class="net-pill" data-i18n-title="netTitle" title="Polygon PoS mainnet">
       <div class="net-dot" id="netDot"></div>
@@ -55,17 +62,18 @@
 <div class="nav">
   <a href="creator.html" data-i18n="nav.creator">Profile</a>
   <a href="passport.html" data-i18n="nav.passport">Passport</a>
-  <a href="verify.html" class="active" data-i18n="nav.verify">Verify</a>
+  <a href="verify.html" class="active" aria-current="page" data-i18n="nav.verify">Verify</a>
 </div>
+
 
 <div class="wallet-bar" id="verifyWalletBar" style="display:none;margin-bottom:16px">
   <div class="wdot on"></div>
   <div class="wbar-addr" id="verifyWalletAddr">—</div>
   <div class="wbar-id" id="verifyWalletCreatorId">—</div>
-  <div class="w-switch" id="verifyWalletDisconnect" onclick="disconnectVerifyWallet()" data-i18n="verify.walletBar.disconnect">Disconnect</div>
+  <button type="button" class="w-switch" id="verifyWalletDisconnect" onclick="disconnectVerifyWallet()" data-i18n="verify.walletBar.disconnect">Disconnect</button>
 </div>
 
-<div id="odpStackLabel" class="fhint odp-stack-wrap odp-passport-stack-strip" style="display:none;max-width:42rem;line-height:1.5" hidden aria-hidden="true"></div>
+<div id="odpStackLabel" class="fhint odp-stack-wrap odp-passport-stack-strip" style="display:none;line-height:1.5" hidden aria-hidden="true"></div>
 
 <div class="odp-verify-primary" id="verifyIdSection">
 <div class="search-wrap">
@@ -92,10 +100,7 @@
   </div>
 
   <div class="odp-quick-verify-wrap odp-quick-verify-wrap--tight">
-    <label class="search-label odp-quick-verify-label" for="odpQuickInput" data-i18n="verify.odpQuick.label">Or drop a .odpass bundle</label>
-    <p class="fhint odp-quick-verify-lead" data-i18n="verify.odpQuick.lead">
-      Reads the .odpass ZIP (passport.json inside), detects Passport ID, loads the on-chain record, and compares hashes in your browser. If the file was edited, you still see what is in the bundle — it will not verify as authentic.
-    </p>
+    <label class="search-label odp-quick-verify-label" for="odpQuickInput" data-i18n="verify.odpQuick.label">Or drop a .odpass file</label>
     <div class="drop-zone json-drop" id="odpQuickDrop">
       <input type="file" id="odpQuickInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
       <p><span data-i18n="verify.odpQuick.dropLine1">Drop .odpass here or click to select</span><br>
@@ -104,10 +109,10 @@
   </div>
 
   <p class="search-hint" data-i18n="verify.search.hint">Passport IDs (ODP-…) and profile IDs (C-123-456-789-012, or B-, P-, M-) can be pasted from a label, a site link, or the square QR button.</p>
-  <p class="fhint" id="idExistsHint" style="min-height:1.25em;margin-top:8px;font-size:12px;color:var(--text3);max-width:42rem;line-height:1.5" aria-live="polite"></p>
+  <p class="fhint" id="idExistsHint" style="min-height:1.25em;margin-top:8px;font-size:12px;color:var(--text3);line-height:1.5" aria-live="polite"></p>
 </div>
 
-<section class="card verify-paff-audit-card" id="verifyPaffAuditSection" hidden style="margin-top:18px;max-width:42rem;display:none" aria-hidden="true">
+<section class="card verify-paff-audit-card" id="verifyPaffAuditSection" hidden style="margin-top:18px;display:none" aria-hidden="true">
   <div class="card-head" data-i18n="verify.paffAudit.title">P affiliation — on-chain audit</div>
   <div class="card-body" style="padding-top:12px">
     <p class="fhint" style="margin:0 0 12px;line-height:1.55" data-i18n="verify.paffAudit.lead">
@@ -127,7 +132,7 @@
 <div id="result"></div>
 </div>
 
-<div class="verify-tools-region">
+<div class="verify-tools-region" id="verify-section-tools">
   <div class="section-title" data-i18n="verify.tools.sectionTitle">Verify tools menu</div>
   <p class="fhint verify-tools-region-lead" data-i18n="verify.tools.lead">
     Choose a tool to open it in this Verify workspace.
@@ -380,14 +385,12 @@ function firstZipFileInFolder(zip, folderSegment) {
   return null;
 }
 
-let odpBundleSidecarPreviewUrl = null;
 function revokeOdpBundleSidecarPreviewUrl() {
-  if (odpBundleSidecarPreviewUrl) {
-    try {
-      URL.revokeObjectURL(odpBundleSidecarPreviewUrl);
-    } catch (_) {}
-    odpBundleSidecarPreviewUrl = null;
-  }
+  try {
+    document.querySelectorAll("[data-odp-preview-url]").forEach(function (img) {
+      if (img.src && img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+    });
+  } catch (_) {}
 }
 
 function zipEntryLooksDisplayableImage(name) {
@@ -1119,7 +1122,7 @@ async function verifyFromOdpBundleQuick(file) {
     const localHash = (await sha256text(canon)).toLowerCase();
     const dataStatus = localHash === dataHashHex ? "authentic" : "tampered";
 
-    let quickOpts = { odpFileName: file.name };
+    let quickOpts = { odpFileName: file.name, odpBundleFile: file };
     try {
       if (readContract.getCounterfeitConcern) {
         const cc = await readContract.getCounterfeitConcern(humanId);
@@ -1133,6 +1136,9 @@ async function verifyFromOdpBundleQuick(file) {
     render(humanId, rec, creator, p, proofs, dataStatus, readContract.address, quickOpts);
     queueMicrotask(() => {
       attachOdpVerifyHandlers(humanId, dataHashHex, rec);
+      if (file) {
+        void runOdpBundleVerify(file, humanId, dataHashHex, rec);
+      }
     });
   } catch (e) {
     const m = e && (e.message || String(e));
@@ -2001,14 +2007,16 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             : ""
         }
 
-        <div class="section-title">${esc(t("verify.detail.localOdpTitle"))}</div>
-        <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
-          ${esc(t("verify.detail.localOdpLead"))}
-        </p>
-        <div class="drop-zone json-drop" id="odpDrop">
-          <input type="file" id="odpInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
-          <p>${esc(t("verify.detail.localOdpDrop1"))}<br>
-          <span style="opacity:0.6">${esc(t("verify.detail.localOdpDrop2"))}</span></p>
+        <div id="odpBundleDropSection"${renderOpts && renderOpts.odpBundleFile ? ' style="display:none"' : ''}>
+          <div class="section-title">${esc(t("verify.detail.localOdpTitle"))}</div>
+          <p style="font-size:12px;color:var(--text2);margin:0 0 10px;line-height:1.55">
+            ${esc(t("verify.detail.localOdpLead"))}
+          </p>
+          <div class="drop-zone json-drop" id="odpDrop">
+            <input type="file" id="odpInput" accept=".odpass,.odp,application/zip,application/octet-stream,.zip">
+            <p>${esc(t("verify.detail.localOdpDrop1"))}<br>
+            <span style="opacity:0.6">${esc(t("verify.detail.localOdpDrop2"))}</span></p>
+          </div>
         </div>
         <div id="odpResult"></div>
 
@@ -2378,40 +2386,12 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
       return "";
     }
 
-    // #region agent log
-    const _zipKeys = Object.keys(zip.files || {})
-      .map((k) => zipEntryPathNormalized(k))
-      .filter((k) => !k.endsWith("/"));
-    fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-      body: JSON.stringify({
-        sessionId: "7d72c7",
-        runId: "bundle-sidecar",
-        hypothesisId: "H1",
-        location: "verify.html:runOdpBundleVerify:afterZip",
-        message: "bundle sidecar context",
-        data: {
-          zipFileCount: _zipKeys.length,
-          zipSample: _zipKeys.slice(0, 16),
-          hasManifestOriginals: Boolean(mo),
-          hasFileHash,
-          wantImageNonZero: Boolean(wantImage && wantImage !== ZERO32.toLowerCase()),
-          hasOriginalsFolder: _zipKeys.some((k) => /^originals\//i.test(k)),
-          hasLegacyOriginalFolder: _zipKeys.some((k) => /^original\//i.test(k)),
-          hasLegacyImageFolder: _zipKeys.some((k) => /^image\//i.test(k)),
-        },
-        timestamp: Date.now(),
-      }),
-    }).catch(() => {});
-    // #endregion
-
     const sidecarRows = [];
-    /** @type {{ priority: number, entry: object } | null} */
-    let previewPick = null;
-    function considerVerifiedImagePreview(ok, priority, entry) {
+    /** @type {Array<{ label: string, entry: object }>} */
+    const verifiedImagePreviews = [];
+    function considerVerifiedImagePreview(ok, label, entry) {
       if (!ok || !entry || !zipEntryLooksDisplayableImage(entry.name)) return;
-      if (!previewPick || priority < previewPick.priority) previewPick = { priority, entry };
+      verifiedImagePreviews.push({ label, entry });
     }
 
     let fileEntry = null;
@@ -2431,7 +2411,7 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
         const buf = await fileEntry.async("arraybuffer");
         const got = await sha256BufferToHex(buf);
         const ok = got.toLowerCase() === wantFile;
-        considerVerifiedImagePreview(ok, 4, fileEntry);
+        considerVerifiedImagePreview(ok, t("verify.bundle.sidecarFilePreview") || "File", fileEntry);
         const via = sidecarViaNote(fileVia);
         sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
         <span class="vbadge ${ok ? "ok" : "bad"}">${ok ? esc(t("verify.bundle.sidecarOriginalOk")) : esc(t("verify.bundle.sidecarOriginalBad"))}</span>
@@ -2474,27 +2454,6 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
         imageEntry = firstZipFileInFolder(zip, "original");
         if (imageEntry) imgVia = "legacy-fallback";
       }
-      // #region agent log
-      if (slotIdx === 1) {
-        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-          body: JSON.stringify({
-            sessionId: "7d72c7",
-            runId: "bundle-sidecar",
-            hypothesisId: "H2",
-            location: "verify.html:runOdpBundleVerify:image1resolve",
-            message: "image1 zip resolution",
-            data: {
-              fromLegacyImageFolder,
-              pickedPath: imageEntry ? zipEntryPathNormalized(imageEntry.name) : null,
-              imgVia,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
       if (!imageEntry) {
         sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
         <span class="vbadge bad">${esc(t("verify.bundle.sidecarImageMissing").replace("{label}", slot.label))}</span>
@@ -2508,7 +2467,7 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
       const buf = await imageEntry.async("arraybuffer");
       const got = await sha256BufferToHex(buf);
       const ok = got.toLowerCase() === w;
-      considerVerifiedImagePreview(ok, slotIdx, imageEntry);
+      considerVerifiedImagePreview(ok, slot.label, imageEntry);
       const okKey = ok ? "verify.bundle.sidecarImageOk" : "verify.bundle.sidecarImageBad";
       const via = sidecarViaNote(imgVia);
       sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
@@ -2521,36 +2480,27 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
     }
     const sidecarCheckHtml = sidecarRows.join("");
 
+    // #region agent log
+    fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'verify.html:bundleSidecar',message:'image-previews-collected',data:{totalPreviews:verifiedImagePreviews.length,labels:verifiedImagePreviews.map(function(p){return p.label;}),sidecarRowCount:sidecarRows.length,dropSectionHidden:!document.getElementById('odpBundleDropSection')||document.getElementById('odpBundleDropSection').style.display==='none'},timestamp:Date.now()})}).catch(function(){});
+    // #endregion
     let bundleImgPreview = "";
-    if (previewPick && previewPick.entry) {
-      try {
-        const blob = await previewPick.entry.async("blob");
-        odpBundleSidecarPreviewUrl = URL.createObjectURL(blob);
-        // #region agent log
-        fetch("http://127.0.0.1:7597/ingest/4752e168-9e4e-430d-81b2-78d9a49af762", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "7d72c7" },
-          body: JSON.stringify({
-            sessionId: "7d72c7",
-            runId: "bundle-sidecar",
-            hypothesisId: "H3",
-            location: "verify.html:runOdpBundleVerify:preview",
-            message: "showing verified image preview",
-            data: {
-              priority: previewPick.priority,
-              path: zipEntryPathNormalized(previewPick.entry.name),
-              blobSize: blob && blob.size,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-        // #endregion
+    if (verifiedImagePreviews.length > 0) {
+      const imgParts = [];
+      for (const item of verifiedImagePreviews) {
+        try {
+          const blob = await item.entry.async("blob");
+          const url = URL.createObjectURL(blob);
+          imgParts.push(`<div style="flex:1;min-width:120px;max-width:min(420px,100%)">
+            <div style="font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;font-family:var(--mono)">${esc(item.label)}</div>
+            <img src="${url}" alt="${esc(item.label)}" style="width:100%;height:auto;border-radius:4px;border:1px solid var(--border);display:block" data-odp-preview-url />
+          </div>`);
+        } catch (_) {}
+      }
+      if (imgParts.length > 0) {
         bundleImgPreview = `<div class="odp-bundle-verified-preview" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-          <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;font-family:var(--mono)">${esc(t("verify.bundle.verifiedImagePreviewTitle"))}</div>
-          <img src="${odpBundleSidecarPreviewUrl}" alt="${esc(t("verify.bundle.verifiedImagePreviewAlt"))}" style="max-width:min(420px,100%);height:auto;border-radius:4px;border:1px solid var(--border);display:block" />
+          <div style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;font-family:var(--mono)">${esc(t("verify.bundle.verifiedImagePreviewTitle"))}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px">${imgParts.join("")}</div>
         </div>`;
-      } catch (_) {
-        revokeOdpBundleSidecarPreviewUrl();
       }
     }
 

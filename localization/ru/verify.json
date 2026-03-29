@@ -6,6 +6,12 @@
       "sub": "Object Digital Passport · спецификация v0.3",
       "hint": "Проверьте, что паспорт или профиль зарегистрированы."
     },
+    "toc": {
+      "ariaLabel": "На этой странице",
+      "primary": "ID / QR / .odpass",
+      "paff": "P-аффилиация",
+      "tools": "Инструменты проверки"
+    },
     "search": {
       "label": "Вставьте ID или ссылку, либо отсканируйте QR",
       "placeholder": "Пример: ODP-2026-03-123456789",
@@ -120,12 +126,13 @@
       "sidecarViaManifest": "путь из manifest.json",
       "sidecarLegacyLayout": "устаревший layout папок",
       "sidecarLegacyOriginalFallback": "устаревший fallback для изображения 1: original/",
-      "verifiedImagePreviewTitle": "Проверенное изображение (локальный предпросмотр)",
+      "sidecarFilePreview": "Оригинальный файл",
+      "verifiedImagePreviewTitle": "Проверенные изображения из бандла",
       "verifiedImagePreviewAlt": "Картинка из бандла, SHA-256 совпал с сетью"
     },
     "odpQuick": {
-      "label": "Или перетащите .odpass-пакет",
-      "lead": "Читается ZIP .odpass (внутри passport.json), определяется Passport ID, загружается запись из сети и сравниваются хэши в браузере. Сайдкары: originals/ и manifest.originals (v0.3); старые варианты папок тоже принимаются. Если пакет меняли, содержимое всё равно показывается — подлинность не подтвердится.",
+      "label": "Или перетащите файл .odpass",
+      "lead": "",
       "dropLine1": "Перетащите .odpass сюда или нажмите для выбора",
       "dropLine2": "Обработка только локально — файл не отправляется",
       "reading": "Читаем .odpass…",

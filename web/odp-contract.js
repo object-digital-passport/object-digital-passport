@@ -316,14 +316,14 @@
     if (maj === 0) {
       return {
         level: "red",
-        label: odpStackT("stack.trust.redLabel", "Red flag"),
+        label: odpStackT("stack.trust.redLabel", "🚩 Red flag"),
         title: odpStackT("stack.trust.redTitle", "Site version 0.x — proof-of-concept; not production-stable."),
       };
     }
     if (maj > L) {
       return {
         level: "yellow",
-        label: odpStackT("stack.trust.yellowLabel", "Yellow flag"),
+        label: odpStackT("stack.trust.yellowLabel", "⚠️ Yellow flag"),
         title: odpStackT(
           "stack.trust.yellowNewerTitle",
           "Site major is newer than the configured latest stable major — confirm release notes before trusting."
@@ -333,7 +333,7 @@
     if (maj >= 1 && maj < L) {
       return {
         level: "yellow",
-        label: odpStackT("stack.trust.yellowLabel", "Yellow flag"),
+        label: odpStackT("stack.trust.yellowLabel", "⚠️ Yellow flag"),
         title: odpStackT(
           "stack.trust.yellowOlderTitle",
           "Older stable major (not the latest). Review migration and trust assumptions."

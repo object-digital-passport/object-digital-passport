@@ -11,6 +11,7 @@
 <script src="odp-i18n-boot.js?v=1"></script>
 <title>ODP v0.3 — Register profile</title>
 <link rel="stylesheet" href="odp.css">
+<script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.3.0"></script>
 <script src="odp-passport-v03-ops.js?v=0.3.0"></script>
@@ -19,15 +20,21 @@
 </head>
 
 <body>
+<script>
+// #region agent log
+window.addEventListener('load',function(){var hdr=document.querySelector('header.header-row');var toolbar=document.querySelector('.header-toolbar');var cs=function(el,p){return el?getComputedStyle(el)[p]:null;};fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'creator.html:onload',message:'creator-mobile-layout',data:{viewportW:window.innerWidth,hdrFlexDir:cs(hdr,'flexDirection'),toolbarJustify:cs(toolbar,'justifyContent'),savedTheme:localStorage.getItem('odp_theme'),savedLocale:localStorage.getItem('odp_locale'),navLang:navigator.language},timestamp:Date.now()})}).catch(function(){});});
+// #endregion
+</script>
 <div class="page">
 
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="creator.meta.h1">Profile</h1>
     <p class="sub" data-i18n="creator.meta.sub">Object Digital Passport · Specification v0.3</p>
-    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;max-width:40rem;line-height:1.5" hidden aria-hidden="true"></div>
+    <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
   <div class="header-toolbar">
+    <div id="odpThemeSwitch"></div>
     <div id="odpLangSwitch"></div>
     <div class="net-pill" data-i18n-title="netTitle" title="Polygon PoS mainnet">
       <div class="net-dot" id="netDot"></div>
@@ -37,7 +44,7 @@
 </header>
 
 <div class="nav">
-  <a href="creator.html" class="active" data-i18n="nav.creator">Profile</a>
+  <a href="creator.html" class="active" aria-current="page" data-i18n="nav.creator">Profile</a>
   <a href="passport.html" data-i18n="nav.passport">Passport</a>
   <a href="verify.html" data-i18n="nav.verify">Verify</a>
 </div>
@@ -247,7 +254,7 @@ function renderSecurity() {
     <div class="wallet-bar">
       <div class="w-dot on"></div>
       <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <div class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</div>
+      <button type="button" class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</button>
     </div>
 
     <div class="card">
@@ -319,7 +326,7 @@ function renderForm() {
     <div class="wallet-bar">
       <div class="w-dot on"></div>
       <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <div class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</div>
+      <button type="button" class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</button>
     </div>
 
     <div class="card">
@@ -715,7 +722,7 @@ function renderAlready() {
     <div class="wallet-bar">
       <div class="w-dot on"></div>
       <div class="w-addr">${wallet.slice(0,8)}…${wallet.slice(-6)}</div>
-      <div class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</div>
+      <button type="button" class="w-switch" onclick="disconnect()">${esc(t("creator.walletBar.disconnect"))}</button>
     </div>
 
     ${creatorStackStripHtml()}
@@ -725,7 +732,7 @@ function renderAlready() {
       <div class="card-body">
         <span class="result-id">${esc(creatorId)}</span>
         <div class="result-full">
-          ${esc(creatorId)} / ${wallet}
+          ${esc(t("creator.already.full"))}&nbsp; ${esc(creatorId)} / ${wallet}
         </div>
 
         <div style="font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">
@@ -738,11 +745,6 @@ function renderAlready() {
           <li><span>🏷</span>${esc(t("creator.already.pl3"))}</li>
           <li><span>📋</span>${esc(t("creator.already.pl4"))}</li>
         </ul>
-
-        <div class="info neutral" style="margin-bottom:16px;font-size:11px">
-          ${esc(t("creator.already.short"))}&nbsp; <strong style="color:var(--text)">${esc(creatorId)}</strong><br>
-          ${esc(t("creator.already.full"))}&nbsp;&nbsp; <strong style="color:var(--text)">${esc(creatorId)} / ${wallet}</strong>
-        </div>
 
         <div class="qr-share-block" style="margin-top:4px">
           <p class="qr-share-caption">${esc(t("creator.already.shareCaption"))}</p>
@@ -766,13 +768,9 @@ function renderAlready() {
           </div>
         </div>
 
-        <a href="passport.html">
-          <button class="btn">${esc(t("creator.already.btnPassport"))}</button>
-        </a>
-        <a href="${esc(rel)}"><button class="btn btn-sec">${esc(t("creator.already.btnVerify"))}</button></a>
-        <a href="${net.explorer}/address/${wallet}" target="_blank">
-          <button class="btn btn-sec">${esc(t("creator.already.btnExplorer"))}</button>
-        </a>
+        <a class="btn" href="passport.html">${esc(t("creator.already.btnPassport"))}</a>
+        <a class="btn btn-sec" href="${esc(rel)}">${esc(t("creator.already.btnVerify"))}</a>
+        <a class="btn btn-sec" href="${net.explorer}/address/${wallet}" target="_blank" rel="noopener noreferrer">${esc(t("creator.already.btnExplorer"))}</a>
       </div>
     </div>
     ${

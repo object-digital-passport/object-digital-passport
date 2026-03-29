@@ -6,6 +6,12 @@
       "sub": "Object Digital Passport · Specification v0.3",
       "hint": "Check that a passport or profile ID is registered."
     },
+    "toc": {
+      "ariaLabel": "On this page",
+      "primary": "ID / QR / .odpass",
+      "paff": "P affiliation",
+      "tools": "Verification tools"
+    },
     "search": {
       "label": "Paste an ID or link, or scan a QR code",
       "placeholder": "Example: ODP-2026-03-123456789",
@@ -120,12 +126,13 @@
       "sidecarViaManifest": "path from manifest.json",
       "sidecarLegacyLayout": "legacy folder layout",
       "sidecarLegacyOriginalFallback": "legacy image1 fallback: original/",
-      "verifiedImagePreviewTitle": "Verified image (local preview)",
+      "sidecarFilePreview": "Original file",
+      "verifiedImagePreviewTitle": "Verified images from bundle",
       "verifiedImagePreviewAlt": "Bundle image whose SHA-256 matched the chain"
     },
     "odpQuick": {
-      "label": "Or drop a .odpass bundle",
-      "lead": "Reads the .odpass ZIP (passport.json inside), detects Passport ID, loads the on-chain record, and compares hashes in your browser. Sidecar files use originals/ + manifest.originals (v0.3); legacy folder layouts are still accepted. If the bundle was edited, you still see what is in the file — it will not verify as authentic.",
+      "label": "Or drop a .odpass file",
+      "lead": "",
       "dropLine1": "Drop .odpass here or click to select",
       "dropLine2": "Processed locally — not uploaded",
       "reading": "Reading .odpass bundle…",
