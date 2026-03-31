@@ -1,4 +1,4 @@
-# Object Digital Passport · v0.3 (draft protocol / tooling)
+# Object Digital Passport · v0.4 (draft protocol / tooling)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -6,8 +6,11 @@
 ODP is an open standard for registering physical or digital objects on blockchain and proving authenticity later.
 No platform lock-in, no subscription, no central gatekeeper.
 
+**This repository branch is `v0.4`.** It is the reference line for on-chain generation **4** (`CONTRACT_VERSION` packed byte), optional **`ODPCounterfeitConcern`**, and the slimmer main-registry ABI described in **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)** and **[`SPEC.md`](SPEC.md)**. The [`main`](https://github.com/object-digital-passport/object-digital-passport/tree/main) branch may differ; always match **chain + contract address + ABI** to what you deploy or verify against.
+
 ## Table of Contents
 
+- [Branch v0.4 (quick facts)](#branch-v04-quick-facts)
 - [Start Here](#start-here)
 - [Quick Start (5 minutes)](#quick-start-5-minutes)
 - [How ODP Works](#how-odp-works)
@@ -21,6 +24,15 @@ No platform lock-in, no subscription, no central gatekeeper.
 - [Contributing](#contributing)
 - [Author and License](#author-and-license)
 
+## Branch v0.4 (quick facts)
+
+| | |
+|:--|:--|
+| **Git branch** | **`v0.4`** — check out this branch for the reference v0.4 stack in this repo. |
+| **On-chain generation** | **`CONTRACT_VERSION` = 4** (same v0.3-shaped `Passport` tuple as generation **3**). |
+| **New vs v0.3 line** | Optional **`ODPCounterfeitConcern`** satellite (P/M concern); public **`SPEC_*` / `MONTHLY_LIMIT_*`** getters removed from the main contract bytecode for **EIP-170** headroom — see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**. |
+| **Deploy order** | **`ODPPassportLib`** → **`ObjectDigitalPassport`** → optional **`ODPWalletDocumentAnchor`** / **`ODPCounterfeitConcern`** — **[`deploy/README.md`](deploy/README.md)**. |
+
 ## Start Here
 
 If you are new:
@@ -28,13 +40,13 @@ If you are new:
 1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Follow **your wallet vendor’s official documentation** (for example the [MetaMask Help Center](https://support.metamask.io/), [Rabby](https://rabby.io/), or your provider’s site). **No particular wallet brand is required** — any EIP-1193–compatible browser wallet may work. **Reference testing** of the static pages in this repository has been done **primarily with MetaMask**; others are expected to work but are less routinely exercised. On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
 2. Read this README for the practical overview.
 3. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
-4. [`RELEASE_v0.3.md`](RELEASE_v0.3.md) summarizes **v0.3 vs v0.2** (what changed). **Deploying your own registry and `NET.*`:** [`deploy/README.md`](deploy/README.md).
+4. **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)** — what’s new on **v0.4** vs earlier lines. **v0.3 vs v0.2:** [`RELEASE_v0.3.md`](RELEASE_v0.3.md). **Deploying your own registry and `NET.*`:** [`deploy/README.md`](deploy/README.md).
 
 Translated version:
 
 - Russian README: [`localization/ru/README.md`](localization/ru/README.md)
 
-**0.x** means proof-of-concept: behaviour and deployments can change. Each contract address is its **own** registry; passport and profile records do **not** move between deployments by themselves. **This repository documents the reference v0.3 line** (on-chain generation **3**); a future stable **v1** may define migration or dual-read — see versioning notes in [`SPEC.md`](SPEC.md) and [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md).
+**0.x** means proof-of-concept: behaviour and deployments can change. Each contract address is its **own** registry; passport and profile records do **not** move between deployments by themselves. **This branch (`v0.4`) documents the reference v0.4 line** (on-chain generation **4** when you deploy bytecode from here); a future stable **v1** may define migration or dual-read — see versioning notes in [`SPEC.md`](SPEC.md) and [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md).
 
 ## Quick Start (5 minutes)
 
@@ -70,7 +82,7 @@ Translated version:
 End-to-end flow:
 
 1. **Profile** — the issuing party registers a profile on-chain and gets a stable **Profile ID**.
-2. **Passport** — they record a passport: content hashes, optional URLs, and metadata anchored in the **v0.3** registry (and optional auxiliary commitments per spec).
+2. **Passport** — they record a passport: content hashes, optional URLs, and metadata anchored in an **ODP registry** (e.g. **v0.4** / **v0.3**-shaped `ObjectDigitalPassport` deployment, plus optional auxiliary commitments per spec).
 3. **Share** — they distribute the **Passport ID** (`ODP-...`) and, when used, hosted bytes at **`dataUrl`** (raw **`passport.json`** or a **§15 `.odpass`** ZIP) so verifiers can fetch and check **`dataHash`**.
 4. **Verify** — anyone recomputes hashes, reads **read-only** chain state, and checks the **`.odpass`** package (or hosted bytes) against what the registry stores. No wallet is required to verify.
 
