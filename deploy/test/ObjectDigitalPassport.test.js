@@ -70,12 +70,12 @@ describe("ObjectDigitalPassport", function () {
     return contract;
   }
 
-  it("SPEC_MAJOR / SPEC_MINOR match packed CONTRACT_VERSION (major*16+minor)", async function () {
+  it("CONTRACT_VERSION matches major*16+minor (internal SPEC_* constants)", async function () {
     const c = await deployFixture();
-    const maj = await c.SPEC_MAJOR();
-    const min = await c.SPEC_MINOR();
     const packed = await c.CONTRACT_VERSION();
-    expect(Number(maj) * 16 + Number(min)).to.equal(Number(packed));
+    const p = BigInt(packed.toString());
+    expect(Number(packed)).to.equal(4); // v0.4 reference line: SPEC_MAJOR=0, SPEC_MINOR=4
+    expect(Number(p / 16n) * 16 + Number(p % 16n)).to.equal(Number(packed));
   });
 
   /**
@@ -95,7 +95,7 @@ describe("ObjectDigitalPassport", function () {
       const c = await deployFixture();
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
-      const lim = await c.MONTHLY_LIMIT_C();
+      const lim = 1000n;
       expect(await c.getRemainingMints(w.address)).to.equal(lim);
       await c.connect(w).mintDigital(
         2026,
@@ -117,7 +117,7 @@ describe("ObjectDigitalPassport", function () {
       const c = await deployFixture();
       const [_, wB] = await ethers.getSigners();
       await c.connect(wB).registerCreator(TYPE_B);
-      const lim = await c.MONTHLY_LIMIT_B();
+      const lim = 100000n;
       expect(await c.getRemainingMints(wB.address)).to.equal(lim);
       await c.connect(wB).mintDigital(
         2026,
@@ -662,7 +662,7 @@ describe("ObjectDigitalPassport", function () {
       const [wArtist, wAgent] = await ethers.getSigners();
       await c.connect(wArtist).registerCreator(TYPE_C);
       const artistId = await c.getCreatorByWallet(wArtist.address);
-      const lim = await c.MONTHLY_LIMIT_C();
+      const lim = 1000n;
       expect(await c.getRemainingMints(wArtist.address)).to.equal(lim);
       await c.connect(wAgent).requestMintAgentRole(artistId);
       await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
@@ -713,6 +713,84 @@ describe("ObjectDigitalPassport", function () {
       )
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(72n);
+    });
+  });
+
+  describe("ODPCounterfeitConcern satellite", function () {
+    async function deployRegAndCf() {
+      const LibFactory = await ethers.getContractFactory("ODPPassportLib");
+      const lib = await LibFactory.deploy();
+      await lib.waitForDeployment();
+      const libAddress = await lib.getAddress();
+      const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
+        libraries: { "contracts/ODPPassportLib.sol:ODPPassportLib": libAddress },
+      });
+      const reg = await Factory.deploy();
+      await reg.waitForDeployment();
+      const regAddr = await reg.getAddress();
+      const CfF = await ethers.getContractFactory("ODPCounterfeitConcern");
+      const cf = await CfF.deploy(regAddr);
+      await cf.waitForDeployment();
+      return { reg, cf };
+    }
+
+    it("P raises and clears concern; getCounterfeitConcern matches", async function () {
+      const { reg, cf } = await deployRegAndCf();
+      const [wC, wP] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      await (
+        await reg.connect(wC).mintDigital(
+          2026,
+          3,
+          nonZeroDataHash(800),
+          "",
+          zeroHash(),
+          "",
+          ...NO_EXTRA_IMAGES,
+          nonZeroFileHash(800),
+          false,
+          ...AUX_EMPTY,
+          MINT_SELF
+        )
+      ).wait();
+      const ids800 = await reg.getPassportsByCreator(wC.address);
+      const humanId = ids800[ids800.length - 1];
+      await reg.connect(wP).registerCreator(TYPE_P);
+      const rh = ethers.keccak256(ethers.toUtf8Bytes("concern"));
+      await cf.connect(wP).raiseCounterfeitConcern(humanId, rh);
+      let cc = await cf.getCounterfeitConcern(humanId);
+      expect(cc.active).to.equal(true);
+      expect(cc.reasonHash).to.equal(rh);
+      await cf.connect(wP).clearCounterfeitConcern(humanId);
+      cc = await cf.getCounterfeitConcern(humanId);
+      expect(cc.active).to.equal(false);
+    });
+
+    it("reject raise from C profile (EC 6)", async function () {
+      const { reg, cf } = await deployRegAndCf();
+      const [wC] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      await (
+        await reg.connect(wC).mintDigital(
+          2026,
+          3,
+          nonZeroDataHash(801),
+          "",
+          zeroHash(),
+          "",
+          ...NO_EXTRA_IMAGES,
+          nonZeroFileHash(801),
+          false,
+          ...AUX_EMPTY,
+          MINT_SELF
+        )
+      ).wait();
+      const ids801 = await reg.getPassportsByCreator(wC.address);
+      const humanId = ids801[ids801.length - 1];
+      const rh = ethers.keccak256(ethers.toUtf8Bytes("x"));
+      await expect(cf.connect(wC).raiseCounterfeitConcern(humanId, rh))
+        .to.be.revertedWithCustomError(cf, "EC")
+        .withArgs(6n);
     });
   });
 });

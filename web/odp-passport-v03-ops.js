@@ -37,6 +37,27 @@
     return g == null ? 0 : g;
   }
 
+  function getCounterfeitReadContract() {
+    var c = getContract();
+    if (!c) return null;
+    if (typeof c.getCounterfeitConcern === "function") return c;
+    if (_ctx && typeof _ctx.getCounterfeitReadContract === "function") {
+      var x = _ctx.getCounterfeitReadContract();
+      if (x && typeof x.getCounterfeitConcern === "function") return x;
+    }
+    return null;
+  }
+
+  function getCounterfeitWriteContract() {
+    var c = getContract();
+    if (c && typeof c.raiseCounterfeitConcern === "function") return c;
+    if (_ctx && typeof _ctx.getCounterfeitWriteContract === "function") {
+      var w = _ctx.getCounterfeitWriteContract();
+      if (w && typeof w.raiseCounterfeitConcern === "function") return w;
+    }
+    return null;
+  }
+
   function profileLetter(id) {
     if (typeof global.odpPassportProfileTypeLetter === "function") {
       return global.odpPassportProfileTypeLetter(id);
@@ -278,11 +299,12 @@
         expBn = global.ethers.BigNumber.isBigNumber(rawExp) ? rawExp : global.ethers.BigNumber.from(rawExp || 0);
       }
       var expSec = expBn.toNumber ? expBn.toNumber() : Number(expBn);
-      var hasCounterfeitOnChain = typeof contract.getCounterfeitConcern === "function";
+      var cfRead = getCounterfeitReadContract();
+      var hasCounterfeitOnChain = !!(cfRead && typeof cfRead.getCounterfeitConcern === "function");
       var ccActive = false;
       var ccProver = "";
       if (hasCounterfeitOnChain) {
-        var cc = await contract.getCounterfeitConcern(hid);
+        var cc = await cfRead.getCounterfeitConcern(hid);
         ccActive = !!(cc.active !== undefined ? cc.active : cc[0]);
         ccProver = cc.proverCreatorId !== undefined ? String(cc.proverCreatorId) : String(cc[1] || "");
       }
@@ -651,7 +673,8 @@
     var cfRaise = global.document.getElementById("passportV03CfRaiseBtn");
     if (cfRaise) {
       cfRaise.onclick = async function () {
-        if (typeof contract.getCounterfeitConcern !== "function") return;
+        var cfW = getCounterfeitWriteContract();
+        if (!cfW || typeof cfW.raiseCounterfeitConcern !== "function") return;
         var errEl = global.document.getElementById("passportV03Err");
         if (errEl) errEl.innerHTML = "";
         var hid = passportV03Last.humanId;
@@ -672,7 +695,7 @@
         cfRaise.disabled = true;
         if (errEl) errEl.innerHTML = '<div class="info neutral">' + esc(t("passport.v03Ops.sending")) + "</div>";
         try {
-          var tx10 = await contract.raiseCounterfeitConcern(hid, rh2);
+          var tx10 = await cfW.raiseCounterfeitConcern(hid, rh2);
           await tx10.wait();
           if (errEl)
             errEl.innerHTML =
@@ -692,7 +715,8 @@
     var cfClear = global.document.getElementById("passportV03CfClearBtn");
     if (cfClear) {
       cfClear.onclick = async function () {
-        if (typeof contract.getCounterfeitConcern !== "function") return;
+        var cfW2 = getCounterfeitWriteContract();
+        if (!cfW2 || typeof cfW2.clearCounterfeitConcern !== "function") return;
         var errEl = global.document.getElementById("passportV03Err");
         if (errEl) errEl.innerHTML = "";
         var hid = passportV03Last.humanId;
@@ -703,7 +727,7 @@
         cfClear.disabled = true;
         if (errEl) errEl.innerHTML = '<div class="info neutral">' + esc(t("passport.v03Ops.sending")) + "</div>";
         try {
-          var tx11 = await contract.clearCounterfeitConcern(hid);
+          var tx11 = await cfW2.clearCounterfeitConcern(hid);
           await tx11.wait();
           if (errEl)
             errEl.innerHTML =

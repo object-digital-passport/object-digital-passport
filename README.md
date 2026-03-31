@@ -106,11 +106,11 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 
 | Item | Value |
 |:--|:--|
-| Protocol line | **v0.3** (on-chain `CONTRACT_VERSION` / generation **3**) |
+| Protocol line | **v0.4** branch source mints on-chain generation **4** (same tuple as **3**); the default addresses below are still the prior **3** deployment until updated |
 | Main registry `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
 | Wallet document anchor `ODPWalletDocumentAnchor` (satellite) | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
 
-v0.3 vs v0.2: [`RELEASE_v0.3.md`](RELEASE_v0.3.md).
+v0.4 notes: [`RELEASE_v0.4.md`](RELEASE_v0.4.md). Earlier line: [`RELEASE_v0.3.md`](RELEASE_v0.3.md).
 
 ## Terms You Need
 

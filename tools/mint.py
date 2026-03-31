@@ -654,10 +654,10 @@ def cmd_mint(args):
 
         if seal_type in (1, 3):
             print()
-            print("  NFC chip data (NTAG 424 DNA):")
+            print("  NFC chip data (NTAG 424 DNA TagTamper only):")
             nfc_uid    = prompt("Chip UID (hex, e.g. 04a3f912cc8b4e)")
             nfc_key    = prompt("Chip public key (hex)")
-            nfc_model  = prompt("Model (NTAG424DNA / NTAG424DNA_TT)", "NTAG424DNA_TT")
+            nfc_model  = prompt("Model (must be NTAG424DNA_TT)", "NTAG424DNA_TT")
             nfc_date   = prompt("Installation date (YYYY-MM-DD)", now.strftime("%Y-%m-%d"))
             nfc_notes  = prompt_optional("Notes (location, installation method)")
             nfc_pub_key = bytes.fromhex(nfc_key.replace("0x", ""))

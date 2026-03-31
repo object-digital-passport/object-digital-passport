@@ -28,7 +28,7 @@
 <link rel="stylesheet" href="odp.css">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3.5"></script>
+<script src="odp-contract.js?v=0.4.0"></script>
 <script src="odp-date-format.js?v=1"></script>
 <script src="odp-i18n.js?v=8"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
@@ -242,6 +242,8 @@ const NET = {
   contract: "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
   /** Optional `ODPWalletDocumentAnchor` for `attestExternalDocument` when the main registry is v0.3+ (EIP-170). */
   docAnchor: "0xA040E5e6e270b9e7303ce75421937e0D455F2eA5",
+  /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
+  counterfeitConcern: null,
   contractGenerationFallback: null,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
   previousContracts: ["0x6c83c8C2e18c183a2776431a23187832b42FfFBb"],
@@ -252,6 +254,28 @@ let verifyReadAbi = null;
 function currentVerifyReadAbi() {
   return verifyReadAbi || odpBuildVerifyReadAbi(odpContractGeneration != null ? odpContractGeneration : 2);
 }
+/**
+ * Merge institutional authenticity concern from main registry or `NET.counterfeitConcern` satellite.
+ * Mutates `target` with `counterfeitActive`, `counterfeitProver` when active.
+ */
+async function verifyMergeCounterfeitConcern(readContract, humanId, target) {
+  if (!readContract || !humanId || !target || typeof target !== "object") return;
+  try {
+    var gen = typeof odpContractGeneration === "number" ? odpContractGeneration : 3;
+    var cf =
+      typeof odpCounterfeitReadContract === "function"
+        ? odpCounterfeitReadContract(readContract, NET, gen, readContract.provider || readContract.signer)
+        : null;
+    if (!cf || typeof cf.getCounterfeitConcern !== "function") return;
+    var cc = await cf.getCounterfeitConcern(humanId);
+    if (cc && (cc.active === true || cc[0] === true)) {
+      target.counterfeitActive = true;
+      target.counterfeitProver =
+        cc.proverCreatorId !== undefined ? String(cc.proverCreatorId || "") : String(cc[1] || "");
+    }
+  } catch (e) {}
+}
+
 const DOC_ATTEST_WRITE_ABI = [
   {
     name: "attestExternalDocument",
@@ -1119,15 +1143,7 @@ async function verifyFromOdpBundleQuick(file) {
     const dataStatus = localHash === dataHashHex ? "authentic" : "tampered";
 
     let quickOpts = { odpFileName: file.name, odpBundleFile: file };
-    try {
-      if (readContract.getCounterfeitConcern) {
-        const cc = await readContract.getCounterfeitConcern(humanId);
-        if (cc && cc.active) {
-          quickOpts.counterfeitActive = true;
-          quickOpts.counterfeitProver = cc.proverCreatorId;
-        }
-      }
-    } catch {}
+    await verifyMergeCounterfeitConcern(readContract, humanId, quickOpts);
     Object.assign(quickOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
     render(humanId, rec, creator, p, proofs, dataStatus, readContract.address, quickOpts);
     queueMicrotask(() => {
@@ -1270,15 +1286,7 @@ async function verify() {
       } catch {}
     }
 
-    try {
-      if (readContract.getCounterfeitConcern) {
-        const cc = await readContract.getCounterfeitConcern(humanId);
-        if (cc && cc.active) {
-          verifyRenderOpts.counterfeitActive = true;
-          verifyRenderOpts.counterfeitProver = cc.proverCreatorId;
-        }
-      }
-    } catch {}
+    await verifyMergeCounterfeitConcern(readContract, humanId, verifyRenderOpts);
 
     Object.assign(verifyRenderOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
     render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOn, verifyRenderOpts);

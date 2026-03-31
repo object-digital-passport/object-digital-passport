@@ -63,9 +63,23 @@ async function main() {
     console.log(`  ⚠️  ODPWalletDocumentAnchor deploy skipped: ${e && e.message ? e.message : e}`);
   }
 
+  let counterfeitConcernAddress = null;
+  try {
+    console.log("\n  Deploying ODPCounterfeitConcern (satellite: P/M institutional authenticity concern)...");
+    const CfFactory = await ethers.getContractFactory("ODPCounterfeitConcern");
+    const cf = await CfFactory.deploy(address);
+    await cf.waitForDeployment();
+    counterfeitConcernAddress = await cf.getAddress();
+    console.log(`  ✅ Counterfeit concern satellite: ${counterfeitConcernAddress}`);
+    console.log(`     Set NET.counterfeitConcern in verify.html / passport.html to this address (paired with this registry).`);
+  } catch (e) {
+    console.log(`  ⚠️  ODPCounterfeitConcern deploy skipped: ${e && e.message ? e.message : e}`);
+  }
+
   const deployedVersion = await contract.CONTRACT_VERSION();
-  const specMajor = await contract.SPEC_MAJOR();
-  const specMinor = await contract.SPEC_MINOR();
+  const dv = BigInt(deployedVersion.toString());
+  const specMajor = dv / 16n;
+  const specMinor = dv % 16n;
   console.log(`  SPEC_MAJOR: ${specMajor}  SPEC_MINOR: ${specMinor}  CONTRACT_VERSION (packed): ${deployedVersion}`);
 
   // ── Smoke test (testnet only) ──────────────────────────────────────────────

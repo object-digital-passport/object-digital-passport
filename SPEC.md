@@ -1,5 +1,5 @@
 # Object Digital Passport
-### Specification v0.3 — DRAFT
+### Specification v0.4 — DRAFT
 
 *Author: Andrei Chernikov*
 
@@ -8,7 +8,7 @@
 
 ## Table of Contents
 
-- [IMPORTANT: 0.x deployments, the reference v0.3 line, and alignment toward v1](#important-0x-deployments-the-reference-v03-line-and-alignment-toward-v1)
+- [IMPORTANT: 0.x deployments, the reference v0.4 line, and alignment toward v1](#important-0x-deployments-the-reference-v04-line-and-alignment-toward-v1)
 - [Translated versions (informational)](#translated-versions-informational)
 - [1. Overview](#1-overview)
 - [2. Passport ID](#2-passport-id)
@@ -29,7 +29,7 @@
 - [17. Wallet & Key Management](#17-wallet--key-management)
 - [18. Interop, positioning, and DID (informative)](#18-interop-positioning-and-did-informative)
 
-## IMPORTANT: 0.x deployments, the reference v0.3 line, and alignment toward v1
+## IMPORTANT: 0.x deployments, the reference v0.4 line, and alignment toward v1
 
 This repository documents a **v0.X** protocol line. During **0.X**, contract rules may still change.
 
@@ -38,31 +38,32 @@ In plain terms:
 - A **deployment** means one specific contract address (**one registry instance**).
 - Your `creatorId` and passport records belong to **that** deployment only.
 - Launching another deployment — even for a newer 0.X line — does **not** move existing records; the same wallet may receive a **different** `creatorId` in the new registry.
-- **This specification describes the reference v0.3 line** (on-chain generation **3**). Other generations are separate registries with their own bytecode and ABI; integrations **must** pair **chain + contract address + `CONTRACT_VERSION`** (or equivalent) with the right ABI — they are not interchangeable without adaptation.
+- **This specification describes the reference v0.4 *branch*** in this repository: on-chain packed **`CONTRACT_VERSION` = 4** (same **v0.3-shaped** `Passport` tuple as the prior reference registry, **plus** optional **`ODPCounterfeitConcern`**, and a slimmer ABI for **EIP-170** (no public `SPEC_*` or `MONTHLY_LIMIT_*` getters — see §14). NFC in the reference **`ODPPassportLib`** allowlist remains **`NTAG424DNA_TT`** only. Other deployments at different addresses remain separate registries; pair **chain + contract + ABI** correctly.
 
 If your goal is **one wallet + one long-lived `creatorId`** as canonical storage across protocol generations, wait for stable **v1**, which may define migration or dual-read explicitly.
 
-### v0.3 multi-contract architecture (normative summary)
+### Multi-contract architecture (normative summary)
 
-The reference **v0.3** stack is intentionally split:
+The reference stack is intentionally split:
 
 - **`ObjectDigitalPassport.sol`** — the **main registry** (passports, profiles, proofs, governance surface in the ABI).
 - **`ODPPassportLib.sol`** — a **separately deployed, linked library** holding heavy **pure** validation / formatting logic so the registry contract stays under the **24 KiB EIP-170** creation limit (shared **`error EC`** with the registry).
 - **`ODPWalletDocumentAnchor.sol`** (optional **satellite**) — **wallet-level** `attestExternalDocument` / `getExternalDocumentAttestation` moved out of the main registry bytecode in v0.3+; the satellite’s constructor takes the main registry address and reuses its creator registry for access control.
+- **`ODPCounterfeitConcern.sol`** (optional **satellite**, **v0.4+**) — **`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`** for profiles **`P`** and **`M`** only; constructor pins one main registry; storage is **not** on the monolith so EIP-170 headroom is preserved.
 
-Deploy **library first**, then **registry** (with linker metadata), then **document anchor** if used — see repository deploy scripts.
+Deploy **library first**, then **registry** (with linker metadata), then **document anchor** / **counterfeit satellite** if used — see repository deploy scripts.
 
 ### Forward alignment: reference line → stable v1 (design intent)
 
-The **v0.3** reference contract and this SPEC are written so that a future **stable v1** can define a clear **forward** path without pretending 0.x registries silently interoperate:
+The reference contract and this SPEC are written so that a future **stable v1** can define a clear **forward** path without pretending 0.x registries silently interoperate:
 
-- On-chain records carry **`contractVersion`** (packed `SPEC_MAJOR` / `SPEC_MINOR`) at mint; **v0.3 → packed byte `3`**.
+- On-chain records carry packed **`contractVersion`** at mint (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). The reference **v0.4 branch** bytecode in this repository **mints with packed byte `4`** (minor bump from the **v0.3** reference line’s **3**; same tuple shape); the main registry stays deployable under EIP-170. **Peripheral** features (e.g. counterfeit satellite) are also detected by **address wiring**.
 - **`humanId`**, **`creatorId`**, and **`passport.json`** versioning rules aim to stay stable enough that **v1** can specify **migration or dual-read** (e.g. tooling that verifies old deployments alongside a v1 registry) rather than ad-hoc field drift.
 - **v1** is not specified here; when it ships, it will define any **migration**, **bridging**, or **freeze** of v0.x registries explicitly. Until then, this paragraph states **engineering intent**, not a promise of in-place upgrade for any particular deployment.
 
-### v0.3 on-chain feature summary
+### v0.3-shaped on-chain feature summary (v0.3 deployments: packed **3**; reference **v0.4** branch in this repo: packed **4**)
 
-The **v0.3** contract (`CONTRACT_VERSION` packed byte **3**) extends the registry with:
+The **v0.3** line introduced these registry extensions (unchanged tuple in **v0.4**):
 
 - **`owner`** (starts as `creator`) and **`transferPassport`**; optional **`delegateCreatorPublishing`** / **`revokeCreatorPublishing`** (account-scoped publishing agent for **`updatePassportUrls`**)
 - **Mint agent (delegated mint):** agent calls **`requestMintAgentRole(principalCreatorId)`**, principal calls **`confirmMintAgentRole(agent)`**; then **`mintDigital` / `mintPhysical` / `mint*ViaExtension`** accept trailing **`mintOnBehalfOfCreatorId`** (principal’s profile id, or **`""`** for self-mint). On-chain **`Passport.creator`** and **`owner`** are the **principal** wallet; **`Passport.mintAgent`** is **`address(0)`** if the principal minted, else the **delegate** wallet. Monthly mint caps (**C** / **B**) count against the **principal** wallet. Pending state: **`mintAgentDelegationPending(keccak256(abi.encodePacked(principalCreatorId, agent)))`**; active delegate: **`mintAgentForCreator(creatorId)`**. Lifecycle: **`MintAgentUpdate`** (`kind`: 0=request, 1=cancel, 2=activated, 3=removed). **`revokeMintAgentRole`** (principal), **`renounceMintAgentRole(principalCreatorId)`** (agent), **`cancelMintAgentRequest(principalCreatorId)`** (agent, pending only).
@@ -71,7 +72,9 @@ The **v0.3** contract (`CONTRACT_VERSION` packed byte **3**) extends the registr
 - **P-affiliation audit**: **`getPAffiliationAudit`**, **`detachPAffiliation`** (parent P); timestamps for join / detach
 - **Compact reverts**: failures use **`error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference **v0.3** **`ObjectDigitalPassport`** is deployed **with a linked library** **`ODPPassportLib`** (shared **`error EC`**) so the **registry** creation bytecode stays within the **24 KiB (EIP-170)** limit; deploy **library first**, then the registry (see repository deploy scripts). Local **Hardhat** tests may use **`allowUnlimitedContractSize`**; verify **`[ODP] EIP-170:`** output after compile before mainnet deploy.
 
-**Removed from reference v0.3 `ObjectDigitalPassport` bytecode (EIP-170):** on-chain **counterfeit concern** (`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`). Those entry points may still exist on **older** deployments; the reference **Passport** web UI hides institutional counterfeit controls when the connected ABI lacks them. **Product wording** MAY still describe disputes or authenticity concerns in **`passport.json`** and adjacent materials; that is **off-chain** unless a future line restores an on-chain flag. **Roadmap (informative):** a **future** specification / deployment **may** reintroduce or replace this on-chain mechanism; it is **out of scope** for the reference **v0.3** bytecode in this repository — see **`RELEASE_v0.3.md`**.
+**Counterfeit / institutional authenticity concern (v0.4):** Restored as **`ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. **`P`** and **`M`** wallets may **`raiseCounterfeitConcern(humanId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may **`clearCounterfeitConcern`**. **`getCounterfeitConcern`** returns **`(active, proverCreatorId, reasonHash, timestamp)`** (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when **`NET.counterfeitConcern`** (or equivalent) is configured for the **same** main registry address. **v0.2** deployments MAY still expose these methods on the **main** contract; **v0.3-only** main bytecode does **not** — use the satellite after upgrading to the v0.4 line.
+
+**v0.3 reference note:** the monolith omitted counterfeit entry points for EIP-170; see **`RELEASE_v0.3.md`**. **v0.4** adds the satellite without growing the monolith past the limit.
 
 **Type-definition governance with on-chain timelock** is not stored in the v0.3 bytecode; operate governance (multisig / DAO) off-chain and document hashes in releases if needed.
 
@@ -353,9 +356,13 @@ Only the act of publicly publishing the profile ID on a real website — combine
 institution's existing real-world reputation — provides the basis for trust.
 Verifiers display only the profile ID, never a self-declared name.
 
-### Counterfeit concerns and disputes (v0.3 reference registry)
+### Institutional authenticity concern (“counterfeit flag”)
 
-The **reference v0.3** `ObjectDigitalPassport` bytecode **does not** include on-chain **`raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`** (removed for EIP-170). **Proof institutions (`P`)** and other profiles can still document disputes, methodology, or authenticity notes in **`passport.json`**, linked reports, or **`submitProof`** metadata (`noteHash` / `noteUrl`) — those are **off-chain or proof-record** signals, not a global on-chain counterfeit flag in v0.3. UIs connected to **older** registries that still expose counterfeit concern **may** surface the legacy fields when present.
+**On-chain (v0.4+):** **`ODPCounterfeitConcern`** exposes **`raiseCounterfeitConcern`**, **`clearCounterfeitConcern`**, **`getCounterfeitConcern`**. Only registered profiles **`P`** or **`M`** may raise; only the **raising** profile may clear. The flag is an **institutional opinion**, not a court finding. **`reasonHash`** is **`keccak256(UTF-8)`** of an optional off-chain statement (mirrors verifiers that hash a reason string).
+
+**Off-chain / proof metadata:** disputes, methodology, and reports remain appropriate in **`passport.json`**, linked documents, and **`submitProof`** (`noteHash` / `noteUrl`).
+
+**Legacy:** **v0.2** main registries may implement the same ABI on the monolith; **v0.3** main bytecode omits it — configure the satellite and **`NET.counterfeitConcern`** for v0.4-shaped stacks.
 
 ### Optional public allowlist of institution IDs (off-chain, anti-spam)
 
@@ -408,7 +415,7 @@ Example: `PRF-2031-03-07392018`
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `proofId` | `string` | yes | Auto-generated: `PRF-YYYY-MM-` + fixed-width numeric suffix (see algorithm above) |
-| `contractVersion` | `uint8` | yes | Packed spec line at submission (v0.3 mint/submit → **3**) |
+| `contractVersion` | `uint8` | yes | Packed spec line at submission (matches registry line at mint/submit; reference **v0.4 branch** → **4**; **v0.3** reference deploys → **3**) |
 | `prover` | `string` | yes | profile ID of the institution (e.g. `P-029-384-751-224`) |
 | `humanId` | `string` | yes | Passport ID of the attested object (wire name `humanId`) |
 | `noteHash` | `bytes32` | no | SHA-256 of an attached document. `bytes32(0)` if none |
@@ -491,14 +498,12 @@ it does not prove that the object in front of you is the registered original.
 Digital object passports (type `digital`) do not require a physical seal.
 The file hash serves as the cryptographic binding.
 
-### Method A — NFC Crypto Seal (NTAG 424 DNA TagTamper)
+### Method A — NFC crypto seal (NTAG 424 DNA TagTamper)
 
 A cryptographic NFC chip embedded in or attached to the object.
 Recommended for high-value objects, artwork, and collectibles.
 
-**Required chip:** NXP NTAG 424 DNA TagTamper only.
-Standard NTAG 424 DNA (without TagTamper) and standard NFC tags (NTAG213 etc.) are not supported.
-Only TagTamper permanently records if the seal is physically removed.
+**Required on-chain / JSON model:** **`NTAG424DNA_TT`** only (NXP NTAG 424 DNA **TagTamper**). Standard NTAG 424 DNA without TagTamper and generic Type 2 tags (e.g. NTAG 213) are **not** accepted by the reference contract’s `nfcModel` allowlist.
 
 **How it works:**
 
@@ -519,10 +524,9 @@ Verification:
      No match → wrong or cloned chip
 ```
 
-**NTAG 424 DNA TagTamper behavior (the only supported NFC mode):**
+**TagTamper behavior:**
 
-Adds a tamper-detection antenna loop.
-Physical removal permanently registers as a tamper event.
+Adds a tamper-detection antenna loop. Physical removal permanently registers as a tamper event.
 
 ```
 Seal intact   → chip reports: INTACT
@@ -539,7 +543,7 @@ visible destruction. Installation method is described in `seal.nfc.notes`.
 |-------|----------|-------------|
 | `uid` | yes | 7-byte chip UID, lowercase hex |
 | `publicKey` | yes | ECC public key, hex string |
-| `model` | yes | `NTAG424DNA_TT` — only TagTamper is accepted |
+| `model` | yes | `NTAG424DNA_TT` — must match on-chain `nfcModel` |
 | `installedAt` | yes | ISO 8601 installation date (e.g. `2026-03-15`) |
 | `notes` | no | Installation method, location, encapsulation material |
 
@@ -565,10 +569,10 @@ This method provides physical reference, not cryptographic proof.
 
 | Condition | Valid? |
 |-----------|--------|
-| NFC crypto seal (NTAG 424 DNA TagTamper) | ✅ |
+| NFC crypto seal (NTAG 424 DNA TagTamper, `NTAG424DNA_TT`) | ✅ |
 | Numbered seal only | ✅ |
 | Both seals | ✅ |
-| Standard NFC tag (NTAG213 etc.) | ❌ Not supported |
+| Standard NFC tag (NTAG213 etc.) | ❌ Not on allowlist |
 | No seal (physical object) | ❌ Contract rejects |
 | No seal (digital object) | ✅ File hash is the binding |
 
@@ -579,6 +583,12 @@ This method provides physical reference, not cryptographic proof.
 | `sealType` | `uint8` | `1` = NFC only, `2` = numbered only, `3` = both |
 | `sealHash` | `bytes32` | SHA-256 of the `seal` object in passport.json |
 | `nfcPublicKey` | `bytes` | NFC chip public key. Empty if no NFC seal |
+
+### Informative — other NFC / tag technologies
+
+- **HF/UHF RFID** or **QR-only** labels: fine for logistics or UX, but they are **not** drop-in replacements for **Level 2A** NFC crypto verification unless a future SPEC defines a binding and an optional `nfcModel` allowlist entry with a normative verify recipe.
+- **Other authenticated NFC ICs** (vendor secure-element tags with documented challenge–response and exportable public keys): MAY be added in a later line by extending the **`ODPPassportLib`** allowlist and SPEC **Level 2A** — generic static NDEF/UID tags remain a poor fit for the same security story as NTAG 424 DNA TagTamper (`NTAG424DNA_TT`).
+- **Bleeding-edge demos** (e.g. auxiliary blockchain-coupled tag stacks): out of scope for the reference allowlist in v0.4; integrations should not imply protocol support without a spec’d `nfcModel` string.
 
 ---
 
@@ -591,7 +601,7 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 | Network | Polygon PoS (mainnet) |
 | Chain ID | 137 |
 | Canonical **v0.2** mainnet contract | `0x6c83c8C2e18c183a2776431a23187832b42FfFBb` ([PolygonScan](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb)) — **bytecode / ABI differs** from **v0.3** in this repository |
-| **v0.3** reference | Source in-repo (`ObjectDigitalPassport.sol`); **deploy** a new address to use v0.3 features (see §8) |
+| **v0.4 branch** reference | Source in-repo; packed **`CONTRACT_VERSION` 4** at mint (EIP-170); deploy main registry + optional **`ODPCounterfeitConcern`** (§4, deploy docs) |
 | Testnet | Polygon Amoy (chain ID 80002) |
 | Gas token | POL (ex-POL) |
 | Avg. mint cost | ~$0.01 |
@@ -607,12 +617,12 @@ Using a different address means operating a separate, incompatible registry.
 
 ## 8. On-Chain Record
 
-This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passport` struct (`CONTRACT_VERSION` packed byte **3**). ABI tuple order may differ from this table; field **names** are normative.
+This section matches the reference **`ObjectDigitalPassport`** `Passport` struct (**v0.4 branch** in this repo: packed **`contractVersion` = 4** at mint, same tuple shape as the **v0.3** reference). ABI tuple order may differ from this table; field **names** are normative.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `humanId` | `string` | yes | Passport ID, e.g. `ODP-2026-03-004829301` |
-| `contractVersion` | `uint8` | yes | Packed at mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (v0.3 → **3**) |
+| `contractVersion` | `uint8` | yes | Packed at mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (reference **v0.4 branch** in this repo → **4**; **v0.3** reference → **3**) |
 | `creator` | `address` | yes | **Immutable** issuer wallet (**principal** profile wallet; same when minting via agent) |
 | `owner` | `address` | yes | Current holder; **starts as `creator`** (principal); changes only via **`transferPassport`** |
 | `creatorId` | `string` | yes | Profile ID (wallet must be registered before mint) |
@@ -627,7 +637,7 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 | `sealType` | `uint8` | no | Physical: `1` NFC, `2` numbered, `3` both. Digital: **0** |
 | `sealHash` | `bytes32` | no | SHA-256 of `seal` in `passport.json`; required for physical |
 | `nfcPublicKey` | `bytes` | no | NFC public key; empty if no NFC |
-| `nfcModel` | `string` | no | **`NTAG424DNA_TT`** if NFC seal; empty otherwise (reference contract hashes this string) |
+| `nfcModel` | `string` | no | **`NTAG424DNA_TT`** if NFC seal; empty otherwise (reference contract checks `keccak256` of this exact string) |
 | `dataUrl` | `string` | no | Where verifiers fetch `passport.json` (max **512** chars). May be **`""`** — then HTTP verifiers cannot fetch JSON. May be folder-resolved at mint (see below). Body: raw JSON or **§15** ZIP |
 | `imageUrl` | `string` | no | Primary image URL hint (max **512** chars) |
 | `imageUrl2` | `string` | no | Second image URL (max **512**); must be empty if `imageHash2` is zero |
@@ -672,7 +682,7 @@ This section matches the reference **`ObjectDigitalPassport`** **v0.3** `Passpor
 | `mintAgentDelegationPending(bytes32)` | any | `view` — `keccak256(abi.encodePacked(principalCreatorId, agent))` |
 | `revokePassport(humanId, reasonHash)` | **`creator` or `governance`** | `reasonHash != 0`; **`submitProof` reverts** while revoked |
 
-**v0.2-only (not in reference v0.3 main registry bytecode):** `raiseCounterfeitConcern`, `clearCounterfeitConcern`, `getCounterfeitConcern` — see summary above.
+**Counterfeit concern:** On **v0.2** monoliths these may live on the main contract. **v0.3** main bytecode omits them (EIP-170). **v0.4** uses **`ODPCounterfeitConcern`** (satellite) — see §4 and §13.
 
 ### Reference contract — deploy, freeze, governance (v0.3)
 
@@ -1200,7 +1210,7 @@ For a **second document anchor tied to a passport** on v0.3, use **`auxCommitmen
 4. Match    → SEAL_NFC_AUTHENTIC
    No match → SEAL_NFC_INVALID
 
-If chip is NTAG424DNA_TT:
+If chip is TagTamper (`NTAG424DNA_TT` on-chain):
 5. Read tamper status
    INTACT   → SEAL_NFC_INTACT
    TAMPERED → SEAL_NFC_TAMPERED
@@ -1267,9 +1277,9 @@ odp://ODP-2026-03-004829301
 
 ## 13. SDK Requirements
 
-### Almost-ERC Read Standard (v0.3 reference contract)
+### Almost-ERC Read Standard (reference main registry + satellites)
 
-This section defines the practical read/write surface integrators should align with for the reference **`ObjectDigitalPassport`** **v0.3** line.
+This section defines the practical read/write surface integrators should align with for the reference **`ObjectDigitalPassport`** line (**v0.3+** tuple; **v0.4 branch** mints packed byte **4**).
 
 Level 1 (core reading)
 - `exists(humanId) -> bool` (no revert)
@@ -1281,7 +1291,7 @@ Level 1 (core reading)
 - `getPAffiliationAudit(childPId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
 - `governance() -> address` · `deployer() -> address` · `frozen() -> bool`
 
-Optional (**v0.2** main registry only): `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)` — omitted from reference **v0.3** `ObjectDigitalPassport`; not applicable to **`ODPWalletDocumentAnchor`**.
+Optional — **counterfeit / authenticity concern:** `getCounterfeitConcern(humanId) -> (active, proverCreatorId, reasonHash, ts)` on **`ODPCounterfeitConcern`** (v0.4+ satellite) or legacy **v0.2** main registry; not on **`ODPWalletDocumentAnchor`**. Writes: **`raiseCounterfeitConcern(humanId, reasonHash)`**, **`clearCounterfeitConcern(humanId)`** (**P** / **M** only; clearer = raiser).
 
 Optional Level 1 list endpoints
 - `getPassportsByCreator(creatorWallet) -> string[]` (full list; UIs SHOULD paginate client-side or use paged view below when available)
@@ -1344,7 +1354,7 @@ transferPassport(humanId, newOwner)
 delegateCreatorPublishing(agent, expiresAt)
 revokeCreatorPublishing()
 revokePassport(humanId, reasonHash)
-// v0.2 main registry only (omitted from reference v0.3 ObjectDigitalPassport):
+// Counterfeit concern: v0.2 on main registry OR v0.4+ on ODPCounterfeitConcern (satellite)
 // raiseCounterfeitConcern(humanId, reasonHash)
 // clearCounterfeitConcern(humanId)
 transferGovernance(newGovernance)
@@ -1363,7 +1373,8 @@ computeImageHash(imageBytes) → bytes32
 
 ## 14. Versioning
 
-- This specification is **v0.3** (draft); `passport.json` SHOULD use `"version": "0.3"` for new examples ( **`0.2`** remains valid for older files)
+- This specification draft line is **v0.4** in this repository branch; `passport.json` SHOULD use a `version` field consistent with your tooling ( **`0.3`** files remain valid where unchanged)
+- On-chain **`CONTRACT_VERSION`** is the packed byte (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). The reference **v0.4 branch** bytecode **omits** public **`SPEC_MAJOR()` / `SPEC_MINOR()`** and **`MONTHLY_LIMIT_*()`** getters (EIP-170): derive **major** as `CONTRACT_VERSION >> 4`, **minor** as `CONTRACT_VERSION & 0x0f`, and use normative **C = 1000** / **B = 100_000** from `ObjectDigitalPassport.sol` (or `getRemainingMints`) when limits are not exposed.
 - Breaking changes increment the minor version: `0.2`, `0.3`, ...
 - Stable release will be `1.0`
 - All `passport.json` files include a `version` field for forward compatibility

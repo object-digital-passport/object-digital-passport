@@ -71,9 +71,10 @@ npx hardhat run scripts/deploy.js --network polygon
 
 1. Задеплоит **`ObjectDigitalPassport`**.
 2. Попытается задеплоить **`ODPWalletDocumentAnchor`** (спутник для якорей файлов); при ошибке выведет предупреждение.
-3. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
+3. Попытается задеплоить **`ODPCounterfeitConcern`** (спутник: флаг «institutional concern» для **P/M**); при ошибке — предупреждение.
+4. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
 
-После деплоя пропишите адрес в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** (`NET.contract`); для v0.3+ при необходимости **`NET.docAnchor`** в **`verify.html`**. Отличия v0.3 от v0.2 — **[`RELEASE_v0.3.md`](../RELEASE_v0.3.md)**.
+После деплоя пропишите адрес в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** (`NET.contract`); для v0.3+ при необходимости **`NET.docAnchor`** и **`NET.counterfeitConcern`** (если задеплоен спутник v0.4+). Отличия релизов — **[`RELEASE_v0.3.md`](../RELEASE_v0.3.md)**, **[`RELEASE_v0.4.md`](../RELEASE_v0.4.md)**.
 
 ---
 

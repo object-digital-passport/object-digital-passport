@@ -109,11 +109,11 @@ ODP **не заменяет** экспертизу человека, работ�
 
 | Пункт | Значение |
 |:--|:--|
-| Линия протокола | **v0.3** (на цепочке: `CONTRACT_VERSION` / поколение **3**) |
+| Линия протокола | Ветка **v0.4** в исходниках минтит поколение **4** (та же tuple, что у **3**); адреса ниже — прежний деплой **3**, пока не обновят |
 | Основной реестр `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
 | Спутник якорей файлов `ODPWalletDocumentAnchor` | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
 
-Операторские заметки: [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md).
+v0.4: [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md). Ранее: [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md).
 
 ## Коротко о терминах
 

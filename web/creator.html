@@ -13,9 +13,9 @@
 <link rel="stylesheet" href="odp.css">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3.5"></script>
+<script src="odp-contract.js?v=0.4.0"></script>
 <script src="odp-date-format.js?v=1"></script>
-<script src="odp-passport-v03-ops.js?v=0.3.1"></script>
+<script src="odp-passport-v03-ops.js?v=0.4.0"></script>
 <script src="odp-i18n.js?v=8"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
@@ -78,6 +78,7 @@ const NET = {
   explorer: "https://polygonscan.com",
   contract: "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
   contractGenerationFallback: null,
+  counterfeitConcern: null,
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
@@ -162,6 +163,14 @@ function render() {
         getWallet: () => wallet,
         getCreatorId: () => creatorId,
         getGeneration: () => odpContractGeneration,
+        getCounterfeitReadContract: () =>
+          typeof odpCounterfeitReadContract === "function"
+            ? odpCounterfeitReadContract(contract, NET, odpContractGeneration, provider || signer)
+            : null,
+        getCounterfeitWriteContract: () =>
+          typeof odpCounterfeitWriteContract === "function"
+            ? odpCounterfeitWriteContract(contract, NET, odpContractGeneration, signer)
+            : null,
         t,
         esc,
         isProfilePage: true,
