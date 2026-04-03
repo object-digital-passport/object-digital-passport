@@ -743,6 +743,7 @@ a.btn-sec:hover {
 
 .result-full {
   font-size: 13px;
+  font-weight: 700;
   color: var(--text3);
   text-align: center;
   font-family: var(--mono);
