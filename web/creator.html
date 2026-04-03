@@ -100,7 +100,7 @@ function getVerifyAbsoluteUrl(id) {
   return new URL(rel, window.location.href).href;
 }
 
-/** EIP-55 checksum when possible; middle ellipsis for display (SPEC examples). */
+/** EIP-55 checksum when possible; full address for profile «Полный» line (word-break on narrow screens). */
 function formatProfileWalletDisplay(addr) {
   let s = String(addr || "").trim();
   if (!s) return "";
@@ -111,7 +111,7 @@ function formatProfileWalletDisplay(addr) {
   } catch {
     /* keep raw */
   }
-  return s.length > 14 ? s.slice(0, 6) + "…" + s.slice(-4) : s;
+  return s;
 }
 
 let ABI = null;
