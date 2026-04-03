@@ -176,31 +176,6 @@ function render() {
       });
     }
     app.innerHTML = renderAlready();
-    // #region agent log
-    requestAnimationFrame(function () {
-      var fullEl = document.querySelector(".result-full");
-      var idEl = document.querySelector(".result-id");
-      if (fullEl && idEl) {
-        var csF = getComputedStyle(fullEl);
-        var csI = getComputedStyle(idEl);
-        fetch("http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
-          body: JSON.stringify({
-            sessionId: "c94472",
-            location: "creator.html:renderAlready",
-            message: "profile result-id / result-full computed styles",
-            data: {
-              full: { textAlign: csF.textAlign, fontWeight: csF.fontWeight },
-              id: { textAlign: csI.textAlign, fontWeight: csI.fontWeight },
-            },
-            timestamp: Date.now(),
-            hypothesisId: "H1-H2",
-          }),
-        }).catch(function () {});
-      }
-    });
-    // #endregion
     bindCreatorShare();
     if (typeof odpBindPassportV03Operations === "function") odpBindPassportV03Operations();
     if (
@@ -763,7 +738,7 @@ function renderAlready() {
           ${esc(t("creator.already.full"))}&nbsp;<span class="mono">${esc(formatProfileWalletDisplay(wallet))}</span>
         </div>
 
-        <div style="font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px">
+        <div id="odp-publish-everywhere-heading" style="font-size:10px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;text-align:center">
           ${esc(t("creator.already.publish"))}
         </div>
 
