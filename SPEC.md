@@ -28,6 +28,7 @@
 - [16. What this protocol does NOT define](#16-what-this-protocol-does-not-define)
 - [17. Wallet & Key Management](#17-wallet--key-management)
 - [18. Interop, positioning, and DID (informative)](#18-interop-positioning-and-did-informative)
+- [19. URI scheme and optional resolvers (informative)](#19-uri-scheme-and-optional-resolvers-informative)
 
 ## IMPORTANT: 0.x deployments, the reference v0.3 line, and alignment toward v1
 
@@ -438,7 +439,7 @@ If used, the label helps end users verify faster.
 
 | Element | Description | Example |
 |---------|-------------|---------|
-| QR code | Encodes `odp://ODP-YYYY-MM-NNNNNNNNN`. Error correction level Q (25%) minimum | `odp://ODP-2026-03-004829301` |
+| QR code | Encodes `odp://ODP-YYYY-MM-NNNNNNNNN`. Error correction level Q (25%) minimum. URI semantics: §12, §19 | `odp://ODP-2026-03-004829301` |
 | Passport ID (`humanId`) | Full object identifier in human-readable text | `ODP-2026-03-004829301` |
 | Protocol mark | Protocol name or abbreviation | `ODP` or `Object Digital Passport` |
 
@@ -602,6 +603,8 @@ Multi-network support is reserved for a future version.
 
 The official contract address for this v0.2 line is listed above and in the protocol repository.
 Using a different address means operating a separate, incompatible registry.
+
+**Registry context for links:** Human-readable protocol links (`odp://…`, `odpc://…`; see §12 and §19) **do not** encode which **chain ID** or **registry contract** produced a record. Clients **MUST** pair **chain + contract address + ABI** as elsewhere in this specification; an `odp://` URI **without** that context is **ambiguous**. See §19.
 
 ---
 
@@ -1253,7 +1256,11 @@ If chip is NTAG424DNA_TT:
 
 ---
 
-## 12. QR Code
+## 12. QR Code and protocol URI schemes
+
+### 12.1 Passport QR (normative minimum)
+
+Primary payload for object-facing QR codes:
 
 ```
 odp://ODP-2026-03-004829301
@@ -1261,7 +1268,23 @@ odp://ODP-2026-03-004829301
 
 - Error correction: **Q** (25%) minimum
 - Encoding: UTF-8
-- Fallback: `https://verify.example.com/ODP-2026-03-004829301`
+- Fallback HTTPS landing page (implementation-defined): e.g. `https://verify.example.com/ODP-2026-03-004829301`
+
+The `odp` scheme’s **authority** (RFC 3986) **MUST** be exactly one **Passport ID** as defined in §2 — no path, no query, unless a future specification revision defines them.
+
+### 12.2 Profile / creator QR (`odpc`, provisional)
+
+Reference UI encodes **Profile ID** (§3) for issuer-facing QR, e.g.:
+
+```
+odpc://P-482-930-174-005
+```
+
+The `odpc` scheme name is **provisional** until a stable **v1** line; semantics: **authority** equals **Profile ID** string. Hierarchical paths (`/passports`, `/proofs`) and query parameters beyond a future normative definition are **reserved / experimental** — implementations **MUST NOT** rely on them for interoperability until specified.
+
+### 12.3 Registry context (normative)
+
+**Neither** `odp://` **nor** `odpc://` identifies **chain ID** or **registry contract address**. Any client that resolves these URIs to on-chain reads **MUST** obtain **registry context** (`chainId`, main registry `address`, ABI, optional satellite addresses) from configuration, a **trusted** deeplink, or a **trusted** resolver (§19). See also §7.
 
 ---
 
@@ -1540,7 +1563,7 @@ Verifiers MUST NOT treat optional fields as legal offers (e.g. listing price is 
 - `did:odp:passport:<Passport ID>` — e.g. `did:odp:passport:ODP-2026-03-004829301`
 - `did:odp:profile:<Profile ID>` — e.g. `did:odp:profile:P-482-930-174-005`
 
-A minimal **DID document** (JSON) SHOULD contain `id`, `verificationMethod` pointing at the creator’s Ethereum address (or separate keys if used for VC proofs), and `alsoKnownAs` linking to `passport.json` / deployment metadata. There is **no** requirement for a global on-chain DID resolver in v0.3; HTTP `.well-known` discovery is implementation-specific.
+A minimal **DID document** (JSON) SHOULD contain `id`, `verificationMethod` pointing at the creator’s Ethereum address (or separate keys if used for VC proofs), and `alsoKnownAs` linking to `passport.json` / deployment metadata. There is **no** requirement for a global on-chain DID resolver in v0.3; HTTP `.well-known` discovery is implementation-specific. For **URI-layer** linking (`odp://`, `odpc://`), registry context, and optional HTTP resolver profiles, see **§19**.
 
 #### 18.2.1 Optional DID registration flow (informative)
 
@@ -1549,6 +1572,74 @@ Generating or publishing a DID document is **optional** and **does not** require
 ### 18.3 Verifiable Credentials
 
 Institutional **proof** records (`submitProof`) can be mapped to VC-style claims in wallets or catalogs; the on-chain `ProofRecord` remains authoritative for the protocol verifier.
+
+---
+
+## 19. URI scheme and optional resolvers (informative)
+
+**Note on analogy:** This section uses a **DNS-like** mental model (human-readable name → machine-readable resolution) for clarity only. ODP is **not** DNS: there is no single root authority like ICANN. **The blockchain deployment you choose** (known **chain ID** + **contract address** + ABI) is the source of truth. What follows standardizes **string forms** and **optional** off-chain helpers — not a global hierarchical name system.
+
+### 19.1 Normative URI schemes (minimum for QR and deep links)
+
+| Scheme | Authority (RFC 3986 *hier-part* / host-style token) | Rule |
+|--------|------------------------------------------------------|------|
+| `odp` | `<Passport ID>` exactly as in §2 (e.g. `ODP-2026-03-004829301`) | **MUST** match §2; for QR defaults see §12.1 |
+| `odpc` | `<Profile ID>` exactly as in §3 (e.g. `P-482-930-174-005`) | **Provisional** until stable v1; reference UI uses `odpc://` for creator QR (§12.2) |
+
+Additional path segments (`/passports`, `/proofs`, …) or query keys are **not** normative in this specification revision. Implementations **MUST NOT** depend on them for interoperability; treat as **reserved / experimental** until a future spec defines them.
+
+### 19.2 Registry context (normative)
+
+Resolving `odp://…` or `odpc://…` to chain state requires a **registry context**: at minimum **`chainId`**, main registry **`address`**, and the **ABI** (plus optional satellite contracts). Clients **MUST** obtain this from:
+
+- User or integrator **configuration** (e.g. `NET.contract` in reference pages), and/or  
+- A **trusted** transport that carries metadata (e.g. HTTPS page that embeds `chainId` + address), and/or  
+- A **trusted** off-chain resolver response (§19.4).
+
+An **unsourced** URI **without** registry metadata is **ambiguous** — many incompatible registries may exist at different addresses.
+
+### 19.3 Relationship to `did:odp` (§18.2)
+
+**URI schemes** (`odp://`, `odpc://`) are convenient for QR and paste targets. **`did:odp:passport:`** / **`did:odp:profile:`** are **W3C DID**-shaped identifiers for documents and VC tooling. The same Passport ID / Profile ID may appear in both layers; DID documents remain **optional** (§18.2).
+
+### 19.4 Optional HTTP “resolver” profile (non-normative)
+
+An HTTP resolver is **not** a substitute for JSON-RPC to the chain. It is an optional **cache, aggregator, or gateway** that MAY bundle read-only data for latency or UX.
+
+**Illustrative** REST shapes (not required for compliance):
+
+- `GET …/passport/{humanId}` → JSON combining data otherwise obtained from `getPassport`, `getCreator`, proof listings, plus explicit fields such as `chainId`, `registryAddress`, probed `CONTRACT_VERSION`, optional satellite addresses.
+- `GET …/creator/{creatorId}` → Creator record plus optional hints for listing passports (may rely on `getPassportsByCreator*` or an indexer).
+
+**`/.well-known/odp-resolver` (optional discovery):** A deployment MAY serve a small JSON document, for example:
+
+```json
+{
+  "odpResolverVersion": 1,
+  "baseUrl": "https://resolver.example.com",
+  "supportedChains": [137, 80002],
+  "description": "Illustrative — field names are not normative."
+}
+```
+
+Clients MUST treat unknown keys as opaque. This extends the “implementation-specific” `.well-known` note in §18.2.
+
+### 19.5 Content and identity helpers (informative)
+
+- **Content path:** Fetching `passport.json` bytes (directly from `dataUrl` or via a resolver proxy) **MUST** still be checked against on-chain **`dataHash`** — a resolver could serve incorrect bytes.
+- **Identity path:** Off-chain catalogs mapping **Profile ID** → marketing site are **out of band** to on-chain rules.
+
+### 19.6 Reverse lookup by file hash (non-normative)
+
+The reference registry **does not** define a canonical on-chain index **SHA-256(file) → Passport ID**. Endpoints such as `GET …/resolve/hash/{hex}` require an **off-chain indexer** and are **not** part of core protocol compliance.
+
+### 19.7 Trust model summary
+
+| Approach | Role |
+|----------|------|
+| Direct JSON-RPC to a **known** registry + local hash checks | Strongest alignment with protocol truth |
+| HTTP resolver | Convenience; for security-sensitive verification, **confirm** against the chain |
+| Bare `odp://` / `odpc://` link with **no** registry metadata | **Insufficient** to identify which registry to query |
 
 ---
 
