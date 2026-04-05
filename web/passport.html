@@ -3134,6 +3134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     try { return sessionStorage.getItem(ODP_SKIP_WALLET_AUTOCONNECT) === "1"; } catch { return false; }
   })();
   const eth = injectedEthereum();
+  let acc = [];
   if (eth) {
     odpInstallSingleAccountGuard(eth, {
       onMultiple: async function () {
@@ -3145,64 +3146,118 @@ document.addEventListener("DOMContentLoaded", async () => {
         await disconnectWallet();
       },
     });
-    const acc = await eth.request({method:"eth_accounts"}).catch(()=>[]);
-    if (!skipAuto && acc.length > 0) {
-      if (acc.length > 1) {
-        var br = await odpRequireSingleEthereumAccount(eth);
-        walletConnectError = br.message;
-      } else {
-        odpConnectInFlight = true;
-        try {
-          const net = NET;
-          const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
-          await odpMergeRegistryConfigAsync(NET);
-          if (!odpHasValidRegistryAddress(NET)) {
+    acc = await eth.request({method:"eth_accounts"}).catch(()=>[]);
+  }
+  if (!skipAuto && acc.length > 0) {
+    if (acc.length > 1) {
+      var br = await odpRequireSingleEthereumAccount(eth);
+      walletConnectError = br.message;
+    } else {
+      odpConnectInFlight = true;
+      try {
+        const net = NET;
+        const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
+        await odpMergeRegistryConfigAsync(NET);
+        if (!odpHasValidRegistryAddress(NET)) {
+          provider = null;
+          signer = null;
+          contract = null;
+          wallet = null;
+          odpContractGeneration = null;
+          ABI = null;
+          walletConnectError = odpRegistryMisconfiguredBannerHtml(isLocal);
+          walletConnectErrorNeutral = true;
+        } else {
+          await ensureWalletChain(eth, net);
+          provider = new ethers.providers.Web3Provider(eth);
+          signer = provider.getSigner();
+          wallet = await signer.getAddress();
+          const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "passport");
+          if (fin.legacyUnsupported) {
             provider = null;
             signer = null;
             contract = null;
             wallet = null;
             odpContractGeneration = null;
             ABI = null;
-            walletConnectError = odpRegistryMisconfiguredBannerHtml(isLocal);
-            walletConnectErrorNeutral = true;
+            walletConnectError = fin.message || (typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined" ? ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG : "Legacy contract not supported.");
           } else {
-            await ensureWalletChain(eth, net);
-            provider = new ethers.providers.Web3Provider(eth);
-            signer = provider.getSigner();
-            wallet = await signer.getAddress();
-            const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "passport");
-            if (fin.legacyUnsupported) {
-              provider = null;
-              signer = null;
-              contract = null;
-              wallet = null;
-              odpContractGeneration = null;
-              ABI = null;
-              walletConnectError = fin.message || (typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined" ? ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG : "Legacy contract not supported.");
-            } else {
-              odpContractGeneration = fin.generation;
-              ABI = fin.abi;
-              contract = fin.contract;
-              creatorId = await contract.getCreatorByWallet(wallet);
-              if (creatorId) {
-                renderForm();
-                return;
-              }
-              document.getElementById("app").innerHTML = `
+            odpContractGeneration = fin.generation;
+            ABI = fin.abi;
+            contract = fin.contract;
+            creatorId = await contract.getCreatorByWallet(wallet);
+            if (creatorId) {
+              renderForm();
+              return;
+            }
+            document.getElementById("app").innerHTML = `
       <div class="info w" style="text-align:center">
         ${esc(t("passport.noCreator.title"))}<br>
         <a href="creator.html" style="color:var(--accent)">${esc(t("passport.noCreator.link"))}</a>
       </div>`;
-              syncOdpHeaderDisconnect();
+            syncOdpHeaderDisconnect();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn("Auto-connect failed:", e);
+      } finally {
+        odpConnectInFlight = false;
+      }
+    }
+  } else if (!skipAuto && acc.length === 0) {
+    // #region agent log
+    fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+      body: JSON.stringify({
+        sessionId: "c94472",
+        location: "passport.html:DOMContentLoaded",
+        message: "passport wc restore branch",
+        data: { hasEth: !!eth },
+        timestamp: Date.now(),
+        runId: "wc-persist",
+        hypothesisId: "H2",
+      }),
+    }).catch(() => {});
+    // #endregion
+    try {
+      await odpEnsureWalletConnectBundle();
+      if (typeof odpWalletConnectTryRestoreSession === "function") {
+        const wcEth = await odpWalletConnectTryRestoreSession({ chainId: NET.chainId, rpcUrl: NET.rpc });
+        if (wcEth) {
+          odpConnectInFlight = true;
+          try {
+            await ensureWalletChain(wcEth, NET);
+            const single = await odpRequireSingleEthereumAccount(wcEth);
+            if (!single.ok) {
+              walletConnectError = single.message;
+            } else {
+              await ensureWalletChain(wcEth, NET);
+              if (typeof odpInstallSingleAccountGuard === "function") {
+                odpInstallSingleAccountGuard(wcEth, {
+                  onMultiple: async function () {
+                    var r = await odpRequireSingleEthereumAccount(wcEth);
+                    walletConnectError = r.message || t("passport.multiAccount");
+                    await disconnectWallet();
+                  },
+                  onEmpty: async function () {
+                    await disconnectWallet();
+                  },
+                });
+              }
+              await _finish(new ethers.providers.Web3Provider(wcEth));
               return;
             }
+          } catch (e) {
+            console.warn("WalletConnect session restore failed:", e);
+          } finally {
+            odpConnectInFlight = false;
           }
-        } catch (e) {
-          console.warn("Auto-connect failed:", e);
-        } finally {
-          odpConnectInFlight = false;
         }
       }
+    } catch (e) {
+      console.warn("WalletConnect bundle / restore:", e);
     }
   }
   await connect();

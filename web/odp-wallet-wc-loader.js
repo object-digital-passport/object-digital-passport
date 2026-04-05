@@ -3,7 +3,7 @@
  * Requires odp-wc-config.js (Project ID) earlier in the document.
  */
 (function (g) {
-  var BUNDLE = "odp-wallet-wc.bundle.js?v=20260404wc1";
+  var BUNDLE = "odp-wallet-wc.bundle.js?v=20260429wc2";
   g.odpEnsureWalletConnectBundle = function () {
     if (typeof g.odpWalletConnectConnect === "function") return Promise.resolve();
     return new Promise(function (resolve, reject) {

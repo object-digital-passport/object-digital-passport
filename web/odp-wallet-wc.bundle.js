@@ -35549,19 +35549,108 @@ function print() { __p += __j.call(arguments, '') }
         if (typeof window === "undefined") return "";
         return String(window.ODP_WALLETCONNECT_PROJECT_ID || "").trim();
       }
-      async function odpWalletConnectConnect(opts) {
+      function wcInitOpts(opts) {
+        const chainId = opts && opts.chainId != null ? Number(opts.chainId) : 137;
+        const rpcUrl = opts && opts.rpcUrl || "https://polygon-bor.publicnode.com";
+        const origin = typeof location !== "undefined" ? location.origin : "";
         const pid = getProjectId();
+        return {
+          pid,
+          chainId,
+          rpcUrl,
+          origin,
+          initPayload: {
+            projectId: pid,
+            chains: [chainId],
+            optionalChains: [chainId],
+            rpcMap: { [String(chainId)]: rpcUrl },
+            showQrModal: !!(opts && opts.showQrModal),
+            metadata: {
+              name: "Object Digital Passport",
+              description: "ODP \u2014 create and verify digital object passports",
+              url: origin || "https://",
+              icons: origin ? [`${origin}/favicon.ico`] : []
+            }
+          }
+        };
+      }
+      async function odpWalletConnectTryRestoreSession(opts) {
+        const { pid, initPayload } = wcInitOpts({ ...opts, showQrModal: false });
+        fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+          body: JSON.stringify({
+            sessionId: "c94472",
+            location: "odp-wallet-wc.entry.js:odpWalletConnectTryRestoreSession",
+            message: "wc restore entry",
+            data: { hasPid: !!pid },
+            timestamp: Date.now(),
+            runId: "wc-persist",
+            hypothesisId: "H1"
+          })
+        }).catch(() => {
+        });
+        if (!pid) return null;
+        if (wcSingleton && wcSingleton.connected) return wcSingleton;
+        if (wcSingleton) {
+          try {
+            await wcSingleton.disconnect();
+          } catch {
+          }
+          wcSingleton = null;
+        }
+        try {
+          const p7 = await C6.init(initPayload);
+          let accounts = await p7.request({ method: "eth_accounts" }).catch(() => []);
+          if ((!accounts || accounts.length === 0) && p7.session) {
+            try {
+              await p7.enable();
+              accounts = await p7.request({ method: "eth_accounts" }).catch(() => []);
+            } catch {
+            }
+          }
+          fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+            body: JSON.stringify({
+              sessionId: "c94472",
+              location: "odp-wallet-wc.entry.js:odpWalletConnectTryRestoreSession",
+              message: "wc after init accounts",
+              data: { accountCount: accounts && accounts.length, hasSession: !!p7.session },
+              timestamp: Date.now(),
+              runId: "wc-persist",
+              hypothesisId: "H1"
+            })
+          }).catch(() => {
+          });
+          if (accounts && accounts.length > 0) {
+            wcSingleton = p7;
+            return p7;
+          }
+          try {
+            await p7.disconnect();
+          } catch {
+          }
+          wcSingleton = null;
+          return null;
+        } catch (e9) {
+          wcSingleton = null;
+          return null;
+        }
+      }
+      async function odpWalletConnectConnect(opts) {
+        const { pid, initPayload } = wcInitOpts({ ...opts, showQrModal: true });
         if (!pid) {
           throw new Error(
             "WalletConnect is not configured: set ODP_WALLETCONNECT_PROJECT_ID in odp-wc-config.js (get a free Project ID at https://cloud.reown.com)."
           );
         }
-        const chainId = opts && opts.chainId != null ? Number(opts.chainId) : 137;
-        const rpcUrl = opts && opts.rpcUrl || "https://polygon-bor.publicnode.com";
         if (wcSingleton && wcSingleton.connected) {
           return wcSingleton;
         }
         if (wcSingleton) {
+          let acc = await wcSingleton.request({ method: "eth_accounts" }).catch(() => []);
+          if (acc && acc.length > 0) return wcSingleton;
           try {
             await wcSingleton.disconnect();
           } catch {
@@ -35571,9 +35660,9 @@ function print() { __p += __j.call(arguments, '') }
         const origin = typeof location !== "undefined" ? location.origin : "";
         wcSingleton = await C6.init({
           projectId: pid,
-          chains: [chainId],
-          optionalChains: [chainId],
-          rpcMap: { [String(chainId)]: rpcUrl },
+          chains: initPayload.chains,
+          optionalChains: initPayload.optionalChains,
+          rpcMap: initPayload.rpcMap,
           showQrModal: true,
           metadata: {
             name: "Object Digital Passport",
@@ -35600,6 +35689,7 @@ function print() { __p += __j.call(arguments, '') }
         return wcSingleton;
       }
       var g7 = typeof window !== "undefined" ? window : globalThis;
+      g7.odpWalletConnectTryRestoreSession = odpWalletConnectTryRestoreSession;
       g7.odpWalletConnectConnect = odpWalletConnectConnect;
       g7.odpWalletConnectDisconnect = odpWalletConnectDisconnect;
       g7.odpWalletConnectIsActive = odpWalletConnectIsActive;
