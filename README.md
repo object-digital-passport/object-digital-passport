@@ -7,7 +7,7 @@ Object Digital Passport · v0.4 (draft protocol / tooling)
 
 **It is built on a blockchain.** And no: this is not “another NFT project” or a meme coin. In plain terms, a **blockchain** is a chain of **information blocks** linked so the network can verify the chain is intact; a record that lands in a public registry **cannot be erased retroactively** as if it never existed — that is what makes later checks meaningful. The registry itself is still **not locked** to one company, subscription, or private gatekeeper for the index.
 
-You **do not** need deep blockchain expertise to try the **[live demo pages](#live-demo)**. Checking a passport is free and does not require a wallet. Issuing a profile or passport uses common browser wallets and a small network fee on Polygon (often on the order of **~US$0.01** or **~1 RUB** per typical transaction—exchange rates and network load vary) — details are in [Start Here](#start-here) and [Quick Start](#quick-start-5-minutes).
+You **do not** need deep blockchain expertise to try the **[live demo pages](#live-demo)**. Checking a passport is free and does not require a wallet. Issuing a profile or passport uses common browser wallets and a small network fee on Polygon (often on the order of **~US$0.01** per typical transaction—network load varies) — details are in [Start Here](#start-here) and [Quick Start](#quick-start-5-minutes).
 
 **What is this website?** [GitHub](https://github.com/) is where we host the **open-source** specification, web pages, and tools. You can read everything for free, copy the project, or suggest improvements — no account is required just to read.
 
