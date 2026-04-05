@@ -14,7 +14,9 @@
       "cardTitle": "Connect your wallet",
       "lead": "Your wallet address becomes your identity in ODP. Your profile ID stays linked to this wallet. Make sure you have a backup of your key before continuing.",
       "btnName": "Connect wallet",
-      "btnDesc": "Browser extension — MetaMask, Rabby, Brave Wallet, etc."
+      "btnDesc": "Browser extension — MetaMask, Rabby, Brave Wallet, etc.",
+      "wcName": "Mobile wallet (WalletConnect)",
+      "wcDesc": "Tangem, MetaMask mobile, Rainbow — scan QR or approve in the app"
     },
     "security": {
       "cardTitle": "Before you register",
@@ -68,12 +70,13 @@
       "mmOpen": "Open in MetaMask app",
       "mmHint": "iPhone / Safari: there is no extension — MetaMask runs as an app with a built-in browser. This link opens the same page there so Connect works.",
       "fileProto": "You opened this page as a local file — many wallets don’t work that way. Run a simple local web server for the web folder or use HTTPS hosting.",
-      "httpsHint": "Use https:// or http://localhost if the wallet still does not appear."
+      "httpsHint": "Use https:// or http://localhost if the wallet still does not appear.",
+      "wcLead": "Or connect a phone wallet (e.g. Tangem) via WalletConnect — no browser extension required."
     },
     "already": {
       "cardTitle": "Your profile",
       "publish": "Publish this everywhere",
-      "shareCaption": "Open Share for a QR, the link, PNG download, or send via your device.",
+      "shareCaption": "Open Share to download the profile card as PNG or send it from your device.",
       "pl1": "On your official website — prominently, not hidden in menus",
       "pl2": "In all your social media profiles and bios",
       "pl3": "On physical objects, packaging, and certificates you issue",
@@ -84,6 +87,13 @@
       "short": "Short:",
       "full": "Full:"
     },
+    "idCard": {
+      "brand": "Profile",
+      "stamp": "ODP",
+      "heroTitle": "Object Digital Passport",
+      "qrScanHint": "Scan to verify",
+      "profileIdSr": "Profile ID {id}"
+    },
     "passportHelp": {
       "cardTitle": "Passport already in the registry — what next",
       "lead": "On the Passport page you work with records that are already saved publicly. In short:",
@@ -93,12 +103,21 @@
       "cta": "Open Passport page"
     },
     "share": {
-      "title": "Share profile",
+      "title": "Export profile",
+      "exportLead": "Save the full profile card as an image — title, ID, badge, and QR — for posts, prints, or archives.",
+      "exportMoreLabel": "Other ways to verify",
+      "exportOdpLabel": "Short link",
       "shareBtn": "Share",
       "closeAria": "Close",
-      "dl": "Download QR (PNG)",
-      "copy": "Copy text",
-      "native": "Share via device"
+      "sharePreviewLoading": "Rendering preview…",
+      "sharePreviewAlt": "Card preview — same image as download",
+      "sharePreviewFail": "Could not render preview.",
+      "dl": "Download card as PNG",
+      "copy": "Copy verify text",
+      "native": "Share via device",
+      "sharePngLibMissing": "Image export library failed to load. Refresh the page and try again.",
+      "sharePngFail": "Could not build the profile card image.",
+      "sharePngFallbackDl": "This browser cannot share image files; the PNG was downloaded instead."
     },
     "alerts": {
       "copied": "Copied to clipboard.",

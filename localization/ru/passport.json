@@ -12,7 +12,9 @@
       "registerHere": "зарегистрируйтесь здесь",
       "lead3": "если его ещё нет.",
       "btnName": "Подключить кошелёк",
-      "btnDesc": "Расширение браузера (MetaMask, Rabby, …)"
+      "btnDesc": "Расширение браузера (MetaMask, Rabby, …)",
+      "wcName": "Мобильный кошелёк (WalletConnect)",
+      "wcDesc": "Tangem, MetaMask mobile, Rainbow — QR или подтверждение в приложении"
     },
     "walletBar": {
       "disconnect": "Отключить"
@@ -308,11 +310,20 @@
       "phClearUrl": "Пусто = очистить",
       "urlSubmit": "Обновить в сети — только газ (POL)",
       "urlCancel": "Отмена",
-      "shareVerifyTitle": "Поделиться проверкой",
-      "shareDl": "Скачать QR (PNG)",
-      "shareCopy": "Копировать текст",
+      "shareVerifyTitle": "Экспорт паспорта",
+      "shareExportLead": "Сохраните карточку целиком в PNG — название, ID, бейдж и QR — для постов, печати или архива.",
+      "shareExportMoreLabel": "Другие способы проверки",
+      "shareExportOdpLabel": "Ссылка odp://",
+      "sharePreviewLoading": "Готовим предпросмотр…",
+      "sharePreviewAlt": "Предпросмотр карточки — то же изображение, что при скачивании",
+      "sharePreviewFail": "Не удалось показать предпросмотр.",
+      "shareDl": "Скачать карточку (PNG)",
+      "shareCopy": "Копировать текст проверки",
       "shareNative": "Поделиться с устройства",
       "shareCloseAria": "Закрыть",
+      "sharePngLibMissing": "Библиотека экспорта изображения не загрузилась. Обновите страницу и попробуйте снова.",
+      "sharePngFail": "Не удалось собрать изображение карточки паспорта.",
+      "sharePngFallbackDl": "В этом браузере нельзя передать файл в «Поделиться»; PNG сохранён на устройство.",
       "validateTitle": "Укажите название",
       "validateName": "Укажите имя создателя",
       "validateFolderUrl": "Введите корректный HTTPS URL папки (например https://art.com/passport)",
@@ -334,7 +345,7 @@
       "successShareBtn": "Поделиться",
       "successUploadWithUrl": "Загрузите файл .odpass без изменений на этот HTTPS URL (те же байты, что скачали здесь → хэш совпадает с dataHash). Verify читает passport.json из ZIP в браузере:",
       "successNoPublicUrl": "Публичный URL файла не зарегистрирован. Делитесь скачанным .odpass только с теми, кому нужна проверка. URL можно добавить позже через «Обновить URL хостинга».",
-      "successStep2": "Нажмите «Поделиться» рядом с «Скачать .odpass» — откроются QR и короткая ссылка для проверки (odp://… с номером паспорта).",
+      "successStep2": "Нажмите «Поделиться» рядом с «Скачать .odpass»: сохраните карточку паспорта в PNG или отправьте её с устройства.",
       "successStep3": "Публикуйте ID профиля {creatorId} на сайте и в соцсетях.",
       "successIphoneHint": "iPhone / MetaMask в браузере: простое скачивание может не попасть в Файлы. Используйте «Поделиться .odpass» (Сохранить в Файлы / iCloud), затем загрузите .odpass на хост без изменений.",
       "successDlOdp": "Скачать .odpass",
@@ -349,6 +360,13 @@
       "successExplorer": "Обозреватель ↗",
       "successVerify": "Проверить ↗",
       "successNewPassport": "Новый паспорт",
+      "idCard": {
+        "brandPassport": "ПАСПОРТ",
+        "stamp": "ODP",
+        "badgePhysical": "Физический",
+        "badgeDigital": "Цифровой",
+        "qrScanHint": "Сканируйте для проверки"
+      },
       "alerts": {
         "copied": "Скопировано в буфер обмена.",
         "linkCopied": "Ссылка скопирована в буфер обмена.",
@@ -377,7 +395,8 @@
       "mmOpen": "Открыть в приложении MetaMask",
       "mmHint": "iPhone / Safari: расширения нет — MetaMask как приложение со встроенным браузером. Ссылка откроет эту страницу там.",
       "fileProto": "file:// — многие кошельки не работают с локальными файлами. Запустите статический сервер в web/ (например npx serve .) или HTTPS.",
-      "httpsHint": "Используйте https:// или http://localhost при необходимости."
+      "httpsHint": "Используйте https:// или http://localhost при необходимости.",
+      "wcLead": "Или подключите кошелёк на телефоне (например Tangem) через WalletConnect — расширение не нужно."
     },
     "multiAccount": "Подключено несколько аккаунтов."
   }

@@ -9,14 +9,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <script src="odp-i18n-boot.js?v=1"></script>
+<script src="odp-wc-config.js?v=1"></script>
+<script src="odp-wallet-wc-loader.js?v=1"></script>
 <title>ODP v0.3 — Create Passport</title>
-<link rel="stylesheet" href="odp.css">
+<link rel="stylesheet" href="odp.css?v=20260330export16">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.3.5"></script>
 <script src="odp-date-format.js?v=1"></script>
-<script src="odp-i18n.js?v=8"></script>
+<script src="odp-i18n.js?v=14"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<script src="odp-id-card.js?v=10"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" crossorigin="anonymous"></script>
 </head>
 
@@ -104,7 +108,7 @@ function getVerifyAbsoluteUrl(id) {
 }
 
 /** Prevents parallel wallet prompts (double-click → “already pending”). */
-let odpWalletConnectInFlight = false;
+let odpConnectInFlight = false;
 
 /** Filled after wallet connect from `odpFinalizeWalletContract` (depends on on-chain CONTRACT_VERSION). */
 let ABI = null;
@@ -210,10 +214,11 @@ async function connect() {
 }
 
 async function disconnectWallet() {
-  const eth = injectedEthereum();
-  let revoked = false;
-  if (eth) {
-    revoked = await revokeSiteWalletPermission(eth);
+  if (typeof odpWalletConnectIsActive === "function" && odpWalletConnectIsActive()) {
+    if (typeof odpWalletConnectDisconnect === "function") await odpWalletConnectDisconnect();
+  } else {
+    const eth = injectedEthereum();
+    if (eth) await revokeSiteWalletPermission(eth);
   }
   try { sessionStorage.setItem(ODP_SKIP_WALLET_AUTOCONNECT, "1"); } catch {}
   provider = null; signer = null; contract = null; wallet = null; creatorId = null;
@@ -238,11 +243,16 @@ function renderConnectUI() {
         ${esc(t("passport.connect.lead2"))}
         <a href="creator.html" style="color:var(--accent)">${esc(t("passport.connect.registerHere"))}</a> ${esc(t("passport.connect.lead3"))}
       </p>
-      <div style="max-width:320px;margin:0 auto 12px">
+      <div style="max-width:360px;margin:0 auto 12px;display:flex;flex-direction:column;gap:12px">
         <div class="tt-opt" id="odpConnectWalletBtn" onclick="connectWallet()" style="padding:18px 12px">
           <div class="tt-icon">🔗</div>
           <div class="tt-name">${esc(t("passport.connect.btnName"))}</div>
           <div class="tt-desc">${esc(t("passport.connect.btnDesc"))}</div>
+        </div>
+        <div class="tt-opt" id="odpConnectWalletWcBtn" onclick="connectWalletWithWalletConnect()" style="padding:18px 12px">
+          <div class="tt-icon">📱</div>
+          <div class="tt-name">${esc(t("passport.connect.wcName"))}</div>
+          <div class="tt-desc">${esc(t("passport.connect.wcDesc"))}</div>
         </div>
       </div>
       <div id="connectErr" style="margin-top:12px"></div>
@@ -295,20 +305,43 @@ function noWalletHtml() {
           <p class="fhint" style="margin:10px 0 0;font-size:11px">${esc(t("passport.noWallet.mmHint"))}</p>
         </div>`
       : "";
+  const wcConfigured =
+    typeof ODP_WALLETCONNECT_PROJECT_ID !== "undefined" && String(ODP_WALLETCONNECT_PROJECT_ID).trim().length > 0;
+  const wcBlock = wcConfigured
+    ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <p style="font-size:12px;color:var(--text2);margin:0 0 10px">${esc(t("passport.noWallet.wcLead"))}</p>
+        <button type="button" class="btn" onclick="connectWalletWithWalletConnect()">${esc(t("passport.connect.wcName"))}</button>
+      </div>`
+    : "";
   return `<div class="info e" style="line-height:1.6;text-align:left">
     ${esc(t("passport.noWallet.line1"))}
     <a href="https://metamask.io" target="_blank" rel="noopener" style="color:var(--accent)">${esc(t("passport.noWallet.metaMask"))}</a>
     ${esc(t("passport.noWallet.line2"))}
     ${mobileHint}
     ${fileProto ? `<br><br>${esc(t("passport.noWallet.fileProto"))}` : !mmApp ? `<br><br>${esc(t("passport.noWallet.httpsHint"))}` : ""}
+    ${wcBlock}
   </div>`;
+}
+
+function odpSetConnectButtonsBusy(busy) {
+  const btnInj = document.getElementById("odpConnectWalletBtn");
+  const btnWc = document.getElementById("odpConnectWalletWcBtn");
+  [btnInj, btnWc].forEach((btn) => {
+    if (!btn) return;
+    if (busy) {
+      btn.style.opacity = "0.65";
+      btn.style.pointerEvents = "none";
+    } else {
+      btn.style.opacity = "";
+      btn.style.pointerEvents = "";
+    }
+  });
 }
 
 async function connectWallet() {
   const eth = injectedEthereum();
   const errEl = document.getElementById("connectErr");
-  const btn = document.getElementById("odpConnectWalletBtn");
-  if (odpWalletConnectInFlight) {
+  if (odpConnectInFlight) {
     if (errEl)
       errEl.innerHTML =
         `<div class="info e">${esc(t("passport.errors.connectInProgress"))}</div>`;
@@ -319,11 +352,8 @@ async function connectWallet() {
     return;
   }
   await odpMergeRegistryConfigAsync(NET);
-  odpWalletConnectInFlight = true;
-  if (btn) {
-    btn.style.opacity = "0.65";
-    btn.style.pointerEvents = "none";
-  }
+  odpConnectInFlight = true;
+  odpSetConnectButtonsBusy(true);
   try {
     // Polygon first, then accounts — so MetaMask scopes the connection to this chain
     // (requesting accounts before switch often shows permission for multiple networks).
@@ -345,11 +375,56 @@ async function connectWallet() {
       errEl.innerHTML = `<div class="info e">${esc(msg)}</div>`;
     }
   } finally {
-    odpWalletConnectInFlight = false;
-    if (btn) {
-      btn.style.opacity = "";
-      btn.style.pointerEvents = "";
+    odpConnectInFlight = false;
+    odpSetConnectButtonsBusy(false);
+  }
+}
+
+async function connectWalletWithWalletConnect() {
+  const errEl = document.getElementById("connectErr");
+  if (odpConnectInFlight) {
+    if (errEl)
+      errEl.innerHTML =
+        `<div class="info e">${esc(t("passport.errors.connectInProgress"))}</div>`;
+    return;
+  }
+  await odpMergeRegistryConfigAsync(NET);
+  odpConnectInFlight = true;
+  odpSetConnectButtonsBusy(true);
+  try {
+    await odpEnsureWalletConnectBundle();
+    const eth = await odpWalletConnectConnect({ chainId: NET.chainId, rpcUrl: NET.rpc });
+    await ensureWalletChain(eth, NET);
+    const single = await odpRequireSingleEthereumAccount(eth);
+    if (!single.ok) {
+      errEl.innerHTML = `<div class="info e">${esc(single.message)}</div>`;
+      return;
     }
+    await ensureWalletChain(eth, NET);
+    if (typeof odpInstallSingleAccountGuard === "function") {
+      odpInstallSingleAccountGuard(eth, {
+        onMultiple: async function () {
+          var r = await odpRequireSingleEthereumAccount(eth);
+          walletConnectError = r.message || t("passport.multiAccount");
+          await disconnectWallet();
+        },
+        onEmpty: async function () {
+          await disconnectWallet();
+        },
+      });
+    }
+    await _finish(new ethers.providers.Web3Provider(eth));
+  } catch (e) {
+    const msg = String((e && e.message) || e);
+    if (/already pending|request of type.*pending/i.test(msg)) {
+      errEl.innerHTML =
+        `<div class="info e">${esc(t("passport.errors.walletPending"))}</div>`;
+    } else {
+      errEl.innerHTML = `<div class="info e">${esc(msg)}</div>`;
+    }
+  } finally {
+    odpConnectInFlight = false;
+    odpSetConnectButtonsBusy(false);
   }
 }
 
@@ -1392,15 +1467,19 @@ function renderForm() {
 
     <div id="shareModal" class="share-modal" hidden aria-hidden="true">
       <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
-      <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
+      <div class="share-modal-panel share-modal-panel--export" role="dialog" aria-labelledby="shareModalTitle">
         <button type="button" class="share-modal-x" id="shareModalClose" aria-label="${esc(t("passport.form.shareCloseAria"))}">×</button>
-        <h3 id="shareModalTitle" class="share-modal-title">${esc(t("passport.form.shareVerifyTitle"))}</h3>
-        <div id="shareModalQr"></div>
-        <div id="shareModalUrl" class="share-modal-url"></div>
-        <div class="share-modal-actions">
-          <button type="button" class="btn" id="shareModalDl">${esc(t("passport.form.shareDl"))}</button>
-          <button type="button" class="btn btn-sec" id="shareModalCopy">${esc(t("passport.form.shareCopy"))}</button>
-          <button type="button" class="btn btn-sec" id="shareModalNative">${esc(t("passport.form.shareNative"))}</button>
+        <div class="share-modal-preview-wrap" id="shareModalPreviewWrap" aria-live="polite">
+          <p class="share-modal-preview-loading" id="shareModalPreviewLoading">${esc(t("passport.form.sharePreviewLoading"))}</p>
+          <img id="shareModalPreviewImg" class="share-modal-preview-img" alt="" width="280" height="auto" decoding="async" hidden />
+        </div>
+        <h3 id="shareModalTitle" class="share-modal-title share-modal-title--export">${esc(t("passport.form.shareVerifyTitle"))}</h3>
+        <p class="share-modal-hint share-modal-lead" id="shareModalLead">${esc(t("passport.form.shareExportLead"))}</p>
+        <div class="share-modal-png-block">
+          <button type="button" class="btn share-modal-btn-png" id="shareModalDl">${esc(t("passport.form.shareDl"))}</button>
+        </div>
+        <div class="share-modal-share-block">
+          <button type="button" class="btn btn-sec share-modal-btn-share-wide" id="shareModalNative">${esc(t("passport.form.shareNative"))}</button>
         </div>
       </div>
     </div>
@@ -2116,6 +2195,7 @@ async function executeMint() {
       imageFile: selectedImageFile,
       imageFile2: selectedImageFile2,
       imageFile3: selectedImageFile3,
+      objectType: passportForHash.objectType,
     });
 
   } catch(e) {
@@ -2235,6 +2315,220 @@ function downloadQrFromEl(containerEl, filename) {
   a.click();
 }
 
+async function resolvePassportExportMeta(humanId) {
+  let title = humanId;
+  let objectType = "physical";
+  let creatorProfileId = "";
+  try {
+    const raw = sessionStorage.getItem("odp_passport_json_" + humanId);
+    if (raw) {
+      const j = JSON.parse(raw);
+      if (j.title) title = String(j.title).trim() || title;
+      const ot = String(j.objectType || "").toLowerCase();
+      if (ot === "digital" || ot === "physical") objectType = ot;
+      if (j.creator && j.creator.creatorId) {
+        creatorProfileId = String(j.creator.creatorId).trim();
+      }
+    }
+  } catch (e) {}
+  if (contract) {
+    try {
+      const p = await contract.getPassport(humanId);
+      const ot = String(p.objectType || "").toLowerCase();
+      if (ot === "digital" || ot === "physical") objectType = ot;
+      if (p.creatorId && String(p.creatorId).trim()) {
+        creatorProfileId = String(p.creatorId).trim();
+      }
+      const du = p.dataUrl && String(p.dataUrl).trim();
+      if (du && title === humanId) {
+        const res = await fetch(du);
+        if (res.ok) {
+          const j = await res.json();
+          const tt = j.title || j.name || (j.passport && j.passport.title);
+          if (tt) title = String(tt).trim();
+          if (!creatorProfileId && j.creator && j.creator.creatorId) {
+            creatorProfileId = String(j.creator.creatorId).trim();
+          }
+        }
+      }
+    } catch (e) {}
+  }
+  const badgePrimary =
+    objectType === "digital"
+      ? t("passport.form.idCard.badgeDigital")
+      : t("passport.form.idCard.badgePhysical");
+  return { title: title || humanId, badgePrimary, creatorProfileId };
+}
+
+function odpExportCardThemeTokens() {
+  try {
+    const el = document.documentElement;
+    const s = getComputedStyle(el);
+    return {
+      bg2: s.getPropertyValue("--bg2").trim() || "#ffffff",
+      isBlue: el.getAttribute("data-theme") === "blue",
+    };
+  } catch (e) {
+    return { bg2: "#ffffff", isBlue: true };
+  }
+}
+
+function odpCanvasToPngBlobPassport(canvas) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("PNG blob failed"))), "image/png");
+  });
+}
+
+async function buildPassportCardPngBlob(humanId) {
+  if (!humanId) throw new Error(t("passport.form.sharePngFail"));
+  const h2cFn =
+    typeof window !== "undefined" && typeof window.html2canvas === "function"
+      ? window.html2canvas
+      : typeof html2canvas === "function"
+        ? html2canvas
+        : null;
+  if (!h2cFn) {
+    throw new Error(t("passport.form.sharePngLibMissing"));
+  }
+  const filename = `${safeFilePart(humanId)}-odp-passport.png`;
+  let captureRoot = document.getElementById("odpPassportCardExport");
+  let tempMount = null;
+
+  if (!captureRoot) {
+    const meta = await resolvePassportExportMeta(humanId);
+    if (typeof odpPassportIdCardHtml !== "function") throw new Error("odpPassportIdCardHtml");
+    tempMount = document.createElement("div");
+    tempMount.setAttribute("data-odp-passport-png-temp", "1");
+    tempMount.style.cssText =
+      "position:fixed;left:-99999px;top:0;width:320px;z-index:2147483646;pointer-events:none;overflow:visible;";
+    tempMount.innerHTML = odpPassportIdCardHtml({
+      cardRootId: false,
+      brandLine: t("passport.form.idCard.brandPassport"),
+      title: meta.title,
+      humanId,
+      creatorProfileId: meta.creatorProfileId || "",
+      qrSlotId: "odpPassportExportTempQr",
+      stampText: t("passport.form.idCard.stamp"),
+      badgePrimary: meta.badgePrimary,
+      qrHint: t("passport.form.idCard.qrScanHint"),
+      srLabel: `${meta.title} · ${humanId} · ${meta.creatorProfileId || ""}`,
+    });
+    document.body.appendChild(tempMount);
+    captureRoot = tempMount.querySelector(".odp-id-card-page-wrap");
+    if (typeof mountOdpIdCardQr === "function") {
+      mountOdpIdCardQr("odpPassportExportTempQr", "odp://" + humanId, renderOdpQr, 108);
+    }
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    if (document.fonts && document.fonts.ready) await document.fonts.ready.catch(() => {});
+  }
+
+  if (!captureRoot) throw new Error(t("passport.form.sharePngFail"));
+
+  const h2cTarget =
+    captureRoot.classList && captureRoot.classList.contains("odp-id-card")
+      ? captureRoot
+      : captureRoot.querySelector(".odp-id-card") || captureRoot;
+
+  const tok = odpExportCardThemeTokens();
+  try {
+    const canvas = await h2cFn(h2cTarget, {
+      scale: 2,
+      backgroundColor: null,
+      useCORS: true,
+      logging: false,
+      onclone: (_doc, el) => {
+        const shell =
+          el.classList && el.classList.contains("odp-id-card")
+            ? el.parentElement
+            : el.querySelector(".odp-id-card__shell");
+        if (shell && shell.classList && shell.classList.contains("odp-id-card__shell")) {
+          shell.style.filter = "none";
+        }
+        const wrap =
+          el.classList && el.classList.contains("odp-id-card-page-wrap")
+            ? el
+            : typeof el.closest === "function"
+              ? el.closest(".odp-id-card-page-wrap")
+              : null;
+        if (wrap) wrap.style.background = "transparent";
+        const card =
+          el.classList && el.classList.contains("odp-id-card")
+            ? el
+            : el.querySelector(".odp-id-card");
+        if (card) {
+          card.style.backgroundImage = "none";
+          card.style.backgroundColor = tok.bg2;
+          card.style.boxShadow = "none";
+        }
+      },
+    });
+    // #region agent log
+    fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+      body: JSON.stringify({
+        sessionId: "c94472",
+        location: "passport.html:buildPassportCardPngBlob",
+        message: "png export canvas",
+        data: {
+          isBlue: tok.isBlue,
+          canvasBg: null,
+          faceExport: "solid-bg2",
+          h2cRoot: h2cTarget.className || h2cTarget.tagName,
+          w: canvas.width,
+          h: canvas.height,
+        },
+        hypothesisId: "H7",
+        timestamp: Date.now(),
+        runId: "h2c-card-root",
+      }),
+    }).catch(() => {});
+    // #endregion
+    const blob = await odpCanvasToPngBlobPassport(canvas);
+    return { blob, filename };
+  } finally {
+    if (tempMount && tempMount.parentNode) tempMount.parentNode.removeChild(tempMount);
+  }
+}
+
+async function downloadPassportCardAsPng(humanId) {
+  const { blob, filename } = await buildPassportCardPngBlob(humanId);
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+}
+
+async function sharePassportCardPngFromDevice(humanId) {
+  const { blob, filename } = await buildPassportCardPngBlob(humanId);
+  const file = new File([blob], filename, { type: "image/png" });
+  const title = "Object Digital Passport";
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title });
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    throw e;
+  }
+  const url = URL.createObjectURL(blob);
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 200);
+  alert(t("passport.form.sharePngFallbackDl"));
+}
+
 function confirmLeaveMintSuccessScreen() {
   try {
     return window.confirm(t("passport.form.leaveSuccessConfirm"));
@@ -2243,9 +2537,135 @@ function confirmLeaveMintSuccessScreen() {
   }
 }
 
+function revokeShareModalPreviewUrl() {
+  const img = document.getElementById("shareModalPreviewImg");
+  if (img && img.dataset.objectUrl) {
+    URL.revokeObjectURL(img.dataset.objectUrl);
+    delete img.dataset.objectUrl;
+  }
+  if (img) {
+    img.removeAttribute("src");
+    img.hidden = true;
+  }
+}
+
+// #region agent log
+function _dbgLogPassportShareExportModal(phase) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      try {
+        const panel = document.querySelector(".share-modal-panel.share-modal-panel--export");
+        const nat = document.getElementById("shareModalNative");
+        const wrap = document.getElementById("shareModalPreviewWrap");
+        const imgEl = document.getElementById("shareModalPreviewImg");
+        if (!panel || !nat) {
+          fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+            body: JSON.stringify({
+              sessionId: "c94472",
+              location: "passport.html:_dbgLogPassportShareExportModal",
+              message: "missing nodes",
+              data: { phase, hasPanel: !!panel, hasNat: !!nat },
+              timestamp: Date.now(),
+              runId: "post-fix",
+              hypothesisId: "H3",
+            }),
+          }).catch(() => {});
+          return;
+        }
+        const pr = panel.getBoundingClientRect();
+        const nr = nat.getBoundingClientRect();
+        const cs = getComputedStyle(nat);
+        const ws = wrap ? getComputedStyle(wrap) : null;
+        const shareBelowVisiblePanel = nr.bottom > pr.bottom + 2;
+        const data = {
+          phase,
+          panelScroll: { scrollHeight: panel.scrollHeight, clientHeight: panel.clientHeight, scrollTop: panel.scrollTop },
+          panelRect: { top: pr.top, bottom: pr.bottom, h: pr.height },
+          natRect: { top: nr.top, bottom: nr.bottom, h: nr.height },
+          shareBelowVisiblePanel,
+          natComputed: { display: cs.display, visibility: cs.visibility, opacity: cs.opacity, color: cs.color },
+          wrapComputed: ws ? { background: ws.backgroundColor, borderWidth: ws.borderWidth, padding: ws.padding } : null,
+          imgNatural: imgEl ? { w: imgEl.naturalWidth, h: imgEl.naturalHeight } : null,
+          viewportH: window.innerHeight,
+        };
+        fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+          body: JSON.stringify({
+            sessionId: "c94472",
+            location: "passport.html:_dbgLogPassportShareExportModal",
+            message: "share export modal layout",
+            data,
+            timestamp: Date.now(),
+            runId: "post-fix",
+            hypothesisId: "H1-H4",
+          }),
+        }).catch(() => {});
+      } catch (e) {
+        fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+          body: JSON.stringify({
+            sessionId: "c94472",
+            location: "passport.html:_dbgLogPassportShareExportModal",
+            message: "dbg err",
+            data: { err: String(e) },
+            timestamp: Date.now(),
+            runId: "post-fix",
+            hypothesisId: "H0",
+          }),
+        }).catch(() => {});
+      }
+    });
+  });
+}
+// #endregion
+
+async function refreshPassportShareModalPreview(humanId) {
+  const loading = document.getElementById("shareModalPreviewLoading");
+  const img = document.getElementById("shareModalPreviewImg");
+  const wrap = document.getElementById("shareModalPreviewWrap");
+  if (!humanId || !img || !loading) return;
+  revokeShareModalPreviewUrl();
+  loading.hidden = false;
+  loading.textContent = t("passport.form.sharePreviewLoading");
+  img.hidden = true;
+  wrap?.classList.add("share-modal-preview-wrap--busy");
+  try {
+    const { blob } = await buildPassportCardPngBlob(humanId);
+    const u = URL.createObjectURL(blob);
+    img.dataset.objectUrl = u;
+    const finishOk = () => {
+      loading.hidden = true;
+      img.hidden = false;
+      img.alt = t("passport.form.sharePreviewAlt");
+      wrap?.classList.remove("share-modal-preview-wrap--busy");
+      _dbgLogPassportShareExportModal("preview-ready");
+    };
+    img.onload = () => finishOk();
+    img.onerror = () => {
+      loading.textContent = t("passport.form.sharePreviewFail");
+      wrap?.classList.remove("share-modal-preview-wrap--busy");
+    };
+    img.src = u;
+    if (img.complete && img.naturalWidth > 0) finishOk();
+  } catch (e) {
+    loading.textContent = t("passport.form.sharePreviewFail");
+    wrap?.classList.remove("share-modal-preview-wrap--busy");
+  }
+}
+
 function closeShareModal() {
   const m = document.getElementById("shareModal");
   if (!m) return;
+  revokeShareModalPreviewUrl();
+  const loading = document.getElementById("shareModalPreviewLoading");
+  if (loading) {
+    loading.textContent = t("passport.form.sharePreviewLoading");
+    loading.hidden = false;
+  }
   m.hidden = true;
   m.setAttribute("aria-hidden", "true");
   document.body.style.overflow = "";
@@ -2266,35 +2686,33 @@ function bindShareModalCloseHandlers() {
 }
 
 function fillPassportShareModal(humanId) {
-  const odpUri = `odp://${humanId}`;
-  const sharePayload = `Object Digital Passport - verify this object\nPassport ID: ${humanId}\n${odpUri}`;
-  const vuAbs = getVerifyAbsoluteUrl(humanId);
-  const qrEl = document.getElementById("shareModalQr");
-  const urlEl = document.getElementById("shareModalUrl");
-  if (urlEl) urlEl.textContent = odpUri;
-  renderOdpQr(qrEl, odpUri, odpUri);
   openShareModal();
-  const fn = `${safeFilePart(humanId)}-odp-qr.png`;
+  void refreshPassportShareModalPreview(humanId);
   const dl = document.getElementById("shareModalDl");
-  const copyB = document.getElementById("shareModalCopy");
   const nat = document.getElementById("shareModalNative");
-  if (dl) dl.onclick = () => downloadQrFromEl(qrEl, fn);
-  if (copyB) {
-    copyB.onclick = () => {
-      navigator.clipboard
-        .writeText(sharePayload)
-        .then(() => alert(t("passport.form.alerts.copied")))
-        .catch(() => prompt("Copy:", sharePayload));
+  if (dl) {
+    dl.onclick = async () => {
+      dl.disabled = true;
+      try {
+        await downloadPassportCardAsPng(humanId);
+      } catch (e) {
+        alert(esc(e.message || String(e)));
+      } finally {
+        dl.disabled = false;
+      }
     };
   }
   if (nat) {
-    nat.onclick = () => {
-      void shareOdpVerify({
-        title: "Object Digital Passport",
-        text: `Verify this object — Passport ID: ${humanId}`,
-        url: vuAbs,
-        fullText: sharePayload,
-      });
+    nat.onclick = async () => {
+      nat.disabled = true;
+      try {
+        await sharePassportCardPngFromDevice(humanId);
+      } catch (e) {
+        if (e && e.name === "AbortError") return;
+        alert(esc(e.message || String(e)));
+      } finally {
+        nat.disabled = false;
+      }
     };
   }
 }
@@ -2327,16 +2745,16 @@ async function shareOdpVerify({ title, text, url, fullText }) {
   }
 }
 
-/** qrcodejs: SPEC short `odp://` / `odpc://` uses ECC Q; longer text uses L; fallback = same primary URI. */
-function renderOdpQr(el, primaryText, fallbackUrl) {
+/** qrcodejs: SPEC short `odp://` uses ECC Q; longer text uses L; fallback = same primary URI. */
+function renderOdpQr(el, primaryText, fallbackUrl, pixelSize) {
   if (!el) return;
   el.innerHTML = "";
   if (typeof QRCode === "undefined") {
     el.innerHTML = `<div class="qr-fail">${esc(t("passport.form.qrFail"))}<br><a href="${esc(fallbackUrl)}">${esc(fallbackUrl)}</a></div>`;
     return;
   }
-  const w = 168;
-  const h = 168;
+  const w = pixelSize != null && pixelSize > 0 ? Math.round(pixelSize) : 168;
+  const h = w;
   const cl =
     QRCode.CorrectLevel && QRCode.CorrectLevel.L !== undefined
       ? QRCode.CorrectLevel.L
@@ -2364,7 +2782,7 @@ function renderOdpQr(el, primaryText, fallbackUrl) {
   const specShort =
     typeof primaryText === "string" &&
     primaryText.length < 120 &&
-    (primaryText.startsWith("odp://") || primaryText.startsWith("odpc://")) &&
+    primaryText.startsWith("odp://") &&
     QRCode.CorrectLevel &&
     QRCode.CorrectLevel.Q !== undefined
       ? QRCode.CorrectLevel.Q
@@ -2399,12 +2817,32 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
     : esc(t("passport.form.successNoPublicUrl"));
   const step3 = esc(t("passport.form.successStep3").replace("{creatorId}", creatorId));
 
+  const ot = bundleMeta && bundleMeta.objectType === "digital" ? "digital" : "physical";
+  const badgePrimary =
+    ot === "digital"
+      ? t("passport.form.idCard.badgeDigital")
+      : t("passport.form.idCard.badgePhysical");
+  const srPassport = `${title || ""} · ${humanId || ""} · ${creatorId || ""}`;
+
+  const passportCardHtml =
+    typeof odpPassportIdCardHtml === "function"
+      ? odpPassportIdCardHtml({
+          brandLine: t("passport.form.idCard.brandPassport"),
+          title: title,
+          humanId: humanId,
+          creatorProfileId: creatorId || "",
+          qrSlotId: "odpIdCardQrPassport",
+          stampText: t("passport.form.idCard.stamp"),
+          badgePrimary: badgePrimary,
+          qrHint: t("passport.form.idCard.qrScanHint"),
+          srLabel: srPassport,
+        })
+      : `<div class="success-title">${esc(title)}</div><span class="success-id">${esc(humanId)}</span>`;
+
   document.getElementById("app").innerHTML = `
     <div class="success" id="successMainBlock" style="opacity:0.38;filter:blur(1px);pointer-events:none;transition:opacity 0.2s ease,filter 0.2s ease">
       <div class="success-icon">✓</div>
-      <div class="success-title">${esc(title)}</div>
-      <span class="success-id">${esc(humanId)}</span>
-      <p class="success-sub">${esc(t("passport.form.successRegisteredOn").replace("{net}", net.name))}</p>
+      ${passportCardHtml}
 
       <div class="next-steps">
         <div class="ns-item"><div class="ns-num">1</div><div>${uploadHint}</div></div>
@@ -2442,15 +2880,19 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
 
     <div id="shareModal" class="share-modal" hidden aria-hidden="true">
       <div class="share-modal-backdrop" id="shareModalBackdrop"></div>
-      <div class="share-modal-panel" role="dialog" aria-labelledby="shareModalTitle">
+      <div class="share-modal-panel share-modal-panel--export" role="dialog" aria-labelledby="shareModalTitle">
         <button type="button" class="share-modal-x" id="shareModalClose" aria-label="${esc(t("passport.form.shareCloseAria"))}">×</button>
-        <h3 id="shareModalTitle" class="share-modal-title">${esc(t("passport.form.shareVerifyTitle"))}</h3>
-        <div id="shareModalQr"></div>
-        <div id="shareModalUrl" class="share-modal-url"></div>
-        <div class="share-modal-actions">
-          <button type="button" class="btn" id="shareModalDl">${esc(t("passport.form.shareDl"))}</button>
-          <button type="button" class="btn btn-sec" id="shareModalCopy">${esc(t("passport.form.shareCopy"))}</button>
-          <button type="button" class="btn btn-sec" id="shareModalNative">${esc(t("passport.form.shareNative"))}</button>
+        <div class="share-modal-preview-wrap" id="shareModalPreviewWrap" aria-live="polite">
+          <p class="share-modal-preview-loading" id="shareModalPreviewLoading">${esc(t("passport.form.sharePreviewLoading"))}</p>
+          <img id="shareModalPreviewImg" class="share-modal-preview-img" alt="" width="280" height="auto" decoding="async" hidden />
+        </div>
+        <h3 id="shareModalTitle" class="share-modal-title share-modal-title--export">${esc(t("passport.form.shareVerifyTitle"))}</h3>
+        <p class="share-modal-hint share-modal-lead" id="shareModalLead">${esc(t("passport.form.shareExportLead"))}</p>
+        <div class="share-modal-png-block">
+          <button type="button" class="btn share-modal-btn-png" id="shareModalDl">${esc(t("passport.form.shareDl"))}</button>
+        </div>
+        <div class="share-modal-share-block">
+          <button type="button" class="btn btn-sec share-modal-btn-share-wide" id="shareModalNative">${esc(t("passport.form.shareNative"))}</button>
         </div>
       </div>
     </div>`;
@@ -2526,6 +2968,9 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
   }
   void downloadPassportOdp(humanId, json, bundleMeta).catch(() => {});
   setMintSuccessLeavingGuard(true);
+  if (typeof mountOdpIdCardQr === "function") {
+    mountOdpIdCardQr("odpIdCardQrPassport", "odp://" + humanId, renderOdpQr, 108);
+  }
 }
 
 async function sha256HexFromBuffer(buf) {
@@ -2706,7 +3151,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         var br = await odpRequireSingleEthereumAccount(eth);
         walletConnectError = br.message;
       } else {
-        odpWalletConnectInFlight = true;
+        odpConnectInFlight = true;
         try {
           const net = NET;
           const isLocal = /^(localhost|127\.0\.0\.1)$/i.test(location.hostname || "");
@@ -2755,7 +3200,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         } catch (e) {
           console.warn("Auto-connect failed:", e);
         } finally {
-          odpWalletConnectInFlight = false;
+          odpConnectInFlight = false;
         }
       }
     }

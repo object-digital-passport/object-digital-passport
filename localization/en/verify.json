@@ -259,6 +259,8 @@
       "sectionTitle": "Anchor my document hash on-chain",
       "lead": "Connect your wallet, choose a file, and submit attestExternalDocument. This proves your wallet anchored this hash.",
       "connectBtn": "Connect wallet",
+      "connectWcBtn": "Mobile (WalletConnect)",
+      "noInjected": "No browser extension wallet. Use “Mobile (WalletConnect)” or install MetaMask.",
       "fileLabel": "File",
       "fileDropLine1": "Choose file",
       "fileDropLine2": "Hash is computed locally before submit",

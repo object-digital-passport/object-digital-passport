@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <script src="odp-i18n-boot.js?v=1"></script>
+<script src="odp-wc-config.js?v=1"></script>
+<script src="odp-wallet-wc-loader.js?v=1"></script>
 <title>ODP v0.3 — Verify</title>
 
 <!--
@@ -149,8 +151,9 @@
   </p>
   <section class="card verify-tool-card">
     <div class="verify-tool-card-pad">
-      <div class="verify-tool-wallet-row">
+      <div class="verify-tool-wallet-row" style="flex-wrap:wrap;gap:8px;align-items:center">
         <button type="button" class="btn btn-sec" id="docAttestConnectBtn" onclick="connectDocAttestWallet()" data-i18n="verify.docAttest.connectBtn">Connect wallet</button>
+        <button type="button" class="btn btn-sec" id="docAttestConnectWcBtn" onclick="connectDocAttestWalletWalletConnect()" data-i18n="verify.docAttest.connectWcBtn">WalletConnect</button>
         <span id="docAttestWallet" class="mono verify-tool-wallet-addr"></span>
       </div>
       <label class="search-label verify-tool-field-label" for="docAttestFile" data-i18n="verify.docAttest.fileLabel">File</label>
@@ -531,10 +534,15 @@ function setVerifyWalletBar(address) {
 function setDocAttestWalletLabel(address) {
   const lab = document.getElementById("docAttestWallet");
   const btn = document.getElementById("docAttestConnectBtn");
+  const btnWc = document.getElementById("docAttestConnectWcBtn");
   if (lab) lab.textContent = address ? ("Connected: " + address) : "";
   if (btn) {
     btn.hidden = !!address;
     btn.disabled = !!address;
+  }
+  if (btnWc) {
+    btnWc.hidden = !!address;
+    btnWc.disabled = !!address;
   }
 }
 
@@ -619,10 +627,11 @@ async function initVerifyWalletBar() {
 }
 
 async function disconnectVerifyWallet() {
-  const eth = injectedEthereum();
-  let revoked = false;
-  if (eth) {
-    revoked = await revokeSiteWalletPermission(eth);
+  if (typeof odpWalletConnectIsActive === "function" && odpWalletConnectIsActive()) {
+    if (typeof odpWalletConnectDisconnect === "function") await odpWalletConnectDisconnect();
+  } else {
+    const eth = injectedEthereum();
+    if (eth) await revokeSiteWalletPermission(eth);
   }
   try { sessionStorage.setItem(ODP_SKIP_WALLET_AUTOCONNECT, "1"); } catch {}
   docAttestWeb3Provider = null;
@@ -920,7 +929,7 @@ function parseVerifyToken(raw) {
   const passportId = parseId(raw);
   if (passportId) return { kind: "passport", id: passportId };
   let c = raw.trim();
-  if (/^odpc:\/\//i.test(c)) c = c.slice(7);
+  if (/^odp:\/\//i.test(c)) c = c.slice(5);
   const cm = c.match(/^([CBPM])-(\d{3})-(\d{3})-(\d{3})(?:-(\d{3}))?$/i);
   if (cm) {
     const cid = cm[5]
@@ -2720,32 +2729,47 @@ async function sha256FileToBytes32HexVerify(file) {
   return ethers.utils.hexlify(new Uint8Array(digest));
 }
 
+async function connectDocAttestWalletWithEip1193(eth) {
+  const out = document.getElementById("docAttestResult");
+  docAttestWeb3Provider = new ethers.providers.Web3Provider(eth, "any");
+  await docAttestWeb3Provider.send("eth_requestAccounts", []);
+  const net = await docAttestWeb3Provider.getNetwork();
+  if (Number(net.chainId) !== Number(NET.chainId)) {
+    const hex = "0x" + Number(NET.chainId).toString(16);
+    await docAttestWeb3Provider.send("wallet_switchEthereumChain", [{ chainId: hex }]);
+  }
+  docAttestSigner = docAttestWeb3Provider.getSigner();
+  const addr = await docAttestSigner.getAddress();
+  docAttestContract = new ethers.Contract(odpDocAttestWriteAddress(), DOC_ATTEST_WRITE_ABI, docAttestSigner);
+  verifyWalletCreatorId = await resolveCreatorIdByWallet(addr);
+  try { sessionStorage.removeItem(ODP_SKIP_WALLET_AUTOCONNECT); } catch {}
+  setVerifyWalletBar(addr);
+  setDocAttestWalletLabel(addr);
+  syncDocAttestPreviews();
+  if (out) out.innerHTML = "";
+  syncVerifyPaffAuditVisibility();
+}
+
 async function connectDocAttestWallet() {
-  const lab = document.getElementById("docAttestWallet");
   const out = document.getElementById("docAttestResult");
   if (!window.ethereum) {
-    if (out) out.innerHTML = `<div class="err-box">No injected wallet found.</div>`;
+    if (out) out.innerHTML = `<div class="err-box">${esc(t("verify.docAttest.noInjected"))}</div>`;
     return;
   }
   try {
-    docAttestWeb3Provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-    await docAttestWeb3Provider.send("eth_requestAccounts", []);
-    const net = await docAttestWeb3Provider.getNetwork();
-    if (Number(net.chainId) !== Number(NET.chainId)) {
-      const hex = "0x" + Number(NET.chainId).toString(16);
-      await docAttestWeb3Provider.send("wallet_switchEthereumChain", [{ chainId: hex }]);
-    }
-    docAttestSigner = docAttestWeb3Provider.getSigner();
-    const addr = await docAttestSigner.getAddress();
-    docAttestContract = new ethers.Contract(odpDocAttestWriteAddress(), DOC_ATTEST_WRITE_ABI, docAttestSigner);
-    verifyWalletCreatorId = await resolveCreatorIdByWallet(addr);
-    try { sessionStorage.removeItem(ODP_SKIP_WALLET_AUTOCONNECT); } catch {}
-    setVerifyWalletBar(addr);
-    setDocAttestWalletLabel(addr);
-    const hashNow = (document.getElementById("docAttestHash") && document.getElementById("docAttestHash").textContent || "").replace(/^SHA-256:\s*/i, "").trim();
-    syncDocAttestPreviews();
-    if (out) out.innerHTML = "";
-    syncVerifyPaffAuditVisibility();
+    await connectDocAttestWalletWithEip1193(window.ethereum);
+  } catch (e) {
+    if (out) out.innerHTML = `<div class="err-box">${esc(e && (e.reason || e.message) ? String(e.reason || e.message) : String(e))}</div>`;
+  }
+}
+
+async function connectDocAttestWalletWalletConnect() {
+  const out = document.getElementById("docAttestResult");
+  try {
+    await odpMergeRegistryConfigAsync(NET);
+    await odpEnsureWalletConnectBundle();
+    const eth = await odpWalletConnectConnect({ chainId: NET.chainId, rpcUrl: NET.rpc });
+    await connectDocAttestWalletWithEip1193(eth);
   } catch (e) {
     if (out) out.innerHTML = `<div class="err-box">${esc(e && (e.reason || e.message) ? String(e.reason || e.message) : String(e))}</div>`;
   }

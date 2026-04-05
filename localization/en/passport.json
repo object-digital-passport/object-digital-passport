@@ -12,7 +12,9 @@
       "registerHere": "register here",
       "lead3": "if you don't have one.",
       "btnName": "Connect wallet",
-      "btnDesc": "Browser extension (MetaMask, Rabby, …)"
+      "btnDesc": "Browser extension (MetaMask, Rabby, …)",
+      "wcName": "Mobile wallet (WalletConnect)",
+      "wcDesc": "Tangem, MetaMask mobile, Rainbow — scan QR or approve in the app"
     },
     "walletBar": {
       "disconnect": "Disconnect"
@@ -308,11 +310,20 @@
       "phClearUrl": "Leave empty to clear",
       "urlSubmit": "Save to registry — network fee only (POL)",
       "urlCancel": "Cancel",
-      "shareVerifyTitle": "Share verification",
-      "shareDl": "Download QR (PNG)",
-      "shareCopy": "Copy text",
+      "shareVerifyTitle": "Export passport",
+      "shareExportLead": "Save the full card as an image — title, passport ID, badge, and QR — for posts, prints, or archives.",
+      "shareExportMoreLabel": "Other ways to verify",
+      "shareExportOdpLabel": "Short link",
+      "sharePreviewLoading": "Rendering preview…",
+      "sharePreviewAlt": "Card preview — same image as download",
+      "sharePreviewFail": "Could not render preview.",
+      "shareDl": "Download card as PNG",
+      "shareCopy": "Copy verify text",
       "shareNative": "Share via device",
       "shareCloseAria": "Close",
+      "sharePngLibMissing": "Image export library failed to load. Refresh the page and try again.",
+      "sharePngFail": "Could not build the passport card image.",
+      "sharePngFallbackDl": "This browser cannot share image files; the PNG was downloaded instead.",
       "validateTitle": "Title is required",
       "validateName": "Creator name is required",
       "validateFolderUrl": "Enter a valid HTTPS folder URL (e.g. https://art.com/passport)",
@@ -334,7 +345,7 @@
       "successShareBtn": "Share",
       "successUploadWithUrl": "Upload your .odpass file unchanged to this exact HTTPS link (same file as you downloaded here so the fingerprint matches the registry). Verify reads passport.json from inside the ZIP in your browser:",
       "successNoPublicUrl": "No public file link is saved in the registry yet. Share the downloaded .odpass only with people who must check it. You can add a link later under Update hosting links.",
-      "successStep2": "Tap Share next to Download for a QR code and a short verify link (odp://… with your passport number).",
+      "successStep2": "Tap Share next to Download: save the full passport card as PNG or send it from your device.",
       "successStep3": "Make sure your profile ID {creatorId} is published on your website and social profiles.",
       "successIphoneHint": "iPhone / MetaMask in-app browser: a plain download may not appear in Files. After downloading .odpass, use the browser or Files app share menu (Save to Files / iCloud), then upload the file to your host unchanged.",
       "successDlOdp": "Download .odpass",
@@ -349,6 +360,13 @@
       "successExplorer": "Explorer ↗",
       "successVerify": "Verify ↗",
       "successNewPassport": "New Passport",
+      "idCard": {
+        "brandPassport": "PASSPORT",
+        "stamp": "ODP",
+        "badgePhysical": "Physical",
+        "badgeDigital": "Digital",
+        "qrScanHint": "Scan to verify"
+      },
       "alerts": {
         "copied": "Copied to clipboard.",
         "linkCopied": "Link copied to clipboard.",
@@ -377,7 +395,8 @@
       "mmOpen": "Open in MetaMask app",
       "mmHint": "iPhone / Safari: there is no extension — MetaMask runs as an app with a built-in browser. This link opens the same page there so Connect works.",
       "fileProto": "Local file URLs — many wallets do not work. Run a simple web server for the web folder or use HTTPS.",
-      "httpsHint": "Use https:// or http://localhost if needed."
+      "httpsHint": "Use https:// or http://localhost if needed.",
+      "wcLead": "Or connect a phone wallet (e.g. Tangem) via WalletConnect — no browser extension required."
     },
     "multiAccount": "Multiple accounts connected."
   }

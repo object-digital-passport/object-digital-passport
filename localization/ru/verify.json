@@ -259,6 +259,8 @@
       "sectionTitle": "Закрепить хэш моего документа в сети",
       "lead": "Подключите кошелёк, выберите файл и отправьте attestExternalDocument. Это докажет, что ваш кошелёк закрепил этот хэш.",
       "connectBtn": "Подключить кошелёк",
+      "connectWcBtn": "Телефон (WalletConnect)",
+      "noInjected": "Нет расширения кошелька. Используйте «Телефон (WalletConnect)» или установите MetaMask.",
       "fileLabel": "Файл",
       "fileDropLine1": "Выберите файл",
       "fileDropLine2": "Хэш считается локально перед отправкой",

@@ -41,6 +41,8 @@
   --tap-highlight: rgba(212, 168, 83, 0.12);
   --focus-ring: rgba(212, 175, 55, 0.25);
   --serif:   'Fraunces', Georgia, serif;
+  /* ID card main title: Bookman Old Style where installed (macOS/Windows); else URW Bookman / Times */
+  --odp-id-card-display: "Bookman Old Style", Bookman, "URW Bookman L", "Times New Roman", serif;
   --mono:    'DM Mono', monospace;
   --ink:     var(--text);
   --ink2:    var(--text2);
@@ -63,6 +65,8 @@
   --page-fdrop-hover-bg: var(--bg3);
   --page-fdrop-hover-border: var(--accent2);
   --nav-active-bg: rgba(255, 255, 255, 0.06);
+  /* ID card mono passport/profile number */
+  --odp-id-card-id-color: var(--accent);
 }
 
 /* ── Blue theme (light) ── */
@@ -122,6 +126,7 @@ html[data-theme="blue"] {
   --page-fdrop-hover-bg: rgba(255, 255, 255, 0.14);
   --page-fdrop-hover-border: rgba(255, 255, 255, 0.40);
   --nav-active-bg: rgba(255, 255, 255, 0.10);
+  --odp-id-card-id-color: #2B4C9B;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1151,7 +1156,8 @@ textarea.pm-proof-textarea {
 .success-id { font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: 0.07em; color: var(--accent); display: block; margin: 16px 0 6px; }
 .success-title { font-family: var(--serif); font-size: 26px; font-style: italic; font-weight: 300; margin-bottom: 6px; }
 .success-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
-#shareModalQr {
+/* Creator profile share modal — large centered QR */
+#shareModalQr:not(.share-modal-qr-box) {
   display: inline-block;
   padding: 14px;
   background: white;
@@ -1265,6 +1271,149 @@ textarea.pm-proof-textarea {
   gap: 8px;
 }
 .share-modal-actions .btn { width: 100%; justify-content: center; }
+
+/* Passport: export card PNG + secondary QR row */
+.share-modal-panel--export {
+  max-width: 32rem;
+  text-align: left;
+}
+
+.share-modal-preview-wrap {
+  margin: 0 0 12px;
+  padding: 0;
+  border-radius: 0;
+  border: none;
+  background: transparent;
+  text-align: center;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.share-modal-preview-wrap--busy {
+  opacity: 0.92;
+}
+.share-modal-preview-loading {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text2);
+}
+.share-modal-preview-img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  max-height: min(40vh, 360px);
+  margin: 0 auto;
+  border-radius: 12px;
+  /* PNG already includes card shape; extra shadow reads as a second frame */
+  box-shadow: none;
+}
+.share-modal-title--export {
+  font-family: var(--odp-id-card-display);
+  font-style: italic;
+  font-weight: normal;
+  font-size: 1.28rem;
+  letter-spacing: 0.01em;
+  margin-bottom: 8px;
+}
+.share-modal-lead {
+  margin-bottom: 18px;
+}
+.share-modal-png-block {
+  margin-bottom: 18px;
+}
+.share-modal-panel--export .share-modal-png-block {
+  margin-bottom: 8px;
+}
+.share-modal-panel--export .share-modal-share-block {
+  margin-top: 0;
+}
+.share-modal-panel--export .share-modal-share-block .btn-sec {
+  margin-top: 0;
+}
+.share-modal-btn-png {
+  width: 100%;
+  padding: 15px 20px;
+  font-size: 15px;
+  letter-spacing: 0.03em;
+}
+.share-modal-share-block {
+  margin-top: 10px;
+}
+.share-modal-btn-share-wide {
+  width: 100%;
+  padding: 15px 20px;
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  justify-content: center;
+}
+.share-modal-section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text3);
+  margin: 0 0 14px;
+}
+.share-modal-qr-row {
+  display: grid;
+  grid-template-columns: minmax(128px, 140px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+.share-modal-panel--export .share-modal-url-block {
+  min-width: 0;
+}
+.share-modal-panel--export #shareModalQr.share-modal-qr-box {
+  display: inline-flex;
+  margin: 0;
+  padding: 10px;
+  min-width: 128px;
+  min-height: 128px;
+  max-width: 140px;
+  max-height: 140px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.share-modal-url-block {
+  flex: 1;
+  min-width: min(100%, 12rem);
+}
+.share-modal-mini-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+}
+.share-modal-actions--split {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.share-modal-actions--split .btn {
+  flex: 1 1 calc(50% - 5px);
+  min-width: min(100%, 9rem);
+  width: auto;
+}
+
+@media (max-width: 480px) {
+  .share-modal-qr-row {
+    grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 14px;
+  }
+  .share-modal-panel--export .share-modal-url-block {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
 
 .next-steps { text-align: left; border: 1px solid var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 24px; }
 .ns-item {
@@ -2869,6 +3018,17 @@ html[data-theme="blue"] .page .btn-ghost {
   color: var(--on-bg2);
   border-color: var(--on-bg-border);
 }
+/* #shareModal lives under .page but panels are white --bg2; must follow .page .btn-* */
+html[data-theme="blue"] .share-modal-panel .btn-sec,
+html[data-theme="blue"] .share-modal-panel .btn-ghost {
+  color: var(--text2);
+  border-color: var(--border2);
+}
+html[data-theme="blue"] .share-modal-panel .btn-sec:hover,
+html[data-theme="blue"] .share-modal-panel .btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--text2);
+}
 html[data-theme="blue"] .card-body .btn-sec,
 html[data-theme="blue"] .card .btn-sec {
   color: var(--text2);
@@ -3226,4 +3386,309 @@ html[data-theme="blue"] .odp-verify-toc a:hover {
 .odp-verify-toc a:hover {
   color: var(--accent);
   border-bottom-color: var(--accent2);
+}
+
+/* ── ODP ID card (portrait plate, phone-friendly) ─────────────────────────── */
+.odp-id-card-page-wrap {
+  width: 100%;
+  max-width: min(300px, 90vw);
+  margin: 0 auto 20px;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+.odp-id-card__shell {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding-top: 0;
+  filter: drop-shadow(0 14px 28px var(--shadow-dialog));
+}
+
+/* Surfaces + type: same tokens as the rest of the page (dark :root vs html[data-theme="blue"]) */
+.odp-id-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 26px;
+  background: linear-gradient(165deg, var(--bg2) 0%, var(--bg3) 100%);
+  border: 1px solid var(--border);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 12px 32px -14px var(--shadow-dialog);
+  color: var(--text);
+  text-align: left;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-theme="blue"] .odp-id-card {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65) inset,
+    0 12px 32px -14px var(--shadow-dialog);
+}
+
+.odp-id-card__body {
+  padding: 18px 18px 16px;
+  position: relative;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.odp-id-card__brand-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.odp-id-card__brand {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text3);
+  font-weight: 500;
+}
+
+.odp-id-card__stamp {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px dashed var(--border2);
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  line-height: 1.15;
+  text-align: center;
+  transform: rotate(-12deg);
+  background: var(--bg3);
+}
+
+.odp-id-card__hero {
+  font-family: var(--mono);
+  font-size: clamp(1.05rem, 3.8vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  color: var(--text);
+  word-break: break-word;
+  margin: 0 0 10px;
+}
+
+/* Profile: display title — Bookman Old Style italic */
+.odp-id-card__hero-title {
+  font-family: var(--odp-id-card-display);
+  font-size: clamp(1.2rem, 4vw, 1.55rem);
+  font-weight: normal;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--text);
+  margin: 0 0 10px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Profile / passport: mono ID line — theme accent (gold dark / blue light) */
+.odp-id-card__id-line {
+  font-family: var(--mono);
+  font-size: clamp(0.78rem, 2.6vw, 0.92rem);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  line-height: 1.35;
+  color: var(--odp-id-card-id-color);
+  word-break: break-word;
+  margin: 0 0 10px;
+}
+
+.odp-id-card__id-line--accent {
+  color: var(--odp-id-card-id-color);
+  letter-spacing: 0.06em;
+}
+
+.odp-id-card__hero--serif {
+  font-family: var(--odp-id-card-display);
+  font-size: clamp(1.28rem, 4.2vw, 1.68rem);
+  font-weight: normal;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  margin: 0 0 8px;
+}
+
+/* Passport: optional object title above ODP id */
+.odp-id-card__object-subtitle {
+  font-family: var(--serif);
+  font-size: clamp(0.72rem, 2.1vw, 0.88rem);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text2);
+  line-height: 1.35;
+  margin: 0 0 6px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* Passport: ODP id — single row, ellipsis if needed */
+.odp-id-card__hero--passport-id {
+  display: block;
+  -webkit-line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  font-size: clamp(0.88rem, 2.7vw, 1.15rem);
+  letter-spacing: 0.02em;
+  margin: 0 0 8px;
+}
+
+.odp-id-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.odp-id-card__pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  background: var(--gray-bg);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  max-width: 100%;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.odp-id-card__rule {
+  margin: 8px 0 10px;
+  flex-shrink: 0;
+  height: 0;
+  border: none;
+  border-top: 1px dashed var(--border2);
+}
+
+.odp-id-card__bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.odp-id-card__bottom--qr-only {
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+  padding-top: 0;
+}
+
+.odp-id-card__qr-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.odp-id-card__qr-hint {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text3);
+  text-align: center;
+  line-height: 1.3;
+  max-width: 12rem;
+}
+
+.odp-id-card__qr {
+  flex: 0 0 auto;
+  width: 100px;
+  height: 100px;
+  padding: 5px;
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+.odp-id-card__qr .qr-fail {
+  color: var(--red);
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.odp-id-card__qr canvas,
+.odp-id-card__qr img {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.odp-id-card__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Wallet line below profile card */
+.odp-id-card-wallet-line {
+  font-size: 13px;
+  color: var(--text3);
+  text-align: center;
+  font-family: var(--mono);
+  word-break: break-all;
+  margin: 0 0 20px;
+  line-height: 1.6;
+}
+
+@media (max-width: 520px) {
+  .odp-id-card__body {
+    padding: 18px 16px 16px;
+  }
 }
