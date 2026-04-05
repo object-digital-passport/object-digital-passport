@@ -22,6 +22,7 @@
   },
   "overrides": {
     "diff": "^8.0.2",
+    "lodash-es": "4.18.1",
     "serialize-javascript": "7.0.5"
   }
 }
