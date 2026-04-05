@@ -1,6 +1,8 @@
 ![Object Digital Passport — профиль и проверка](../../docs/readme/odp_cover_ru.png)
 
-# Object Digital Passport · v0.4
+# Object Digital Passport · v0.4.1
+
+*Снимок реализации · линия протокола **v0.4**. Примечания к релизу: [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md).*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub Repo stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=social)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
