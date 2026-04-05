@@ -23,7 +23,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/configure-pages@v5
       # Flatten web/ to artifact root so /verify.html works.
       # Also mirror under /web/ so /web/verify.html works (same relative assets; avoids 404 for repo-style URLs).
