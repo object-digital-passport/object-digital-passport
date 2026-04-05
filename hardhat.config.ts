@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "hardhat/config";
-import hardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+import "@nomicfoundation/hardhat-toolbox";
 import dotenv from "dotenv";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +29,6 @@ if (!PRIVATE_KEY) {
 }
 
 export default defineConfig({
-  plugins: [hardhatToolboxMochaEthers],
   paths: {
     sources: "contracts",
     tests: {
