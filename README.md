@@ -25,7 +25,7 @@ No platform lock-in, no subscription, no central gatekeeper.
 
 If you are new:
 
-1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Follow **your wallet vendor’s official documentation** (for example the [MetaMask Help Center](https://support.metamask.io/), [Rabby](https://rabby.io/), or your provider’s site). **No particular wallet brand is required** — any EIP-1193–compatible browser wallet may work. **Reference testing** of the static pages in this repository has been done **primarily with MetaMask**; others are expected to work but are less routinely exercised. On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
+1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Follow **your wallet vendor’s official documentation** (for example the [MetaMask Help Center](https://support.metamask.io/), [Rabby](https://rabby.io/), or your provider’s site). **No particular wallet brand is required** — any EIP-1193–compatible browser wallet may work. On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also connect via **[WalletConnect v2](https://docs.reown.com/)** (mobile wallets, QR); the reference UI uses Reown’s provider and the same on-chain flows. Configure a free Project ID in [`web/odp-wc-config.js`](web/odp-wc-config.js) if you self-host the pages (see [`RELEASE_v0.4.md`](RELEASE_v0.4.md)). **Reference testing** of the static pages has been done **primarily with MetaMask** and WalletConnect smoke checks; other wallets are expected to work but are less routinely exercised. On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
 2. Read this README for the practical overview.
 3. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
 4. [`RELEASE_v0.3.md`](RELEASE_v0.3.md) summarizes **v0.3 vs v0.2** (what changed). **Reference site & tooling since then:** [`RELEASE_v0.4.md`](RELEASE_v0.4.md) (WalletConnect, session restore, docs — on-chain line still **v0.3**). **Deploying your own registry and `NET.*`:** [`deploy/README.md`](deploy/README.md).
@@ -40,7 +40,7 @@ Translated version:
 
 ### 1) Prepare wallet and network fees
 
-- Use an EIP-1193 wallet (MetaMask, Rabby, Coinbase Wallet, Brave Wallet, etc.).
+- Use an **injected** EIP-1193 wallet (MetaMask, Rabby, Coinbase Wallet, Brave Wallet, etc.), **or** choose **WalletConnect** in the connect menu on Profile/Passport to sign from a mobile wallet (QR / app link). Same contracts and fees apply.
 - Keep a small **POL** (Polygon’s native token) balance so writes can confirm.
 - **Use a dedicated wallet for ODP** — not for long-term savings, DeFi, or trading (this limits impact if a dapp is malicious).
 

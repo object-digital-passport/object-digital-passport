@@ -1483,6 +1483,17 @@ is entirely the user's responsibility and choice.
 
 **Operational recommendation:** use a **dedicated wallet only for ODP** — not for holding meaningful balances, DeFi, trading, or day-to-day payments. This limits blast radius if a site is malicious or compromised. ODP does **not** require a second keypair: signing uses the wallet’s Ethereum keys. **Wallet choice:** follow **vendor documentation** for your tool (e.g. [MetaMask Help Center](https://support.metamask.io/)); **no specific wallet brand is normative**. **Reference implementations** in this repository (static web UI) have been **QA’d mainly with MetaMask**; other EIP-1193 wallets are expected to work but are not guaranteed to match every edge case. Optional **DID** documents (see §18) MAY declare extra verification keys for Verifiable Credentials; that is separate from basic register/mint flows.
 
+### Reference web UI: injected wallets and WalletConnect (informative)
+
+The **reference static pages** in this repository (**`passport.html`**, **`creator.html`**) support:
+
+- **Injected EIP-1193** providers (typical desktop browser extensions).
+- **WalletConnect v2** via [Reown](https://docs.reown.com/)’s **`@walletconnect/ethereum-provider`**, offered as an alternative in the connect UI. The WalletConnect session still surfaces an **EIP-1193** interface (`eth_requestAccounts`, `eth_chainId`, transaction signing) to the same register/mint code paths.
+
+WalletConnect relies on **relay** infrastructure and a wallet app (QR scan or deep link); **availability, privacy, and trust** of that channel are between the user, the wallet vendor, and WalletConnect — **not** specified here. On-chain semantics are unchanged: **`msg.sender`**, creator wallet, and **`chainId`** remain authoritative.
+
+For **repository wiring** (Reown Cloud Project ID, lazy-loaded bundle, session restore after reload), see **`web/odp-wc-config.js`**, **`web/odp-wallet-wc-loader.js`**, and **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**.
+
 ### Key generation principle
 
 The private key must be generated on the user's own device.
