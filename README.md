@@ -47,22 +47,25 @@ You **do not** need deep blockchain expertise to try the **[live demo pages](#li
 
 ## Start Here
 
-If you are new:
+If you are new, follow this order:
 
-1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Follow **your wallet vendor’s official documentation** (for example the [MetaMask Help Center](https://support.metamask.io/), [Rabby](https://rabby.io/), or your provider’s site). **No particular wallet brand is required** — any EIP-1193–compatible browser wallet may work. On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also connect via **[WalletConnect v2](https://docs.reown.com/)** (mobile wallets, QR); the reference UI uses Reown’s provider and the same on-chain flows. Configure a free Project ID in `[web/odp-wc-config.js](web/odp-wc-config.js)` if you self-host the pages (see `[RELEASE_v0.4.md](RELEASE_v0.4.md)`). **Reference testing** of the static pages has been done **primarily with MetaMask** and WalletConnect smoke checks; other wallets are expected to work but are less routinely exercised. On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
-2. Read this README for the practical overview.
-3. Read `[SPEC.md](SPEC.md)` for the exact protocol rules.
-4. `**[RELEASE_v0.4.md](RELEASE_v0.4.md)`** — v0.4 (**on-chain** + **site**: WalletConnect, `ODPCounterfeitConcern`, etc.). **v0.3 vs v0.2:** `[RELEASE_v0.3.md](RELEASE_v0.3.md)`. **Deploying your own registry and `NET.*`:** `[deploy/README.md](deploy/README.md)`.
+1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments—not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to “connect”, pause: that is normal for these pages, but scammers use the same trick—read **your** wallet’s help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee**—see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings—see [`web/odp-wc-config.js`](web/odp-wc-config.js) and [RELEASE_v0.4.md](RELEASE_v0.4.md).
 
-**0.x** means proof-of-concept: behaviour and deployments can change. Each contract address is its **own** registry; passport and profile records do **not** move between deployments by themselves. **This repository documents the reference v0.4 line** when you deploy bytecode from `**main`**; a future stable **v1** may define migration or dual-read — see versioning notes in `[SPEC.md](SPEC.md)` and `[docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md)`.
+2. **This README.** Read it through for a practical “how to use” picture—no code required.
+
+3. **Rules in full.** The normative protocol text is [SPEC.md](SPEC.md).
+
+4. **Going deeper.** What is new in this line: [RELEASE_v0.4.md](RELEASE_v0.4.md). Earlier changes vs older lines: [RELEASE_v0.3.md](RELEASE_v0.3.md). To **deploy your own** registry (for developers): [deploy/README.md](deploy/README.md).
+
+**0.x is a draft.** The project is **0.x**: behaviour and deployments can change. Each contract address is its **own** registry; records do **not** move between different deployments by themselves. This repo documents the **v0.4** reference line; for versioning details see [docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md).
 
 ## Quick Start (5 minutes)
 
 ### 1) Prepare wallet and network fees
 
-- Use an **injected** EIP-1193 wallet (MetaMask, Rabby, Coinbase Wallet, Brave Wallet, etc.), **or** choose **WalletConnect** in the connect menu on Profile/Passport to sign from a mobile wallet (QR / app link). Same contracts and fees apply.
-- Keep a small **POL** (Polygon’s native token) balance so writes can confirm.
-- **Use a dedicated wallet for ODP** — not for long-term savings, DeFi, or trading (this limits impact if a dapp is malicious).
+- A browser wallet (**MetaMask**, **Rabby**, Coinbase Wallet, Brave, etc.) **or** connect from your phone using the menu on Profile/Passport (QR / app link).
+- Keep a small **POL** balance—Polygon’s native token used for network fees.
+- **Use a dedicated wallet for ODP**—not for long-term savings or trading (less risk if a site is malicious).
 
 ### 2) Register your profile
 
