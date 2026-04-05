@@ -1,13 +1,13 @@
-
-
-# Object Digital Passport · v0.4 (draft protocol / tooling)
+Object Digital Passport · v0.4 (draft protocol / tooling)
 
 [License: MIT](LICENSE)
 [GitHub stars](https://github.com/object-digital-passport/object-digital-passport/stargazers)
 
-**Object Digital Passport (ODP)** is an **open standard for object authenticity**. It can describe **almost anything** — physical items, digital works, collectibles, and more: the standard is not tied to one industry. **It is built on a blockchain.** And no: this is not “another NFT project” or a meme coin. In plain terms, a **blockchain** is a chain of **information blocks** linked so the network can verify the chain is intact; a record that lands in a public registry **cannot be erased retroactively** as if it never existed — that is what makes later checks meaningful. The registry itself is still **not locked** to one company, subscription, or private gatekeeper for the index.
+**Object Digital Passport (ODP)** is an **open standard for object authenticity**. It can describe **almost anything** — physical items, digital works, collectibles, and more: the standard is not tied to one industry.   
 
-You **do not** need deep blockchain expertise to try the **[live demo pages](#live-demo)**. Checking a passport is free and does not require a wallet. Issuing a profile or passport uses common browser wallets and a small network fee on Polygon — details are in [Start Here](#start-here) and [Quick Start](#quick-start-5-minutes).
+**It is built on a blockchain.** And no: this is not “another NFT project” or a meme coin. In plain terms, a **blockchain** is a chain of **information blocks** linked so the network can verify the chain is intact; a record that lands in a public registry **cannot be erased retroactively** as if it never existed — that is what makes later checks meaningful. The registry itself is still **not locked** to one company, subscription, or private gatekeeper for the index.
+
+You **do not** need deep blockchain expertise to try the **[live demo pages](#live-demo)**. Checking a passport is free and does not require a wallet. Issuing a profile or passport uses common browser wallets and a small network fee on Polygon (often on the order of **~US$0.01** or **~1 RUB** per typical transaction—exchange rates and network load vary) — details are in [Start Here](#start-here) and [Quick Start](#quick-start-5-minutes).
 
 **What is this website?** [GitHub](https://github.com/) is where we host the **open-source** specification, web pages, and tools. You can read everything for free, copy the project, or suggest improvements — no account is required just to read.
 
@@ -91,14 +91,14 @@ End-to-end flow:
 
 1. **Profile** — the issuing party registers a profile on-chain and gets a stable **Profile ID**.
 2. **Passport** — they record a passport: content hashes, optional URLs, and metadata anchored in an **ODP registry** (e.g. **v0.4** / **v0.3**-shaped `ObjectDigitalPassport` deployment, plus optional auxiliary commitments per spec).
-3. **Share** — they distribute the **Passport ID** (`ODP-...`) and, when used, hosted bytes at `**dataUrl`** (raw `**passport.json**` or a **§15 `.odpass`** ZIP) so verifiers can fetch and check `**dataHash**`.
+3. **Share** — they distribute the **Passport ID** (`ODP-...`) and, when used, hosted bytes at `**dataUrl`** (raw `**passport.json`** or a **§15 `.odpass`** ZIP) so verifiers can fetch and check `**dataHash**`.
 4. **Verify** — anyone recomputes hashes, reads **read-only** chain state, and checks the `**.odpass`** package (or hosted bytes) against what the registry stores. No wallet is required to verify.
 
 **ID naming**
 
 - Human-readable object id: **Passport ID** (`ODP-YYYY-MM-…`).
 - In JSON: field `**passportId`**.
-- In contract ABI / wire payloads: `**humanId**` (historic wire name).
+- In contract ABI / wire payloads: `**humanId`** (historic wire name).
 
 ## Positioning
 
@@ -122,15 +122,15 @@ Pages:
 
 ## Reference stack v0.4 (quick facts)
 
-**This repository (`main`)** is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional `**ODPCounterfeitConcern`** satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see `**[RELEASE_v0.4.md](RELEASE_v0.4.md)**` and `**[SPEC.md](SPEC.md)**`. **Default Polygon addresses** in this README and `[deploy/deployments/polygon.json](deploy/deployments/polygon.json)` match the **generation 4** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
+**This repository (`main`)** is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional `**ODPCounterfeitConcern`** satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see `**[RELEASE_v0.4.md](RELEASE_v0.4.md)`** and `**[SPEC.md](SPEC.md)`**. **Default Polygon addresses** in this README and `[deploy/deployments/polygon.json](deploy/deployments/polygon.json)` match the **generation 4** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
 
 
 |                         |                                                                                                                                                                                                                                |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Source**              | `**main`** in this repository — reference **v0.4** stack (contracts + static web).                                                                                                                                             |
 | **On-chain generation** | `**CONTRACT_VERSION` = 4** (same v0.3-shaped `Passport` tuple as generation **3**).                                                                                                                                            |
-| **New vs v0.3 line**    | Optional `**ODPCounterfeitConcern`** satellite (P/M concern); public `**SPEC_*` / `MONTHLY_LIMIT_***` getters removed from the main contract bytecode for **EIP-170** headroom — see `**[RELEASE_v0.4.md](RELEASE_v0.4.md)`**. |
-| **Deploy order**        | `**ODPPassportLib`** → `**ObjectDigitalPassport**` → optional `**ODPWalletDocumentAnchor**` / `**ODPCounterfeitConcern**` — `**[deploy/README.md](deploy/README.md)**`.                                                        |
+| **New vs v0.3 line**    | Optional `**ODPCounterfeitConcern`** satellite (P/M concern); public `**SPEC_*` / `MONTHLY_LIMIT_*`** getters removed from the main contract bytecode for **EIP-170** headroom — see `**[RELEASE_v0.4.md](RELEASE_v0.4.md)`**. |
+| **Deploy order**        | `**ODPPassportLib`** → `**ObjectDigitalPassport`** → optional `**ODPWalletDocumentAnchor`** / `**ODPCounterfeitConcern**` — `**[deploy/README.md](deploy/README.md)**`.                                                        |
 
 
 ## Current Release
@@ -172,7 +172,7 @@ For threat model and trust boundaries:
 Verification basics:
 
 - On-chain hashes are the anchor for what was registered.
-- `**passport.json**` (or the bytes inside `**.odpass**`) must match the stored `**dataHash**` (and related fields per spec).
+- `**passport.json`** (or the bytes inside `**.odpass`**) must match the stored `**dataHash**` (and related fields per spec).
 - `**manifest.json**` inside `**.odpass**` is packaging metadata for tools, not a separate trust root.
 
 Normative rules:
