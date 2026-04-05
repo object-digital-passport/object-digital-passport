@@ -33,7 +33,8 @@ import "./ODPPassportLib.sol";
  *   (different address, bytecode, ABI). Integrators must not treat them as drop-in replacements.
  *   The v0.3 line is documented in SPEC as aligned toward a future stable v1 (migration to be
  *   defined in v1); this is design intent, not an in-place upgrade guarantee.
- *   v0.4 reference: v0.3 feature set + satellite counterfeit concern (SPEC), NFC NTAG424DNA_TT only.
+ *   v0.4 reference: v0.3 feature set + satellite counterfeit concern (SPEC), NFC NTAG424DNA_TT only;
+ *   ABI names the Passport ID field `passportId` (structs, events, external API) — same spec line / packed byte as earlier v0.4 `humanId` deployments.
  *   v0.3 added: owner/transfer, account-scoped publishing agent for hosted URLs, revocation,
  *   extra image hashes, P-affiliation detach + timestamps, governance (revocation),
  *   optional aux commitment + IODPExtension mint routes (digital/physical).
@@ -104,7 +105,7 @@ contract ObjectDigitalPassport {
     uint8 internal constant SPEC_MINOR = 4;
 
     /// Packed byte in `Passport.contractVersion`: `SPEC_MAJOR * 16 + SPEC_MINOR` (each < 16).
-    /// Reference bytecode keeps **0×16+3 = 3** (v0.3 tuple shape). The **v0.4** branch adds optional satellites + NFC allowlist without incrementing this byte (EIP-170 budget).
+    /// **v0.4** uses packed byte **4**. New bytecode uses ABI name `passportId`; some earlier v0.4 deployments used `humanId` (integrators: match ABI to bytecode).
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows profile ID prefix (C/B/P/M).
@@ -121,7 +122,7 @@ contract ObjectDigitalPassport {
     }
 
     struct Passport {
-        string  humanId;       // Passport ID (SPEC); ODP-… string; ABI name humanId
+        string  passportId;       // Passport ID (SPEC); ODP-… string; ABI name passportId
         uint8   contractVersion; // packed SPEC_MAJOR/SPEC_MINOR (see CONTRACT_VERSION) at mint
         address creator;       // immutable issuer wallet at mint
         address owner;         // current holder; starts as creator; changes via transferPassport
@@ -163,7 +164,7 @@ contract ObjectDigitalPassport {
         string  proofId;         // "PRF-2031-03-7392018"
         uint8   contractVersion; // packed SPEC_MAJOR/SPEC_MINOR at submission
         string  prover;          // Profile ID of P- or M-type institution
-        string  humanId;         // attested passport
+        string  passportId;         // attested passport
         bytes32 noteHash;        // SHA-256 of attached document. bytes32(0) = none
         string  noteUrl;
         uint256 timestamp;
@@ -239,9 +240,9 @@ contract ObjectDigitalPassport {
     uint8 private constant EXT_MINT_KIND_DIGITAL  = 0;
     uint8 private constant EXT_MINT_KIND_PHYSICAL = 1;
 
-    // ── Freeze (for v0 → v1 migration) ─────────────────────────────────────────────
-    // When v1 is ready, this contract can be frozen to stop new writes.
-    // Frozen = historical archive. All existing records remain readable forever.
+    // ── Freeze (v0.x only) ────────────────────────────────────────────────────────
+    // Registry-wide freeze: deployer-only, irreversible. Planned stable v1 omits this mechanism (see docs/IDEAS_V1.md).
+    // When migrating, this v0.x contract may be frozen to stop new writes; frozen = historical archive; reads unchanged.
     // Only the deployer address can freeze. Cannot be unfrozen.
     address public immutable deployer;
     bool    public frozen;
@@ -261,7 +262,7 @@ contract ObjectDigitalPassport {
     );
 
     event PassportMinted(
-        string  indexed humanId,
+        string  indexed passportId,
         address indexed creator,
         string          creatorId,
         string          objectType,
@@ -278,14 +279,14 @@ contract ObjectDigitalPassport {
     event MintAgentUpdate(string indexed principalCreatorId, address indexed agent, uint8 kind, uint256 timestamp);
 
     event PassportUrlsUpdated(
-        string indexed humanId,
+        string indexed passportId,
         string         newDataUrl,
         string         newImageUrl
     );
 
     event ProofSubmitted(
         string  indexed proofId,
-        string  indexed humanId,
+        string  indexed passportId,
         string  indexed prover,
         uint256         timestamp
     );
@@ -311,7 +312,7 @@ contract ObjectDigitalPassport {
     );
 
     event PassportTransferred(
-        string  indexed humanId,
+        string  indexed passportId,
         address indexed from,
         address indexed to,
         uint256 timestamp
@@ -322,7 +323,7 @@ contract ObjectDigitalPassport {
     event CreatorPublishingDelegationRevoked(address indexed creator, uint256 timestamp);
 
     event PassportRevoked(
-        string  indexed humanId,
+        string  indexed passportId,
         address indexed revokedBy,
         bytes32 reasonHash,
         uint256 timestamp
@@ -331,7 +332,7 @@ contract ObjectDigitalPassport {
     event GovernanceTransferred(address indexed previous, address indexed next, uint256 timestamp);
 
     event PassportAuxCommitmentUpdated(
-        string  humanId,
+        string  passportId,
         bytes32 newHash,
         string  newUri,
         address updatedBy,
@@ -339,7 +340,7 @@ contract ObjectDigitalPassport {
     );
 
     /// @dev `kind`: 0 = digital extension mint, 1 = physical extension mint. Emitted with `PassportMinted`.
-    event ExtensionMintUsed(bytes1 indexed mintClass, uint8 indexed kind, string humanId);
+    event ExtensionMintUsed(bytes1 indexed mintClass, uint8 indexed kind, string passportId);
 
     // ─── Constructor ──────────────────────────────────────────────────────────
 
@@ -353,8 +354,8 @@ contract ObjectDigitalPassport {
     /**
      * Freeze this contract — no new records can be created after this.
      * Existing data remains readable forever.
-     * Called once before deploying v1 to "seal" the v0.x registry.
-     * Only the original deployer can freeze.
+     * v0.x only: the planned stable v1 protocol line does not include registry-wide `freeze()` (see docs/IDEAS_V1.md).
+     * May be used when sunsetting this deployment; only the original deployer can freeze.
      */
     function freeze() external {
         if (!(msg.sender == deployer)) revert EC(58);
@@ -685,13 +686,13 @@ contract ObjectDigitalPassport {
         bool dataUrlIsFolderBase,
         address principalWallet,
         address mintAgentForPassport
-    ) internal returns (string memory humanId) {
-        humanId = _generatePassportId(m.year, m.month);
-        string memory resolvedDataUrl = ODPPassportLib.resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
+    ) internal returns (string memory passportId) {
+        passportId = _generatePassportId(m.year, m.month);
+        string memory resolvedDataUrl = ODPPassportLib.resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, passportId);
         if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
 
-        _passports[humanId] = Passport({
-            humanId:         humanId,
+        _passports[passportId] = Passport({
+            passportId:         passportId,
             contractVersion: CONTRACT_VERSION,
             creator:         principalWallet,
             owner:           principalWallet,
@@ -721,9 +722,9 @@ contract ObjectDigitalPassport {
             mintAgent:         mintAgentForPassport
         });
 
-        _creatorPassports[principalWallet].push(humanId);
+        _creatorPassports[principalWallet].push(passportId);
 
-        emit PassportMinted(humanId, principalWallet, creatorId, OBJECT_DIGITAL,
+        emit PassportMinted(passportId, principalWallet, creatorId, OBJECT_DIGITAL,
                             m.year, m.month, m.dataHash, 0, "", block.timestamp, mintAgentForPassport);
     }
 
@@ -734,13 +735,13 @@ contract ObjectDigitalPassport {
         bool dataUrlIsFolderBase,
         address principalWallet,
         address mintAgentForPassport
-    ) internal returns (string memory humanId) {
-        humanId = _generatePassportId(m.year, m.month);
-        string memory resolvedDataUrl = ODPPassportLib.resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, humanId);
+    ) internal returns (string memory passportId) {
+        passportId = _generatePassportId(m.year, m.month);
+        string memory resolvedDataUrl = ODPPassportLib.resolveMintDataUrlMemory(m.dataUrl, dataUrlIsFolderBase, passportId);
         if (!(bytes(resolvedDataUrl).length <= 512)) revert EC(27);
 
-        _passports[humanId] = Passport({
-            humanId:         humanId,
+        _passports[passportId] = Passport({
+            passportId:         passportId,
             contractVersion: CONTRACT_VERSION,
             creator:         principalWallet,
             owner:           principalWallet,
@@ -770,12 +771,18 @@ contract ObjectDigitalPassport {
             mintAgent:         mintAgentForPassport
         });
 
-        _creatorPassports[principalWallet].push(humanId);
+        _creatorPassports[principalWallet].push(passportId);
 
-        emit PassportMinted(humanId, principalWallet, creatorId, OBJECT_PHYSICAL,
+        emit PassportMinted(passportId, principalWallet, creatorId, OBJECT_PHYSICAL,
                             m.year, m.month, m.dataHash, m.sealType, m.nfcModel, block.timestamp, mintAgentForPassport);
     }
 
+    /**
+     * Register a PHYSICAL object.
+     *
+     * @param year          Must equal UTC calendar year of `block.timestamp` (ODP-ID `YYYY-MM` prefix).
+     * @param month         Must equal UTC calendar month (1–12) of `block.timestamp`.
+     */
     function mintPhysical(
         uint32  year,
         uint8   month,
@@ -795,7 +802,7 @@ contract ObjectDigitalPassport {
         bytes32 auxCommitmentHash,
         string  calldata auxCommitmentUri,
         string  calldata mintOnBehalfOfCreatorId
-    ) external notFrozen returns (string memory humanId) {
+    ) external notFrozen returns (string memory passportId) {
         (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
 
         PhysicalMintInputs memory m = PhysicalMintInputs({
@@ -817,6 +824,7 @@ contract ObjectDigitalPassport {
             auxCommitmentUri: auxCommitmentUri
         });
         ODPPassportLib.validatePhysicalMintForMint(m);
+        _requireUtcYearMonth(year, month);
         return _mintPhysicalCommit(creatorId, m, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
     }
 
@@ -828,14 +836,14 @@ contract ObjectDigitalPassport {
      * Caller must be registered (profile ID mandatory).
      * No seal required. fileHash is mandatory.
      *
-     * @param year          Any year > 0 (e.g. 1823 for historical art)
-     * @param month         1–12
+     * @param year          Must equal UTC calendar year of `block.timestamp` (ODP-ID `YYYY-MM` prefix).
+     * @param month         Must equal UTC calendar month (1–12) of `block.timestamp`.
      * @param dataHash      SHA-256 of minified passport.json
-     * @param dataUrl       Public URL of passport.json (max 512 chars). May be "" — verifiers cannot fetch JSON without a URL.
+     * @param dataUrl       Public HTTPS URL of the §15 `.odpass` bundle (max 512 chars). May be "" — verifiers cannot fetch without a URL.
      * @param imageHash     SHA-256 of preview image. bytes32(0) = none
      * @param imageUrl      Preview image URL hint. "" = none
      * @param fileHash      SHA-256 of the original digital file. Required.
-     * @param dataUrlIsFolderBase If true, `dataUrl` is folder root only; stored URL is `folderBase/humanId.json`.
+     * @param dataUrlIsFolderBase If true, `dataUrl` is folder root only; stored URL is `folderBase/passportId.odpass` (§15 bundle).
      * @param auxCommitmentHash Optional second document commitment (0 with empty URI if unused).
      * @param auxCommitmentUri Optional HTTPS hint for that document (max 512 chars if hash set).
      * @param mintOnBehalfOfCreatorId Pass "" to mint as the registered caller. Otherwise the principal profile id
@@ -857,7 +865,7 @@ contract ObjectDigitalPassport {
         bytes32 auxCommitmentHash,
         string  calldata auxCommitmentUri,
         string  calldata mintOnBehalfOfCreatorId
-    ) external notFrozen returns (string memory humanId) {
+    ) external notFrozen returns (string memory passportId) {
         (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
         DigitalMintInputs memory dm = DigitalMintInputs({
             year: year,
@@ -875,6 +883,7 @@ contract ObjectDigitalPassport {
             auxCommitmentUri: auxCommitmentUri
         });
         ODPPassportLib.validateDigitalMintInputs(dm);
+        _requireUtcYearMonth(year, month);
         return _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
     }
 
@@ -890,7 +899,7 @@ contract ObjectDigitalPassport {
         bytes calldata payload,
         bool dataUrlIsFolderBase,
         string calldata mintOnBehalfOfCreatorId
-    ) external notFrozen returns (string memory humanId) {
+    ) external notFrozen returns (string memory passportId) {
         address ext = typeToExtension[mintClass];
         if (!(ext != address(0))) revert EC(64);
 
@@ -900,8 +909,9 @@ contract ObjectDigitalPassport {
         bytes memory norm = IODPExtension(ext).normalize(payload);
 
         DigitalMintInputs memory dm = ODPPassportLib.decodeAndValidateDigitalExtensionNorm(norm);
-        humanId = _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
-        emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_DIGITAL, humanId);
+        _requireUtcYearMonth(dm.year, dm.month);
+        passportId = _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
+        emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_DIGITAL, passportId);
     }
 
     /**
@@ -914,7 +924,7 @@ contract ObjectDigitalPassport {
         bytes calldata payload,
         bool dataUrlIsFolderBase,
         string calldata mintOnBehalfOfCreatorId
-    ) external notFrozen returns (string memory humanId) {
+    ) external notFrozen returns (string memory passportId) {
         address ext = typeToExtension[mintClass];
         if (!(ext != address(0))) revert EC(64);
 
@@ -924,9 +934,10 @@ contract ObjectDigitalPassport {
         bytes memory norm = IODPExtension(ext).normalize(payload);
 
         PhysicalMintInputs memory pm = ODPPassportLib.decodeAndValidatePhysicalExtensionNorm(norm);
+        _requireUtcYearMonth(pm.year, pm.month);
 
-        humanId = _mintPhysicalCommit(creatorId, pm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
-        emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_PHYSICAL, humanId);
+        passportId = _mintPhysicalCommit(creatorId, pm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
+        emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_PHYSICAL, passportId);
     }
 
     // ─── Passport — Update ────────────────────────────────────────────────────
@@ -963,7 +974,7 @@ contract ObjectDigitalPassport {
 
     /**
      * Update hosting URLs only — dataUrl and imageUrl.
-     * Use this when moving passport.json or image to a new host.
+     * Use this when moving the hosted `.odpass` bundle or image to a new host.
      *
      * ALL HASHES ARE IMMUTABLE after minting:
      *   dataHash, imageHash, fileHash, sealHash — cannot change ever.
@@ -986,12 +997,12 @@ contract ObjectDigitalPassport {
      *                           accidental URL updates pointing to wrong content.
      */
     function updatePassportUrls(
-        string  calldata humanId,
+        string  calldata passportId,
         string  calldata newDataUrl,
         string  calldata newImageUrl,
         bytes32          confirmedDataHash
     ) external notFrozen {
-        Passport storage p = _passports[humanId];
+        Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(11);
         if (!_canUpdatePassportUrls(p)) revert EC(26);
@@ -1003,7 +1014,7 @@ contract ObjectDigitalPassport {
         p.dataUrl  = newDataUrl;
         p.imageUrl = newImageUrl;
 
-        emit PassportUrlsUpdated(humanId, newDataUrl, newImageUrl);
+        emit PassportUrlsUpdated(passportId, newDataUrl, newImageUrl);
     }
 
     /**
@@ -1011,37 +1022,37 @@ contract ObjectDigitalPassport {
      * @dev Only **creator** or **governance**. Revoked passports cannot be updated. `(bytes32(0), "")` clears the aux slot.
      */
     function updatePassportAuxCommitment(
-        string calldata humanId,
+        string calldata passportId,
         bytes32 newHash,
         string calldata newUri
     ) external notFrozen {
-        Passport storage p = _passports[humanId];
+        Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(11);
         if (!(msg.sender == p.creator || msg.sender == governance)) revert EC(67);
         ODPPassportLib.validateAuxCommitmentFields(newHash, newUri);
         p.auxCommitmentHash = newHash;
         p.auxCommitmentUri = newUri;
-        emit PassportAuxCommitmentUpdated(humanId, newHash, newUri, msg.sender, block.timestamp);
+        emit PassportAuxCommitmentUpdated(passportId, newHash, newUri, msg.sender, block.timestamp);
     }
 
     /// Current owner (starts as creator) may transfer the passport record to a new wallet.
-    function transferPassport(string calldata humanId, address newOwner) external notFrozen {
+    function transferPassport(string calldata passportId, address newOwner) external notFrozen {
         if (!(newOwner != address(0))) revert EC(22);
-        Passport storage p = _passports[humanId];
+        Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(11);
         if (!(p.owner == msg.sender)) revert EC(19);
         p.owner = newOwner;
-        emit PassportTransferred(humanId, msg.sender, newOwner, block.timestamp);
+        emit PassportTransferred(passportId, msg.sender, newOwner, block.timestamp);
     }
 
     /**
      * Irreversible passport revocation. Creator or governance may revoke.
      * reasonHash should be keccak256(utf8(reason)) for verifiers; full text may live off-chain.
      */
-    function revokePassport(string calldata humanId, bytes32 reasonHash) external notFrozen {
-        Passport storage p = _passports[humanId];
+    function revokePassport(string calldata passportId, bytes32 reasonHash) external notFrozen {
+        Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(18);
         if (!(msg.sender == p.creator || msg.sender == governance)) revert EC(17);
@@ -1049,20 +1060,20 @@ contract ObjectDigitalPassport {
         p.revoked = true;
         p.revokedAt = block.timestamp;
         p.revocationReasonHash = reasonHash;
-        emit PassportRevoked(humanId, msg.sender, reasonHash, block.timestamp);
+        emit PassportRevoked(passportId, msg.sender, reasonHash, block.timestamp);
     }
 
     // ─── Passport — Read ──────────────────────────────────────────────────────
 
-    function getPassport(string calldata humanId)
+    function getPassport(string calldata passportId)
         external view returns (Passport memory)
     {
-        if (!(_passports[humanId].creator != address(0))) revert EC(12);
-        return _passports[humanId];
+        if (!(_passports[passportId].creator != address(0))) revert EC(12);
+        return _passports[passportId];
     }
 
-    function exists(string calldata humanId) external view returns (bool) {
-        return _passports[humanId].creator != address(0);
+    function exists(string calldata passportId) external view returns (bool) {
+        return _passports[passportId].creator != address(0);
     }
 
     function getPassportsByCreator(address creator)
@@ -1085,28 +1096,28 @@ contract ObjectDigitalPassport {
      * Submit a Proof attestation for a registered passport.
      * Caller must be registered as type P (Proof Institution) or M (Museum).
      *
-     * @param humanId   The passport being attested
+     * @param passportId   The passport being attested
      * @param noteHash  SHA-256 of attached document. bytes32(0) = none
      * @param noteUrl   URL of attached document. "" = none
-     * @param year      Year of the proof event (e.g. 2031) — for readable PRF ID
-     * @param month     Month of the proof event (1–12)
+     * @param year      Must equal UTC calendar year of `block.timestamp` (PRF-ID `YYYY-MM` prefix).
+     * @param month     Must equal UTC calendar month (1–12) of `block.timestamp`.
      *
-     * Caller provides year+month explicitly to avoid on-chain timestamp approximation.
-     * The exact block timestamp is always stored in ProofRecord.timestamp as well.
+     * The exact block timestamp is always stored in `ProofRecord.timestamp` as well.
      */
     function submitProof(
-        string  calldata humanId,
+        string  calldata passportId,
         bytes32          noteHash,
         string  calldata noteUrl,
         uint32           year,
         uint8            month
     ) external notFrozen returns (string memory proofId) {
-        Passport storage pPass = _passports[humanId];
+        Passport storage pPass = _passports[passportId];
         if (!(pPass.creator != address(0))) revert EC(12);
         if (!(!pPass.revoked)) revert EC(11);
         if (!(bytes(noteUrl).length <= 512)) revert EC(10);
         if (!(year > 0)) revert EC(9);
         if (!(month >= 1 && month <= 12)) revert EC(8);
+        _requireUtcYearMonth(year, month);
 
         string memory callerId = _walletToCreatorId[msg.sender];
         if (!(bytes(callerId).length > 0)) revert EC(7);
@@ -1117,29 +1128,29 @@ contract ObjectDigitalPassport {
             if (!(bytes(noteUrl).length == 0)) revert EC(5);
         }
 
-        proofId = _generateProofId(year, month, humanId);
+        proofId = _generateProofId(year, month, passportId);
 
         _proofs[proofId] = ProofRecord({
             proofId:         proofId,
             contractVersion: CONTRACT_VERSION,
             prover:          callerId,
-            humanId:         humanId,
+            passportId:         passportId,
             noteHash:        noteHash,
             noteUrl:         noteUrl,
             timestamp:       block.timestamp
         });
 
-        _passportProofs[humanId].push(proofId);
+        _passportProofs[passportId].push(proofId);
         _institutionProofs[callerId].push(proofId);
 
-        emit ProofSubmitted(proofId, humanId, callerId, block.timestamp);
+        emit ProofSubmitted(proofId, passportId, callerId, block.timestamp);
         return proofId;
     }
 
-    function getProofsForPassport(string calldata humanId)
+    function getProofsForPassport(string calldata passportId)
         external view returns (string[] memory)
     {
-        return _passportProofs[humanId];
+        return _passportProofs[passportId];
     }
 
     function getProof(string calldata proofId)
@@ -1195,6 +1206,12 @@ contract ObjectDigitalPassport {
     {
         (creatorId, principalWallet, mintAgentAddr) = _resolveMintPrincipal(mintOnBehalfOfCreatorId);
         _checkAndIncrementMintLimit(creatorId, principalWallet);
+    }
+
+    /// @dev `year`/`month` must match Gregorian UTC calendar of `block.timestamp` (ODP-ID prefix binds to mint month).
+    function _requireUtcYearMonth(uint32 year, uint8 month) private view {
+        (uint32 cy, uint8 cm) = ODPPassportLib.utcYearMonthFromTimestamp(block.timestamp);
+        if (!(year == cy && month == cm)) revert EC(68);
     }
 
     function _isValidType(bytes1 t) internal pure returns (bool) {
@@ -1309,7 +1326,7 @@ contract ObjectDigitalPassport {
             if (!_passportNumberTaken[key][n]) {
                 _passportNonce = baseNonce + i + 1;
                 _passportNumberTaken[key][n] = true;
-                return ODPPassportLib.formatOdpHumanId(year, month, n);
+                return ODPPassportLib.formatOdpPassportId(year, month, n);
             }
         }
         revert EC(61);
@@ -1318,12 +1335,12 @@ contract ObjectDigitalPassport {
     /**
      * Generate a unique Proof ID number (0–99,999,999) for year+month.
      */
-    function _generateProofId(uint32 year, uint8 month, string memory humanId)
+    function _generateProofId(uint32 year, uint8 month, string memory passportId)
         internal returns (string memory)
     {
         uint32 key = uint32(year) * 100 + uint32(month);
         uint256 baseNonce = _proofNonce;
-        bytes32 humanIdHash = keccak256(bytes(humanId));
+        bytes32 passportIdHash = keccak256(bytes(passportId));
         for (uint i = 0; i < 25; i++) {
             uint32 n = uint32(uint256(keccak256(abi.encodePacked(
                 block.timestamp,
@@ -1331,13 +1348,13 @@ contract ObjectDigitalPassport {
                 msg.sender,
                 baseNonce + i,
                 key,
-                humanIdHash,
+                passportIdHash,
                 gasleft()
             ))) % 100_000_000);
             if (!_proofNumberTaken[key][n]) {
                 _proofNonce = baseNonce + i + 1;
                 _proofNumberTaken[key][n] = true;
-                return ODPPassportLib.formatProofHumanId(year, month, n);
+                return ODPPassportLib.formatPrfId(year, month, n);
             }
         }
         revert EC(60);

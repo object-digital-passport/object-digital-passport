@@ -104,8 +104,10 @@
       "docCheck": "Document hash check"
     },
     "dataUrl": {
-      "odpassHostedBanner": "Hosted dataUrl returned a .odpass ZIP — passport.json was read from inside the bundle and hashed the same way as raw JSON.",
-      "noPassportInZip": "Hosted URL looks like a ZIP/.odpass, but passport.json is missing inside."
+      "odpassHostedBanner": "Hosted dataUrl returned a §15 .odpass ZIP — passport.json was read from the bundle (normative; raw JSON at dataUrl is not allowed).",
+      "noPassportInZip": "Hosted URL looks like a ZIP/.odpass, but passport.json is missing inside.",
+      "rawJsonUrlNotAllowed": "This dataUrl points at a .json file — SPEC §9 requires a .odpass bundle at the public URL. Upload the ZIP and update dataUrl.",
+      "requireOdpassZip": "dataUrl must return a §15 .odpass ZIP (application/zip or ZIP local header). Raw JSON body is not allowed at the public URL."
     },
     "bundle": {
       "reading": "Reading .odpass bundle…",
@@ -156,7 +158,7 @@
       "detachedAt": "Detached at",
       "lastDetachedParent": "Last detached from parent",
       "registryNote": "Data from contract",
-      "noSupport": "No deployment returned affiliation audit (try a v0.3+ registry with P affiliation support)."
+      "noSupport": "No deployment returned affiliation audit (try a v0.3 registry)."
     },
     "fields": {
       "passportId": "Passport ID",

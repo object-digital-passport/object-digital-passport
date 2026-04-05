@@ -2,7 +2,7 @@
  * ODP — shared helpers for contract generation detection and ABI selection.
  * README: site semver 0.X.Y vs on-chain deployment generation (CONTRACT_VERSION uint8).
  *
- * Naming: ABI / Solidity use `humanId` for the Passport ID string (`ODP-…`) and `creatorId` for the profile ID (`C-…` / `B-…` / `P-…` / `M-…`). Do not rename ABI `name` fields unless the contract and JSON schema change to match.
+ * Naming: v0.4 registries use `passportId` or legacy `humanId` for the Passport ID string (same packed `CONTRACT_VERSION` — see `odpPassportIdAbiName`). `creatorId` is the profile ID (`C-…` / `B-…` / `P-…` / `M-…`).
  */
 (function (global) {
   "use strict";
@@ -35,6 +35,24 @@
     return generation >= 3;
   }
 
+  /**
+   * Known Polygon mainnet v0.4 deployment whose ABI still used `humanId` (before redeploy with `passportId`).
+   * New registry at another address with the same packed `CONTRACT_VERSION` uses `passportId`.
+   */
+  var ODP_LEGACY_V04_HUMANID_ABI_POLYGON = "0xbf3398e16af6ae7ab41524bee3570fa36c219e75";
+
+  /** First tuple / param name for on-chain Passport ID (`passportId` vs legacy `humanId`). */
+  function odpPassportIdAbiName(generation, net) {
+    if (!odpSupportsV03(generation)) return "humanId";
+    if (generation < 4) return "humanId";
+    var n = net || {};
+    if (typeof n.abiPassportId === "boolean") return n.abiPassportId ? "passportId" : "humanId";
+    var cid = n.chainId != null ? Number(n.chainId) : 137;
+    var addr = n.contract ? String(n.contract).trim().toLowerCase() : "";
+    if (cid === 137 && addr === ODP_LEGACY_V04_HUMANID_ABI_POLYGON) return "humanId";
+    return "passportId";
+  }
+
   /** ABI for `ODPCounterfeitConcern` (satellite) — same method names as legacy v0.2 monolith. */
   function odpCounterfeitConcernAbiFragments() {
     return [
@@ -43,7 +61,7 @@
         type: "function",
         stateMutability: "nonpayable",
         inputs: [
-          { name: "humanId", type: "string" },
+          { name: "passportId", type: "string" },
           { name: "reasonHash", type: "bytes32" },
         ],
         outputs: [],
@@ -52,14 +70,14 @@
         name: "clearCounterfeitConcern",
         type: "function",
         stateMutability: "nonpayable",
-        inputs: [{ name: "humanId", type: "string" }],
+        inputs: [{ name: "passportId", type: "string" }],
         outputs: [],
       },
       {
         name: "getCounterfeitConcern",
         type: "function",
         stateMutability: "view",
-        inputs: [{ name: "humanId", type: "string" }],
+        inputs: [{ name: "passportId", type: "string" }],
         outputs: [
           { name: "active", type: "bool" },
           { name: "proverCreatorId", type: "string" },
@@ -132,9 +150,10 @@
   }
 
   /** v0.3+: owner, extra image hashes/URLs, revocation fields. */
-  function odpPassportTupleComponentsV03() {
+  function odpPassportTupleComponentsV03(generation, net) {
+    var idn = odpPassportIdAbiName(generation, net);
     return [
-      { name: "humanId", type: "string" },
+      { name: idn, type: "string" },
       { name: "contractVersion", type: "uint8" },
       { name: "creator", type: "address" },
       { name: "owner", type: "address" },
@@ -165,8 +184,8 @@
     ];
   }
 
-  function odpPassportTupleComponents(generation) {
-    return odpSupportsV03(generation) ? odpPassportTupleComponentsV03() : odpPassportTupleComponentsV02();
+  function odpPassportTupleComponents(generation, net) {
+    return odpSupportsV03(generation) ? odpPassportTupleComponentsV03(generation, net) : odpPassportTupleComponentsV02();
   }
 
   function odpRegistrySessionKey(chainId) {
@@ -303,19 +322,19 @@
   var ODP_LIVE_BASE = "https://object-digital-passport.github.io/object-digital-passport";
 
   /** First line of EIP-191 creator proof messages (must match SPEC / verify.html). */
-  var ODP_CREATOR_PROOF_PREFIX = "Object Digital Passport — creator wallet proof (EIP-191) v1";
+  var ODP_CREATOR_PROOF_PREFIX = "Object Digital Passport — creator wallet proof (EIP-191) v2";
 
   /**
    * Canonical text signed with the creator wallet (EIP-191 `personal_sign`).
-   * @param {string} humanId Passport ID (`ODP-…`; message line still labeled `humanId:` per SPEC).
+   * @param {string} passportId Passport ID (`ODP-…`; message line `passportId:` — v2; v1 used `humanId:`).
    * @param {string} contractAddress — registry contract (checksum recommended; verifier binds to this line)
    */
-  function odpBuildCreatorProofMessageV1(humanId, chainId, contractAddress, nonce) {
+  function odpBuildCreatorProofMessageV1(passportId, chainId, contractAddress, nonce) {
     var addr = String(contractAddress || "").trim();
     return [
       ODP_CREATOR_PROOF_PREFIX,
       "",
-      "humanId: " + String(humanId),
+      "passportId: " + String(passportId),
       "chainId: " + String(chainId),
       "contract: " + addr,
       "nonce: " + String(nonce),
@@ -693,7 +712,8 @@
     return gen;
   }
 
-  function odpBuildPassportAbi(generation) {
+  function odpBuildPassportAbi(generation, net) {
+    var pid = odpPassportIdAbiName(generation, net);
     var folder = generation >= 2;
     var mintMut = "nonpayable";
 
@@ -751,8 +771,12 @@
 
     var passportMintedEvent =
       odpSupportsV03(generation)
-        ? "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp,address mintAgent)"
-        : "event PassportMinted(string indexed humanId,address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)";
+        ? "event PassportMinted(string indexed " +
+          pid +
+          ",address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp,address mintAgent)"
+        : "event PassportMinted(string indexed " +
+          pid +
+          ",address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)";
 
     var passportAbi = [
       {
@@ -773,24 +797,24 @@
         name: "getPassport",
         type: "function",
         stateMutability: "view",
-        inputs: [{ name: "humanId", type: "string" }],
+        inputs: [{ name: pid, type: "string" }],
         outputs: [
           {
             name: "",
             type: "tuple",
-            components: odpPassportTupleComponents(generation),
+            components: odpPassportTupleComponents(generation, net),
           },
         ],
       },
       passportMintedEvent,
-      { name: "mintPhysical", type: "function", stateMutability: mintMut, inputs: mintPhysicalInputs, outputs: [{ name: "humanId", type: "string" }] },
-      { name: "mintDigital", type: "function", stateMutability: mintMut, inputs: mintDigitalInputs, outputs: [{ name: "humanId", type: "string" }] },
+      { name: "mintPhysical", type: "function", stateMutability: mintMut, inputs: mintPhysicalInputs, outputs: [{ name: pid, type: "string" }] },
+      { name: "mintDigital", type: "function", stateMutability: mintMut, inputs: mintDigitalInputs, outputs: [{ name: pid, type: "string" }] },
       {
         name: "updatePassportUrls",
         type: "function",
         stateMutability: "nonpayable",
         inputs: [
-          { name: "humanId", type: "string" },
+          { name: pid, type: "string" },
           { name: "newDataUrl", type: "string" },
           { name: "newImageUrl", type: "string" },
           { name: "confirmedDataHash", type: "bytes32" },
@@ -813,7 +837,7 @@
           type: "function",
           stateMutability: "nonpayable",
           inputs: [
-            { name: "humanId", type: "string" },
+            { name: pid, type: "string" },
             { name: "noteHash", type: "bytes32" },
             { name: "noteUrl", type: "string" },
             { name: "year", type: "uint32" },
@@ -841,7 +865,7 @@
                 { name: "proofId", type: "string" },
                 { name: "contractVersion", type: "uint8" },
                 { name: "prover", type: "string" },
-                { name: "humanId", type: "string" },
+                { name: pid, type: "string" },
                 { name: "noteHash", type: "bytes32" },
                 { name: "noteUrl", type: "string" },
                 { name: "timestamp", type: "uint256" },
@@ -854,7 +878,7 @@
           type: "function",
           stateMutability: "nonpayable",
           inputs: [
-            { name: "humanId", type: "string" },
+            { name: pid, type: "string" },
             { name: "reasonHash", type: "bytes32" },
           ],
           outputs: [],
@@ -863,14 +887,14 @@
           name: "clearCounterfeitConcern",
           type: "function",
           stateMutability: "nonpayable",
-          inputs: [{ name: "humanId", type: "string" }],
+          inputs: [{ name: pid, type: "string" }],
           outputs: [],
         },
         {
           name: "getCounterfeitConcern",
           type: "function",
           stateMutability: "view",
-          inputs: [{ name: "humanId", type: "string" }],
+          inputs: [{ name: pid, type: "string" }],
           outputs: [
             { name: "active", type: "bool" },
             { name: "proverCreatorId", type: "string" },
@@ -888,7 +912,7 @@
           type: "function",
           stateMutability: "nonpayable",
           inputs: [
-            { name: "humanId", type: "string" },
+            { name: pid, type: "string" },
             { name: "newOwner", type: "address" },
           ],
           outputs: [],
@@ -974,7 +998,7 @@
           type: "function",
           stateMutability: "nonpayable",
           inputs: [
-            { name: "humanId", type: "string" },
+            { name: pid, type: "string" },
             { name: "reasonHash", type: "bytes32" },
           ],
           outputs: [],
@@ -984,7 +1008,7 @@
           type: "function",
           stateMutability: "nonpayable",
           inputs: [
-            { name: "humanId", type: "string" },
+            { name: pid, type: "string" },
             { name: "newHash", type: "bytes32" },
             { name: "newUri", type: "string" },
           ],
@@ -1043,7 +1067,8 @@
     return passportAbi;
   }
 
-  function odpBuildCreatorAbi(generation) {
+  function odpBuildCreatorAbi(generation, net) {
+    var pid = odpPassportIdAbiName(generation, net);
     var abi = [
       {
         name: "registerCreator",
@@ -1130,7 +1155,7 @@
           type: "function",
           stateMutability: "nonpayable",
           inputs: [
-            { name: "humanId", type: "string" },
+            { name: pid, type: "string" },
             { name: "noteHash", type: "bytes32" },
             { name: "noteUrl", type: "string" },
             { name: "year", type: "uint32" },
@@ -1158,7 +1183,7 @@
                 { name: "proofId", type: "string" },
                 { name: "contractVersion", type: "uint8" },
                 { name: "prover", type: "string" },
-                { name: "humanId", type: "string" },
+                { name: pid, type: "string" },
                 { name: "noteHash", type: "bytes32" },
                 { name: "noteUrl", type: "string" },
                 { name: "timestamp", type: "uint256" },
@@ -1212,16 +1237,17 @@
    * Read-only ABI for verify.html. Pass probed **generation** (CONTRACT_VERSION uint8) so `getPassport` tuple matches chain.
    * @param {number} [generation] defaults to 2 (v0.2-shaped) when unknown — prefer RPC probe first.
    */
-  function odpBuildVerifyReadAbi(generation) {
+  function odpBuildVerifyReadAbi(generation, net) {
     var gen = generation == null || generation === undefined ? 2 : generation;
-    var passComps = odpPassportTupleComponents(gen);
+    var pid = odpPassportIdAbiName(gen, net);
+    var passComps = odpPassportTupleComponents(gen, net);
     var abi = [
       CV_ABI[0],
       {
         name: "getPassport",
         type: "function",
         stateMutability: "view",
-        inputs: [{ name: "humanId", type: "string" }],
+        inputs: [{ name: pid, type: "string" }],
         outputs: [
           {
             name: "",
@@ -1234,7 +1260,7 @@
         name: "exists",
         type: "function",
         stateMutability: "view",
-        inputs: [{ name: "humanId", type: "string" }],
+        inputs: [{ name: pid, type: "string" }],
         outputs: [{ name: "", type: "bool" }],
       },
       {
@@ -1266,7 +1292,7 @@
         name: "getProofsForPassport",
         type: "function",
         stateMutability: "view",
-        inputs: [{ name: "humanId", type: "string" }],
+        inputs: [{ name: pid, type: "string" }],
         outputs: [{ name: "", type: "string[]" }],
       },
       {
@@ -1282,7 +1308,7 @@
               { name: "proofId", type: "string" },
               { name: "contractVersion", type: "uint8" },
               { name: "prover", type: "string" },
-              { name: "humanId", type: "string" },
+              { name: pid, type: "string" },
               { name: "noteHash", type: "bytes32" },
               { name: "noteUrl", type: "string" },
               { name: "timestamp", type: "uint256" },
@@ -1294,7 +1320,7 @@
         name: "getCounterfeitConcern",
         type: "function",
         stateMutability: "view",
-        inputs: [{ name: "humanId", type: "string" }],
+        inputs: [{ name: pid, type: "string" }],
         outputs: [
           { name: "active", type: "bool" },
           { name: "proverCreatorId", type: "string" },
@@ -1406,7 +1432,7 @@
         message: ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG,
       };
     }
-    var abi = kind === "creator" ? odpBuildCreatorAbi(gen) : odpBuildPassportAbi(gen);
+    var abi = kind === "creator" ? odpBuildCreatorAbi(gen, net) : odpBuildPassportAbi(gen, net);
     var contract = new global.ethers.Contract(net.contract, abi, signer);
     return { contract: contract, generation: gen, abi: abi, legacyUnsupported: false };
   }
@@ -1483,6 +1509,7 @@
   global.odpSupportsFolderBaseMint = odpSupportsFolderBaseMint;
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
   global.odpSupportsV03 = odpSupportsV03;
+  global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;
   global.odpCounterfeitWriteContract = odpCounterfeitWriteContract;

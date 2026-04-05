@@ -104,8 +104,10 @@
       "docCheck": "Проверка хэша документа"
     },
     "dataUrl": {
-      "odpassHostedBanner": "По dataUrl пришёл ZIP/.odpass — passport.json прочитан из бандла и хэширован так же, как сырой JSON.",
-      "noPassportInZip": "URL похож на ZIP/.odpass, но внутри нет passport.json."
+      "odpassHostedBanner": "По dataUrl пришёл ZIP §15 .odpass — passport.json прочитан из бандла (нормативно; сырой JSON по dataUrl не допускается).",
+      "noPassportInZip": "URL похож на ZIP/.odpass, но внутри нет passport.json.",
+      "rawJsonUrlNotAllowed": "dataUrl указывает на .json — по SPEC §9 на публичном URL должен быть бандл .odpass. Загрузите ZIP и обновите dataUrl.",
+      "requireOdpassZip": "По dataUrl должен отдаваться ZIP §15 .odpass (application/zip или сигнатура PK). Сырой JSON по публичному URL не допускается."
     },
     "bundle": {
       "reading": "Читаем .odpass…",
@@ -156,7 +158,7 @@
       "detachedAt": "Отсоединено",
       "lastDetachedParent": "Последний родитель при отсоединении",
       "registryNote": "Данные из контракта",
-      "noSupport": "Ни один адрес из списка не вернул аудит (нужен реестр v0.3+ с поддержкой P-аффилиации)."
+      "noSupport": "Ни один адрес из списка не вернул аудит (нужен реестр v0.3)."
     },
     "fields": {
       "passportId": "Passport ID",

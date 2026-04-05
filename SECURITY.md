@@ -42,7 +42,7 @@ This document describes the threat model, known limitations, and recommendations
 
 - **`governance`** is one `address` (constructor defaults to deployer; should be moved to a multisig/Safe via **`transferGovernance`**).
 - A compromised **`governance`** can affect **policy-level** actions allowed by the contract (e.g. revoke passports alongside creator, register mint extensions, aux updates where permitted). There is **no** on-chain timelock in the reference bytecode — operate multisig and procedures off-chain.
-- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes).
+- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes). **Stable v1 is planned to omit this mechanism** (see `docs/IDEAS_V1.md`).
 
 ### Mint agent (delegated mint)
 
@@ -109,7 +109,7 @@ Unchanged from v0.1 guidance — see **SPEC** §9–11 for JSON/NFC levels.
 
 ## Deployer key security
 
-Same as v0.1: **`freeze()`** only; cannot alter historical records. Protect offline.
+Same as v0.1: **`freeze()`** only; cannot alter historical records. Protect offline. **Stable v1 is planned to omit registry-wide `freeze()`.**
 
 ---
 

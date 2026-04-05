@@ -19,7 +19,7 @@ interface IODPRegistryForCounterfeit {
 
     function getCreatorByWallet(address wallet) external view returns (string memory);
     function getCreator(string calldata creatorId) external view returns (CreatorRecord memory);
-    function exists(string calldata humanId) external view returns (bool);
+    function exists(string calldata passportId) external view returns (bool);
 }
 
 contract ODPCounterfeitConcern {
@@ -38,28 +38,28 @@ contract ODPCounterfeitConcern {
     mapping(string => CounterfeitConcern) private _concern;
 
     event CounterfeitConcernRaised(
-        string indexed humanId,
+        string indexed passportId,
         string indexed proverCreatorId,
         bytes32 reasonHash,
         uint256 timestamp
     );
 
-    event CounterfeitConcernCleared(string indexed humanId, string indexed proverCreatorId, uint256 timestamp);
+    event CounterfeitConcernCleared(string indexed passportId, string indexed proverCreatorId, uint256 timestamp);
 
     constructor(address registry_) {
         odpRegistry = IODPRegistryForCounterfeit(registry_);
     }
 
-    function raiseCounterfeitConcern(string calldata humanId, bytes32 reasonHash) external {
+    function raiseCounterfeitConcern(string calldata passportId, bytes32 reasonHash) external {
         if (!(reasonHash != bytes32(0))) revert EC(16);
-        if (!odpRegistry.exists(humanId)) revert EC(12);
+        if (!odpRegistry.exists(passportId)) revert EC(12);
 
         string memory callerId = odpRegistry.getCreatorByWallet(msg.sender);
         if (!(bytes(callerId).length > 0)) revert EC(7);
         IODPRegistryForCounterfeit.CreatorRecord memory cr = odpRegistry.getCreator(callerId);
         if (!(cr.typePrefix == TYPE_P || cr.typePrefix == TYPE_M)) revert EC(6);
 
-        CounterfeitConcern storage c = _concern[humanId];
+        CounterfeitConcern storage c = _concern[passportId];
         if (c.active) revert EC(80);
 
         c.active = true;
@@ -67,11 +67,11 @@ contract ODPCounterfeitConcern {
         c.reasonHash = reasonHash;
         c.timestamp = block.timestamp;
 
-        emit CounterfeitConcernRaised(humanId, callerId, reasonHash, block.timestamp);
+        emit CounterfeitConcernRaised(passportId, callerId, reasonHash, block.timestamp);
     }
 
-    function clearCounterfeitConcern(string calldata humanId) external {
-        CounterfeitConcern storage c = _concern[humanId];
+    function clearCounterfeitConcern(string calldata passportId) external {
+        CounterfeitConcern storage c = _concern[passportId];
         if (!c.active) revert EC(81);
 
         string memory callerClr = odpRegistry.getCreatorByWallet(msg.sender);
@@ -79,17 +79,17 @@ contract ODPCounterfeitConcern {
         if (!(keccak256(bytes(callerClr)) == keccak256(bytes(c.proverCreatorId)))) revert EC(82);
 
         string memory prover = c.proverCreatorId;
-        delete _concern[humanId];
+        delete _concern[passportId];
 
-        emit CounterfeitConcernCleared(humanId, prover, block.timestamp);
+        emit CounterfeitConcernCleared(passportId, prover, block.timestamp);
     }
 
-    function getCounterfeitConcern(string calldata humanId)
+    function getCounterfeitConcern(string calldata passportId)
         external
         view
         returns (bool active, string memory proverCreatorId, bytes32 reasonHash, uint256 timestamp)
     {
-        CounterfeitConcern storage c = _concern[humanId];
+        CounterfeitConcern storage c = _concern[passportId];
         return (c.active, c.proverCreatorId, c.reasonHash, c.timestamp);
     }
 }

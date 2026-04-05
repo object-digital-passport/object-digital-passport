@@ -10,7 +10,7 @@
  * After deploy:
  *   1. Copy contract address into web/creator.html, web/passport.html, web/verify.html
  *   2. Copy ABI from artifacts/ into tools/abi.json
- *   3. Upload passport.json files to your dataUrl
+ *   3. Upload §15 `.odpass` ZIP bundles to your dataUrl (not bare passport.json)
  */
 
 const { ethers } = require("hardhat");
@@ -116,7 +116,7 @@ async function main() {
       now.getFullYear(),                  // year (uint32)
       now.getMonth() + 1,                 // month (uint8)
       fakeDataHash,                       // dataHash (bytes32)
-      "https://example.com/passport.json",// dataUrl
+      "https://example.com/passport.odpass",// dataUrl (§15 bundle)
       fakeImageHash,                      // imageHash (bytes32)
       "https://example.com/preview.jpg",  // imageUrl
       z,                                  // imageHash2 (v0.3)
@@ -131,24 +131,24 @@ async function main() {
     );
     const mintReceipt = await mintTx.wait();
 
-    // Parse humanId from PassportMinted event
-    let humanId = null;
+    // Parse passportId from PassportMinted event
+    let passportId = null;
     for (const log of mintReceipt.logs) {
       try {
         const parsed = contract.interface.parseLog(log);
         if (parsed.name === "PassportMinted") {
-          humanId = parsed.args.humanId;
+          passportId = parsed.args.passportId;
           break;
         }
       } catch {}
     }
-    console.log(`     ✅ Passport ID: ${humanId}`);
+    console.log(`     ✅ Passport ID: ${passportId}`);
 
     // 3. Verify getPassport + getCreator + proofs (resolvePassport removed from bytecode in v0.3)
     console.log("\n  3. Resolving passport (multi-call)...");
-    const passport = await contract.getPassport(humanId);
+    const passport = await contract.getPassport(passportId);
     const creator = await contract.getCreator(passport.creatorId);
-    const proofIds = await contract.getProofsForPassport(humanId);
+    const proofIds = await contract.getProofsForPassport(passportId);
     const proofCount = proofIds.length;
     const version = await contract.CONTRACT_VERSION();
     console.log(`     ✅ contractVersion: ${version}`);

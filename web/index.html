@@ -9,6 +9,7 @@
 <title>ODP v0.4 — Web demo</title>
 <link rel="stylesheet" href="odp.css">
 <script src="odp-theme.js?v=0.3.0"></script>
+<script src="odp-contract.js?v=0.4.0"></script>
 <script src="odp-i18n.js?v=8"></script>
 </head>
 <body>
@@ -39,16 +40,21 @@
       </div>
     </div>
   </div>
-  <p class="page-footer-meta">
-    <a href="https://github.com/object-digital-passport/object-digital-passport" data-i18n="index.source">Source on GitHub</a>
-    · <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" data-i18n="index.readme" data-readme-link>README</a>
-    · <span>v0.4</span>
-    · <span data-i18n="footer.author">Andrei Chernikov</span>
-  </p>
+
+<footer>
+  <a href="https://github.com/object-digital-passport/object-digital-passport" target="_blank" rel="noopener noreferrer" data-i18n="footer.githubRepo">GitHub</a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md" target="_blank" rel="noopener noreferrer" data-readme-link>README</a>
+  <span id="footerSiteVer"></span>
+  <span data-i18n="footer.license">MIT License</span>
+  <span data-i18n="footer.author">Andrei Chernikov</span>
+</footer>
+
 </div>
 <script>
 document.addEventListener("DOMContentLoaded", async function () {
   await odpInitI18n({ page: "index", pageTitleKey: "index.meta.documentTitle" });
+  var fv = document.getElementById("footerSiteVer");
+  if (fv && typeof ODP_SITE_VERSION !== "undefined") fv.textContent = "site " + ODP_SITE_VERSION;
 });
 </script>
 </body>

@@ -242,14 +242,15 @@ const NET = {
   rpc:      POLYGON_RPC_FALLBACKS[0],
   rpcUrls:  POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
-  contract: "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
+  contract: "0x35c29A1faC6e39925BeF616bb5222F024E5D6132",
   /** Optional `ODPWalletDocumentAnchor` for `attestExternalDocument` when the main registry is v0.3+ (EIP-170). */
-  docAnchor: "0x1563f96355005FA90b383546D97CAEAc6F836A63",
+  docAnchor: "0xcb3AF1d0530ca1D8D78528E4ED93ac7C2eb64210",
   /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
-  counterfeitConcern: "0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e",
+  counterfeitConcern: "0x7C2EAaC6b0E4c14765d4064885A175fD057f680e",
   contractGenerationFallback: null,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
   previousContracts: [
+    "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
     "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
     "0x6c83c8C2e18c183a2776431a23187832b42FfFBb",
   ],
@@ -258,7 +259,10 @@ const NET = {
 /** Filled in `connect()` after RPC probe sets `odpContractGeneration` (tuple layout differs v0.2 vs v0.3). */
 let verifyReadAbi = null;
 function currentVerifyReadAbi() {
-  return verifyReadAbi || odpBuildVerifyReadAbi(odpContractGeneration != null ? odpContractGeneration : 2);
+  return (
+    verifyReadAbi ||
+    odpBuildVerifyReadAbi(odpContractGeneration != null ? odpContractGeneration : 2, typeof NET !== "undefined" ? NET : null)
+  );
 }
 /**
  * Merge institutional authenticity concern from main registry or `NET.counterfeitConcern` satellite.
@@ -386,21 +390,6 @@ function odpPassportSidecarHashes(rec) {
 
 function zipEntryPathNormalized(name) {
   return String(name || "").replace(/\\/g, "/");
-}
-
-/** Top-level file under one folder segment (legacy bundles: original/photo.jpg). Case-insensitive; normalizes \\ to /. */
-function firstZipFileInFolder(zip, folderSegment) {
-  const seg = String(folderSegment || "")
-    .replace(/\\/g, "/")
-    .replace(/^\/+|\/+$/g, "");
-  if (!seg) return null;
-  const escaped = seg.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const re = new RegExp("^" + escaped + "/[^/]+$", "i");
-  for (const z of Object.values(zip.files)) {
-    if (!z || z.dir || !z.name) continue;
-    if (re.test(zipEntryPathNormalized(z.name))) return z;
-  }
-  return null;
 }
 
 function revokeOdpBundleSidecarPreviewUrl() {
@@ -713,7 +702,7 @@ async function connect() {
         syncVerifyPaffAuditVisibility();
         return;
       }
-      verifyReadAbi = odpBuildVerifyReadAbi(odpContractGeneration);
+      verifyReadAbi = odpBuildVerifyReadAbi(odpContractGeneration, c);
       contract = new ethers.Contract(c.contract, verifyReadAbi, provider);
       if (lbl) {
         lbl.innerHTML = odpFormatStackSummaryHtml(odpContractGeneration);
@@ -2380,31 +2369,23 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
     const imageSlots = [
       {
         manifestKey: "imageHash",
-        folder: "image",
         want: wantImage,
         label: t("verify.bundle.sidecarImage1"),
-        tryOriginalFallback: true,
       },
       {
         manifestKey: "imageHash2",
-        folder: "image2",
         want: wantImage2,
         label: t("verify.bundle.sidecarImage2"),
-        tryOriginalFallback: false,
       },
       {
         manifestKey: "imageHash3",
-        folder: "image3",
         want: wantImage3,
         label: t("verify.bundle.sidecarImage3"),
-        tryOriginalFallback: false,
       },
     ];
 
     function sidecarViaNote(via) {
       if (via === "manifest") return t("verify.bundle.sidecarViaManifest");
-      if (via === "legacy") return t("verify.bundle.sidecarLegacyLayout");
-      if (via === "legacy-fallback") return t("verify.bundle.sidecarLegacyOriginalFallback");
       return "";
     }
 
@@ -2422,10 +2403,6 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
       if (mo && mo.fileHash) {
         fileEntry = zipEntryByRelPath(zip, mo.fileHash);
         if (fileEntry) fileVia = "manifest";
-      }
-      if (!fileEntry) {
-        fileEntry = firstZipFileInFolder(zip, "original");
-        if (fileEntry) fileVia = "legacy";
       }
     }
     if (hasFileHash) {
@@ -2464,18 +2441,6 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
         imageEntry = zipEntryByRelPath(zip, mo[slot.manifestKey]);
         if (imageEntry) imgVia = "manifest";
       }
-      let fromLegacyImageFolder = false;
-      if (!imageEntry) {
-        imageEntry = firstZipFileInFolder(zip, slot.folder);
-        if (imageEntry) {
-          imgVia = "legacy";
-          fromLegacyImageFolder = true;
-        }
-      }
-      if (!imageEntry && slot.tryOriginalFallback) {
-        imageEntry = firstZipFileInFolder(zip, "original");
-        if (imageEntry) imgVia = "legacy-fallback";
-      }
       if (!imageEntry) {
         sidecarRows.push(`<div class="vrow" style="margin-top:10px;border-radius:4px;border-bottom:1px solid var(--border)">
         <span class="vbadge bad">${esc(t("verify.bundle.sidecarImageMissing").replace("{label}", slot.label))}</span>
@@ -2502,9 +2467,6 @@ async function runOdpBundleVerify(file, expectedHumanId, onchainDataHash, passpo
     }
     const sidecarCheckHtml = sidecarRows.join("");
 
-    // #region agent log
-    fetch('http://127.0.0.1:7788/ingest/985cf75a-0443-488c-8d22-a89e431a3e00',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'c94472'},body:JSON.stringify({sessionId:'c94472',location:'verify.html:bundleSidecar',message:'image-previews-collected',data:{totalPreviews:verifiedImagePreviews.length,labels:verifiedImagePreviews.map(function(p){return p.label;}),sidecarRowCount:sidecarRows.length,dropSectionHidden:!document.getElementById('odpBundleDropSection')||document.getElementById('odpBundleDropSection').style.display==='none'},timestamp:Date.now()})}).catch(function(){});
-    // #endregion
     let bundleImgPreview = "";
     if (verifiedImagePreviews.length > 0) {
       const imgParts = [];
@@ -2663,6 +2625,17 @@ function urlPathIndicatesOdpassBundle(u) {
   }
 }
 
+/** SPEC §9 — `dataUrl` must not point at a bare `.json` file; hosts must serve the §15 `.odpass` ZIP. */
+function urlPathIndicatesRawJsonUrl(u) {
+  try {
+    const p = new URL(u).pathname;
+    return /\.json$/i.test(p);
+  } catch {
+    const s = String(u || "");
+    return /\.json(\?|#|$)/i.test(s);
+  }
+}
+
 /** ZIP local file header signature (PK\x03\x04). */
 function bodyLooksLikeZipStart(buf) {
   if (!buf || buf.byteLength < 4) return false;
@@ -2671,24 +2644,24 @@ function bodyLooksLikeZipStart(buf) {
 }
 
 /**
- * HTTP 200 body from `dataUrl`: raw `passport.json` text, or extract `passport.json` from hosted ZIP (SPEC §15 `.odpass` layout).
- * @returns {Promise<{ rawJ: string, hostedAs: "json" | "odpass" }>}
+ * HTTP 200 body from `dataUrl`: MUST be a §15 `.odpass` ZIP; extract `passport.json` (SPEC §9).
+ * @returns {Promise<{ rawJ: string, hostedAs: "odpass" }>}
  */
 async function passportJsonTextFromDataUrlResponse(resp, publicDataUrl) {
+  if (urlPathIndicatesRawJsonUrl(publicDataUrl)) {
+    throw new Error(t("verify.dataUrl.rawJsonUrlNotAllowed"));
+  }
   const buf = await resp.arrayBuffer();
   const treatAsOdpassBundle = urlPathIndicatesOdpassBundle(publicDataUrl) || bodyLooksLikeZipStart(buf);
-
-  if (treatAsOdpassBundle) {
-    if (typeof JSZip === "undefined") throw new Error(t("verify.odpQuick.jszipMissing"));
-    const zip = await JSZip.loadAsync(buf);
-    const pe = zip.file("passport.json");
-    if (!pe) throw new Error(t("verify.dataUrl.noPassportInZip"));
-    const rawJ = await pe.async("text");
-    return { rawJ, hostedAs: "odpass" };
+  if (!treatAsOdpassBundle) {
+    throw new Error(t("verify.dataUrl.requireOdpassZip"));
   }
-
-  const rawJ = new TextDecoder("utf-8").decode(buf);
-  return { rawJ, hostedAs: "json" };
+  if (typeof JSZip === "undefined") throw new Error(t("verify.odpQuick.jszipMissing"));
+  const zip = await JSZip.loadAsync(buf);
+  const pe = zip.file("passport.json");
+  if (!pe) throw new Error(t("verify.dataUrl.noPassportInZip"));
+  const rawJ = await pe.async("text");
+  return { rawJ, hostedAs: "odpass" };
 }
 
 /**

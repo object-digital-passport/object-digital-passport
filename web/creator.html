@@ -17,7 +17,7 @@
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.4.0"></script>
 <script src="odp-date-format.js?v=1"></script>
-<script src="odp-passport-v03-ops.js?v=0.4.0"></script>
+<script src="odp-passport-v03-ops.js?v=0.4.1"></script>
 <script src="odp-i18n.js?v=14"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
@@ -68,6 +68,20 @@ function t(key) {
   return typeof window.odpT === "function" ? window.odpT(key) : key;
 }
 
+/** ethers v5 UMD is attached to globalThis; bare `ethers` can throw ReferenceError in some contexts. */
+function odpEthersLib() {
+  const g = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : {};
+  return g.ethers || null;
+}
+(function odpBondEthersGlobal() {
+  const e = odpEthersLib();
+  if (!e) return;
+  try {
+    if (typeof globalThis !== "undefined" && !globalThis.ethers) globalThis.ethers = e;
+    if (typeof window !== "undefined" && !window.ethers) window.ethers = e;
+  } catch (err) {}
+})();
+
 /** Polygon PoS mainnet only */
 const POLYGON_RPC_FALLBACKS = [
   "https://polygon-bor.publicnode.com",
@@ -80,9 +94,9 @@ const NET = {
   rpc: POLYGON_RPC_FALLBACKS[0],
   rpcUrls: POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
-  contract: "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
+  contract: "0x35c29A1faC6e39925BeF616bb5222F024E5D6132",
   contractGenerationFallback: null,
-  counterfeitConcern: "0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e",
+  counterfeitConcern: "0x7C2EAaC6b0E4c14765d4064885A175fD057f680e",
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
@@ -110,8 +124,9 @@ function formatProfileWalletDisplay(addr) {
   let s = String(addr || "").trim();
   if (!s) return "";
   try {
-    if (typeof ethers !== "undefined" && ethers.utils && typeof ethers.utils.getAddress === "function") {
-      s = ethers.utils.getAddress(s);
+    const E = odpEthersLib();
+    if (E && E.utils && typeof E.utils.getAddress === "function") {
+      s = E.utils.getAddress(s);
     }
   } catch {
     /* keep raw */
@@ -1327,21 +1342,27 @@ async function connectWallet() {
     errEl.innerHTML = noWalletHtml();
     return;
   }
-  await odpMergeRegistryConfigAsync(NET);
   odpConnectInFlight = true;
   odpSetConnectButtonsBusyCreator(true);
   try {
-    // Polygon first, then accounts — so MetaMask scopes the connection to this chain
-    // (requesting accounts before switch often shows permission for multiple networks).
-    await ensureWalletChain(eth, NET);
+    // eth_requestAccounts must be the first wallet RPC in this handler so the browser
+    // keeps user activation (MetaMask popup opens without forcing a manual extension click).
     await eth.request({ method: "eth_requestAccounts" });
     const single = await odpRequireSingleEthereumAccount(eth);
     if (!single.ok) {
       errEl.innerHTML = `<div class="info error">${esc(single.message)}</div>`;
       return;
     }
+    await odpMergeRegistryConfigAsync(NET);
     await ensureWalletChain(eth, NET);
-    await _finish(new ethers.providers.Web3Provider(eth));
+    await ensureWalletChain(eth, NET);
+    const Elib = odpEthersLib();
+    if (!Elib || !Elib.providers) {
+      errEl.innerHTML =
+        `<div class="info error">${esc("ethers v5 failed to load (CDN blocked?). Check network / ad blocker.")}</div>`;
+      return;
+    }
+    await _finish(new Elib.providers.Web3Provider(eth));
   } catch (e) {
     const msg = String((e && e.message) || e);
     if (/already pending|request of type.*pending/i.test(msg)) {
@@ -1389,7 +1410,13 @@ async function connectWalletWithWalletConnect() {
         },
       });
     }
-    await _finish(new ethers.providers.Web3Provider(eth));
+    const Ewc = odpEthersLib();
+    if (!Ewc || !Ewc.providers) {
+      errEl.innerHTML =
+        `<div class="info error">${esc("ethers v5 failed to load (CDN blocked?). Check network / ad blocker.")}</div>`;
+      return;
+    }
+    await _finish(new Ewc.providers.Web3Provider(eth));
   } catch (e) {
     const msg = String((e && e.message) || e);
     if (/already pending|request of type.*pending/i.test(msg)) {
@@ -1470,10 +1497,15 @@ async function doRegister() {
   err.innerHTML = "";
 
   try {
+    const Er = odpEthersLib();
+    if (!Er || !Er.utils) {
+      err.innerHTML = `<div class="info error">${esc("ethers v5 failed to load.")}</div>`;
+      btn.disabled = false;
+      btn.textContent = registerButtonLabel();
+      return;
+    }
     // bytes1 encoding: "C" → 0x43, "B" → 0x42, "P" → 0x50
-    const typeBytes = ethers.utils.hexlify(
-      ethers.utils.toUtf8Bytes(selType)
-    ); // e.g. "0x43" for "C"
+    const typeBytes = Er.utils.hexlify(Er.utils.toUtf8Bytes(selType)); // e.g. "0x43" for "C"
     const tx = await contract.registerCreator(typeBytes);
     btn.textContent = t("creator.register.confirming");
     err.innerHTML = `<div class="info neutral" style="margin-bottom:10px">${esc(t("creator.register.txPrefix"))} ${tx.hash.slice(0,20)}…</div>`;
@@ -1544,7 +1576,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           walletConnectErrorNeutral = true;
         } else {
           await ensureWalletChain(eth, net);
-          provider = new ethers.providers.Web3Provider(eth);
+          const Eauto = odpEthersLib();
+          if (!Eauto || !Eauto.providers) throw new Error("ethers v5 failed to load");
+          provider = new Eauto.providers.Web3Provider(eth);
           signer = provider.getSigner();
           wallet = await signer.getAddress();
           const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "creator");
@@ -1570,21 +1604,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
   } else if (!skipAuto && accounts.length === 0) {
-    // #region agent log
-    fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
-      body: JSON.stringify({
-        sessionId: "c94472",
-        location: "creator.html:DOMContentLoaded",
-        message: "creator wc restore branch",
-        data: { hasEth: !!eth },
-        timestamp: Date.now(),
-        runId: "wc-persist",
-        hypothesisId: "H2",
-      }),
-    }).catch(() => {});
-    // #endregion
     try {
       await odpEnsureWalletConnectBundle();
       if (typeof odpWalletConnectTryRestoreSession === "function") {
@@ -1610,7 +1629,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                   },
                 });
               }
-              await _finish(new ethers.providers.Web3Provider(wcEth));
+              const Ewc2 = odpEthersLib();
+              if (Ewc2 && Ewc2.providers) await _finish(new Ewc2.providers.Web3Provider(wcEth));
               return;
             }
           } catch (e) {

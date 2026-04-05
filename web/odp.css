@@ -1429,10 +1429,34 @@ textarea.pm-proof-textarea {
 
 /* My passports list (passport.html) */
 .passport-list-card { margin-bottom: 28px; }
+.passport-list-card > .card-head {
+  text-align: center;
+}
+.passport-list-card .pl-loading,
+.passport-list-card .pl-empty {
+  text-align: center;
+}
 .pl-loading, .pl-empty {
   font-size: 14px;
   color: var(--text3);
   padding: 8px 0;
+}
+
+/* Mint remaining / unlimited banner under passport mint workspace */
+#passportMintsRow {
+  margin-left: auto;
+  margin-right: auto;
+}
+.passport-mints-banner {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+}
+.passport-mints-banner--error {
+  font-size: 12px;
+  text-align: center;
 }
 .pl-table {
   border: 1px solid var(--border);
@@ -2674,14 +2698,27 @@ a, button, .btn, label[for], select {
 }
 
 /* Passport: single CTA in #passportToolsMenu — avoid transparent .btn-sec on card (reads as two stacked whites) */
+/* Passport — tools heading + lead (centered under P/M card) */
+#passportToolsHeading {
+  text-align: center;
+}
+#passportToolsHeading .fhint {
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .passport-tools-menu-inner {
   padding-top: 16px;
   padding-bottom: 16px;
 }
 .passport-tools-mint-btn {
   margin-top: 0;
+  display: block;
   width: 100%;
   max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
   background: var(--bg3);
   border-color: var(--border2);
 }
@@ -2713,13 +2750,27 @@ html[data-theme="blue"] #passportToolsMenu .passport-tools-mint-btn:hover {
   min-height: 54px;
   padding: 10px 14px;
   flex-wrap: wrap;
+  box-sizing: border-box;
 }
+/* «Назад» — без рамки (не .btn-sec), только текст */
 .verify-subnav-back {
+  flex: 0 0 auto;
   padding: 7px 11px;
   line-height: 1.1;
   white-space: nowrap;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+.verify-subnav-back:hover {
+  opacity: 0.88;
+}
+html[data-theme="blue"] .card .verify-subnav-back:hover {
+  border: none !important;
 }
 .verify-subnav-title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 13px;
   font-family: var(--mono);
   letter-spacing: 0.08em;
@@ -2727,8 +2778,8 @@ html[data-theme="blue"] #passportToolsMenu .passport-tools-mint-btn:hover {
   color: var(--text2);
   line-height: 1.35;
   text-align: right;
-  white-space: nowrap;
   margin-left: auto;
+  white-space: normal;
 }
 
 /* First-visit site trust modal (0.x red-flag disclosure) */
@@ -3039,6 +3090,17 @@ html[data-theme="blue"] .card .btn-sec:hover {
   color: var(--text);
   border-color: var(--text2);
 }
+/* Ghost buttons on white cards (subnav «Назад», modals) — override .page .btn-ghost light ink */
+html[data-theme="blue"] .card-body .btn-ghost,
+html[data-theme="blue"] .card .btn-ghost {
+  color: var(--text2);
+  border-color: var(--border2);
+}
+html[data-theme="blue"] .card-body .btn-ghost:hover,
+html[data-theme="blue"] .card .btn-ghost:hover {
+  color: var(--text);
+  border-color: var(--text2);
+}
 
 /*
  * ── Blue theme: form elements on --bg ──
@@ -3324,11 +3386,8 @@ html[data-theme="blue"] #app > div > p {
 html[data-theme="blue"] #app > div > p a {
   color: var(--accent) !important;
 }
-html[data-theme="blue"] .odp-verify-primary .fhint {
-  color: var(--on-bg3);
-}
 
-/* Verify page: fhint outside cards */
+/* Verify page: fhint on blue bg (not inside white .card — those use .card .fhint above) */
 html[data-theme="blue"] .odp-verify-primary > .fhint,
 html[data-theme="blue"] #idExistsHint {
   color: var(--on-bg3) !important;

@@ -6,7 +6,7 @@
   "use strict";
 
   var _ctx = null;
-  var passportV03Last = { humanId: null, p: null };
+  var passportV03Last = { passportId: null, humanId: null, p: null };
 
   function install(ctx) {
     _ctx = ctx && typeof ctx.getContract === "function" ? ctx : null;
@@ -81,6 +81,70 @@
       c &&
       typeof c.submitProof === "function"
     );
+  }
+
+  /** Valid ODP-… from the passport ID field, else last loaded id from Show record. */
+  function passportV03ResolveHidForCf() {
+    var inp = global.document.getElementById("passportV03Hid");
+    var raw = inp && inp.value ? String(inp.value).trim() : "";
+    if (raw && /^ODP-/i.test(raw)) return raw;
+    if (passportV03Last && passportV03Last.humanId) return String(passportV03Last.humanId);
+    return null;
+  }
+
+  /** Show P/M counterfeit block + refresh status / button state from chain (no full getPassport). */
+  async function passportV03RefreshCounterfeitUi() {
+    var instBlock = global.document.getElementById("passportV03InstBlock");
+    var statusEl = global.document.getElementById("passportV03CfChainStatus");
+    var cfRaise = global.document.getElementById("passportV03CfRaiseBtn");
+    var cfClear = global.document.getElementById("passportV03CfClearBtn");
+    var cfRead = getCounterfeitReadContract();
+    var hasCF = !!(cfRead && typeof cfRead.getCounterfeitConcern === "function");
+    if (!instBlock) return;
+    if (!passportV03UiEnabled() || !hasCF || !canShowPassportPmProof()) {
+      instBlock.style.display = "none";
+      return;
+    }
+    instBlock.style.display = "block";
+    var creatorId = getCreatorId();
+    var hid = passportV03ResolveHidForCf();
+    if (!hid) {
+      if (statusEl) statusEl.textContent = "";
+      if (cfRaise) {
+        cfRaise.disabled = true;
+        cfRaise.title = t("passport.v03Ops.cfNeedPassportIdInField");
+      }
+      if (cfClear) {
+        cfClear.style.display = "none";
+        cfClear.disabled = true;
+      }
+      return;
+    }
+    if (cfRaise) cfRaise.title = "";
+    if (statusEl) statusEl.textContent = t("passport.pmProof.cfStatusLoading");
+    try {
+      var cc = await cfRead.getCounterfeitConcern(hid);
+      var ccActive = !!(cc.active !== undefined ? cc.active : cc[0]);
+      var ccProver = cc.proverCreatorId !== undefined ? String(cc.proverCreatorId) : String(cc[1] || "");
+      if (statusEl) {
+        statusEl.textContent = ccActive
+          ? t("passport.pmProof.cfStatusActive").replace("{prover}", ccProver || "—")
+          : t("passport.pmProof.cfStatusInactive");
+      }
+      var canClearCf = ccActive && ccProver && creatorId && ccProver === creatorId;
+      if (cfRaise) cfRaise.disabled = !!ccActive;
+      if (cfClear) {
+        cfClear.style.display = canClearCf ? "" : "none";
+        cfClear.disabled = !canClearCf;
+      }
+    } catch (e0) {
+      if (statusEl) statusEl.textContent = "";
+      if (cfRaise) cfRaise.disabled = false;
+      if (cfClear) {
+        cfClear.style.display = "none";
+        cfClear.disabled = true;
+      }
+    }
   }
 
   function passportV03KeccakUtf8(s) {
@@ -205,6 +269,10 @@
       '<div class="section-label">' +
       esc(t("passport.v03Ops.instSection")) +
       "</div>" +
+      '<p class="fhint" style="margin:0 0 10px;line-height:1.55">' +
+      esc(t("passport.v03Ops.instLeadPm")) +
+      "</p>" +
+      '<div id="passportV03CfChainStatus" class="fhint" style="margin:0 0 10px;line-height:1.5;min-height:1.25em"></div>' +
       '<div class="field"><label for="passportV03CfReason">' +
       esc(t("passport.v03Ops.cfReason")) +
       '</label><textarea id="passportV03CfReason" rows="2" style="width:100%;max-width:40rem"></textarea></div>' +
@@ -266,6 +334,7 @@
     if (!passportV03UiEnabled()) {
       if (agentUrlBlock) agentUrlBlock.style.display = "none";
       if (errEl) errEl.innerHTML = '<div class="info warn">' + esc(t("passport.v03Ops.notV03")) + "</div>";
+      void passportV03RefreshCounterfeitUi();
       return;
     }
     var hidInp = global.document.getElementById("passportV03Hid");
@@ -273,7 +342,16 @@
     if (!hid || !/^ODP-/i.test(hid)) {
       var aub0 = global.document.getElementById("passportV03AgentUrlBlock");
       if (aub0) aub0.style.display = "none";
-      if (errEl) errEl.innerHTML = '<div class="info warn">' + esc(t("passport.v03Ops.needValidId")) + "</div>";
+      if (stateEl) {
+        stateEl.style.display = "none";
+        stateEl.innerHTML = "";
+      }
+      if (ownerBlock) ownerBlock.style.display = "none";
+      if (publishAgentBlock) publishAgentBlock.style.display = "none";
+      if (revokeBlock) revokeBlock.style.display = "none";
+      passportV03Last = { passportId: null, humanId: null, p: null };
+      if (errEl) errEl.innerHTML = "";
+      void passportV03RefreshCounterfeitUi();
       return;
     }
     if (stateEl) {
@@ -282,7 +360,7 @@
     }
     try {
       var p = await contract.getPassport(hid);
-      passportV03Last = { humanId: hid, p: p };
+      passportV03Last = { passportId: hid, humanId: hid, p: p };
       var govAddr = null;
       if (typeof contract.governance === "function") govAddr = await contract.governance();
       var wl = wallet && typeof wallet === "string" && wallet.trim() ? String(wallet).toLowerCase() : "";
@@ -379,18 +457,10 @@
       if (ownerBlock) ownerBlock.style.display = !revoked && isOwner ? "block" : "none";
       if (publishAgentBlock) publishAgentBlock.style.display = !revoked && isCreator ? "block" : "none";
       if (revokeBlock) revokeBlock.style.display = !revoked && (isCreator || isGov) ? "block" : "none";
-      if (instBlock) {
-        instBlock.style.display =
-          hasCounterfeitOnChain && !revoked && canShowPassportPmProof() ? "block" : "none";
-      }
       if (paffBlock) paffBlock.style.display = profileLetter(creatorId) === "P" ? "block" : "none";
-      var canClearCf = ccActive && ccProver && creatorId && ccProver === creatorId;
-      var cfRaise = global.document.getElementById("passportV03CfRaiseBtn");
-      var cfClear = global.document.getElementById("passportV03CfClearBtn");
-      if (cfRaise) cfRaise.disabled = !!ccActive;
-      if (cfClear) cfClear.style.display = canClearCf ? "" : "none";
+      void passportV03RefreshCounterfeitUi();
     } catch (e) {
-      passportV03Last = { humanId: null, p: null };
+      passportV03Last = { passportId: null, humanId: null, p: null };
       var m = e && (e.reason || e.message) ? String(e.reason || e.message) : String(e);
       if (stateEl) {
         stateEl.style.display = "none";
@@ -401,8 +471,8 @@
       var aubE = global.document.getElementById("passportV03AgentUrlBlock");
       if (aubE) aubE.style.display = "none";
       if (revokeBlock) revokeBlock.style.display = "none";
-      if (instBlock) instBlock.style.display = "none";
       if (paffBlock) paffBlock.style.display = "none";
+      void passportV03RefreshCounterfeitUi();
       if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m) + "</div>";
     }
   }
@@ -415,6 +485,20 @@
       loadBtn.onclick = function () {
         void passportV03RefreshState();
       };
+    var v03HidDebounce = null;
+    var hidInForCf = global.document.getElementById("passportV03Hid");
+    if (hidInForCf) {
+      hidInForCf.addEventListener("input", function () {
+        clearTimeout(v03HidDebounce);
+        v03HidDebounce = setTimeout(function () {
+          void passportV03RefreshCounterfeitUi();
+        }, 400);
+      });
+      hidInForCf.addEventListener("blur", function () {
+        void passportV03RefreshCounterfeitUi();
+      });
+    }
+    void passportV03RefreshCounterfeitUi();
     void passportV03UpdateGovStrip();
     var govTx = global.document.getElementById("passportV03GovTransferBtn");
     if (govTx) {
@@ -459,7 +543,7 @@
       transferBtn.onclick = async function () {
         var errEl = global.document.getElementById("passportV03Err");
         if (errEl) errEl.innerHTML = "";
-        var hid = passportV03Last.humanId;
+        var hid = (passportV03Last.passportId != null && passportV03Last.passportId !== undefined ? passportV03Last.passportId : passportV03Last.humanId);
         if (!hid) {
           if (errEl) errEl.innerHTML = '<div class="info warn">' + esc(t("passport.v03Ops.needValidId")) + "</div>";
           return;
@@ -578,7 +662,7 @@
       agentUrlBtn.onclick = async function () {
         var errUrl = global.document.getElementById("passportV03AgentUrlErr");
         if (errUrl) errUrl.innerHTML = "";
-        var hid = passportV03Last && passportV03Last.humanId;
+        var hid = passportV03Last && (passportV03Last.passportId != null && passportV03Last.passportId !== undefined ? passportV03Last.passportId : passportV03Last.humanId);
         var p = passportV03Last && passportV03Last.p;
         if (!hid || !p) {
           if (errUrl) errUrl.innerHTML = '<div class="info warn">' + esc(t("passport.v03Ops.needValidId")) + "</div>";
@@ -635,7 +719,7 @@
       revP.onclick = async function () {
         var errEl = global.document.getElementById("passportV03Err");
         if (errEl) errEl.innerHTML = "";
-        var hid = passportV03Last.humanId;
+        var hid = (passportV03Last.passportId != null && passportV03Last.passportId !== undefined ? passportV03Last.passportId : passportV03Last.humanId);
         if (!hid) {
           if (errEl) errEl.innerHTML = '<div class="info warn">' + esc(t("passport.v03Ops.needValidId")) + "</div>";
           return;
@@ -677,7 +761,7 @@
         if (!cfW || typeof cfW.raiseCounterfeitConcern !== "function") return;
         var errEl = global.document.getElementById("passportV03Err");
         if (errEl) errEl.innerHTML = "";
-        var hid = passportV03Last.humanId;
+        var hid = passportV03ResolveHidForCf();
         if (!hid) {
           if (errEl) errEl.innerHTML = '<div class="info warn">' + esc(t("passport.v03Ops.needValidId")) + "</div>";
           return;
@@ -704,6 +788,7 @@
               ' <code class="mono">' +
               esc(tx10.hash) +
               "</code></div>";
+          void passportV03RefreshCounterfeitUi();
           void passportV03RefreshState();
         } catch (e11) {
           var m11 = e11 && (e11.reason || e11.message) ? String(e11.reason || e11.message) : String(e11);
@@ -719,7 +804,7 @@
         if (!cfW2 || typeof cfW2.clearCounterfeitConcern !== "function") return;
         var errEl = global.document.getElementById("passportV03Err");
         if (errEl) errEl.innerHTML = "";
-        var hid = passportV03Last.humanId;
+        var hid = passportV03ResolveHidForCf();
         if (!hid) {
           if (errEl) errEl.innerHTML = '<div class="info warn">' + esc(t("passport.v03Ops.needValidId")) + "</div>";
           return;
@@ -736,6 +821,7 @@
               ' <code class="mono">' +
               esc(tx11.hash) +
               "</code></div>";
+          void passportV03RefreshCounterfeitUi();
           void passportV03RefreshState();
         } catch (e12) {
           var m12 = e12 && (e12.reason || e12.message) ? String(e12.reason || e12.message) : String(e12);

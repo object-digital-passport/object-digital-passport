@@ -11,16 +11,16 @@
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix branches vs feature lines. |
 | **[`V0.2-DRAFT.md`](V0.2-DRAFT.md)** | Historical / exploratory notes (folder-first hosting, hash boundaries). Several items have since landed in **SPEC v0.2**; read **SPEC** for what is binding. |
 | **[`V0.3.md`](V0.3.md)** | **v0.3 vs v0.2:** [`RELEASE_v0.3.md`](../RELEASE_v0.3.md); deploy / **`NET.*`:** [`../deploy/README.md`](../deploy/README.md); **SPEC**. |
-| **[`V0.4.md`](V0.4.md)** | **Reference site & docs (v0.4):** WalletConnect, session restore, SPEC/DNS notes — [`RELEASE_v0.4.md`](../RELEASE_v0.4.md). On-chain reference line remains **v0.3** until a new deployment is documented. |
+| **[`V0.4.md`](V0.4.md)** | **Reference site & docs (v0.4):** WalletConnect, session restore, SPEC URI notes — [`RELEASE_v0.4.md`](../RELEASE_v0.4.md). On-chain reference line remains **v0.3** until a new deployment is documented. |
 | **[`IDEAS_V1.md`](IDEAS_V1.md)** | Informal **v1** directions (not spec); includes notes on retiring **`freeze()`**-style global lock. |
 | **[`community/discussion-passport-ui-v0.4-EN.md`](community/discussion-passport-ui-v0.4-EN.md)** | English draft for a **GitHub Discussion** (reference passport UI vs spec, toward v0.4). Publish with **`scripts/gh-create-discussion-from-doc.sh`** after `gh auth login`. |
 
 ## `.odpass` bundle (quick pointer)
 
-- **Format:** ZIP with extension **`.odpass`**; required `passport.json` + `manifest.json`; sidecar bytes under `originals/` with paths in `manifest.originals` (v0.3); legacy `original/*` / `image/*` — see **SPEC §15**.
+- **Format:** ZIP with extension **`.odpass`**; required `passport.json` + `manifest.json`; sidecar bytes under `originals/` with paths in `manifest.originals` (v0.3) — see **SPEC §15** (legacy top-level `original/*` / `image*/*` layouts are not normative).
 - **Reference manifest schema:** **SPEC §15.1.1** (`format: odp-bundle`, `bundleVersion: "0.1"`).
 - **Implementations in this repo:** `createPassportOdpBlob` in **`web/passport.html`** and **`tools/mint.py`** after a successful CLI mint — same layout and manifest fields.
-- **Hosting:** `dataUrl` may point to **raw `passport.json`** or to the **same `.odpass`** archive (HTTPS); **`web/verify.html`** extracts `passport.json` from the ZIP when the path ends with **`.odpass`** or the body starts with the ZIP signature — see **SPEC §9** item 5.
+- **Hosting:** public `dataUrl` **must** serve the **§15 `.odpass`** ZIP (HTTPS); **`web/verify.html`** rejects bare `.json` URLs and requires a ZIP body — see **SPEC §9** and **§11** step 5.
 
 ---
 

@@ -192,11 +192,11 @@ library ODPPassportLib {
         return string(trimTrailingSlashBytes(bytes(s)));
     }
 
-    /// @param dataUrl When `dataUrlIsFolderBase` is true, folder root only; stored URL becomes `folderBase/humanId.json`.
+    /// @param dataUrl When `dataUrlIsFolderBase` is true, folder root only; stored URL becomes `folderBase/passportId.odpass` (§15 ZIP bundle, not raw JSON).
     function resolveMintDataUrlMemory(
         string memory dataUrl,
         bool dataUrlIsFolderBase,
-        string memory humanId
+        string memory passportId
     ) public pure returns (string memory) {
         if (bytes(dataUrl).length == 0) {
             if (!(!dataUrlIsFolderBase)) revert EC(31);
@@ -206,7 +206,7 @@ library ODPPassportLib {
             return dataUrl;
         }
         string memory base = stripTrailingSlashMemory(dataUrl);
-        return string(abi.encodePacked(base, "/", humanId, ".json"));
+        return string(abi.encodePacked(base, "/", passportId, ".odpass"));
     }
 
     function validateDigitalMintUnpacked(
@@ -235,6 +235,55 @@ library ODPPassportLib {
         }
         validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
         validateAuxCommitmentFields(auxCommitmentHash, auxCommitmentUri);
+    }
+
+    // ─── UTC calendar (ODP-ID / PRF-ID must match mint/proof block month in UTC) ─
+
+    function _isLeapYear(uint256 y) private pure returns (bool) {
+        return ((y % 4 == 0) && (y % 100 != 0)) || (y % 400 == 0);
+    }
+
+    function _daysInYear(uint256 y) private pure returns (uint256) {
+        return _isLeapYear(y) ? 366 : 365;
+    }
+
+    function _daysInMonth(uint256 m, uint256 y) private pure returns (uint256) {
+        if (m == 1 || m == 3 || m == 5 || m == 7 || m == 8 || m == 10 || m == 12) return 31;
+        if (m == 4 || m == 6 || m == 9 || m == 11) return 30;
+        return _isLeapYear(y) ? 29 : 28;
+    }
+
+    /// @dev Gregorian UTC: Unix `ts` seconds since 1970-01-01 00:00:00 UTC.
+    /// @notice Reverts EC(83) if `ts` is outside a supported range (internal calendar loop bound).
+    function utcYearMonthFromTimestamp(uint256 ts) public pure returns (uint32 year, uint8 month) {
+        uint256 dayCount = ts / 86400;
+        uint256 y = 1970;
+        for (uint256 i = 0; i < 600; i++) {
+            uint256 diy = _daysInYear(y);
+            if (dayCount < diy) {
+                break;
+            }
+            dayCount -= diy;
+            y++;
+        }
+        if (dayCount >= _daysInYear(y)) revert EC(83);
+
+        uint256 m = 1;
+        uint256 rem = dayCount;
+        bool found;
+        for (uint256 mi = 1; mi <= 12; mi++) {
+            uint256 dim = _daysInMonth(mi, y);
+            if (rem < dim) {
+                m = mi;
+                found = true;
+                break;
+            }
+            rem -= dim;
+        }
+        if (!found) revert EC(83);
+
+        year = uint32(y);
+        month = uint8(m);
     }
 
     // ─── String formatters (ID building; linked to shrink main contract EIP-170 size) ─
@@ -271,11 +320,11 @@ library ODPPassportLib {
         return string(b);
     }
 
-    function formatOdpHumanId(uint32 year, uint8 month, uint32 n) public pure returns (string memory) {
+    function formatOdpPassportId(uint32 year, uint8 month, uint32 n) public pure returns (string memory) {
         return string(abi.encodePacked("ODP-", yearToString(year), "-", monthToString(month), "-", pad9(n)));
     }
 
-    function formatProofHumanId(uint32 year, uint8 month, uint32 n) public pure returns (string memory) {
+    function formatPrfId(uint32 year, uint8 month, uint32 n) public pure returns (string memory) {
         return string(abi.encodePacked("PRF-", yearToString(year), "-", monthToString(month), "-", pad8(n)));
     }
 

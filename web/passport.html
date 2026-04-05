@@ -81,11 +81,11 @@ const NET = {
   rpcUrls: POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
   /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
-  contract: "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
+  contract: "0x35c29A1faC6e39925BeF616bb5222F024E5D6132",
   /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
   contractGenerationFallback: null,
   /** Optional `ODPCounterfeitConcern` satellite (paired with `contract`); set after v0.4 deploy. */
-  counterfeitConcern: "0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e",
+  counterfeitConcern: "0x7C2EAaC6b0E4c14765d4064885A175fD057f680e",
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
@@ -142,6 +142,19 @@ function setMintSuccessLeavingGuard(on) {
   odpMintSuccessLeavingGuard = !!on;
 }
 function esc(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/`/g,"&#96;"); }
+
+function odpEthersLib() {
+  const g = typeof globalThis !== "undefined" ? globalThis : typeof window !== "undefined" ? window : {};
+  return g.ethers || null;
+}
+(function odpBondEthersGlobal() {
+  const e = odpEthersLib();
+  if (!e) return;
+  try {
+    if (typeof globalThis !== "undefined" && !globalThis.ethers) globalThis.ethers = e;
+    if (typeof window !== "undefined" && !window.ethers) window.ethers = e;
+  } catch (err) {}
+})();
 
 function addExtraMetaRow() {
   const wrap = document.getElementById("extraMetaRows");
@@ -353,21 +366,24 @@ async function connectWallet() {
     errEl.innerHTML = noWalletHtml();
     return;
   }
-  await odpMergeRegistryConfigAsync(NET);
   odpConnectInFlight = true;
   odpSetConnectButtonsBusy(true);
   try {
-    // Polygon first, then accounts — so MetaMask scopes the connection to this chain
-    // (requesting accounts before switch often shows permission for multiple networks).
-    await ensureWalletChain(eth, NET);
     await eth.request({ method: "eth_requestAccounts" });
     const single = await odpRequireSingleEthereumAccount(eth);
     if (!single.ok) {
       errEl.innerHTML = `<div class="info e">${esc(single.message)}</div>`;
       return;
     }
+    await odpMergeRegistryConfigAsync(NET);
     await ensureWalletChain(eth, NET);
-    await _finish(new ethers.providers.Web3Provider(eth));
+    await ensureWalletChain(eth, NET);
+    const Elib = odpEthersLib();
+    if (!Elib || !Elib.providers) {
+      errEl.innerHTML = `<div class="info e">${esc("ethers v5 failed to load (CDN blocked?).")}</div>`;
+      return;
+    }
+    await _finish(new Elib.providers.Web3Provider(eth));
   } catch (e) {
     const msg = String((e && e.message) || e);
     if (/already pending|request of type.*pending/i.test(msg)) {
@@ -415,7 +431,12 @@ async function connectWalletWithWalletConnect() {
         },
       });
     }
-    await _finish(new ethers.providers.Web3Provider(eth));
+    const Ewc = odpEthersLib();
+    if (!Ewc || !Ewc.providers) {
+      errEl.innerHTML = `<div class="info e">${esc("ethers v5 failed to load (CDN blocked?).")}</div>`;
+      return;
+    }
+    await _finish(new Ewc.providers.Web3Provider(eth));
   } catch (e) {
     const msg = String((e && e.message) || e);
     if (/already pending|request of type.*pending/i.test(msg)) {
@@ -742,8 +763,29 @@ function htmlPassportPmProofCard() {
             ? `<div class="pm-proof-list-block">
           <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secCfTitle"))}</div>
           <p class="pm-proof-hint">${esc(t("passport.pmProof.secCfLead"))}</p>
-          <label class="search-label" for="pmCfReason">${esc(t("passport.pmProof.cfReasonLabel"))}</label>
-          <textarea id="pmCfReason" class="pm-proof-input pm-proof-textarea" rows="3" autocomplete="off"></textarea>
+          <div class="pm-proof-section" style="margin-top:12px">
+            <label class="search-label" for="pmCfPassportId">${esc(t("passport.pmProof.cfPassportIdLabel"))}</label>
+            <p class="pm-proof-hint">${esc(t("passport.pmProof.cfPassportIdHint"))}</p>
+            <input type="text" id="pmCfPassportId" class="pm-proof-input" placeholder="ODP-…" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="pm-proof-section">
+            <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secAttachTitle"))}</div>
+            <p class="pm-proof-hint" style="margin-bottom:14px">${esc(t("passport.pmProof.cfFileHelp"))}</p>
+            <div class="pm-proof-fdrop-wrap">
+              <div class="fdrop" id="pmCfFileDrop" onclick="document.getElementById('pmCfNoteFile').click()">
+                <input type="file" id="pmCfNoteFile" aria-label="${esc(t("passport.pmProof.secAttachTitle"))}">
+                <div class="fdrop-icon">📎</div>
+                <div class="fdrop-text"><span>${esc(t("passport.pmProof.noteFileDrop1"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(t("passport.pmProof.noteFileDrop2"))}</span></div>
+              </div>
+            </div>
+            <div id="pmCfNoteHash" class="pm-proof-hash-line"></div>
+          </div>
+          <div class="pm-proof-section">
+            <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secUrlTitle"))}</div>
+            <label class="search-label" for="pmCfNoteUrl">${esc(t("passport.pmProof.noteUrlLabel"))}</label>
+            <p class="pm-proof-hint">${esc(t("passport.pmProof.cfUrlHintCf"))}</p>
+            <input type="url" id="pmCfNoteUrl" class="pm-proof-input" placeholder="https://…" autocomplete="off">
+          </div>
           <div id="pmCfChainStatus" class="fhint" style="margin-top:8px;text-align:center;font-size:12px;line-height:1.5;min-height:1.25em"></div>
           <div class="pm-proof-actions">
             <button type="button" class="btn" id="pmCfRaiseBtn">${esc(t("passport.pmProof.cfRaiseBtn"))}</button>
@@ -757,7 +799,7 @@ function htmlPassportPmProofCard() {
 
         <div class="pm-proof-list-block info neutral" style="padding:14px 16px;border-radius:8px;margin-top:8px">
           <div class="pm-proof-list-title">${esc(t("passport.pmProof.listTitle"))}</div>
-          <div id="pmProofList" class="mono" style="font-size:12px;word-break:break-word;white-space:pre-wrap;text-align:left"></div>
+          <div id="pmProofList" class="mono" style="font-size:12px;word-break:break-word;white-space:pre-wrap;text-align:center"></div>
         </div>
       </div>
     </div>`;
@@ -860,7 +902,7 @@ function bindPMProofHandlers() {
           const ts = pr && pr.timestamp != null ? Number(pr.timestamp) * 1000 : 0;
           const when = ts ? odpFormatDateTimeLocalDDMMYYYY(new Date(ts)) : "—";
           lines.push(
-            `${pid}\n  ${t("passport.pmProof.listPassport")} ${pr.humanId}\n  ${t("passport.pmProof.listWhen")} ${when}\n  noteHash: ${nh}\n  noteUrl: ${(pr && pr.noteUrl) || "—"}\n`
+            `${pid}\n  ${t("passport.pmProof.listPassport")} ${(pr && pr.passportId != null ? pr.passportId : pr.humanId) || "—"}\n  ${t("passport.pmProof.listWhen")} ${when}\n  noteHash: ${nh}\n  noteUrl: ${(pr && pr.noteUrl) || "—"}\n`
           );
         } catch {
           lines.push(String(pid) + "\n");
@@ -908,15 +950,89 @@ function bindPMProofHandlers() {
     });
   }
 
+  const pmCfPassportIn = document.getElementById("pmCfPassportId");
+  const pmCfNoteFile = document.getElementById("pmCfNoteFile");
+  const pmCfFileDrop = document.getElementById("pmCfFileDrop");
+  const pmCfNoteHashEl = document.getElementById("pmCfNoteHash");
+  const pmCfNoteUrlIn = document.getElementById("pmCfNoteUrl");
   const pmCfChainStatus = document.getElementById("pmCfChainStatus");
   const pmCfRaiseBtn = document.getElementById("pmCfRaiseBtn");
   const pmCfClearBtn = document.getElementById("pmCfClearBtn");
   const pmCfRefreshStatusBtn = document.getElementById("pmCfRefreshStatusBtn");
   const pmCfResult = document.getElementById("pmCfResult");
-  const pmCfReason = document.getElementById("pmCfReason");
 
-  function pmCfKeccakUtf8(s) {
-    return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(s));
+  /** Default file fingerprint for concern hash when no file is chosen. */
+  let pmCfFileHashBytes32 = PM_PROOF_ZERO32;
+
+  function syncPmCfFileDropEmpty() {
+    pmCfFileHashBytes32 = PM_PROOF_ZERO32;
+    const drop = pmCfFileDrop || document.getElementById("pmCfFileDrop");
+    const dropText = drop && drop.querySelector(".fdrop-text");
+    if (pmCfNoteHashEl) pmCfNoteHashEl.textContent = "";
+    if (drop) drop.classList.remove("has-file");
+    if (dropText) {
+      dropText.innerHTML =
+        "<span>" +
+        esc(t("passport.pmProof.noteFileDrop1")) +
+        '</span><br><span style="font-size:11px;opacity:0.6">' +
+        esc(t("passport.pmProof.noteFileDrop2")) +
+        "</span>";
+    }
+  }
+
+  function pmCfConcernReasonHash(passportId, fileSha256Hex, urlText) {
+    const E = odpEthersLib();
+    if (!E || !E.utils) throw new Error("ethers");
+    const fh =
+      fileSha256Hex && /^0x[0-9a-f]{64}$/i.test(String(fileSha256Hex))
+        ? String(fileSha256Hex).toLowerCase()
+        : PM_PROOF_ZERO32;
+    const u = (urlText || "").trim().slice(0, 512);
+    const payload =
+      "ODP institutional concern|v1\npassportId:" +
+      String(passportId).trim() +
+      "\nfileSha256:" +
+      fh +
+      "\nurl:" +
+      u;
+    return E.utils.keccak256(E.utils.toUtf8Bytes(payload));
+  }
+
+  if (pmCfNoteFile) {
+    pmCfNoteFile.addEventListener("change", async () => {
+      const f = pmCfNoteFile.files && pmCfNoteFile.files[0];
+      const drop = pmCfFileDrop || document.getElementById("pmCfFileDrop");
+      const dropText = drop && drop.querySelector(".fdrop-text");
+      if (!f) {
+        syncPmCfFileDropEmpty();
+        if (pmCfNoteFile) pmCfNoteFile.value = "";
+        return;
+      }
+      try {
+        const h = await pmProofSha256FileToBytes32(f);
+        pmCfFileHashBytes32 = h;
+        if (pmCfNoteHashEl) pmCfNoteHashEl.textContent = t("passport.pmProof.noteHashComputed") + " " + h;
+        if (drop) drop.classList.add("has-file");
+        if (dropText) {
+          var sz = f.size || 0;
+          var szStr =
+            sz < 1024
+              ? sz + " B"
+              : sz < 1048576
+                ? (sz / 1024).toFixed(1) + " KB"
+                : (sz / 1048576).toFixed(1) + " MB";
+          dropText.innerHTML =
+            "<span>" +
+            esc(f.name || t("passport.pmProof.noteFileLabel")) +
+            '</span><br><span style="font-size:11px;opacity:0.6">' +
+            esc(szStr) +
+            "</span>";
+        }
+      } catch {
+        if (pmCfNoteFile) pmCfNoteFile.value = "";
+        syncPmCfFileDropEmpty();
+      }
+    });
   }
 
   async function refreshCfStatus() {
@@ -925,7 +1041,7 @@ function bindPMProofHandlers() {
         ? odpCounterfeitReadContract(contract, NET, odpContractGeneration, provider || signer)
         : null;
     if (!pmCfChainStatus || !contract || !cfRead || typeof cfRead.getCounterfeitConcern !== "function") return;
-    const humanId = humanIn.value ? String(humanIn.value).trim() : "";
+    const humanId = pmCfPassportIn && pmCfPassportIn.value ? String(pmCfPassportIn.value).trim() : "";
     if (!humanId || !/^ODP-/i.test(humanId)) {
       pmCfChainStatus.textContent = "";
       if (pmCfClearBtn) pmCfClearBtn.disabled = true;
@@ -956,15 +1072,17 @@ function bindPMProofHandlers() {
   }
 
   let pmCfInputTimer = null;
-  humanIn.addEventListener("input", () => {
-    clearTimeout(pmCfInputTimer);
-    pmCfInputTimer = setTimeout(() => {
+  if (pmCfPassportIn) {
+    pmCfPassportIn.addEventListener("input", () => {
+      clearTimeout(pmCfInputTimer);
+      pmCfInputTimer = setTimeout(() => {
+        void refreshCfStatus();
+      }, 450);
+    });
+    pmCfPassportIn.addEventListener("blur", () => {
       void refreshCfStatus();
-    }, 450);
-  });
-  humanIn.addEventListener("blur", () => {
-    void refreshCfStatus();
-  });
+    });
+  }
 
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
@@ -981,19 +1099,32 @@ function bindPMProofHandlers() {
     });
   }
 
-  if (pmCfRaiseBtn && pmCfReason) {
+  if (pmCfRaiseBtn) {
     pmCfRaiseBtn.addEventListener("click", async () => {
       if (!contract) return;
       if (pmCfResult) pmCfResult.innerHTML = "";
-      const humanId = humanIn.value ? String(humanIn.value).trim() : "";
-      const reason = pmCfReason.value ? String(pmCfReason.value).trim() : "";
+      const humanId = pmCfPassportIn && pmCfPassportIn.value ? String(pmCfPassportIn.value).trim() : "";
+      const urlStr = pmCfNoteUrlIn && pmCfNoteUrlIn.value ? String(pmCfNoteUrlIn.value).trim() : "";
       if (!humanId || !/^ODP-/i.test(humanId)) {
         if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.needHumanId"))}</div>`;
         return;
       }
-      if (!reason.length) {
-        if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.v03Ops.needReason"))}</div>`;
+      if (urlStr.length > 512) {
+        if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.urlTooLong"))}</div>`;
         return;
+      }
+      let fileHex = pmCfFileHashBytes32;
+      const f = pmCfNoteFile && pmCfNoteFile.files && pmCfNoteFile.files[0];
+      if (f) {
+        try {
+          fileHex = await pmProofSha256FileToBytes32(f);
+        } catch (e1) {
+          if (pmCfResult)
+            pmCfResult.innerHTML = `<div class="info error">${esc(e1 && e1.message ? String(e1.message) : String(e1))}</div>`;
+          return;
+        }
+      } else {
+        fileHex = PM_PROOF_ZERO32;
       }
       const cfWrite =
         typeof odpCounterfeitWriteContract === "function"
@@ -1006,7 +1137,7 @@ function bindPMProofHandlers() {
       pmCfRaiseBtn.disabled = true;
       if (pmCfResult) pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.sending"))}</div>`;
       try {
-        const rh = pmCfKeccakUtf8(reason);
+        const rh = pmCfConcernReasonHash(humanId, fileHex, urlStr);
         const tx = await cfWrite.raiseCounterfeitConcern(humanId, rh);
         await tx.wait();
         if (pmCfResult)
@@ -1025,7 +1156,7 @@ function bindPMProofHandlers() {
     pmCfClearBtn.addEventListener("click", async () => {
       if (!contract) return;
       if (pmCfResult) pmCfResult.innerHTML = "";
-      const humanId = humanIn.value ? String(humanIn.value).trim() : "";
+      const humanId = pmCfPassportIn && pmCfPassportIn.value ? String(pmCfPassportIn.value).trim() : "";
       if (!humanId || !/^ODP-/i.test(humanId)) {
         if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.needHumanId"))}</div>`;
         return;
@@ -1060,8 +1191,8 @@ function bindPMProofHandlers() {
     submitResult.innerHTML = "";
     const humanId = humanIn.value ? String(humanIn.value).trim() : "";
     const nowPm = new Date();
-    const year = nowPm.getFullYear();
-    const month = nowPm.getMonth() + 1;
+    const year = nowPm.getUTCFullYear();
+    const month = nowPm.getUTCMonth() + 1;
     const noteUrl = noteUrlIn && noteUrlIn.value ? String(noteUrlIn.value).trim() : "";
     let noteHash = PM_PROOF_ZERO32;
     const f = noteFile && noteFile.files && noteFile.files[0];
@@ -1142,7 +1273,7 @@ function renderForm() {
     ` : ""}
 
     <section id="passportMintWorkspace" ${showWorkspaceNavigator ? "hidden" : ""}>
-    <div id="passportMintsRow" style="display:none;margin-bottom:12px;max-width:52rem"></div>
+    <div id="passportMintsRow" style="display:none;margin-bottom:12px;max-width:52rem;width:100%"></div>
 
     <div class="card passport-list-card">
       <div class="card-head">${esc(t("passport.form.yourPassports"))}</div>
@@ -1182,8 +1313,9 @@ function renderForm() {
       <div class="row2">
         <div class="field"><label>${esc(t("passport.form.labelCategory"))}<span class="req">*</span></label>
           <select id="f_type">${htmlCategoryOptionsPhysical()}</select></div>
+        <!-- f_year: object-era year for JSON/provenance; ODP-ID YYYY-MM comes from UTC mint instant (see SPEC). -->
         <div class="field"><label>${esc(t("passport.form.labelYear"))}<span class="req">*</span></label>
-          <input type="number" id="f_year" value="${new Date().getFullYear()}" min="2000" max="2100"></div>
+          <input type="number" id="f_year" value="${new Date().getUTCFullYear()}" min="1000" max="2100"></div>
       </div>
       <div id="physExtra">
         <div class="row2">
@@ -1560,7 +1692,7 @@ async function updatePassportMintsRow() {
     const prefix =
       typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "";
     if (remN === maxU32 || prefix === "P" || prefix === "M") {
-      el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(t("passport.mints.unlimited"))}</div>`;
+      el.innerHTML = `<div class="info n passport-mints-banner">${esc(t("passport.mints.unlimited"))}</div>`;
       return;
     }
     let limN = null;
@@ -1582,16 +1714,16 @@ async function updatePassportMintsRow() {
       limN = prefix === "B" ? 100000 : 1000;
     }
     if (limN != null && !isNaN(limN)) {
-      el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(
+      el.innerHTML = `<div class="info n passport-mints-banner">${esc(
         t("passport.mints.remaining").replace("{rem}", String(remN)).replace("{limit}", String(limN))
       )}</div>`;
     } else {
-      el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(
+      el.innerHTML = `<div class="info n passport-mints-banner">${esc(
         t("passport.mints.remainingSimple").replace("{rem}", String(remN))
       )}</div>`;
     }
   } catch (e) {
-    el.innerHTML = `<div class="info w" style="font-size:12px">${esc(e.message || String(e))}</div>`;
+    el.innerHTML = `<div class="info w passport-mints-banner passport-mints-banner--error">${esc(e.message || String(e))}</div>`;
   }
 }
 
@@ -1764,24 +1896,36 @@ function buildRegistrationClock(now) {
   };
 }
 
-function buildPassport(humanId) {
-  const now = new Date();
+/** @param {Date} [mintAt] wall-clock instant for mint; UTC calendar year/month in JSON must match on-chain mint args. */
+function buildPassport(humanId, mintAt) {
+  const now = mintAt instanceof Date ? mintAt : new Date();
   const useV03 = typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration);
+  const jsonSpecVersion =
+    typeof odpContractGeneration === "number" && odpContractGeneration >= 4
+      ? "0.4"
+      : useV03
+        ? "0.3"
+        : "0.2";
   const roleFromCreatorId = defaultIssuerRoleFromCreatorId(creatorId);
   const issuerRole = roleFromCreatorId;
   const clock = buildRegistrationClock(now);
+  const utcY = now.getUTCFullYear();
+  const utcM = now.getUTCMonth() + 1;
+  const fy = parseInt(v("f_year"), 10);
   const p = {
-    version: useV03 ? "0.3" : "0.2",
+    version: jsonSpecVersion,
     passportId:humanId||null,
     objectType: objType,
     type: v("f_type"),
     title: v("f_title"),
     issuerRole: issuerRole,
     creator: { name:v("f_name"), wallet, creatorId },
-    year: parseInt(v("f_year")), month: now.getMonth()+1,
+    year: utcY,
+    month: utcM,
     registeredAt: clock.registeredAt,
     registration: clock.registration,
   };
+  if (!Number.isNaN(fy) && fy !== utcY) p.objectYear = fy;
 
   if (objType==="physical") {
     const med=v("f_medium"), mat=v("f_mat"), en=v("f_edn"), et=v("f_edt"), desc=v("f_desc");
@@ -1990,7 +2134,7 @@ function confirmPreMintAndMint() {
 function previewJson() {
   const el = document.getElementById("jsonPreview");
   if (el.innerHTML) { el.innerHTML=""; return; }
-  const p = buildPassport("ODP-????-??-?????????");
+  const p = buildPassport("ODP-????-??-?????????", new Date());
   el.innerHTML = `<pre style="background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:14px;font-size:10px;color:var(--text2);overflow-x:auto;margin-top:12px;max-height:260px;overflow-y:auto;white-space:pre">${esc(JSON.stringify(p,null,2))}</pre>`;
 }
 
@@ -2020,7 +2164,8 @@ async function executeMint() {
   if (err) { errEl.innerHTML=`<div class="info e" style="margin-top:12px">${esc(err)}</div>`; return; }
 
   /** Snapshot at hash time — must be the exact bytes later written to .odpass (only passportId changes). Re-building after tx.wait() would shift registration timestamps and break Verify. */
-  const passportForHash = buildPassport(null);
+  const mintAt = new Date();
+  const passportForHash = buildPassport(null, mintAt);
   const dataHash_ = await sha256obj(passportForHash);
   const imgH_     = imageHash;
   const imgU_     = imageUrl;
@@ -2033,9 +2178,8 @@ async function executeMint() {
           v("f_imgUrl3") || "",
         ]
       : [];
-  const now       = new Date();
-  const year      = parseInt(v("f_year"));
-  const month     = now.getMonth()+1;
+  const year      = mintAt.getUTCFullYear();
+  const month     = mintAt.getUTCMonth() + 1;
   const skip =
     odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
   const useFolder = document.getElementById("f_use_folder")?.checked !== false;
@@ -2142,12 +2286,14 @@ async function executeMint() {
     const receipt = await tx.wait();
 
     const iface = new ethers.utils.Interface(ABI);
-    function humanIdFromMintReceiptLogs(logs) {
+    function passportIdFromMintReceiptLogs(logs) {
       for (const log of logs || []) {
         try {
           const parsed = iface.parseLog(log);
-          if (parsed.name === "PassportMinted" && parsed.args && parsed.args.humanId) {
-            return String(parsed.args.humanId);
+          if (parsed.name === "PassportMinted" && parsed.args) {
+            const a = parsed.args;
+            const id = a.passportId != null && a.passportId !== undefined ? a.passportId : a.humanId;
+            if (id) return String(id);
           }
         } catch {
           /* wrong log shape / not our event */
@@ -2156,7 +2302,7 @@ async function executeMint() {
       return null;
     }
 
-    let humanId = humanIdFromMintReceiptLogs(receipt.logs);
+    let humanId = passportIdFromMintReceiptLogs(receipt.logs);
     let humanIdSource = humanId ? "receipt_logs" : null;
 
     if (!humanId && provider && tx && tx.hash) {
@@ -2164,7 +2310,7 @@ async function executeMint() {
         if (attempt > 0) await new Promise((r) => setTimeout(r, 280));
         try {
           const rec2 = await provider.getTransactionReceipt(tx.hash);
-          humanId = humanIdFromMintReceiptLogs(rec2 && rec2.logs);
+          humanId = passportIdFromMintReceiptLogs(rec2 && rec2.logs);
           if (humanId) humanIdSource = "receipt_refetch";
         } catch {
           /* RPC flake */
@@ -2439,6 +2585,7 @@ async function buildPassportCardPngBlob(humanId) {
       cardRootId: false,
       brandLine: t("passport.form.idCard.brandPassport"),
       title: meta.title,
+      passportId: humanId,
       humanId,
       creatorProfileId: meta.creatorProfileId || "",
       qrSlotId: "odpPassportExportTempQr",
@@ -2863,6 +3010,7 @@ function showSuccess(humanId, txHash, json, title, dataUrlOnChain, bundleMeta) {
       ? odpPassportIdCardHtml({
           brandLine: t("passport.form.idCard.brandPassport"),
           title: title,
+          passportId: humanId,
           humanId: humanId,
           creatorProfileId: creatorId || "",
           qrSlotId: "odpIdCardQrPassport",
@@ -3033,7 +3181,7 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
   zip.file("passport.json", json);
   const manifest = {
     format: "odpass-bundle",
-    bundleVersion: "0.3",
+    bundleVersion: "0.4",
     passportId: String(humanId || ""),
     createdAtUtc: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
     mode: "full",
@@ -3203,7 +3351,9 @@ document.addEventListener("DOMContentLoaded", async () => {
           walletConnectErrorNeutral = true;
         } else {
           await ensureWalletChain(eth, net);
-          provider = new ethers.providers.Web3Provider(eth);
+          const Eauto = odpEthersLib();
+          if (!Eauto || !Eauto.providers) throw new Error("ethers v5 failed to load");
+          provider = new Eauto.providers.Web3Provider(eth);
           signer = provider.getSigner();
           wallet = await signer.getAddress();
           const fin = await odpFinalizeWalletContract(net, signer, POLYGON_RPC_FALLBACKS, "passport");
@@ -3240,21 +3390,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
   } else if (!skipAuto && acc.length === 0) {
-    // #region agent log
-    fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
-      body: JSON.stringify({
-        sessionId: "c94472",
-        location: "passport.html:DOMContentLoaded",
-        message: "passport wc restore branch",
-        data: { hasEth: !!eth },
-        timestamp: Date.now(),
-        runId: "wc-persist",
-        hypothesisId: "H2",
-      }),
-    }).catch(() => {});
-    // #endregion
     try {
       await odpEnsureWalletConnectBundle();
       if (typeof odpWalletConnectTryRestoreSession === "function") {
@@ -3280,7 +3415,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                   },
                 });
               }
-              await _finish(new ethers.providers.Web3Provider(wcEth));
+              const Ewc2 = odpEthersLib();
+              if (Ewc2 && Ewc2.providers) await _finish(new Ewc2.providers.Web3Provider(wcEth));
               return;
             }
           } catch (e) {

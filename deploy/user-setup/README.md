@@ -15,12 +15,25 @@ cp private.local.env.example private.local.env
 
 ## Шаг 2 — деплой
 
+**Вариант A — скрипт из корня репозитория (компиляция + деплой):**
+
+```bash
+./deploy/deploy.sh              # Amoy (testnet), по умолчанию
+./deploy/deploy.sh polygon      # Polygon mainnet
+```
+
+**Вариант B — вручную из `deploy/`:**
+
 ```bash
 cd deploy
-npx hardhat run scripts/deploy.js --network polygon
+npm run deploy:testnet    # Amoy
+npm run deploy:mainnet    # Polygon
 # или
+npx hardhat run scripts/deploy.js --network polygon
 npx hardhat run scripts/deploy.js --network amoy
 ```
+
+После деплоя адреса и ABI пишутся в `deploy/deployments/` (`amoy.json` / `polygon.json`, `abi.json`).
 
 ## Что можно попросить изменить в репозитории (в чате Cursor / у ассистента)
 

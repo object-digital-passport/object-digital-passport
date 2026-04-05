@@ -124,7 +124,7 @@ async function main() {
       now.getFullYear(),
       now.getMonth() + 1,
       fakeDataHash,
-      "https://example.com/passport.json",
+      "https://example.com/passport.odpass",
       fakeImageHash,
       "https://example.com/preview.jpg",
       z,
@@ -139,21 +139,21 @@ async function main() {
     );
     const mintReceipt = await mintTx.wait();
 
-    let humanId = null;
+    let passportId = null;
     for (const log of mintReceipt.logs) {
       try {
         const parsed = contract.interface.parseLog(log);
         if (parsed.name === "PassportMinted") {
-          humanId = parsed.args.humanId;
+          passportId = parsed.args.passportId;
           break;
         }
       } catch {}
     }
-    console.log(`     ✅ Passport ID: ${humanId}`);
+    console.log(`     ✅ Passport ID: ${passportId}`);
 
     console.log("\n  3. Resolving passport (multi-call)...");
-    const passport = await contract.getPassport(humanId);
-    const proofIds = await contract.getProofsForPassport(humanId);
+    const passport = await contract.getPassport(passportId);
+    const proofIds = await contract.getProofsForPassport(passportId);
     const proofCount = proofIds.length;
     const version = await contract.CONTRACT_VERSION();
     console.log(`     ✅ contractVersion: ${version}`);

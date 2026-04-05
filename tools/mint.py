@@ -600,9 +600,9 @@ def cmd_mint(args):
         subtype  = prompt("Subtype (image / video / 3d / audio / document / other)", "image")
         fmt      = prompt_optional("Format (e.g. TIFF, ProRes, GLB)")
 
-    data_url = (prompt_optional("URL where passport.json will be hosted (HTTPS, or empty for no public URL)") or "").strip()
+    data_url = (prompt_optional("HTTPS URL where the .odpass ZIP will be hosted (or empty for no public URL)") or "").strip()
     if not data_url:
-        print("  ⚠  Empty dataUrl: the Verify page cannot fetch JSON; only passport.json holders can verify.")
+        print("  ⚠  Empty dataUrl: Verify cannot fetch the bundle; only .odpass / passport.json holders can verify.")
 
     # Image (preview)
     print()
@@ -883,7 +883,7 @@ def cmd_mint(args):
     print()
     print(f"  Next steps:")
     if data_url:
-        print(f"  1. Unzip the .odpass and upload passport.json to your dataUrl — use the exact bytes from the bundle.")
+        print(f"  1. Upload the .odpass ZIP to your dataUrl (same bytes as saved bundle — not bare passport.json).")
     else:
         print(f"  1. Keep the .odpass safe; without a public dataUrl only holders can verify against the chain.")
     print(f"  2. Drop the .odpass on Verify or enter Passport ID {human_id}")

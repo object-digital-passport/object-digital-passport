@@ -97,8 +97,8 @@
 
   /**
    * @param {object} o
-   * @param {string} o.title - optional object title (shown small above ODP id when different from humanId)
-   * @param {string} o.humanId - ODP passport id (large hero, one line)
+   * @param {string} o.title - optional object title (shown small above ODP id when different from passport id)
+   * @param {string} [o.passportId] - ODP passport id (large hero); legacy `o.humanId` accepted
    * @param {string} [o.creatorProfileId] - creator profile id (mono accent line under ODP id)
    * @param {string} o.qrSlotId
    * @param {string} o.stampText
@@ -110,7 +110,8 @@
   function odpPassportIdCardHtml(o) {
     var qrId = esc(o.qrSlotId || "odpIdCardQrPassport");
     var tit = o.title && String(o.title).trim();
-    var hid = o.humanId && String(o.humanId).trim();
+    var idRaw = o.passportId != null && o.passportId !== undefined ? o.passportId : o.humanId;
+    var hid = idRaw && String(idRaw).trim();
     var cid = o.creatorProfileId != null ? String(o.creatorProfileId).trim() : "";
     var subtitleBlock =
       tit && hid && tit !== hid

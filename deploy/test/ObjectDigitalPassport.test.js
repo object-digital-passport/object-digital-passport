@@ -29,6 +29,32 @@ const AUX_EMPTY = [ethers.ZeroHash, ""];
 /** v0.3+: last mint arg — empty string = mint as caller’s registered profile */
 const MINT_SELF = "";
 
+/** Fixed UTC instants for `evm_setNextBlockTimestamp` — must match mint `year`/`month` args. */
+const TS_UTC = {
+  MAR_2026: Math.floor(Date.parse("2026-03-15T12:00:00.000Z") / 1000),
+  JUN_2031: Math.floor(Date.parse("2031-06-10T12:00:00.000Z") / 1000),
+};
+
+/** Never move block time backwards (Hardhat rejects); returns the mined block's Unix time. */
+async function mineAt(ts) {
+  const latest = await ethers.provider.getBlock("latest");
+  const t = Math.max(ts, Number(latest.timestamp) + 1);
+  await ethers.provider.send("evm_setNextBlockTimestamp", [t]);
+  await ethers.provider.send("evm_mine", []);
+  return t;
+}
+
+/** Set after aligning chain time — must match every `mintDigital` / `mintPhysical` / extension tuple year+month. */
+let MINT_Y = 2026;
+let MINT_M = 3;
+
+async function syncMintYm() {
+  const t = await mineAt(TS_UTC.MAR_2026);
+  const d = new Date(t * 1000);
+  MINT_Y = d.getUTCFullYear();
+  MINT_M = d.getUTCMonth() + 1;
+}
+
 function encodePhysicalMintPayload(args) {
   const coder = ethers.AbiCoder.defaultAbiCoder();
   return coder.encode(
@@ -56,6 +82,7 @@ function encodePhysicalMintPayload(args) {
 
 describe("ObjectDigitalPassport", function () {
   async function deployFixture() {
+    await syncMintYm();
     const LibFactory = await ethers.getContractFactory("ODPPassportLib");
     const lib = await LibFactory.deploy();
     await lib.waitForDeployment();
@@ -70,6 +97,55 @@ describe("ObjectDigitalPassport", function () {
     return contract;
   }
 
+  describe("UTC year/month (mint & submitProof)", function () {
+    it("reverts EC(68) when mint year/month do not match block UTC calendar", async function () {
+      const c = await deployFixture();
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      await expect(
+        c.connect(w).mintDigital(
+          2000,
+          1,
+          nonZeroDataHash(6801),
+          "",
+          zeroHash(),
+          "",
+          ...NO_EXTRA_IMAGES,
+          nonZeroFileHash(6801),
+          false,
+          ...AUX_EMPTY,
+          MINT_SELF,
+        ),
+      )
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(68n);
+    });
+
+    it("reverts EC(68) when submitProof month does not match block UTC", async function () {
+      const c = await deployFixture();
+      const [wC, wP] = await ethers.getSigners();
+      await c.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalAndId(c, wC, [
+        MINT_Y,
+        MINT_M,
+        nonZeroDataHash(6802),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(6802),
+        false,
+        ...AUX_EMPTY,
+        MINT_SELF,
+      ]);
+      await c.connect(wP).registerCreator(TYPE_P);
+      await mineAt(TS_UTC.JUN_2031);
+      await expect(c.connect(wP).submitProof(passportId, zeroHash(), "", 2031, 5)).to.be.revertedWithCustomError(c, "EC").withArgs(
+        68n,
+      );
+    });
+  });
+
   it("CONTRACT_VERSION matches major*16+minor (internal SPEC_* constants)", async function () {
     const c = await deployFixture();
     const packed = await c.CONTRACT_VERSION();
@@ -79,7 +155,7 @@ describe("ObjectDigitalPassport", function () {
   });
 
   /**
-   * ethers v6: mintDigital returns a TransactionResponse, not humanId. IDs are random — read last passport for the issuer wallet.
+   * ethers v6: mintDigital returns a TransactionResponse, not passportId. IDs are random — read last passport for the issuer wallet.
    * @param {string} [passportOwner] when minting via mint agent, pass principal wallet (creator on record); default `signer.address`
    */
   async function mintDigitalAndId(contract, signer, args, passportOwner) {
@@ -98,8 +174,8 @@ describe("ObjectDigitalPassport", function () {
       const lim = 1000n;
       expect(await c.getRemainingMints(w.address)).to.equal(lim);
       await c.connect(w).mintDigital(
-        2026,
-        3,
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(1),
         "",
         zeroHash(),
@@ -120,8 +196,8 @@ describe("ObjectDigitalPassport", function () {
       const lim = 100000n;
       expect(await c.getRemainingMints(wB.address)).to.equal(lim);
       await c.connect(wB).mintDigital(
-        2026,
-        3,
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(2),
         "",
         zeroHash(),
@@ -142,8 +218,8 @@ describe("ObjectDigitalPassport", function () {
       const max32 = 2n ** 32n - 1n;
       expect(await c.getRemainingMints(wP.address)).to.equal(max32);
       await c.connect(wP).mintDigital(
-        2026,
-        3,
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(3),
         "",
         zeroHash(),
@@ -164,8 +240,8 @@ describe("ObjectDigitalPassport", function () {
       const max32 = 2n ** 32n - 1n;
       expect(await c.getRemainingMints(wM.address)).to.equal(max32);
       await c.connect(wM).mintDigital(
-        2026,
-        3,
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(31),
         "",
         zeroHash(),
@@ -183,9 +259,9 @@ describe("ObjectDigitalPassport", function () {
       const c = await deployFixture();
       const [wC, wM] = await ethers.getSigners();
       await c.connect(wC).registerCreator(TYPE_C);
-      const humanId = await mintDigitalAndId(c, wC, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, wC, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(41),
         "",
         zeroHash(),
@@ -197,22 +273,23 @@ describe("ObjectDigitalPassport", function () {
         MINT_SELF,
       ]);
       await c.connect(wM).registerCreator(TYPE_M);
-      const tx = await c.connect(wM).submitProof(humanId, zeroHash(), "", 2031, 6);
+      await mineAt(TS_UTC.JUN_2031);
+      const tx = await c.connect(wM).submitProof(passportId, zeroHash(), "", 2031, 6);
       await tx.wait();
-      const ids = await c.getProofsForPassport(humanId);
+      const ids = await c.getProofsForPassport(passportId);
       expect(ids.length).to.equal(1);
     });
   });
 
   describe("_resolveMintDataUrl (via mintDigital + getPassport)", function () {
-    it("stores folderBase/humanId.json and strips trailing slashes", async function () {
+    it("stores folderBase/passportId.odpass and strips trailing slashes", async function () {
       const c = await deployFixture();
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const base = "https://example.com/passports///";
-      const humanId = await mintDigitalAndId(c, w, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(10),
         base,
         zeroHash(),
@@ -223,8 +300,8 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
         MINT_SELF,
       ]);
-      const p = await c.getPassport(humanId);
-      const expectUrl = `https://example.com/passports/${humanId}.json`;
+      const p = await c.getPassport(passportId);
+      const expectUrl = `https://example.com/passports/${passportId}.odpass`;
       expect(p.dataUrl).to.equal(expectUrl);
     });
 
@@ -233,9 +310,9 @@ describe("ObjectDigitalPassport", function () {
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const base = "https://example.com/foo//bar///";
-      const humanId = await mintDigitalAndId(c, w, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(12),
         base,
         zeroHash(),
@@ -246,17 +323,17 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
         MINT_SELF,
       ]);
-      const p = await c.getPassport(humanId);
-      expect(p.dataUrl).to.equal(`https://example.com/foo//bar/${humanId}.json`);
+      const p = await c.getPassport(passportId);
+      expect(p.dataUrl).to.equal(`https://example.com/foo//bar/${passportId}.odpass`);
     });
 
     it("updatePassportUrls sets literal URLs (no folder resolution)", async function () {
       const c = await deployFixture();
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
-      const humanId = await mintDigitalAndId(c, w, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(11),
         "https://a.com/folder/",
         zeroHash(),
@@ -268,9 +345,9 @@ describe("ObjectDigitalPassport", function () {
         MINT_SELF,
       ]);
       const dh = nonZeroDataHash(11);
-      const full = `https://other.host/${humanId}.json`;
-      await c.connect(w).updatePassportUrls(humanId, full, "", dh);
-      const p = await c.getPassport(humanId);
+      const full = `https://other.host/${passportId}.odpass`;
+      await c.connect(w).updatePassportUrls(passportId, full, "", dh);
+      const p = await c.getPassport(passportId);
       expect(p.dataUrl).to.equal(full);
     });
   });
@@ -280,9 +357,9 @@ describe("ObjectDigitalPassport", function () {
       const c = await deployFixture();
       const [wA, wB] = await ethers.getSigners();
       await c.connect(wA).registerCreator(TYPE_C);
-      const humanId = await mintDigitalAndId(c, wA, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, wA, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(501),
         "",
         zeroHash(),
@@ -293,11 +370,11 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
         MINT_SELF,
       ]);
-      let p = await c.getPassport(humanId);
+      let p = await c.getPassport(passportId);
       expect(p.owner).to.equal(wA.address);
       expect(p.mintAgent).to.equal(ethers.ZeroAddress);
-      await c.connect(wA).transferPassport(humanId, wB.address);
-      p = await c.getPassport(humanId);
+      await c.connect(wA).transferPassport(passportId, wB.address);
+      p = await c.getPassport(passportId);
       expect(p.owner).to.equal(wB.address);
       expect(p.creator).to.equal(wA.address);
     });
@@ -306,9 +383,9 @@ describe("ObjectDigitalPassport", function () {
       const c = await deployFixture();
       const [wA, wP] = await ethers.getSigners();
       await c.connect(wA).registerCreator(TYPE_C);
-      const humanId = await mintDigitalAndId(c, wA, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, wA, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(502),
         "",
         zeroHash(),
@@ -320,11 +397,11 @@ describe("ObjectDigitalPassport", function () {
         MINT_SELF,
       ]);
       const reason = ethers.keccak256(ethers.toUtf8Bytes("test-revoke"));
-      await c.connect(wA).revokePassport(humanId, reason);
-      const p = await c.getPassport(humanId);
+      await c.connect(wA).revokePassport(passportId, reason);
+      const p = await c.getPassport(passportId);
       expect(p.revoked).to.equal(true);
       await c.connect(wP).registerCreator(TYPE_P);
-      await expect(c.connect(wP).submitProof(humanId, zeroHash(), "", 2031, 1)).to.be.revertedWithCustomError(
+      await expect(c.connect(wP).submitProof(passportId, zeroHash(), "", 2031, 1)).to.be.revertedWithCustomError(
         c,
         "EC"
       );
@@ -386,8 +463,8 @@ describe("ObjectDigitalPassport", function () {
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const args = [
-        2026,
-        3,
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(900),
         "",
         zeroHash(),
@@ -400,8 +477,8 @@ describe("ObjectDigitalPassport", function () {
       const tx = await c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false, "");
       const receipt = await tx.wait();
       const ids = await c.getPassportsByCreator(w.address);
-      const humanId = ids[ids.length - 1];
-      const p = await c.getPassport(humanId);
+      const passportId = ids[ids.length - 1];
+      const p = await c.getPassport(passportId);
       expect(p.objectType).to.equal("digital");
       expect(p.dataHash).to.equal(nonZeroDataHash(900));
       const ev = receipt.logs
@@ -415,7 +492,7 @@ describe("ObjectDigitalPassport", function () {
         .find((x) => x && x.name === "ExtensionMintUsed");
       expect(ev).to.not.equal(undefined);
       expect(ev.args.kind).to.equal(0);
-      expect(ev.args.humanId).to.equal(humanId);
+      expect(ev.args.passportId).to.equal(passportId);
     });
 
     it("reverts EC(64) when extension not registered", async function () {
@@ -423,8 +500,8 @@ describe("ObjectDigitalPassport", function () {
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const payload = encodeDigitalMintPayload([
-        2026,
-        3,
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(901),
         "",
         zeroHash(),
@@ -474,9 +551,9 @@ describe("ObjectDigitalPassport", function () {
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const auxH = nonZeroFileHash(777);
-      const humanId = await mintDigitalAndId(c, w, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(777),
         "",
         zeroHash(),
@@ -488,7 +565,7 @@ describe("ObjectDigitalPassport", function () {
         "https://coa.example/cert.pdf",
         MINT_SELF,
       ]);
-      const p = await c.getPassport(humanId);
+      const p = await c.getPassport(passportId);
       expect(p.auxCommitmentHash).to.equal(auxH);
       expect(p.auxCommitmentUri).to.equal("https://coa.example/cert.pdf");
     });
@@ -497,9 +574,9 @@ describe("ObjectDigitalPassport", function () {
       const c = await deployFixture();
       const [gov, w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
-      const humanId = await mintDigitalAndId(c, w, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(600),
         "",
         zeroHash(),
@@ -511,12 +588,12 @@ describe("ObjectDigitalPassport", function () {
         MINT_SELF,
       ]);
       const h1 = nonZeroFileHash(601);
-      await c.connect(w).updatePassportAuxCommitment(humanId, h1, "https://a.example/a.pdf");
-      let p = await c.getPassport(humanId);
+      await c.connect(w).updatePassportAuxCommitment(passportId, h1, "https://a.example/a.pdf");
+      let p = await c.getPassport(passportId);
       expect(p.auxCommitmentHash).to.equal(h1);
       const h2 = nonZeroFileHash(602);
-      await c.connect(gov).updatePassportAuxCommitment(humanId, h2, "https://b.example/b.pdf");
-      p = await c.getPassport(humanId);
+      await c.connect(gov).updatePassportAuxCommitment(passportId, h2, "https://b.example/b.pdf");
+      p = await c.getPassport(passportId);
       expect(p.auxCommitmentHash).to.equal(h2);
     });
 
@@ -524,9 +601,9 @@ describe("ObjectDigitalPassport", function () {
       const c = await deployFixture();
       const [_, w, w2] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
-      const humanId = await mintDigitalAndId(c, w, [
-        2026,
-        3,
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(610),
         "",
         zeroHash(),
@@ -539,7 +616,7 @@ describe("ObjectDigitalPassport", function () {
       ]);
       await c.connect(w2).registerCreator(TYPE_B);
       await expect(
-        c.connect(w2).updatePassportAuxCommitment(humanId, nonZeroFileHash(611), "https://x.example/x.pdf")
+        c.connect(w2).updatePassportAuxCommitment(passportId, nonZeroFileHash(611), "https://x.example/x.pdf")
       )
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(67n);
@@ -554,8 +631,8 @@ describe("ObjectDigitalPassport", function () {
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const phyArgs = [
-        2026,
-        3,
+        MINT_Y,
+        MINT_M,
         nonZeroDataHash(920),
         "",
         zeroHash(),
@@ -571,8 +648,8 @@ describe("ObjectDigitalPassport", function () {
       const tx = await c.connect(w).mintPhysicalViaExtension(MINT_CLASS_W, payload, false, "");
       const receipt = await tx.wait();
       const ids = await c.getPassportsByCreator(w.address);
-      const humanId = ids[ids.length - 1];
-      const p = await c.getPassport(humanId);
+      const passportId = ids[ids.length - 1];
+      const p = await c.getPassport(passportId);
       expect(p.objectType).to.equal("physical");
       const ev = receipt.logs
         .map((l) => {
@@ -585,7 +662,7 @@ describe("ObjectDigitalPassport", function () {
         .find((x) => x && x.name === "ExtensionMintUsed");
       expect(ev).to.not.equal(undefined);
       expect(ev.args.kind).to.equal(1);
-      expect(ev.args.humanId).to.equal(humanId);
+      expect(ev.args.passportId).to.equal(passportId);
     });
   });
 
@@ -602,12 +679,12 @@ describe("ObjectDigitalPassport", function () {
       expect(await c.mintAgentDelegationPending(pendKey)).to.equal(true);
       await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
       expect(await c.mintAgentForCreator(artistId)).to.equal(wAgent.address);
-      const humanId = await mintDigitalAndId(
+      const passportId = await mintDigitalAndId(
         c,
         wAgent,
         [
-          2026,
-          3,
+          MINT_Y,
+          MINT_M,
           nonZeroDataHash(701),
           "",
           zeroHash(),
@@ -620,13 +697,13 @@ describe("ObjectDigitalPassport", function () {
         ],
         wArtist.address
       );
-      const p = await c.getPassport(humanId);
+      const p = await c.getPassport(passportId);
       expect(p.creatorId).to.equal(artistId);
       expect(p.creator).to.equal(wArtist.address);
       expect(p.owner).to.equal(wArtist.address);
       expect(p.mintAgent).to.equal(wAgent.address);
       const ids = await c.getPassportsByCreator(wArtist.address);
-      expect(ids.includes(humanId)).to.equal(true);
+      expect(ids.includes(passportId)).to.equal(true);
       const idsAgent = await c.getPassportsByCreator(wAgent.address);
       expect(idsAgent.length).to.equal(0);
     });
@@ -640,8 +717,8 @@ describe("ObjectDigitalPassport", function () {
       await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
       await expect(
         c.connect(wEvil).mintDigital(
-          2026,
-          3,
+          MINT_Y,
+          MINT_M,
           nonZeroDataHash(702),
           "",
           zeroHash(),
@@ -670,8 +747,8 @@ describe("ObjectDigitalPassport", function () {
         c,
         wAgent,
         [
-          2026,
-          3,
+          MINT_Y,
+          MINT_M,
           nonZeroDataHash(703),
           "",
           zeroHash(),
@@ -698,8 +775,8 @@ describe("ObjectDigitalPassport", function () {
       expect(await c.mintAgentForCreator(artistId)).to.equal(ethers.ZeroAddress);
       await expect(
         c.connect(wAgent).mintDigital(
-          2026,
-          3,
+          MINT_Y,
+          MINT_M,
           nonZeroDataHash(704),
           "",
           zeroHash(),
@@ -718,6 +795,7 @@ describe("ObjectDigitalPassport", function () {
 
   describe("ODPCounterfeitConcern satellite", function () {
     async function deployRegAndCf() {
+      await syncMintYm();
       const LibFactory = await ethers.getContractFactory("ODPPassportLib");
       const lib = await LibFactory.deploy();
       await lib.waitForDeployment();
@@ -740,8 +818,8 @@ describe("ObjectDigitalPassport", function () {
       await reg.connect(wC).registerCreator(TYPE_C);
       await (
         await reg.connect(wC).mintDigital(
-          2026,
-          3,
+          MINT_Y,
+          MINT_M,
           nonZeroDataHash(800),
           "",
           zeroHash(),
@@ -754,15 +832,15 @@ describe("ObjectDigitalPassport", function () {
         )
       ).wait();
       const ids800 = await reg.getPassportsByCreator(wC.address);
-      const humanId = ids800[ids800.length - 1];
+      const passportId = ids800[ids800.length - 1];
       await reg.connect(wP).registerCreator(TYPE_P);
       const rh = ethers.keccak256(ethers.toUtf8Bytes("concern"));
-      await cf.connect(wP).raiseCounterfeitConcern(humanId, rh);
-      let cc = await cf.getCounterfeitConcern(humanId);
+      await cf.connect(wP).raiseCounterfeitConcern(passportId, rh);
+      let cc = await cf.getCounterfeitConcern(passportId);
       expect(cc.active).to.equal(true);
       expect(cc.reasonHash).to.equal(rh);
-      await cf.connect(wP).clearCounterfeitConcern(humanId);
-      cc = await cf.getCounterfeitConcern(humanId);
+      await cf.connect(wP).clearCounterfeitConcern(passportId);
+      cc = await cf.getCounterfeitConcern(passportId);
       expect(cc.active).to.equal(false);
     });
 
@@ -772,8 +850,8 @@ describe("ObjectDigitalPassport", function () {
       await reg.connect(wC).registerCreator(TYPE_C);
       await (
         await reg.connect(wC).mintDigital(
-          2026,
-          3,
+          MINT_Y,
+          MINT_M,
           nonZeroDataHash(801),
           "",
           zeroHash(),
@@ -786,9 +864,9 @@ describe("ObjectDigitalPassport", function () {
         )
       ).wait();
       const ids801 = await reg.getPassportsByCreator(wC.address);
-      const humanId = ids801[ids801.length - 1];
+      const passportId = ids801[ids801.length - 1];
       const rh = ethers.keccak256(ethers.toUtf8Bytes("x"));
-      await expect(cf.connect(wC).raiseCounterfeitConcern(humanId, rh))
+      await expect(cf.connect(wC).raiseCounterfeitConcern(passportId, rh))
         .to.be.revertedWithCustomError(cf, "EC")
         .withArgs(6n);
     });
