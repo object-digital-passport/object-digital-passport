@@ -1,11 +1,11 @@
-![Object Digital Passport — profile and verification](docs/readme/odp_cover_en.png)
+Object Digital Passport — profile and verification
 
 # Object Digital Passport · v0.4.1
 
-*Reference implementation snapshot · protocol line **v0.4** (on-chain generation **4**). Release notes: [`docs/RELEASE_v0.4.1.md`](docs/RELEASE_v0.4.1.md).*
+*Reference implementation snapshot · protocol line **v0.4** (on-chain generation **4**). Release notes: `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)`.*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![GitHub Repo stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=social)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
+[License: MIT](LICENSE)
+[GitHub Repo stars](https://github.com/object-digital-passport/object-digital-passport/stargazers)
 
 ## What ODP is
 
@@ -40,7 +40,7 @@ ODP does **not** replace human expertise, institutional provenance work, or othe
 
 ## How ODP Works
 
-**In plain terms:** you register **who is issuing** once (a profile), then create a **passport** for each object. The chain stores a **fingerprint** of your file—plus an optional **public link** to the **§15 `.odpass`** ZIP (not bare JSON at that URL)—not the whole story inside the transaction. To verify, someone opens [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html), compares the file to the registry, and **does not need a wallet**.
+**In plain terms:** you register **who is issuing** once (a profile), then create a **passport** for each object. The chain stores a **fingerprint** of your file—plus an optional **public link** to the **§15 `.odpass*`* ZIP (not bare JSON at that URL)—not the whole story inside the transaction. To verify, someone opens [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html), compares the file to the registry, and **does not need a wallet**.
 
 **Four steps in order**
 
@@ -191,17 +191,17 @@ Pages:
 **This repository** (`main` branch) is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional `ODPCounterfeitConcern` satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see [docs/V0.4.md](docs/V0.4.md) and [SPEC.md](SPEC.md). **Default Polygon addresses** in this README and [deploy/deployments/polygon.json](deploy/deployments/polygon.json) match the **generation 4** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
 
 
-|                         |                                                                                                                                                                                                                  |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Source**              | Branch `main` in this repository — reference **v0.4** stack (contracts + static web).                                                                                                                            |
-| **On-chain generation** | `CONTRACT_VERSION` = **4** (same v0.3-shaped `Passport` tuple as generation **3**).                                                                                                                              |
+|                         |                                                                                                                                                                                                            |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Source**              | Branch `main` in this repository — reference **v0.4** stack (contracts + static web).                                                                                                                      |
+| **On-chain generation** | `CONTRACT_VERSION` = **4** (same v0.3-shaped `Passport` tuple as generation **3**).                                                                                                                        |
 | **New vs v0.3 line**    | Optional `ODPCounterfeitConcern` satellite (P/M concern); public `SPEC_*` / `MONTHLY_LIMIT_*` getters removed from the main contract bytecode for **EIP-170** headroom — see [docs/V0.4.md](docs/V0.4.md). |
-| **Deploy order**        | `ODPPassportLib` → `ObjectDigitalPassport` → optional `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` — [deploy/README.md](deploy/README.md).                                                                |
+| **Deploy order**        | `ODPPassportLib` → `ObjectDigitalPassport` → optional `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` — [deploy/README.md](deploy/README.md).                                                          |
 
 
 ## Current Release
 
-**Implementation snapshot:** **v0.4.1** — see **[`docs/RELEASE_v0.4.1.md`](docs/RELEASE_v0.4.1.md)** (security, GitHub workflow, tooling). Russian: [`localization/ru/RELEASE_v0.4.1.md`](localization/ru/RELEASE_v0.4.1.md).
+**Implementation snapshot:** **v0.4.1** — see `**[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)`** (security, GitHub workflow, tooling). Russian: `[localization/ru/RELEASE_v0.4.1.md](localization/ru/RELEASE_v0.4.1.md)`.
 
 Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s static UI defaults:
 
@@ -215,7 +215,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 | Counterfeit concern `ODPCounterfeitConcern` (satellite)        | `[0x7C2EAaC6b0E4c14765d4064885A175fD057f680e](https://polygonscan.com/address/0x7C2EAaC6b0E4c14765d4064885A175fD057f680e)`   |
 
 
-**Release notes:** [`docs/RELEASE_v0.4.1.md`](docs/RELEASE_v0.4.1.md) · [`docs/V0.4.md`](docs/V0.4.md) · **Earlier line (v0.3 vs v0.2):** [`localization/ru/RELEASE_v0.3.md`](localization/ru/RELEASE_v0.3.md).
+**Release notes:** `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)` · `[docs/V0.4.md](docs/V0.4.md)` · **Earlier line (v0.3 vs v0.2):** `[localization/ru/RELEASE_v0.3.md](localization/ru/RELEASE_v0.3.md)`.
 
 ## Terms You Need
 
@@ -235,7 +235,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 
 For threat model and trust boundaries:
 
-- `[SECURITY.md](SECURITY.md)` · Russian: [`localization/ru/SECURITY.md`](localization/ru/SECURITY.md)
+- `[SECURITY.md](SECURITY.md)` · Russian: `[localization/ru/SECURITY.md](localization/ru/SECURITY.md)`
 
 Verification basics:
 
@@ -295,4 +295,3 @@ Author:
 License:
 
 - [MIT](LICENSE)
-

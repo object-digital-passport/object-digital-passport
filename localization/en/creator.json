@@ -1,9 +1,9 @@
 {
   "creator": {
     "meta": {
-      "documentTitle": "ODP v0.4 — Register profile",
+      "documentTitle": "ODP v0.4.1 — Register profile",
       "h1": "Profile",
-      "sub": "Object Digital Passport · version\u00a00.4"
+      "sub": "Object Digital Passport · version\u00a00.4.1"
     },
     "steps": {
       "wallet": "Wallet",
