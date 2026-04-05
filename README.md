@@ -7,6 +7,8 @@ Object Digital Passport · v0.4 (draft protocol / tooling)
 
 **It is built on a blockchain.** And no: this is not “another NFT project” or a meme coin. In plain terms, a **blockchain** is a chain of **information blocks** linked so the network can verify the chain is intact; a record that lands in a public registry **cannot be erased retroactively** as if it never existed — that is what makes later checks meaningful. The registry itself is still **not locked** to one company, subscription, or private gatekeeper for the index.
 
+**Who it is for.** ODP is for **solo creators and makers** and for **organizations**: brands, galleries, museums, and expert institutions. Organizations get **proofs**, optional **parent/child affiliation**, and profile **types** in the registry (**C / B / P / M** — see [Quick Start](#quick-start-5-minutes)); the v0.4 line can also wire **institutional concern** for **P** and **M** via an optional satellite. Normative detail is in [SPEC.md](SPEC.md).
+
 You **do not** need deep blockchain expertise to try the **[live demo pages](#live-demo)**. Checking a passport is free and does not require a wallet. Issuing a profile or passport uses common browser wallets and a small network fee on Polygon (often on the order of **~US$0.01** per typical transaction—network load varies) — details are in [Start Here](#start-here) and [Quick Start](#quick-start-5-minutes).
 
 **What is this website?** [GitHub](https://github.com/) is where we host the **open-source** specification, web pages, and tools. You can read everything for free, copy the project, or suggest improvements — no account is required just to read.
@@ -70,7 +72,18 @@ If you are new, follow this order:
 ### 2) Register your profile
 
 - Open [Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html).
-- Register once to receive your profile ID (`C-...`, `B-...`, `P-...`, `M-...`).
+- Register once to receive your **profile ID** — a string starting with **`C-`**, **`B-`**, **`P-`**, or **`M-`** (you pick the type at registration; it does not change on its own later).
+
+**What the letter means**
+
+| Prefix | Typical use | In short |
+|:--|:--|:--|
+| **C** (Creator) | Individual author, craft studio | Issue under your own name |
+| **B** (Brand) | Brand or company | Issue as an organization |
+| **P** (Proof institution) | Expert / curatorial institution | Can issue **proofs** for others; supports **affiliation** with child institutions |
+| **M** (Museum) | Museum or collection | Curatorial flows; with **P**, can use extended checks (including concern in v0.4 — see [SPEC.md](SPEC.md)) |
+
+Full rules for limits, proofs, and affiliation: [SPEC.md](SPEC.md).
 
 ### 3) Issue a passport
 
