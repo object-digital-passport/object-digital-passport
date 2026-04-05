@@ -7,19 +7,36 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=flat&logo=github)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
 
-ODP is an open standard for registering physical or digital objects on blockchain and proving authenticity later.
-No platform lock-in, no subscription, no central gatekeeper.
+**Object Digital Passport (ODP)** is a simple idea: register a physical or digital object in a **public, shared record** so that later anyone can **check** that the data still matches — without locking you into one company’s platform, subscription, or gatekeeper.
 
-**This repository (`main`)** is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional **`ODPCounterfeitConcern`** satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)** and **[`SPEC.md`](SPEC.md)**. **Default Polygon addresses** in this README and [`deploy/deployments/polygon.json`](deploy/deployments/polygon.json) match the **generation 4** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
+You **do not** need to understand blockchain to try the **[live demo pages](#live-demo)**. Checking a passport is free and does not require a wallet. Issuing a profile or passport uses common browser wallets and a small network fee on Polygon — details are in [Start Here](#start-here) and [Quick Start](#quick-start-5-minutes).
 
-## Table of Contents
+**What is this website?** [GitHub](https://github.com/) is where we host the **open-source** specification, web pages, and tools. You can read everything for free, copy the project, or suggest improvements — no account is required just to read.
 
-- [Reference stack v0.4 (quick facts)](#reference-stack-v04-quick-facts)
+## Languages and translations
+
+| | |
+|:--|:--|
+| 🇬🇧 **English** | You are reading the main README. |
+| 🇷🇺 **Russian / Русский** | [localization/ru/README.md](localization/ru/README.md) |
+
+**We welcome README and UI translations in any language.** Add files under `localization/<language-code>/` (see the [`localization/ru/`](localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)** (editing, localization, and how to propose changes).
+
+**Help us:** translate, share the **[project link](https://github.com/object-digital-passport/object-digital-passport)**, or tell communities who might care about open provenance for objects.
+
+## Table of contents
+
+**Getting started**
+
 - [Start Here](#start-here)
 - [Quick Start (5 minutes)](#quick-start-5-minutes)
 - [How ODP Works](#how-odp-works)
 - [Positioning](#positioning)
 - [Live Demo](#live-demo)
+
+**Technical reference**
+
+- [Reference stack v0.4 (quick facts)](#reference-stack-v04-quick-facts)
 - [Current Release](#current-release)
 - [Terms You Need](#terms-you-need)
 - [Security and Verification Model](#security-and-verification-model)
@@ -27,15 +44,6 @@ No platform lock-in, no subscription, no central gatekeeper.
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [Author and License](#author-and-license)
-
-## Reference stack v0.4 (quick facts)
-
-| | |
-|:--|:--|
-| **Source** | **`main`** in this repository — reference **v0.4** stack (contracts + static web). |
-| **On-chain generation** | **`CONTRACT_VERSION` = 4** (same v0.3-shaped `Passport` tuple as generation **3**). |
-| **New vs v0.3 line** | Optional **`ODPCounterfeitConcern`** satellite (P/M concern); public **`SPEC_*` / `MONTHLY_LIMIT_*`** getters removed from the main contract bytecode for **EIP-170** headroom — see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**. |
-| **Deploy order** | **`ODPPassportLib`** → **`ObjectDigitalPassport`** → optional **`ODPWalletDocumentAnchor`** / **`ODPCounterfeitConcern`** — **[`deploy/README.md`](deploy/README.md)**. |
 
 ## Start Here
 
@@ -45,10 +53,6 @@ If you are new:
 2. Read this README for the practical overview.
 3. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
 4. **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)** — v0.4 (**on-chain** + **site**: WalletConnect, `ODPCounterfeitConcern`, etc.). **v0.3 vs v0.2:** [`RELEASE_v0.3.md`](RELEASE_v0.3.md). **Deploying your own registry and `NET.*`:** [`deploy/README.md`](deploy/README.md).
-
-Translated version:
-
-- Russian README: [`localization/ru/README.md`](localization/ru/README.md)
 
 **0.x** means proof-of-concept: behaviour and deployments can change. Each contract address is its **own** registry; passport and profile records do **not** move between deployments by themselves. **This repository documents the reference v0.4 line** when you deploy bytecode from **`main`**; a future stable **v1** may define migration or dual-read — see versioning notes in [`SPEC.md`](SPEC.md) and [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md).
 
@@ -115,6 +119,17 @@ Pages:
 - Verify (no wallet): [verify.html](https://object-digital-passport.github.io/object-digital-passport/verify.html)
 - Profile (wallet + network fees): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
 - Passport (wallet + network fees): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
+
+## Reference stack v0.4 (quick facts)
+
+**This repository (`main`)** is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional **`ODPCounterfeitConcern`** satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)** and **[`SPEC.md`](SPEC.md)**. **Default Polygon addresses** in this README and [`deploy/deployments/polygon.json`](deploy/deployments/polygon.json) match the **generation 4** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
+
+| | |
+|:--|:--|
+| **Source** | **`main`** in this repository — reference **v0.4** stack (contracts + static web). |
+| **On-chain generation** | **`CONTRACT_VERSION` = 4** (same v0.3-shaped `Passport` tuple as generation **3**). |
+| **New vs v0.3 line** | Optional **`ODPCounterfeitConcern`** satellite (P/M concern); public **`SPEC_*` / `MONTHLY_LIMIT_*`** getters removed from the main contract bytecode for **EIP-170** headroom — see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**. |
+| **Deploy order** | **`ODPPassportLib`** → **`ObjectDigitalPassport`** → optional **`ODPWalletDocumentAnchor`** / **`ODPCounterfeitConcern`** — **[`deploy/README.md`](deploy/README.md)**. |
 
 ## Current Release
 
