@@ -1,6 +1,8 @@
 ![Object Digital Passport — profile and verification](docs/readme/odp_cover_en.png)
 
-# Object Digital Passport · v0.4
+# Object Digital Passport · v0.4.1
+
+*Reference implementation snapshot · protocol line **v0.4** (on-chain generation **4**). Release notes: [`docs/RELEASE_v0.4.1.md`](docs/RELEASE_v0.4.1.md).*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub Repo stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=social)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -199,6 +201,8 @@ Pages:
 
 ## Current Release
 
+**Implementation snapshot:** **v0.4.1** — see **[`docs/RELEASE_v0.4.1.md`](docs/RELEASE_v0.4.1.md)** (security, GitHub workflow, tooling). Russian: [`localization/ru/RELEASE_v0.4.1.md`](localization/ru/RELEASE_v0.4.1.md).
+
 Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s static UI defaults:
 
 
@@ -211,7 +215,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 | Counterfeit concern `ODPCounterfeitConcern` (satellite)        | `[0x7C2EAaC6b0E4c14765d4064885A175fD057f680e](https://polygonscan.com/address/0x7C2EAaC6b0E4c14765d4064885A175fD057f680e)`   |
 
 
-**Release notes:** `[docs/V0.4.md](docs/V0.4.md)` · **Earlier line (v0.3 vs v0.2):** `[localization/ru/RELEASE_v0.3.md](localization/ru/RELEASE_v0.3.md)`.
+**Release notes:** [`docs/RELEASE_v0.4.1.md`](docs/RELEASE_v0.4.1.md) · [`docs/V0.4.md`](docs/V0.4.md) · **Earlier line (v0.3 vs v0.2):** [`localization/ru/RELEASE_v0.3.md`](localization/ru/RELEASE_v0.3.md).
 
 ## Terms You Need
 
@@ -271,7 +275,7 @@ Pointers:
 
 - `[docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md)`
 - `[docs/V0.3.md](docs/V0.3.md)`
-- `[docs/V0.4.md](docs/V0.4.md)` · `[localization/ru/RELEASE_v0.4.md](localization/ru/RELEASE_v0.4.md)` (narrative release notes, RU; default Polygon addresses match `[deploy/deployments/polygon.json](deploy/deployments/polygon.json)`)
+- `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)` · `[docs/V0.4.md](docs/V0.4.md)` · `[localization/ru/RELEASE_v0.4.md](localization/ru/RELEASE_v0.4.md)` / `[localization/ru/RELEASE_v0.4.1.md](localization/ru/RELEASE_v0.4.1.md)` (default Polygon addresses match `[deploy/deployments/polygon.json](deploy/deployments/polygon.json)`)
 
 ## Contributing
 
