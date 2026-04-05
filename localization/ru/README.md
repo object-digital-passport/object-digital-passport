@@ -1,4 +1,4 @@
-[en](../../README.md) · **ru**
+![Object Digital Passport — профиль и проверка](../../docs/readme/odp_cover_ru.png)
 
 # Object Digital Passport · v0.4
 
