@@ -8,6 +8,10 @@ Thanks for your interest in Object Digital Passport.
 
 This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By participating, you agree to uphold it. Reports: see **Enforcement** in that file.
 
+## Language (GitHub and the community)
+
+**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is **[`SPEC.md`](SPEC.md)** (English). Translations under [`localization/`](localization/) are informational; discussion that changes the protocol should still be tracked in English on GitHub.
+
 ## Where to start
 
 - Read the normative protocol in **[`SPEC.md`](SPEC.md)** and the overview in **[`README.md`](README.md)**.

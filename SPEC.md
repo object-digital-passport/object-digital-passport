@@ -16,7 +16,7 @@
 | 🇷🇺 **Russian / Русский** | [localization/ru/SPEC.md](localization/ru/SPEC.md)       |
 
 
-**We welcome specification translations in any language.** Add files under `localization/<language-code>/` (see the [localization/ru/](localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+**We welcome specification translations in any language.** Add files under `localization/<language-code>/` (see the [localization/ru/](localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)**. **Community discussion on GitHub (issues and PRs) is in English** so all participants can follow the same threads.
 
 **Normative source:** English `SPEC.md` (this file) is the only normative specification in this repository. Translations are provided for convenience and can contain mistakes; treat them as **informational only**.
 
@@ -1747,4 +1747,4 @@ The reference registry **does not** define a canonical on-chain index **SHA-256(
 
 *Object Digital Passport is open source. MIT License.*
 *Contributions welcome. This is a draft — feedback is the goal.*
-*If something feels missing or underspecified, you can open a [**Standard gap** issue](https://github.com/object-digital-passport/object-digital-passport/issues/new?template=standard_gap.md) (short proposals welcome).*
+*If something feels missing or underspecified, open a [**Standard gap** issue](https://github.com/object-digital-passport/object-digital-passport/issues/new?template=standard_gap.md) in **English** (short proposals welcome).*

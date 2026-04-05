@@ -1,31 +1,30 @@
 ---
-name: Пробел в стандарте / Standard gap
-about: Предложите, чего не хватает или что стоит уточнить в SPEC — идеи сообщества для развития спецификации
+name: Standard gap
+about: Propose what is missing, unclear, or underspecified in SPEC — community input for the specification
 title: "[spec-gap] "
 labels: ["spec", "discussion"]
 ---
 
 <!--
-  EN: Use this template when something important is missing, vague, or underspecified in SPEC.md (normative English).
-  RU: Этот шаблон — когда вам кажется, что в спецификации не хватает правила, ясности или примеров.
+  Use this template when something important is missing, vague, or underspecified in SPEC.md (normative English).
 -->
 
-## Чего не хватает или что неясно? / What is missing or unclear?
+## What is missing or unclear?
 
-<!-- Опишите своими словами: сценарий, ожидание, что сейчас не покрыто. -->
+<!-- Describe the gap: scenario, expectation, what the spec does not cover today. -->
 
-## Зачем это важно? / Why does it matter?
+## Why does it matter?
 
-<!-- Кому: выпускающим паспорта, верификаторам, интеграторам, пользователям кошельков? Можно кратко. -->
+<!-- Who is affected: issuers, verifiers, integrators, wallet users? Keep it brief. -->
 
-## Где в SPEC смотреть (если знаете) / SPEC pointer (optional)
+## SPEC pointer (optional)
 
-<!-- Номер §, заголовок раздела или «не уверен». -->
+<!-- Section §, heading, or “not sure”. -->
 
-## Идея формулировки (по желанию) / Suggested wording (optional)
+## Suggested wording (optional)
 
-<!-- Не обязательно писать «юридический» текст — достаточно направления. -->
+<!-- You do not need to write legal-style text — a direction is enough. -->
 
 ---
 
-Мейнтейнеры читают такие issues при планировании правок **SPEC.md**. Крупные нормативные изменения обсуждаются до PR; см. также шаблон **Specification / protocol discussion** для узких вопросов по уже существующим правилам.
+Maintainers use issues like this when planning updates to **SPEC.md**. Larger normative changes are discussed before merging PRs. For narrow questions about **existing** rules, see the **Specification / protocol discussion** template.
