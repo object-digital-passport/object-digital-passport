@@ -2,6 +2,8 @@
 
 **Status:** documentation only. Nothing here runs automatically. Enable a **ruleset** or **branch protection** in the repo **Settings** when you want stricter workflow (e.g. after v0.1 is tagged and you want PR-only `main`). Until then, skip this file.
 
+**Ready-to-import rulesets (local only, not in git):** use a **`rulesets/`** directory in the **repository root** (same level as `package.json`). The path **`rulesets/`** is in **`.gitignore`**, so JSON templates and `README.md` there stay on your machine and are **not committed or pushed**. Populate that folder yourself (or copy from a teammate / [`github/ruleset-recipes`](https://github.com/github/ruleset-recipes)). Official docs: [About rulesets](https://docs.github.com/ru/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets).
+
 ---
 
 Use this if you want **`main`** to accept changes **only via pull requests** (and optionally to block **direct pushes even for administrators**).
@@ -10,9 +12,9 @@ Use this if you want **`main`** to accept changes **only via pull requests** (an
 
 ## Recommended ruleset for `main`
 
-1. **Target:** Branch name `main` (or pattern `main`).
+1. **Target:** Branch name `main` (or pattern `main`), or import `main-default-branch.json` which uses `~DEFAULT_BRANCH`.
 2. **Require a pull request before merging**  
-   - Optional: require approvals (e.g. 1) — useful when there are collaborators; solo dev can use **0** approvals but still use PRs for discipline.
+   - Optional: require approvals (e.g. 1) — useful when there are collaborators; solo dev can use **0** approvals but still use PRs for discipline (`main-default-branch.json` uses **0**; `main-default-branch-strict.json` uses **1**).
 3. **Restrict deletions** — prevent accidental branch deletion.
 4. **Block force pushes** — keep history on `main` predictable.
 

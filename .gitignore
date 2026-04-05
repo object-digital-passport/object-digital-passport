@@ -1,3 +1,6 @@
+# Local GitHub Rulesets templates (import via UI; not tracked)
+rulesets/
+
 # Cursor / IDE
 .cursor/
 
