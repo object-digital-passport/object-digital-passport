@@ -1,6 +1,15 @@
 # Object Digital Passport — Release notes · v0.4 (reference site & docs)
 
-These notes describe **what changed in the repository between the v0.3 protocol snapshot and this v0.4 reference line** — mainly **static web UI**, **WalletConnect integration**, **SPEC/documentation**, and **community process**. They are **not** a new on-chain registry generation: the **reference Polygon deployment remains the v0.3 line** (`CONTRACT_VERSION` / generation **3**) — see the **Current release** table in [`README.md`](README.md). Normative protocol rules stay in [`SPEC.md`](SPEC.md).
+These notes describe **what changed on the `main` branch** after the v0.3 on-chain line — mainly **static web UI**, **WalletConnect integration**, **SPEC/documentation**, and **community process**. They are **not** a new **deployed** registry generation for the **reference Polygon addresses** in [`README.md`](README.md): those stay **v0.3** (`CONTRACT_VERSION` packed byte **3**) until you deploy something else. Normative protocol rules stay in [`SPEC.md`](SPEC.md).
+
+### P / M and “fake” (counterfeit) — do not confuse with this doc set
+
+- The **reference v0.3** `ObjectDigitalPassport` bytecode **does not** include on-chain **`raiseCounterfeitConcern` / `getCounterfeitConcern`** (removed for EIP-170) — see [`RELEASE_v0.3.md`](RELEASE_v0.3.md) and **SPEC** (counterfeit section). **P** and **M** profiles can still document disputes or methodology **off-chain** (`passport.json`, **`submitProof`**, linked reports). The shipped web UI shows legacy on-chain counterfeit controls **only if** the connected ABI still exposes those functions (typical **older v0.2** deployments).
+- **Separate work** exists on Git branch **`v0.4`**: an **`ODPCounterfeitConcern`** satellite plus packed generation **4** (e.g. commit `0e86ec4` — not an ancestor of **`main`** at the time these notes were updated). That line is **not** what you get by checking out **`main`**. Merge and redeploy before claiming an on-chain **v0.4** registry.
+
+### README / SPEC touch-ups (also on `main`)
+
+- **SPEC §17** and root **README** describe WalletConnect alongside injected wallets; **README** banner images live under [`docs/images/`](docs/images/).
 
 ## Summary
 
