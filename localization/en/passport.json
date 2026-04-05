@@ -1,9 +1,9 @@
 {
   "passport": {
     "meta": {
-      "documentTitle": "ODP v0.4 — Create Passport",
+      "documentTitle": "ODP v0.4.1 — Create Passport",
       "h1": "Create Passport",
-      "sub": "Object Digital Passport · version\u00a00.4"
+      "sub": "Object Digital Passport · version\u00a00.4.1"
     },
     "appLoading": "Connecting wallet…",
     "connect": {

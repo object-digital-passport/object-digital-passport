@@ -1,9 +1,9 @@
 {
   "verify": {
     "meta": {
-      "documentTitle": "ODP v0.4 — Verify",
+      "documentTitle": "ODP v0.4.1 — Verify",
       "h1": "Verify",
-      "sub": "Object Digital Passport · Specification\u00a0v0.4"
+      "sub": "Object Digital Passport · Specification\u00a0v0.4.1"
     },
     "toc": {
       "ariaLabel": "On this page",
