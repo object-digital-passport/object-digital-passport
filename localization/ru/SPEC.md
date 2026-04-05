@@ -960,7 +960,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
   "registeredAt": 1748000000,
   "registration": {
     "ianaTimeZone": "UTC",
-    "localIso8601": "2026-03-22T16:30:45-05:00",
+    "localIso8601": "2026-03-22T21:30:45+00:00",
     "utcIso8601": "2026-03-22T21:30:45Z"
   },
   "description": "...",
