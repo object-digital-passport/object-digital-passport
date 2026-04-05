@@ -11,6 +11,8 @@
 | **[`VERSIONING_AND_RELEASES.md`](../../docs/VERSIONING_AND_RELEASES.md)** | Теги Git, `main`, hotfix-ветки и линии фич. |
 | **[`V0.2-DRAFT.md`](../../docs/V0.2-DRAFT.md)** | Исторические / разведывательные заметки. Часть перенесена в **SPEC v0.2**; обязательным остаётся **SPEC**. |
 | **[`V0.3.md`](../../docs/V0.3.md)** | **v0.3 vs v0.2:** [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md) (EN), [`../RELEASE_v0.3.md`](../RELEASE_v0.3.md) (RU); деплой / **`NET.*`:** [`../../deploy/README.md`](../../deploy/README.md); **SPEC**. |
+| **[`V0.4.md`](../../docs/V0.4.md)** | **Эталонный сайт и документация (v0.4):** WalletConnect, восстановление сессии, уточнения SPEC/DNS — [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md), [`../RELEASE_v0.4.md`](../RELEASE_v0.4.md). Эталонный on-chain по умолчанию — **v0.3**. |
+| **[`community/discussion-passport-ui-v0.4-EN.md`](../../docs/community/discussion-passport-ui-v0.4-EN.md)** | Черновик **GitHub Discussion** (EN) про UI паспорта и стандарт. Публикация: **`../../scripts/gh-create-discussion-from-doc.sh`** после `gh auth login`. |
 | **[`IDEAS_V1.md`](../../docs/IDEAS_V1.md)** | Неформальные идеи **v1** (не спецификация). |
 
 ## Бандл `.odpass` (кратко)

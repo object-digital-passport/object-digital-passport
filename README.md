@@ -28,7 +28,7 @@ If you are new:
 1. **Wallet and self-custody.** Use a separate wallet for experimenting with ODP (not your main savings stack). Learn how your wallet works, back up your recovery phrase offline, and treat every site that asks to “connect” as potentially risky. Follow **your wallet vendor’s official documentation** (for example the [MetaMask Help Center](https://support.metamask.io/), [Rabby](https://rabby.io/), or your provider’s site). **No particular wallet brand is required** — any EIP-1193–compatible browser wallet may work. **Reference testing** of the static pages in this repository has been done **primarily with MetaMask**; others are expected to work but are less routinely exercised. On Polygon you pay for transactions in **POL** (network currency); there is **no ODP protocol fee** — see [Costs and Network](#costs-and-network).
 2. Read this README for the practical overview.
 3. Read [`SPEC.md`](SPEC.md) for the exact protocol rules.
-4. [`RELEASE_v0.3.md`](RELEASE_v0.3.md) summarizes **v0.3 vs v0.2** (what changed). **Deploying your own registry and `NET.*`:** [`deploy/README.md`](deploy/README.md).
+4. [`RELEASE_v0.3.md`](RELEASE_v0.3.md) summarizes **v0.3 vs v0.2** (what changed). **Reference site & tooling since then:** [`RELEASE_v0.4.md`](RELEASE_v0.4.md) (WalletConnect, session restore, docs — on-chain line still **v0.3**). **Deploying your own registry and `NET.*`:** [`deploy/README.md`](deploy/README.md).
 
 Translated version:
 
@@ -110,7 +110,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 | Main registry `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
 | Wallet document anchor `ODPWalletDocumentAnchor` (satellite) | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
 
-v0.3 vs v0.2: [`RELEASE_v0.3.md`](RELEASE_v0.3.md).
+v0.3 vs v0.2: [`RELEASE_v0.3.md`](RELEASE_v0.3.md). Reference **site / docs** updates (WalletConnect, UI notes): [`RELEASE_v0.4.md`](RELEASE_v0.4.md).
 
 ## Terms You Need
 
@@ -168,6 +168,7 @@ Pointers:
 
 - [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)
 - [`docs/V0.3.md`](docs/V0.3.md)
+- [`docs/V0.4.md`](docs/V0.4.md) · [`RELEASE_v0.4.md`](RELEASE_v0.4.md) (static site & documentation; protocol deployment unchanged)
 
 ## Contributing
 

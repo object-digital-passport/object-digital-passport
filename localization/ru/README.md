@@ -29,7 +29,7 @@ ODP — открытый стандарт для регистрации физи
 1. **Кошелёк и самохранение.** Используйте отдельный кошелёк для экспериментов с ODP (не основной «копилочный»). Разберитесь, как устроен кошелёк, храните резервную фразу офлайн и относитесь к каждому сайту с запросом «подключить кошелёк» как к потенциально опасному. Ориентируйтесь на **официальную документацию выбранного кошелька** (примеры: [справочный центр MetaMask](https://support.metamask.io/), сайт [Rabby](https://rabby.io/) и т.п.). **Привязки к одному бренду нет** — подойдёт любой кошелёк с интерфейсом EIP-1193, если он вам подходит. **Проверка эталонных статических страниц** этого репозитория на момент подготовки документации выполнялась **в основном с MetaMask**; другие кошельки ожидаются рабочими, но проверяются реже. В сети Polygon комиссии снимаются в **POL**; **отдельного сбора протокола ODP нет** — см. [Сеть и стоимость](#сеть-и-стоимость).
 2. Прочитайте этот README для практического обзора.
 3. Нормативные правила протокола — на английском в [`../../SPEC.md`](../../SPEC.md). Справочный перевод: [`SPEC.md`](SPEC.md).
-4. **v0.3 vs v0.2** (что изменилось): [`RELEASE_v0.3.md`](RELEASE_v0.3.md) (перевод) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md) (EN). **Деплой и `NET.*`:** [`../../deploy/README.md`](../../deploy/README.md).
+4. **v0.3 vs v0.2** (что изменилось): [`RELEASE_v0.3.md`](RELEASE_v0.3.md) (перевод) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md) (EN). **Эталонный сайт и инструменты после этого:** [`RELEASE_v0.4.md`](RELEASE_v0.4.md) (RU) · [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md) (EN) — WalletConnect, восстановление сессии, уточнения в документации; **on-chain по умолчанию всё ещё v0.3**. **Деплой и `NET.*`:** [`../../deploy/README.md`](../../deploy/README.md).
 
 Англоязычная версия README: [`../../README.md`](../../README.md).
 
@@ -113,7 +113,7 @@ ODP **не заменяет** экспертизу человека, работ�
 | Основной реестр `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
 | Спутник якорей файлов `ODPWalletDocumentAnchor` | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
 
-Операторские заметки: [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md).
+Операторские заметки: [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md). Обновления **сайта и документации** (WalletConnect и т.д.): [`RELEASE_v0.4.md`](RELEASE_v0.4.md) · [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md).
 
 ## Коротко о терминах
 
@@ -171,13 +171,14 @@ ODP **не заменяет** экспертизу человека, работ�
 
 - [`../../docs/VERSIONING_AND_RELEASES.md`](../../docs/VERSIONING_AND_RELEASES.md)
 - [`../../docs/V0.3.md`](../../docs/V0.3.md)
+- [`../../docs/V0.4.md`](../../docs/V0.4.md) · [`RELEASE_v0.4.md`](RELEASE_v0.4.md) · [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md) (статический сайт и документация; эталонный деплой контрактов без изменений)
 
 ## Как вносить вклад
 
 - Гайд: [`CONTRIBUTING.md`](CONTRIBUTING.md) (оригинал EN: [`../../CONTRIBUTING.md`](../../CONTRIBUTING.md))
 - Кодекс: [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) (EN: [`../../CODE_OF_CONDUCT.md`](../../CODE_OF_CONDUCT.md))
 - Индекс документации: [`docs/README.md`](docs/README.md) (EN: [`../../docs/README.md`](../../docs/README.md))
-- Релиз v0.3 (**отличия от v0.2**): [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md); версии и теги: [`../../docs/VERSIONING_AND_RELEASES.md`](../../docs/VERSIONING_AND_RELEASES.md)
+- Релиз v0.3 (**отличия от v0.2**): [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md); релиз **v0.4** (сайт/доки): [`RELEASE_v0.4.md`](RELEASE_v0.4.md) · [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md); версии и теги: [`../../docs/VERSIONING_AND_RELEASES.md`](../../docs/VERSIONING_AND_RELEASES.md)
 
 Нужны участники **широкого профиля**: ревью протокола и кода, дизайн и редактура, **переводы**, доступность, документация. Цель — не узкий «только код», а совместный вывод стандарта к **стабильной линии к январю 2027**.
 
