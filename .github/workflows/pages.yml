@@ -23,8 +23,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v6
       # Flatten web/ to artifact root so /verify.html works.
       # Also mirror under /web/ so /web/verify.html works (same relative assets; avoids 404 for repo-style URLs).
       - name: Stage site
@@ -52,8 +52,8 @@ jobs:
           else
             echo "ODP_CONTRACT_ADDRESS empty — set Actions secret or repo Variable ODP_CONTRACT_ADDRESS, then redeploy"
           fi
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

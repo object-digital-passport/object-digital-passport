@@ -10,9 +10,12 @@
  * Author: Andrei Chernikov
  */
 
-const { ethers } = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+import hre from "hardhat";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function parsePassportLibArg() {
   const argv = process.argv.slice(2);
@@ -22,6 +25,9 @@ function parsePassportLibArg() {
 }
 
 async function main() {
+  const { ethers } = await hre.network.connect({
+    network: hre.globalOptions.network,
+  });
   const signers = await ethers.getSigners();
   const deployer = signers[0];
   if (!deployer) {
@@ -59,7 +65,7 @@ async function main() {
   console.log("  Deploying ObjectDigitalPassport (linked)...");
   const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
     libraries: {
-      "contracts/ODPPassportLib.sol:ODPPassportLib": passportLibAddress,
+      "project/contracts/ODPPassportLib.sol:ODPPassportLib": passportLibAddress,
     },
   });
   const contract = await Factory.deploy();

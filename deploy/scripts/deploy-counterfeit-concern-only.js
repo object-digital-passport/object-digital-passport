@@ -11,9 +11,12 @@
  * Author: Andrei Chernikov
  */
 
-const { ethers } = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+import hre from "hardhat";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function parseRegistryArg() {
   const argv = process.argv.slice(2);
@@ -23,6 +26,9 @@ function parseRegistryArg() {
 }
 
 async function main() {
+  const { ethers } = await hre.network.connect({
+    network: hre.globalOptions.network,
+  });
   const registry = parseRegistryArg();
   if (!registry || !/^0x[a-fA-F0-9]{40}$/.test(registry)) {
     console.error(

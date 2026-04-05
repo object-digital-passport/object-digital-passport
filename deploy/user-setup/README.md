@@ -22,15 +22,14 @@ cp private.local.env.example private.local.env
 ./deploy/deploy.sh polygon      # Polygon mainnet
 ```
 
-**Вариант B — вручную из `deploy/`:**
+**Вариант B — вручную из корня репозитория:**
 
 ```bash
-cd deploy
 npm run deploy:testnet    # Amoy
 npm run deploy:mainnet    # Polygon
 # или
-npx hardhat run scripts/deploy.js --network polygon
-npx hardhat run scripts/deploy.js --network amoy
+npx hardhat run deploy/scripts/deploy.js --network polygon
+npx hardhat run deploy/scripts/deploy.js --network amoy
 ```
 
 После деплоя адреса и ABI пишутся в `deploy/deployments/` (`amoy.json` / `polygon.json`, `abi.json`).
@@ -40,7 +39,7 @@ npx hardhat run scripts/deploy.js --network amoy
 Можно передавать **только не-секретные** вещи, например:
 
 - «Добавь в `private.local.env.example` комментарий про …»
-- «Поменяй дефолтный `POLYGON_RPC_URL` в `hardhat.config.js` на публичный …» (без вашего API key)
+- «Поменяй дефолтный `POLYGON_RPC_URL` в `hardhat.config.ts` на публичный …» (без вашего API key)
 - «Добавь сеть `localhost` в Hardhat»
 
 ## Что нельзя присылать в чат

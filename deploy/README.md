@@ -4,7 +4,7 @@
 
 ## Важно перед mainnet
 
-1. **Лимит EIP-170 (24 576 байт на контракт при создании):** реестр **`ObjectDigitalPassport`** линкуется с библиотекой **`ODPPassportLib`** — сначала деплой библиотеки, затем реестра (так делает **`scripts/deploy.js`**). После `npx hardhat compile` смотрите строку **`[ODP] EIP-170:`**: размер **основного** контракта должен быть **≤ 24 576** байт; у библиотеки свой лимит (она тоже должна укладываться — в референсной сборке оба укладываются). Подробности: **[`docs/EIP170_STRATEGY.md`](../docs/EIP170_STRATEGY.md)**.
+1. **Лимит EIP-170 (24 576 байт на контракт при создании):** реестр **`ObjectDigitalPassport`** линкуется с библиотекой **`ODPPassportLib`** — сначала деплой библиотеки, затем реестра (так делает **`deploy/scripts/deploy.js`**). После **`npm run compile`** из **корня репозитория** смотрите строку **`[ODP] EIP-170:`**: размер **основного** контракта должен быть **≤ 24 576** байт; у библиотеки свой лимит (она тоже должна укладываться — в референсной сборке оба укладываются). Подробности: **[`docs/EIP170_STRATEGY.md`](../docs/EIP170_STRATEGY.md)**.
 2. **Приватный ключ:** используйте **отдельный** кошелёк только под деплой/операции ODP, храните ключ только в `.env`, **никогда** не коммитьте `.env`.
 3. **POL:** на кошельке деплоя должно быть достаточно **MATIC/POL** на gas (запас на **два** деплоя: библиотека + реестр, плюс опционально спутник `ODPWalletDocumentAnchor`).
 
@@ -16,10 +16,10 @@
 
 Установите **Node.js** LTS (например с [nodejs.org](https://nodejs.org/)).
 
-В терминале:
+В терминале (из **корня** клона репозитория — там лежит **`package.json`** с Hardhat 3):
 
 ```bash
-cd deploy
+cd /path/to/object-digital-passport
 npm install
 ```
 
@@ -48,13 +48,12 @@ cp .env.example .env
 ## Компиляция и проверка размера (обязательно перед mainnet)
 
 ```bash
-cd deploy
-npx hardhat compile
+npm run compile
 ```
 
 В выводе смотрите строку **`[ODP] EIP-170:`** (размер реестра и библиотеки). Если реестр **> 24 576** байт — mainnet-деплой реестра отклонят; вернитесь к [`docs/EIP170_STRATEGY.md`](../docs/EIP170_STRATEGY.md).
 
-Локальная сеть Hardhat в **`hardhat.config.js`** использует `allowUnlimitedContractSize: true` — это **только для тестов**; на Polygon лимит соблюдается.
+Локальная сеть EDR в **`hardhat.config.ts`** (сеть `default`) использует `allowUnlimitedContractSize: true` — это **только для тестов**; на Polygon лимит соблюдается.
 
 ---
 
@@ -63,8 +62,7 @@ npx hardhat compile
 Убедитесь, что на кошельке есть POL. Затем:
 
 ```bash
-cd deploy
-npx hardhat run scripts/deploy.js --network polygon
+npm run deploy:mainnet
 ```
 
 Скрипт:
@@ -83,14 +81,13 @@ npx hardhat run scripts/deploy.js --network polygon
 Если полный **`deploy.js`** успешно задеплоил **`ODPPassportLib`**, а **`ObjectDigitalPassport`** не ушёл (например, не хватило POL на газ), **не** запускайте **`deploy.js`** снова — задеплоится вторая библиотека. Передайте адрес **уже существующей** библиотеки из лога:
 
 ```bash
-cd deploy
-ODP_PASSPORT_LIB_ADDRESS=0xYourLibFromLog npx hardhat run scripts/deploy-resume-from-lib.js --network polygon
+ODP_PASSPORT_LIB_ADDRESS=0xYourLibFromLog npx hardhat run deploy/scripts/deploy-resume-from-lib.js --network polygon
 ```
 
 Либо:
 
 ```bash
-npx hardhat run scripts/deploy-resume-from-lib.js --network polygon -- --passport-lib 0xYourLibFromLog
+npx hardhat run deploy/scripts/deploy-resume-from-lib.js --network polygon -- --passport-lib 0xYourLibFromLog
 ```
 
 Дальше скрипт делает то же, что **`deploy.js`** после библиотеки: связанный реестр, спутники, запись **`deployments/polygon.json`** и **`deployments/abi.json`**.
@@ -102,14 +99,13 @@ npx hardhat run scripts/deploy-resume-from-lib.js --network polygon -- --passpor
 Если основной **`ObjectDigitalPassport`** уже в сети, а **`ODPWalletDocumentAnchor`** не деплоили (или нужен новый адрес якоря):
 
 ```bash
-cd deploy
-ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon
+ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run deploy/scripts/deploy-doc-anchor-only.js --network polygon
 ```
 
 Либо:
 
 ```bash
-npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
+npx hardhat run deploy/scripts/deploy-doc-anchor-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
 ```
 
 Скрипт проверит, что по адресу есть байткод, задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`walletDocumentAnchorAddress`**). Дальше пропишите этот адрес в **`NET.docAnchor`** в **`web/verify.html`**.
@@ -123,14 +119,13 @@ npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon -- --registr
 Если основной **`ObjectDigitalPassport`** уже в сети, а спутник **counterfeit** не деплоили (или нужен новый адрес):
 
 ```bash
-cd deploy
-ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run scripts/deploy-counterfeit-concern-only.js --network polygon
+ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run deploy/scripts/deploy-counterfeit-concern-only.js --network polygon
 ```
 
 Либо:
 
 ```bash
-npx hardhat run scripts/deploy-counterfeit-concern-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
+npx hardhat run deploy/scripts/deploy-counterfeit-concern-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
 ```
 
 Скрипт задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`counterfeitConcernAddress`**). Пропишите адрес в **`NET.counterfeitConcern`** в **`web/passport.html`**, **`web/verify.html`** (тот же **`NET.contract`**, что и у этого реестра).
@@ -142,14 +137,13 @@ npx hardhat run scripts/deploy-counterfeit-concern-only.js --network polygon -- 
 Один запуск: **`ODPWalletDocumentAnchor`** и **`ODPCounterfeitConcern`** (порядок как в полном **`deploy.js`**):
 
 ```bash
-cd deploy
-ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run scripts/deploy-satellites-only.js --network polygon
+ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run deploy/scripts/deploy-satellites-only.js --network polygon
 ```
 
 Либо:
 
 ```bash
-npx hardhat run scripts/deploy-satellites-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
+npx hardhat run deploy/scripts/deploy-satellites-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
 ```
 
 Обновляются **`walletDocumentAnchorAddress`** и **`counterfeitConcernAddress`** в **`deployments/{polygon|amoy}.json`** (если деплой одного из контрактов упал — второй всё равно пробуется; в JSON попадут только успешные поля).
@@ -165,8 +159,7 @@ npx hardhat run scripts/deploy-satellites-only.js --network polygon -- --registr
 ## Тестнет Amoy (если понадобится проверить пайплайн)
 
 ```bash
-cd deploy
-npx hardhat run scripts/deploy.js --network amoy
+npm run deploy:testnet
 ```
 
 На Amoy лимит размера такой же, как на mainnet; для «большого» контракта деплой там тоже **не пройдёт**, пока байткод не уменьшат.
@@ -176,8 +169,7 @@ npx hardhat run scripts/deploy.js --network amoy
 ## Тесты без деплоя в сеть
 
 ```bash
-cd deploy
 npm test
 ```
 
-Используется встроенная сеть Hardhat с `allowUnlimitedContractSize`.
+(из корня репозитория.) Используется встроенная сеть EDR (`default`) с `allowUnlimitedContractSize`.

@@ -1,8 +1,10 @@
 /**
  * @file ODPPassportLib — UTC calendar from Unix timestamp (Gregorian, UTC).
  */
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import hre from "hardhat";
+
+const { ethers } = await hre.network.connect();
 
 describe("ODPPassportLib.utcYearMonthFromTimestamp", function () {
   let lib;

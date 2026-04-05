@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Object Digital Passport — deploy ObjectDigitalPassport + satellites (Hardhat)
+# Object Digital Passport — deploy ObjectDigitalPassport + satellites (Hardhat 3)
 #
 # Prerequisites:
 #   cp user-setup/private.local.env.example user-setup/private.local.env
@@ -13,7 +13,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 NETWORK="${1:-amoy}"
 case "$NETWORK" in
@@ -30,22 +30,24 @@ case "$NETWORK" in
     ;;
 esac
 
-if [[ ! -f "user-setup/private.local.env" && ! -f ".env" ]]; then
+if [[ ! -f "$SCRIPT_DIR/user-setup/private.local.env" && ! -f "$SCRIPT_DIR/.env" ]]; then
   echo "Error: no deploy env file. Create one of:" >&2
-  echo "  user-setup/private.local.env  (recommended: cp user-setup/private.local.env.example)" >&2
-  echo "  or deploy/.env with PRIVATE_KEY (see user-setup/README.md)" >&2
+  echo "  deploy/user-setup/private.local.env  (recommended: cp deploy/user-setup/private.local.env.example)" >&2
+  echo "  or deploy/.env with PRIVATE_KEY (see deploy/user-setup/README.md)" >&2
   exit 1
 fi
 
+cd "$REPO_ROOT"
+
 if [[ ! -d node_modules ]]; then
-  echo "Installing npm dependencies in deploy/..."
+  echo "Installing npm dependencies at repo root..."
   npm install
 fi
 
 echo "Compiling contracts..."
-npx hardhat compile
+npm run compile
 
 echo "Deploying to network: $NETWORK"
-npx hardhat run scripts/deploy.js --network "$NETWORK"
+npx hardhat run deploy/scripts/deploy.js --network "$NETWORK"
 
 echo "Done. Addresses and abi: deploy/deployments/"

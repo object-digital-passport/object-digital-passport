@@ -1,9 +1,11 @@
 /**
  * @file ObjectDigitalPassport — behaviour checks (folder URL resolution, tier mint caps).
- * Run from `deploy/`: npm ci && npx hardhat test
+ * Run from `deploy/`: npm ci && npm test
  */
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import hre from "hardhat";
+
+const { ethers } = await hre.network.connect();
 
 const TYPE_C = "0x43";
 const TYPE_B = "0x42";
@@ -89,7 +91,7 @@ describe("ObjectDigitalPassport", function () {
     const libAddress = await lib.getAddress();
     const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
       libraries: {
-        "contracts/ODPPassportLib.sol:ODPPassportLib": libAddress,
+        "project/contracts/ODPPassportLib.sol:ODPPassportLib": libAddress,
       },
     });
     const contract = await Factory.deploy();
@@ -801,7 +803,7 @@ describe("ObjectDigitalPassport", function () {
       await lib.waitForDeployment();
       const libAddress = await lib.getAddress();
       const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
-        libraries: { "contracts/ODPPassportLib.sol:ODPPassportLib": libAddress },
+        libraries: { "project/contracts/ODPPassportLib.sol:ODPPassportLib": libAddress },
       });
       const reg = await Factory.deploy();
       await reg.waitForDeployment();

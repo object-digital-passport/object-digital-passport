@@ -1,19 +1,13 @@
 {
-  "name": "object-digital-passport",
+  "name": "object-digital-passport-deploy",
   "version": "0.1.0",
   "author": "Andrei Chernikov",
-  "description": "Object Digital Passport v0.1 — smart contract deployment",
+  "description": "Deploy scripts — Hardhat runs from repository root (../package.json).",
+  "type": "module",
   "scripts": {
-    "compile": "hardhat compile",
-    "test": "hardhat test",
-    "deploy:testnet": "hardhat run scripts/deploy.js --network amoy",
-    "deploy:mainnet": "hardhat run scripts/deploy.js --network polygon"
-  },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "hardhat": "^2.22.0"
-  },
-  "dependencies": {
-    "dotenv": "^16.4.0"
+    "compile": "cd .. && npm run compile",
+    "test": "cd .. && npm run test",
+    "deploy:testnet": "cd .. && npm run deploy:testnet",
+    "deploy:mainnet": "cd .. && npm run deploy:mainnet"
   }
 }

@@ -8,7 +8,7 @@
  *
  * Note: Hardhat’s JSON-RPC provider keeps sockets open; we call `process.exit(0)` so the shell returns to the prompt.
  */
-const { ethers } = require("hardhat");
+import hre from "hardhat";
 
 /** Avoid “hangs forever” when the RPC never answers (wrong URL, firewall, rate limit). */
 function withTimeout(promise, ms, label) {
@@ -27,6 +27,9 @@ function withTimeout(promise, ms, label) {
 }
 
 async function main() {
+  const { ethers } = await hre.network.connect({
+    network: hre.globalOptions.network,
+  });
   const target = (process.env.ODP_FREEZE_CONTRACT || "").trim();
   if (!/^0x[a-fA-F0-9]{40}$/.test(target)) {
     console.error("Set ODP_FREEZE_CONTRACT=0x… (40 hex chars) to the registry to freeze.");
