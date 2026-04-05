@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/odp-cover-en.png" alt="Object Digital Passport — Creator profile with verify QR" width="100%" />
+</p>
+
 # Object Digital Passport · v0.3 (draft protocol / tooling)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
