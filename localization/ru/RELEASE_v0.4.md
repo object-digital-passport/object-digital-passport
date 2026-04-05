@@ -72,6 +72,7 @@
 
 ## См. также
 
+- **Модель безопасности (угрозы, границы доверия, спутник):** [`../SECURITY.md`](../SECURITY.md) · EN: [`../../SECURITY.md`](../../SECURITY.md)
 - **v0.3 vs v0.2:** [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md)
 - **Указатель:** [`../../docs/V0.4.md`](../../docs/V0.4.md)
 - **Версии и релизы:** [`../../docs/VERSIONING_AND_RELEASES.md`](../../docs/VERSIONING_AND_RELEASES.md)
