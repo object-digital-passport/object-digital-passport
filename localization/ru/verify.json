@@ -1,9 +1,9 @@
 {
   "verify": {
     "meta": {
-      "documentTitle": "ODP v0.3 — Проверка",
+      "documentTitle": "ODP v0.4 — Проверка",
       "h1": "Проверка",
-      "sub": "Object Digital Passport · спецификация\u00a0v0.3"
+      "sub": "Object Digital Passport · спецификация\u00a0v0.4"
     },
     "toc": {
       "ariaLabel": "На этой странице",
@@ -156,7 +156,7 @@
       "detachedAt": "Отсоединено",
       "lastDetachedParent": "Последний родитель при отсоединении",
       "registryNote": "Данные из контракта",
-      "noSupport": "Ни один адрес из списка не вернул аудит (нужен реестр v0.3)."
+      "noSupport": "Ни один адрес из списка не вернул аудит (нужен реестр v0.3+ с поддержкой P-аффилиации)."
     },
     "fields": {
       "passportId": "Passport ID",

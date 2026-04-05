@@ -11,7 +11,7 @@
 <script src="odp-i18n-boot.js?v=1"></script>
 <script src="odp-wc-config.js?v=1"></script>
 <script src="odp-wallet-wc-loader.js?v=1"></script>
-<title>ODP v0.3 — Create Passport</title>
+<title>ODP v0.4 — Create Passport</title>
 <link rel="stylesheet" href="odp.css?v=20260330export16">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
@@ -30,7 +30,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="passport.meta.h1">Create Passport</h1>
-    <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.3</p>
+    <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.4</p>
     <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
   <div class="header-toolbar">
@@ -81,11 +81,11 @@ const NET = {
   rpcUrls: POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
   /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
-  contract: "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
+  contract: "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
   /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
   contractGenerationFallback: null,
   /** Optional `ODPCounterfeitConcern` satellite (paired with `contract`); set after v0.4 deploy. */
-  counterfeitConcern: null,
+  counterfeitConcern: "0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e",
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */

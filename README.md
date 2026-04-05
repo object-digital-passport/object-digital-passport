@@ -10,7 +10,7 @@
 ODP is an open standard for registering physical or digital objects on blockchain and proving authenticity later.
 No platform lock-in, no subscription, no central gatekeeper.
 
-**This repository (`main`)** is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional **`ODPCounterfeitConcern`** satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)** and **[`SPEC.md`](SPEC.md)**. **Published default addresses** below may still match an earlier **generation 3** deployment until you redeploy and update `NET.*`; always match **chain + contract address + ABI** to what you deploy or verify against.
+**This repository (`main`)** is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional **`ODPCounterfeitConcern`** satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)** and **[`SPEC.md`](SPEC.md)**. **Default Polygon addresses** in this README and [`deploy/deployments/polygon.json`](deploy/deployments/polygon.json) match the **generation 4** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
 
 ## Table of Contents
 
@@ -122,10 +122,11 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 
 | Item | Value |
 |:--|:--|
-| Protocol line | **v0.4** source mints on-chain generation **4** (same tuple as **3**); the default addresses below are still the prior **generation 3** deployment until you redeploy and update `NET.*` |
-| Main registry `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
-| Wallet document anchor `ODPWalletDocumentAnchor` (satellite) | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
-| Counterfeit concern `ODPCounterfeitConcern` (optional) | Not set in default `NET` (`null` in static pages) until you deploy the satellite and set **`NET.counterfeitConcern`** — see [`RELEASE_v0.4.md`](RELEASE_v0.4.md) |
+| Protocol line | **v0.4** — on-chain generation **4** (`CONTRACT_VERSION` packed byte **4**; same `Passport` tuple shape as generation **3**) |
+| Main registry `ObjectDigitalPassport` | [`0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75`](https://polygonscan.com/address/0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75) |
+| Linked library `ODPPassportLib` (verification / bytecode link) | [`0x9D7F483Fc94950F9cc825a8b9aD9BFCbb9a39d29`](https://polygonscan.com/address/0x9D7F483Fc94950F9cc825a8b9aD9BFCbb9a39d29) |
+| Wallet document anchor `ODPWalletDocumentAnchor` (satellite) | [`0x1563f96355005FA90b383546D97CAEAc6F836A63`](https://polygonscan.com/address/0x1563f96355005FA90b383546D97CAEAc6F836A63) |
+| Counterfeit concern `ODPCounterfeitConcern` (satellite) | [`0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e`](https://polygonscan.com/address/0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e) |
 
 **Release notes:** [`RELEASE_v0.4.md`](RELEASE_v0.4.md) · **Earlier line (v0.3 vs v0.2):** [`RELEASE_v0.3.md`](RELEASE_v0.3.md).
 
@@ -185,7 +186,7 @@ Pointers:
 
 - [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)
 - [`docs/V0.3.md`](docs/V0.3.md)
-- [`docs/V0.4.md`](docs/V0.4.md) · [`RELEASE_v0.4.md`](RELEASE_v0.4.md) (on-chain v0.4 + site; published addresses may lag until redeploy)
+- [`docs/V0.4.md`](docs/V0.4.md) · [`RELEASE_v0.4.md`](RELEASE_v0.4.md) (on-chain v0.4 + site; default Polygon addresses match [`deploy/deployments/polygon.json`](deploy/deployments/polygon.json))
 
 ## Contributing
 

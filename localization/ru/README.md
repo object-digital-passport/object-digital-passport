@@ -10,7 +10,7 @@
 ODP — открытый стандарт для регистрации физических и цифровых объектов в блокчейне и последующей проверки подлинности.
 Без привязки к одной платформе, без подписки и без центрального «владельца» реестра.
 
-**Репозиторий (`main`)** — эталонная линия **v0.4**: on-chain поколение **4** при деплое Solidity из этого дерева (упакованный байт **`CONTRACT_VERSION` = 4**), опциональный спутник **`ODPCounterfeitConcern`**, WalletConnect на статических страницах и урезанное публичное ABI основного реестра — см. **[`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md)** и **[`SPEC.md`](SPEC.md)** (нормативно — [`../../SPEC.md`](../../SPEC.md)). **Опубликованные адреса по умолчанию** ниже могут по-прежнему соответствовать поколению **3**, пока вы не задеплоите заново и не обновите `NET.*`; сопоставляйте **сеть + адрес + ABI** с тем, что проверяете.
+**Репозиторий (`main`)** — эталонная линия **v0.4**: on-chain поколение **4** при деплое Solidity из этого дерева (упакованный байт **`CONTRACT_VERSION` = 4**), спутники **`ODPWalletDocumentAnchor`** / **`ODPCounterfeitConcern`**, WalletConnect на статических страницах и урезанное публичное ABI основного реестра — см. **[`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md)** и **[`SPEC.md`](SPEC.md)** (нормативно — [`../../SPEC.md`](../../SPEC.md)). **Адреса Polygon по умолчанию** в этом README и в [`../../deploy/deployments/polygon.json`](../../deploy/deployments/polygon.json) соответствуют деплою **поколения 4**, зашитому в `NET.*` статических страниц; при своём хостинге сверяйте **сеть + адрес + ABI** с вашим развёртыванием.
 
 ## Оглавление
 
@@ -127,10 +127,11 @@ ODP **не заменяет** экспертизу человека, работ�
 
 | Пункт | Значение |
 |:--|:--|
-| Линия протокола | Исходники **v0.4** минтят поколение **4** (та же tuple, что у **3**); адреса ниже — прежний деплой **3**, пока не задеплоите заново и не обновите `NET.*` |
-| Основной реестр `ObjectDigitalPassport` | [`0xadb65b2F25596be7A798640BE3Ecc23956198d39`](https://polygonscan.com/address/0xadb65b2F25596be7A798640BE3Ecc23956198d39) |
-| Спутник якорей файлов `ODPWalletDocumentAnchor` | [`0xA040E5e6e270b9e7303ce75421937e0D455F2eA5`](https://polygonscan.com/address/0xA040E5e6e270b9e7303ce75421937e0D455F2eA5) |
-| Спутник `ODPCounterfeitConcern` (опционально) | В эталонном `NET` по умолчанию **не задан** (`null`), пока не задеплоите спутник и не укажете **`NET.counterfeitConcern`** — см. [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md) |
+| Линия протокола | **v0.4** — on-chain поколение **4** (байт **`CONTRACT_VERSION` = 4**; та же форма tuple `Passport`, что у поколения **3**) |
+| Основной реестр `ObjectDigitalPassport` | [`0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75`](https://polygonscan.com/address/0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75) |
+| Связанная библиотека `ODPPassportLib` (верификация / линковка байткода) | [`0x9D7F483Fc94950F9cc825a8b9aD9BFCbb9a39d29`](https://polygonscan.com/address/0x9D7F483Fc94950F9cc825a8b9aD9BFCbb9a39d29) |
+| Спутник якорей файлов `ODPWalletDocumentAnchor` | [`0x1563f96355005FA90b383546D97CAEAc6F836A63`](https://polygonscan.com/address/0x1563f96355005FA90b383546D97CAEAc6F836A63) |
+| Спутник `ODPCounterfeitConcern` | [`0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e`](https://polygonscan.com/address/0xE3B6f37901EC751f09b8EA4d839DC1F3ec311D4e) |
 
 **Заметки к релизу:** [`RELEASE_v0.4.md`](RELEASE_v0.4.md) · [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md) · **ранее (v0.3 vs v0.2):** [`RELEASE_v0.3.md`](RELEASE_v0.3.md) · [`../../RELEASE_v0.3.md`](../../RELEASE_v0.3.md).
 
@@ -190,7 +191,7 @@ ODP **не заменяет** экспертизу человека, работ�
 
 - [`../../docs/VERSIONING_AND_RELEASES.md`](../../docs/VERSIONING_AND_RELEASES.md)
 - [`../../docs/V0.3.md`](../../docs/V0.3.md)
-- [`../../docs/V0.4.md`](../../docs/V0.4.md) · [`RELEASE_v0.4.md`](RELEASE_v0.4.md) · [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md) (on-chain v0.4 + сайт; опубликованные адреса могут отставать до повторного деплоя)
+- [`../../docs/V0.4.md`](../../docs/V0.4.md) · [`RELEASE_v0.4.md`](RELEASE_v0.4.md) · [`../../RELEASE_v0.4.md`](../../RELEASE_v0.4.md) (on-chain v0.4 + сайт; эталонные адреса Polygon — [`../../deploy/deployments/polygon.json`](../../deploy/deployments/polygon.json))
 
 ## Как вносить вклад
 

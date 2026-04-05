@@ -39,7 +39,7 @@
     "spec": {
       "legacy": "Registry is too old — this interface cannot use it.",
       "v02": "Older registry rules: you only pay network fees; optional public link to your file; museums/experts have more room to work.",
-      "v03": "Current rules (v0.3): transfer ownership, revoke a passport, more images, expert/museum concern flags, unlink child institutions.",
+      "v03": "Current line (v0.3 tuple / v0.4 on-chain gen 4): transfer ownership, revoke, more images, expert/museum concern flags, unlink child institutions; optional ODPCounterfeitConcern satellite for P/M.",
       "unknown": "Unknown registry version"
     },
     "summaryLine": "Site {siteVer} · on-chain registry generation {gen}.",

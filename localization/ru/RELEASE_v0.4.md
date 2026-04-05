@@ -2,7 +2,7 @@
 
 Здесь кратко **линия v0.4** в репозитории (**`main`**): **on-chain** (поколение **4**, опциональный спутник **`ODPCounterfeitConcern`**), **веб** (WalletConnect, восстановление сессии), **SPEC** и **сообщество**. Нормативно — **[`SPEC.md`](SPEC.md)** (EN: [`../../SPEC.md`](../../SPEC.md)).
 
-**Деплой:** эталонные **адреса Polygon** в [`../../README.md`](../../README.md) и [`../../deploy/deployments/polygon.json`](../../deploy/deployments/polygon.json) могут по-прежнему соответствовать поколению **3**, пока вы не задеплоите байткод v0.4 и не обновите **`NET.*`**. Сопоставляйте **сеть + адрес + ABI** с тем, что проверяете.
+**Деплой:** эталонные **адреса Polygon** в [`../../README.md`](../../README.md) и [`../../deploy/deployments/polygon.json`](../../deploy/deployments/polygon.json) — развёртывание **поколения 4** (байт **`CONTRACT_VERSION` = 4**), на которое нацелены **`NET.*`** статических страниц. При своём реестре задайте **`NET.contract`**, **`NET.docAnchor`**, **`NET.counterfeitConcern`** (и при необходимости **`previousContracts`** на Verify) под **сеть + адрес + ABI**.
 
 ## On-chain (EIP-170)
 

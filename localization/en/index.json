@@ -1,9 +1,9 @@
 {
   "index": {
     "meta": {
-      "documentTitle": "ODP v0.3 — Web demo",
+      "documentTitle": "ODP v0.4 — Web demo",
       "h1": "Object Digital Passport",
-      "sub": "Demo web pages (v0.3) — same files as in the project folder"
+      "sub": "Demo web pages (v0.4) — same files as in the project folder"
     },
     "cardTitle": "Open a page",
     "lead": "These pages open in your browser. Connect a wallet only where the page asks. You need internet access so the site can read the public registry on Polygon.",

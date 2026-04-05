@@ -78,6 +78,25 @@ npx hardhat run scripts/deploy.js --network polygon
 
 ---
 
+## Продолжить после успешного `ODPPassportLib`
+
+Если полный **`deploy.js`** успешно задеплоил **`ODPPassportLib`**, а **`ObjectDigitalPassport`** не ушёл (например, не хватило POL на газ), **не** запускайте **`deploy.js`** снова — задеплоится вторая библиотека. Передайте адрес **уже существующей** библиотеки из лога:
+
+```bash
+cd deploy
+ODP_PASSPORT_LIB_ADDRESS=0xYourLibFromLog npx hardhat run scripts/deploy-resume-from-lib.js --network polygon
+```
+
+Либо:
+
+```bash
+npx hardhat run scripts/deploy-resume-from-lib.js --network polygon -- --passport-lib 0xYourLibFromLog
+```
+
+Дальше скрипт делает то же, что **`deploy.js`** после библиотеки: связанный реестр, спутники, запись **`deployments/polygon.json`** и **`deployments/abi.json`**.
+
+---
+
 ## Только спутник `ODPWalletDocumentAnchor` (реестр уже задеплоен)
 
 Если основной **`ObjectDigitalPassport`** уже в сети, а **`ODPWalletDocumentAnchor`** не деплоили (или нужен новый адрес якоря):
@@ -96,6 +115,44 @@ npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon -- --registr
 Скрипт проверит, что по адресу есть байткод, задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`walletDocumentAnchorAddress`**). Дальше пропишите этот адрес в **`NET.docAnchor`** в **`web/verify.html`**.
 
 Эталонный деплой в репозитории уже содержит оба адреса — см. **`deployments/polygon.json`** и таблицу «Current release» в **[`README.md`](../README.md)**.
+
+---
+
+## Только спутник `ODPCounterfeitConcern` (реестр уже задеплоен)
+
+Если основной **`ObjectDigitalPassport`** уже в сети, а спутник **counterfeit** не деплоили (или нужен новый адрес):
+
+```bash
+cd deploy
+ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run scripts/deploy-counterfeit-concern-only.js --network polygon
+```
+
+Либо:
+
+```bash
+npx hardhat run scripts/deploy-counterfeit-concern-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
+```
+
+Скрипт задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`counterfeitConcernAddress`**). Пропишите адрес в **`NET.counterfeitConcern`** в **`web/passport.html`**, **`web/verify.html`** (тот же **`NET.contract`**, что и у этого реестра).
+
+---
+
+## Оба спутника под уже существующий реестр
+
+Один запуск: **`ODPWalletDocumentAnchor`** и **`ODPCounterfeitConcern`** (порядок как в полном **`deploy.js`**):
+
+```bash
+cd deploy
+ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run scripts/deploy-satellites-only.js --network polygon
+```
+
+Либо:
+
+```bash
+npx hardhat run scripts/deploy-satellites-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
+```
+
+Обновляются **`walletDocumentAnchorAddress`** и **`counterfeitConcernAddress`** в **`deployments/{polygon|amoy}.json`** (если деплой одного из контрактов упал — второй всё равно пробуется; в JSON попадут только успешные поля).
 
 ---
 

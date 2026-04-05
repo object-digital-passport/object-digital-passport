@@ -1,9 +1,9 @@
 {
   "verify": {
     "meta": {
-      "documentTitle": "ODP v0.3 — Verify",
+      "documentTitle": "ODP v0.4 — Verify",
       "h1": "Verify",
-      "sub": "Object Digital Passport · Specification\u00a0v0.3"
+      "sub": "Object Digital Passport · Specification\u00a0v0.4"
     },
     "toc": {
       "ariaLabel": "On this page",
@@ -156,7 +156,7 @@
       "detachedAt": "Detached at",
       "lastDetachedParent": "Last detached from parent",
       "registryNote": "Data from contract",
-      "noSupport": "No deployment returned affiliation audit (try a v0.3 registry)."
+      "noSupport": "No deployment returned affiliation audit (try a v0.3+ registry with P affiliation support)."
     },
     "fields": {
       "passportId": "Passport ID",

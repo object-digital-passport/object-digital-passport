@@ -2,7 +2,7 @@
 
 This document summarizes the **v0.4 line** in this repository (**`main`**): **on-chain bytecode** (generation **4**, optional **`ODPCounterfeitConcern`** satellite), **static web** (WalletConnect, session restore), **SPEC / documentation**, and **community** drafts. Normative rules: **[`SPEC.md`](SPEC.md)**.
 
-**Deployment note:** The **default Polygon addresses** listed in [`README.md`](README.md) and [`deploy/deployments/polygon.json`](deploy/deployments/polygon.json) may still correspond to an earlier **generation 3** deployment until you **redeploy** v0.4 bytecode and update **`NET.*`**. Always pair **chain + contract address + ABI** to what you actually verify against.
+**Deployment note:** The **default Polygon addresses** in [`README.md`](README.md) and [`deploy/deployments/polygon.json`](deploy/deployments/polygon.json) are the **generation 4** (`CONTRACT_VERSION` packed byte **4**) deployment used by the static pages’ **`NET.*`**. If you deploy your own registry, set **`NET.contract`**, **`NET.docAnchor`**, and **`NET.counterfeitConcern`** (and **`previousContracts`** on Verify as needed) to match **chain + contract address + ABI**.
 
 ---
 

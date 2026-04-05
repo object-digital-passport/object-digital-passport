@@ -1,12 +1,12 @@
 /**
- * Deploy only ODPWalletDocumentAnchor (satellite) against an existing ObjectDigitalPassport registry.
- * Use when the main registry was deployed earlier without the anchor, or you need a fresh anchor address.
+ * Deploy only ODPCounterfeitConcern (satellite) against an existing ObjectDigitalPassport registry.
+ * Use when the main registry exists but the counterfeit satellite was not deployed yet.
  *
  * Usage:
- *   ODP_REGISTRY_ADDRESS=0x... npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon
- *   npx hardhat run scripts/deploy-doc-anchor-only.js --network amoy -- --registry 0x...
+ *   ODP_REGISTRY_ADDRESS=0x... npx hardhat run scripts/deploy-counterfeit-concern-only.js --network polygon
+ *   npx hardhat run scripts/deploy-counterfeit-concern-only.js --network amoy -- --registry 0x...
  *
- * After deploy: set NET.docAnchor in web/verify.html to the printed address (v0.3+).
+ * After deploy: set NET.counterfeitConcern in web/passport.html and web/verify.html (paired with NET.contract).
  *
  * Author: Andrei Chernikov
  */
@@ -41,7 +41,7 @@ async function main() {
   }
   const network = await ethers.provider.getNetwork();
 
-  console.log("\n  ODP — Deploy ODPWalletDocumentAnchor only");
+  console.log("\n  ODP — Deploy ODPCounterfeitConcern only");
   console.log("  ─────────────────────────────────────────");
   console.log(`  Network:   ${network.name} (chain ID ${network.chainId})`);
   console.log(`  Deployer:  ${deployer.address}`);
@@ -54,15 +54,15 @@ async function main() {
     process.exit(1);
   }
 
-  console.log("  Deploying ODPWalletDocumentAnchor...");
-  const AnchorFactory = await ethers.getContractFactory("ODPWalletDocumentAnchor");
-  const anchor = await AnchorFactory.deploy(registry);
-  await anchor.waitForDeployment();
-  const anchorAddress = await anchor.getAddress();
-  console.log(`  ✅ ODPWalletDocumentAnchor: ${anchorAddress}`);
+  console.log("  Deploying ODPCounterfeitConcern...");
+  const CfFactory = await ethers.getContractFactory("ODPCounterfeitConcern");
+  const cf = await CfFactory.deploy(registry);
+  await cf.waitForDeployment();
+  const cfAddress = await cf.getAddress();
+  console.log(`  ✅ ODPCounterfeitConcern: ${cfAddress}`);
   console.log();
   console.log("  Next steps:");
-  console.log(`    1. Set NET.docAnchor: "${anchorAddress}" in web/verify.html (and registry-config if used).`);
+  console.log(`    1. Set NET.counterfeitConcern: "${cfAddress}" in web/passport.html, web/verify.html (same NET.contract as this registry).`);
   console.log("    2. Redeploy static site or bump cache so clients load the new config.");
   console.log();
 
@@ -86,19 +86,19 @@ async function main() {
     network: networkName,
     chainId: Number(network.chainId),
     contractAddress: prev.contractAddress || registry,
-    walletDocumentAnchorAddress: anchorAddress,
-    walletDocumentAnchorDeployedAt: new Date().toISOString(),
-    walletDocumentAnchorDeployedBy: deployer.address,
+    counterfeitConcernAddress: cfAddress,
+    counterfeitConcernDeployedAt: new Date().toISOString(),
+    counterfeitConcernDeployedBy: deployer.address,
   };
 
   fs.writeFileSync(deploymentPath, JSON.stringify(merged, null, 2));
-  console.log(`  ✅ Updated: deployments/${networkName}.json (walletDocumentAnchorAddress)`);
+  console.log(`  ✅ Updated: deployments/${networkName}.json (counterfeitConcernAddress)`);
   console.log();
 
   const explorer =
     network.chainId === 80002n
-      ? `https://amoy.polygonscan.com/address/${anchorAddress}`
-      : `https://polygonscan.com/address/${anchorAddress}`;
+      ? `https://amoy.polygonscan.com/address/${cfAddress}`
+      : `https://polygonscan.com/address/${cfAddress}`;
   console.log(`  Explorer: ${explorer}`);
   console.log();
 }

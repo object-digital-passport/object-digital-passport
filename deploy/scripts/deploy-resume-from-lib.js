@@ -1,21 +1,25 @@
 /**
- * Object Digital Passport — Deploy Script
- * Author: Andrei Chernikov
- * Hardhat + ethers.js
+ * Resume deploy after ODPPassportLib succeeded but ObjectDigitalPassport failed (e.g. insufficient gas).
+ * Skips a new library deploy; links ObjectDigitalPassport to the existing ODPPassportLib, then runs
+ * the same optional satellites + Amoy smoke + deployments/*.json + abi.json as deploy.js.
  *
  * Usage:
- *   npx hardhat run scripts/deploy.js --network amoy     ← testnet (free)
- *   npx hardhat run scripts/deploy.js --network polygon  ← mainnet
+ *   ODP_PASSPORT_LIB_ADDRESS=0x... npx hardhat run scripts/deploy-resume-from-lib.js --network polygon
+ *   npx hardhat run scripts/deploy-resume-from-lib.js --network polygon -- --passport-lib 0x...
  *
- * After deploy:
- *   1. Copy contract address into web/creator.html, web/passport.html, web/verify.html
- *   2. Copy ABI from artifacts/ into tools/abi.json
- *   3. Upload passport.json files to your dataUrl
+ * Author: Andrei Chernikov
  */
 
 const { ethers } = require("hardhat");
 const fs = require("fs");
 const path = require("path");
+
+function parsePassportLibArg() {
+  const argv = process.argv.slice(2);
+  const i = argv.indexOf("--passport-lib");
+  if (i >= 0 && argv[i + 1]) return argv[i + 1].trim();
+  return (process.env.ODP_PASSPORT_LIB_ADDRESS || "").trim();
+}
 
 async function main() {
   const signers = await ethers.getSigners();
@@ -28,22 +32,29 @@ async function main() {
   }
   const network = await ethers.provider.getNetwork();
 
-  console.log("\n  Object Digital Passport — Deploy");
+  const passportLibAddress = parsePassportLibArg();
+  if (!passportLibAddress || !/^0x[a-fA-F0-9]{40}$/.test(passportLibAddress)) {
+    console.error(
+      "  Error: set ODP_PASSPORT_LIB_ADDRESS or pass --passport-lib 0x… (already deployed ODPPassportLib from the previous run)."
+    );
+    process.exit(1);
+  }
+
+  const libCode = await ethers.provider.getCode(passportLibAddress);
+  if (!libCode || libCode === "0x") {
+    console.error("  Error: no contract bytecode at ODPPassportLib address.");
+    process.exit(1);
+  }
+
+  console.log("\n  Object Digital Passport — Resume from existing ODPPassportLib");
   console.log("  ─────────────────────────────────────────");
-  console.log(`  Network:  ${network.name} (chain ID ${network.chainId})`);
-  console.log(`  Deployer: ${deployer.address}`);
+  console.log(`  Network:        ${network.name} (chain ID ${network.chainId})`);
+  console.log(`  Deployer:       ${deployer.address}`);
+  console.log(`  ODPPassportLib: ${passportLibAddress} (reuse, no redeploy)`);
 
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log(`  Balance:  ${ethers.formatEther(balance)} POL`);
+  console.log(`  Balance:        ${ethers.formatEther(balance)} POL`);
   console.log();
-
-  // ── Deploy (library first — EIP-170 bytecode split) ─────────────────────────
-  console.log("  Deploying ODPPassportLib...");
-  const LibFactory = await ethers.getContractFactory("ODPPassportLib");
-  const passportLib = await LibFactory.deploy();
-  await passportLib.waitForDeployment();
-  const passportLibAddress = await passportLib.getAddress();
-  console.log(`  ✅ ODPPassportLib: ${passportLibAddress}`);
 
   console.log("  Deploying ObjectDigitalPassport (linked)...");
   const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
@@ -89,22 +100,19 @@ async function main() {
   const specMinor = dv % 16n;
   console.log(`  SPEC_MAJOR: ${specMajor}  SPEC_MINOR: ${specMinor}  CONTRACT_VERSION (packed): ${deployedVersion}`);
 
-  // ── Smoke test (testnet only) ──────────────────────────────────────────────
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
     console.log(`  Packed byte: ${deployedVersion} (v0.3 = 3: ownership, revocation, extra image hashes, P-affiliation detach)`);
 
-    // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering profile (type C)...");
     const regTx = await contract.registerCreator(
-      ethers.hexlify(ethers.toUtf8Bytes("C")) // bytes1 "C"
+      ethers.hexlify(ethers.toUtf8Bytes("C"))
     );
-    const regReceipt = await regTx.wait();
+    await regTx.wait();
     const creatorId = await contract.getCreatorByWallet(deployer.address);
     console.log(`     ✅ Profile ID: ${creatorId}`);
 
-    // 2. Mint a digital passport (no seal required)
     console.log("\n  2. Minting digital passport...");
     const fakeDataHash  = ethers.keccak256(ethers.toUtf8Bytes("test-passport-json"));
     const fakeFileHash  = ethers.keccak256(ethers.toUtf8Bytes("test-original-file"));
@@ -113,25 +121,24 @@ async function main() {
 
     const z = ethers.ZeroHash;
     const mintTx = await contract.mintDigital(
-      now.getFullYear(),                  // year (uint32)
-      now.getMonth() + 1,                 // month (uint8)
-      fakeDataHash,                       // dataHash (bytes32)
-      "https://example.com/passport.json",// dataUrl
-      fakeImageHash,                      // imageHash (bytes32)
-      "https://example.com/preview.jpg",  // imageUrl
-      z,                                  // imageHash2 (v0.3)
-      "",                                 // imageUrl2
-      z,                                  // imageHash3
-      "",                                 // imageUrl3
-      fakeFileHash,                       // fileHash (bytes32) — required for digital
-      false,                              // dataUrlIsFolderBase — full URL, not folder root
-      z,                                  // auxCommitmentHash
-      "",                                 // auxCommitmentUri
-      ""                                  // mintOnBehalfOfCreatorId (self-mint)
+      now.getFullYear(),
+      now.getMonth() + 1,
+      fakeDataHash,
+      "https://example.com/passport.json",
+      fakeImageHash,
+      "https://example.com/preview.jpg",
+      z,
+      "",
+      z,
+      "",
+      fakeFileHash,
+      false,
+      z,
+      "",
+      ""
     );
     const mintReceipt = await mintTx.wait();
 
-    // Parse humanId from PassportMinted event
     let humanId = null;
     for (const log of mintReceipt.logs) {
       try {
@@ -144,10 +151,8 @@ async function main() {
     }
     console.log(`     ✅ Passport ID: ${humanId}`);
 
-    // 3. Verify getPassport + getCreator + proofs (resolvePassport removed from bytecode in v0.3)
     console.log("\n  3. Resolving passport (multi-call)...");
     const passport = await contract.getPassport(humanId);
-    const creator = await contract.getCreator(passport.creatorId);
     const proofIds = await contract.getProofsForPassport(humanId);
     const proofCount = proofIds.length;
     const version = await contract.CONTRACT_VERSION();
@@ -156,14 +161,12 @@ async function main() {
     console.log(`     ✅ creatorId:       ${passport.creatorId}`);
     console.log(`     ✅ proofCount:      ${proofCount}`);
 
-    // 4. Check remaining mints
     const remaining = await contract.getRemainingMints(deployer.address);
     console.log(`\n  4. Remaining mints this month: ${remaining}`);
 
     console.log("\n  ✅ Smoke test passed");
   }
 
-  // ── Save deployment info ───────────────────────────────────────────────────
   const deploymentsDir = path.join(__dirname, "..", "deployments");
   if (!fs.existsSync(deploymentsDir)) fs.mkdirSync(deploymentsDir, { recursive: true });
 
@@ -186,7 +189,6 @@ async function main() {
   fs.writeFileSync(deploymentPath, JSON.stringify(deployment, null, 2));
   console.log(`\n  ✅ Saved: deployments/${networkName}.json`);
 
-  // ── Also save ABI for use in tools/ and web/ ──────────────────────────────
   const artifactPath = path.join(
     __dirname, "..", "..", "artifacts", "contracts",
     "ObjectDigitalPassport.sol", "ObjectDigitalPassport.json"
