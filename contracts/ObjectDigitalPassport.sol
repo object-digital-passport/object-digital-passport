@@ -8,7 +8,7 @@ import "./ODPPassportLib.sol";
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
- * Specification v0.3
+ * Specification v0.4 (reference branch)
  * License: MIT
  *
  * Deployed on: Polygon PoS (chain ID 137)
@@ -33,7 +33,8 @@ import "./ODPPassportLib.sol";
  *   (different address, bytecode, ABI). Integrators must not treat them as drop-in replacements.
  *   The v0.3 line is documented in SPEC as aligned toward a future stable v1 (migration to be
  *   defined in v1); this is design intent, not an in-place upgrade guarantee.
- *   v0.3 adds: owner/transfer, account-scoped publishing agent for hosted URLs, revocation,
+ *   v0.4 reference: v0.3 feature set + satellite counterfeit concern (SPEC), NFC NTAG424DNA_TT only.
+ *   v0.3 added: owner/transfer, account-scoped publishing agent for hosted URLs, revocation,
  *   extra image hashes, P-affiliation detach + timestamps, governance (revocation),
  *   optional aux commitment + IODPExtension mint routes (digital/physical).
  *   Type-definition governance is off-chain / SPEC where noted (saves bytecode).
@@ -46,7 +47,7 @@ import "./ODPPassportLib.sol";
  *   - On-chain randomness (block.prevrandao + gasleft) is not
  *     cryptographically secure but is acceptable here since IDs
  *     carry no financial value — only human-readability
- *   - NFC: only NTAG424DNA_TT accepted — standard chip can be reattached
+ *   - NFC: only NTAG424DNA_TT — issuer declares model; verify is off-chain per SPEC
  *   - Proof institutions (P) and museums (M) are open registration — verifiers must warn
  *     users to confirm P/M-type IDs on official institution websites
  *   - Mint agent (v0.3): optional two-step handshake — agent `requestMintAgentRole(principalCreatorId)`,
@@ -98,17 +99,17 @@ contract ObjectDigitalPassport {
     string constant OBJECT_DIGITAL  = "digital";
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
-    uint8 public constant SPEC_MAJOR = 0;
-    uint8 public constant SPEC_MINOR = 3;
+    // Not `public` — each public constant adds a getter (~bytecode budget, EIP-170). Use `CONTRACT_VERSION` / 16 and % 16.
+    uint8 internal constant SPEC_MAJOR = 0;
+    uint8 internal constant SPEC_MINOR = 4;
 
-    /// Packed byte stored in Passport.contractVersion: `SPEC_MAJOR * 16 + SPEC_MINOR` (each must stay < 16).
-    /// Spec line **0.3** → packed **3**: ownership/revocation/images/P-affiliation/governance, plus
-    /// **account-scoped publishing agent** for `updatePassportUrls`.
+    /// Packed byte in `Passport.contractVersion`: `SPEC_MAJOR * 16 + SPEC_MINOR` (each < 16).
+    /// Reference bytecode keeps **0×16+3 = 3** (v0.3 tuple shape). The **v0.4** branch adds optional satellites + NFC allowlist without incrementing this byte (EIP-170 budget).
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows profile ID prefix (C/B/P/M).
-    uint32 public constant MONTHLY_LIMIT_C = 1000;
-    uint32 public constant MONTHLY_LIMIT_B = 100_000;
+    uint32 internal constant MONTHLY_LIMIT_C = 1000;
+    uint32 internal constant MONTHLY_LIMIT_B = 100_000;
 
     // ─── Structs ──────────────────────────────────────────────────────────────
 
@@ -142,7 +143,7 @@ contract ObjectDigitalPassport {
         uint8   sealType;      // 1=NFC, 2=numbered, 3=both. 0 if digital
         bytes32 sealHash;      // SHA-256 of seal object. bytes32(0) if digital
         bytes   nfcPublicKey;  // NFC chip public key. empty if no NFC seal
-        string  nfcModel;      // "NTAG424DNA_TT" if NFC. empty if no NFC seal
+        string  nfcModel;      // "NTAG424DNA_TT" if NFC (SPEC). empty if no NFC seal
         string  dataUrl;
         string  imageUrl;
         string  imageUrl2;     // optional URL hints for extra images

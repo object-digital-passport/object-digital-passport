@@ -8,7 +8,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.3";
+  var ODP_SITE_VERSION = "0.4";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -33,6 +33,79 @@
 
   function odpSupportsV03(generation) {
     return generation >= 3;
+  }
+
+  /** ABI for `ODPCounterfeitConcern` (satellite) — same method names as legacy v0.2 monolith. */
+  function odpCounterfeitConcernAbiFragments() {
+    return [
+      {
+        name: "raiseCounterfeitConcern",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [
+          { name: "humanId", type: "string" },
+          { name: "reasonHash", type: "bytes32" },
+        ],
+        outputs: [],
+      },
+      {
+        name: "clearCounterfeitConcern",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [{ name: "humanId", type: "string" }],
+        outputs: [],
+      },
+      {
+        name: "getCounterfeitConcern",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "humanId", type: "string" }],
+        outputs: [
+          { name: "active", type: "bool" },
+          { name: "proverCreatorId", type: "string" },
+          { name: "reasonHash", type: "bytes32" },
+          { name: "timestamp", type: "uint256" },
+        ],
+      },
+    ];
+  }
+
+  function odpRegistryAddressesMatch(a, b) {
+    if (a == null || b == null) return false;
+    return String(a).trim().toLowerCase() === String(b).trim().toLowerCase();
+  }
+
+  function odpCounterfeitSatelliteAddress(net) {
+    if (!net || net.counterfeitConcern == null) return null;
+    var d = String(net.counterfeitConcern).trim();
+    return /^0x[a-fA-F0-9]{40}$/i.test(d) ? d : null;
+  }
+
+  /**
+   * Read counterfeit concern from main registry (if present) or from `NET.counterfeitConcern` when paired with `NET.contract`.
+   * @param {*} mainContract ethers Contract for registry
+   * @param {*} net page config with `contract`, optional `counterfeitConcern`
+   * @param {number} generation probed CONTRACT_VERSION (packed)
+   * @param {*} providerOrSigner ethers provider or signer
+   */
+  function odpCounterfeitReadContract(mainContract, net, generation, providerOrSigner) {
+    if (!mainContract) return null;
+    if (typeof mainContract.getCounterfeitConcern === "function") return mainContract;
+    var sat = odpCounterfeitSatelliteAddress(net);
+    if (!sat || !odpRegistryAddressesMatch(net.contract, mainContract.address)) return null;
+    if (typeof odpSupportsV03 === "function" && !odpSupportsV03(generation)) return null;
+    if (!providerOrSigner || typeof global.ethers === "undefined") return null;
+    return new global.ethers.Contract(sat, odpCounterfeitConcernAbiFragments(), providerOrSigner);
+  }
+
+  function odpCounterfeitWriteContract(mainContract, net, generation, signer) {
+    if (!mainContract || !signer) return null;
+    if (typeof mainContract.raiseCounterfeitConcern === "function") return mainContract;
+    var sat = odpCounterfeitSatelliteAddress(net);
+    if (!sat || !odpRegistryAddressesMatch(net.contract, mainContract.address)) return null;
+    if (typeof odpSupportsV03 === "function" && !odpSupportsV03(generation)) return null;
+    if (typeof global.ethers === "undefined") return null;
+    return new global.ethers.Contract(sat, odpCounterfeitConcernAbiFragments(), signer);
   }
 
   /** getPassport passport tuple — v0.2 layout (CONTRACT_VERSION packed < 3). */
@@ -351,7 +424,7 @@
     var g = generation;
     var spec =
       g >= 3
-        ? "ODP spec v0.3 (owner/transfer, account publishing agent for URLs, revocation, extra image hashes, P-affiliation)"
+        ? "ODP registry pack 3 (v0.3 tuple; v0.4 branch adds optional counterfeit satellite; NFC TT only)"
         : g >= 2
           ? "ODP spec v0.2 (gas-only, optional dataUrl, PDF/doc hash anchor)"
           : g === 0
@@ -372,7 +445,7 @@
     if (generation >= 3) {
       return odpStackT(
         "stack.spec.v03",
-        "ODP v0.3 — ownership, account-scoped publishing agent (updatePassportUrls), revocation, 3 image hashes, P-affiliation detach"
+        "ODP registry pack 3 — v0.3 features + v0.4-branch optional ODPCounterfeitConcern; NFC NTAG424DNA_TT only"
       );
     }
     if (generation >= 2) {
@@ -733,20 +806,6 @@
           type: "function",
           stateMutability: "view",
           inputs: [{ name: "wallet", type: "address" }],
-          outputs: [{ name: "", type: "uint32" }],
-        },
-        {
-          name: "MONTHLY_LIMIT_C",
-          type: "function",
-          stateMutability: "view",
-          inputs: [],
-          outputs: [{ name: "", type: "uint32" }],
-        },
-        {
-          name: "MONTHLY_LIMIT_B",
-          type: "function",
-          stateMutability: "view",
-          inputs: [],
           outputs: [{ name: "", type: "uint32" }],
         },
         {
@@ -1424,6 +1483,10 @@
   global.odpSupportsFolderBaseMint = odpSupportsFolderBaseMint;
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
   global.odpSupportsV03 = odpSupportsV03;
+  global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
+  global.odpCounterfeitReadContract = odpCounterfeitReadContract;
+  global.odpCounterfeitWriteContract = odpCounterfeitWriteContract;
+  global.odpCounterfeitSatelliteAddress = odpCounterfeitSatelliteAddress;
   global.odpSupportsExternalDocAttest = odpSupportsExternalDocAttest;
   global.odpPassportTupleComponents = odpPassportTupleComponents;
   global.odpResolveGeneration = odpResolveGeneration;

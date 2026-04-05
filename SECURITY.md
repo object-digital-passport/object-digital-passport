@@ -1,9 +1,9 @@
-# ODP Security Model · v0.3
+# ODP Security Model · v0.4 reference line
 
 *Author: Andrei Chernikov*
 
 Object Digital Passport is a **registry of claims**, not a guarantee of physical authenticity.
-This document describes the threat model, known limitations, and recommendations for the **v0.3-shaped** reference contract (`CONTRACT_VERSION` packed byte **3**). Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
+This document describes the threat model, known limitations, and recommendations for the **v0.3-shaped tuple** reference contract line. **v0.3** mainnet-style deploys used packed byte **3**; the **v0.4 branch** in this repository mints **`CONTRACT_VERSION` 4** with the same struct layout. Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
 
 ---
 

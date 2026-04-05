@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="odp.css?v=20260330export16">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.3.5"></script>
+<script src="odp-contract.js?v=0.4.0"></script>
 <script src="odp-date-format.js?v=1"></script>
 <script src="odp-i18n.js?v=14"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -84,6 +84,8 @@ const NET = {
   contract: "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
   /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
   contractGenerationFallback: null,
+  /** Optional `ODPCounterfeitConcern` satellite (paired with `contract`); set after v0.4 deploy. */
+  counterfeitConcern: null,
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
@@ -677,6 +679,16 @@ function canShowPassportPmProof() {
   );
 }
 
+/** Main registry (v0.2) or `NET.counterfeitConcern` paired with `NET.contract`. */
+function passportPmProofHasCounterfeitBackend() {
+  if (!contract || odpContractGeneration == null) return false;
+  if (typeof contract.getCounterfeitConcern === "function") return true;
+  if (typeof odpCounterfeitSatelliteAddress === "function" && odpCounterfeitSatelliteAddress(NET)) {
+    return typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration);
+  }
+  return false;
+}
+
 function htmlPassportPmProofCard() {
   if (!canShowPassportPmProof()) return "";
   return `
@@ -725,7 +737,9 @@ function htmlPassportPmProofCard() {
           <div id="pmProofSubmitResult" style="margin-top:12px;font-size:12px;text-align:center"></div>
         </div>
 
-        <div class="pm-proof-list-block">
+        ${
+          passportPmProofHasCounterfeitBackend()
+            ? `<div class="pm-proof-list-block">
           <div class="pm-proof-sec-title">${esc(t("passport.pmProof.secCfTitle"))}</div>
           <p class="pm-proof-hint">${esc(t("passport.pmProof.secCfLead"))}</p>
           <label class="search-label" for="pmCfReason">${esc(t("passport.pmProof.cfReasonLabel"))}</label>
@@ -737,7 +751,9 @@ function htmlPassportPmProofCard() {
             <button type="button" class="btn btn-sec" id="pmCfRefreshStatusBtn">${esc(t("passport.pmProof.cfRefreshStatusBtn"))}</button>
           </div>
           <div id="pmCfResult" style="margin-top:10px;font-size:12px;text-align:center"></div>
-        </div>
+        </div>`
+            : ""
+        }
 
         <div class="pm-proof-list-block info neutral" style="padding:14px 16px;border-radius:8px;margin-top:8px">
           <div class="pm-proof-list-title">${esc(t("passport.pmProof.listTitle"))}</div>
@@ -904,7 +920,11 @@ function bindPMProofHandlers() {
   }
 
   async function refreshCfStatus() {
-    if (!pmCfChainStatus || !contract || typeof contract.getCounterfeitConcern !== "function") return;
+    const cfRead =
+      typeof odpCounterfeitReadContract === "function"
+        ? odpCounterfeitReadContract(contract, NET, odpContractGeneration, provider || signer)
+        : null;
+    if (!pmCfChainStatus || !contract || !cfRead || typeof cfRead.getCounterfeitConcern !== "function") return;
     const humanId = humanIn.value ? String(humanIn.value).trim() : "";
     if (!humanId || !/^ODP-/i.test(humanId)) {
       pmCfChainStatus.textContent = "";
@@ -913,7 +933,7 @@ function bindPMProofHandlers() {
     }
     pmCfChainStatus.textContent = t("passport.pmProof.cfStatusLoading");
     try {
-      const cc = await contract.getCounterfeitConcern(humanId);
+      const cc = await cfRead.getCounterfeitConcern(humanId);
       const active = cc.active !== undefined ? cc.active : cc[0];
       const prover = cc.proverCreatorId !== undefined ? String(cc.proverCreatorId) : String(cc[1] || "");
       if (!active) {
@@ -975,7 +995,11 @@ function bindPMProofHandlers() {
         if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.v03Ops.needReason"))}</div>`;
         return;
       }
-      if (typeof contract.raiseCounterfeitConcern !== "function") {
+      const cfWrite =
+        typeof odpCounterfeitWriteContract === "function"
+          ? odpCounterfeitWriteContract(contract, NET, odpContractGeneration, signer)
+          : null;
+      if (!cfWrite || typeof cfWrite.raiseCounterfeitConcern !== "function") {
         if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.cfRevertNoMethod"))}</div>`;
         return;
       }
@@ -983,7 +1007,7 @@ function bindPMProofHandlers() {
       if (pmCfResult) pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.sending"))}</div>`;
       try {
         const rh = pmCfKeccakUtf8(reason);
-        const tx = await contract.raiseCounterfeitConcern(humanId, rh);
+        const tx = await cfWrite.raiseCounterfeitConcern(humanId, rh);
         await tx.wait();
         if (pmCfResult)
           pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.cfResultRaise"))} <code class="mono">${esc(tx.hash)}</code></div>`;
@@ -1006,14 +1030,18 @@ function bindPMProofHandlers() {
         if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.needHumanId"))}</div>`;
         return;
       }
-      if (typeof contract.clearCounterfeitConcern !== "function") {
+      const cfWrite2 =
+        typeof odpCounterfeitWriteContract === "function"
+          ? odpCounterfeitWriteContract(contract, NET, odpContractGeneration, signer)
+          : null;
+      if (!cfWrite2 || typeof cfWrite2.clearCounterfeitConcern !== "function") {
         if (pmCfResult) pmCfResult.innerHTML = `<div class="info warn">${esc(t("passport.pmProof.cfRevertNoMethod"))}</div>`;
         return;
       }
       pmCfClearBtn.disabled = true;
       if (pmCfResult) pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.sending"))}</div>`;
       try {
-        const tx = await contract.clearCounterfeitConcern(humanId);
+        const tx = await cfWrite2.clearCounterfeitConcern(humanId);
         await tx.wait();
         if (pmCfResult)
           pmCfResult.innerHTML = `<div class="info neutral">${esc(t("passport.pmProof.cfResultClear"))} <code class="mono">${esc(tx.hash)}</code></div>`;
@@ -1537,15 +1565,21 @@ async function updatePassportMintsRow() {
     }
     let limN = null;
     try {
-      if (prefix === "B" && typeof contract.MONTHLY_LIMIT_B === "function") {
-        const L = await contract.MONTHLY_LIMIT_B();
-        limN = L && typeof L.toNumber === "function" ? L.toNumber() : Number(L);
+      if (prefix === "B") {
+        if (typeof contract.MONTHLY_LIMIT_B === "function") {
+          const L = await contract.MONTHLY_LIMIT_B();
+          limN = L && typeof L.toNumber === "function" ? L.toNumber() : Number(L);
+        } else {
+          limN = 100000;
+        }
       } else if (typeof contract.MONTHLY_LIMIT_C === "function") {
         const L = await contract.MONTHLY_LIMIT_C();
         limN = L && typeof L.toNumber === "function" ? L.toNumber() : Number(L);
+      } else {
+        limN = 1000;
       }
     } catch {
-      limN = null;
+      limN = prefix === "B" ? 100000 : 1000;
     }
     if (limN != null && !isNaN(limN)) {
       el.innerHTML = `<div class="info n" style="padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.55">${esc(
