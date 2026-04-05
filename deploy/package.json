@@ -10,8 +10,8 @@
     "deploy:mainnet": "hardhat run scripts/deploy.js --network polygon"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "hardhat": "^2.22.0"
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "hardhat": "^3.3.0"
   },
   "dependencies": {
     "dotenv": "^16.4.0"
