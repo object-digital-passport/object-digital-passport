@@ -1644,3 +1644,4 @@ HTTP-резолвер **не** заменяет JSON-RPC к сети. Это о�
 
 *Object Digital Passport is open source. MIT License.*
 *Contributions welcome. This is a draft — feedback is the goal.*
+*Если кажется, что в спецификации чего-то не хватает или формулировки недостаточно ясны — можно открыть [**issue «Пробел в стандарте»**](https://github.com/object-digital-passport/object-digital-passport/issues/new?template=standard_gap.md) (краткие предложения приветствуются).*

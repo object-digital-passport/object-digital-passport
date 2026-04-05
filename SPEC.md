@@ -1747,3 +1747,4 @@ The reference registry **does not** define a canonical on-chain index **SHA-256(
 
 *Object Digital Passport is open source. MIT License.*
 *Contributions welcome. This is a draft — feedback is the goal.*
+*If something feels missing or underspecified, you can open a [**Standard gap** issue](https://github.com/object-digital-passport/object-digital-passport/issues/new?template=standard_gap.md) (short proposals welcome).*
