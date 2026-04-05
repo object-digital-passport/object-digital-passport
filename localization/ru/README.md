@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../../docs/images/odp-cover-en.png" alt="Object Digital Passport — профиль создателя с QR для проверки" width="100%" />
+  <img src="../../docs/images/odp-cover-ru.png" alt="Object Digital Passport — профиль создателя с QR для проверки" width="100%" />
 </p>
 
 # Object Digital Passport · v0.3 (черновик протокола / инструментов)
