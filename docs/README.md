@@ -12,6 +12,7 @@
 | **[`V0.2-DRAFT.md`](V0.2-DRAFT.md)** | Historical / exploratory notes (folder-first hosting, hash boundaries). Several items have since landed in **SPEC v0.2**; read **SPEC** for what is binding. |
 | **[`V0.3.md`](V0.3.md)** | **v0.3 vs v0.2:** [`RELEASE_v0.3.md`](../RELEASE_v0.3.md); deploy / **`NET.*`:** [`../deploy/README.md`](../deploy/README.md); **SPEC**. |
 | **[`IDEAS_V1.md`](IDEAS_V1.md)** | Informal **v1** directions (not spec); includes notes on retiring **`freeze()`**-style global lock. |
+| **[`community/discussion-passport-ui-v0.4-EN.md`](community/discussion-passport-ui-v0.4-EN.md)** | English draft for a **GitHub Discussion** (reference passport UI vs spec, toward v0.4). Publish with **`scripts/gh-create-discussion-from-doc.sh`** after `gh auth login`. |
 
 ## `.odpass` bundle (quick pointer)
 
