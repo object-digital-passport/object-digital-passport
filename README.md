@@ -63,7 +63,7 @@ If you are new, follow this order:
 
 ### 1) Prepare wallet and network fees
 
-- A browser wallet (**MetaMask**, **Rabby**, Coinbase Wallet, Brave, etc.) **or** connect from your phone using the menu on Profile/Passport (QR / app link).
+- A browser wallet (**MetaMask**, **Rabby**, Coinbase Wallet, Brave, etc.) **or** mobile: the Profile/Passport menu uses **[WalletConnect](https://docs.reown.com/)** (QR / app link). Examples include **Tangem**, MetaMask mobile, Rainbow, and other WalletConnect-compatible wallets.
 - Keep a small **POL** balance—Polygon’s native token used for network fees.
 - **Use a dedicated wallet for ODP**—not for long-term savings or trading (less risk if a site is malicious).
 
