@@ -22,7 +22,7 @@
 | 🇷🇺 **Russian / Русский** | [localization/ru/README.md](localization/ru/README.md) |
 
 
-**We welcome README and UI translations in any language.** Add files under `localization/<language-code>/` (see the [localization/ru/](localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)** (editing, localization, and how to propose changes).
+**We welcome README and UI translations in any language.** Add files under `localization/<language-code>/` (see the [localization/ru/](localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)** (editing, localization, and how to propose changes). **Issues and PRs on GitHub are in English** so the whole community can participate in the same threads.
 
 **Help us:** translate, share the **[project link](https://github.com/object-digital-passport/object-digital-passport)**, or tell communities who might care about open provenance for objects.
 

@@ -8,11 +8,16 @@ Thanks for your interest in Object Digital Passport.
 
 This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By participating, you agree to uphold it. Reports: see **Enforcement** in that file.
 
+## Language (GitHub and the community)
+
+**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is **[`SPEC.md`](SPEC.md)** (English). Translations under [`localization/`](localization/) are informational; discussion that changes the protocol should still be tracked in English on GitHub.
+
 ## Where to start
 
 - Read the normative protocol in **[`SPEC.md`](SPEC.md)** and the overview in **[`README.md`](README.md)**.
 - **Good first issues:** look for issues labeled **`good first issue`** or **`help wanted`** (maintainers apply these when tasks are suitable for newcomers).
-- **Spec / protocol ideas:** open a **Specification / protocol discussion** issue (template) or discuss before large PRs.
+- **Gaps in the standard:** if something feels **missing or underspecified** in **`SPEC.md`**, open a **Standard gap** issue (template) — short proposals welcome.
+- **Spec / protocol ideas:** open a **Specification / protocol discussion** issue (template) for questions or changes to existing rules, or discuss before large PRs.
 - **Security:** do **not** post exploitable details in public issues — follow **[`SECURITY.md`](SECURITY.md)** (Russian: [`localization/ru/SECURITY.md`](localization/ru/SECURITY.md)).
 
 ## Fork and pull request (short)

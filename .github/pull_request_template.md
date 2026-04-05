@@ -1,3 +1,5 @@
+<!-- Use **English** for the PR title and description so everyone in the community can follow (see [CONTRIBUTING.md](CONTRIBUTING.md#language-github-and-the-community)). -->
+
 ## Summary
 
 <!-- What does this PR do? Link issues: Fixes #… -->
