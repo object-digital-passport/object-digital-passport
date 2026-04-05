@@ -13,7 +13,7 @@ This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By part
 - Read the normative protocol in **[`SPEC.md`](SPEC.md)** and the overview in **[`README.md`](README.md)**.
 - **Good first issues:** look for issues labeled **`good first issue`** or **`help wanted`** (maintainers apply these when tasks are suitable for newcomers).
 - **Spec / protocol ideas:** open a **Specification / protocol discussion** issue (template) or discuss before large PRs.
-- **Security:** do **not** post exploitable details in public issues — follow **[`SECURITY.md`](SECURITY.md)**.
+- **Security:** do **not** post exploitable details in public issues — follow **[`SECURITY.md`](SECURITY.md)** (Russian: [`localization/ru/SECURITY.md`](localization/ru/SECURITY.md)).
 
 ## Fork and pull request (short)
 

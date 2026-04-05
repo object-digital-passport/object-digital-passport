@@ -3,7 +3,8 @@
 *Author: Andrei Chernikov*
 
 Object Digital Passport is a **registry of claims**, not a guarantee of physical authenticity.
-This document describes the threat model, known limitations, and recommendations for the **v0.3-shaped tuple** reference contract line. **v0.3** mainnet-style deploys used packed byte **3**; the **v0.4 branch** in this repository mints **`CONTRACT_VERSION` 4** with the same struct layout. Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
+
+This document describes the threat model, known limitations, and recommendations for the **reference line on `main`**: **`ObjectDigitalPassport`** with packed **`CONTRACT_VERSION` = 4** (same **v0.3-shaped** `Passport` tuple as earlier generation **3** deploys), optional **`ODPCounterfeitConcern`** satellite, and the static web pages wired via **`NET.*`**. Older **v0.3**-era deployments used packed byte **3** at the same tuple layout; they are **different registries** (address + ABI). Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
 
 ---
 
@@ -14,11 +15,12 @@ This document describes the threat model, known limitations, and recommendations
 - The profile ID (`creatorId`) is tied to the **registered wallet** for that profile at registration time.
 - **No one** — including the deployer — can delete or rewrite immutable hash fields on existing passports.
 - **Contract version:** deployments expose `CONTRACT_VERSION` / generation; verifiers should confirm they read the intended registry (address + chain).
+- **UTC-aligned prefixes (v0.4 reference bytecode):** `mintDigital` / `mintPhysical` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp` (see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**). This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
 
-## Registry versions: v0.3 vs older 0.x and future v1
+## Registry versions: v0.4 vs older 0.x and future v1
 
-- **No backward compatibility** between reference **v0.3**, **v0.2**, and **v0.1**: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
-- **v0.3 forward alignment:** the reference line is specified so a future **stable v1** can define migration or dual-verification paths using stable identifiers and `contractVersion` on records — see **[`SPEC.md`](SPEC.md)** (*IMPORTANT: registry versions…*). Until v1 is published, treat this as **design intent**, not a guarantee of upgrade for any live registry.
+- **No backward compatibility** between reference **v0.4**, **v0.3**, **v0.2**, and **v0.1**: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
+- **Forward alignment:** the specification is written so a future **stable v1** can define migration or dual-verification paths using stable identifiers and `contractVersion` on records — see **[`SPEC.md`](SPEC.md)** (*IMPORTANT: registry versions…*). Until v1 is published, treat this as **design intent**, not a guarantee of upgrade for any live registry.
 
 ## What the protocol does NOT guarantee
 
@@ -27,6 +29,7 @@ This document describes the threat model, known limitations, and recommendations
 - That an NFC chip is genuinely NTAG 424 DNA TagTamper or that the public key matches the installed chip.
 - That **P-** or **M-** type profiles represent a real museum or institution **on-chain** — the protocol stores an ID and type prefix only; names are self-declared.
 - That the person holding the wallet is the original artist or rightsholder.
+- **Institutional “counterfeit concern” (satellite):** if **`ODPCounterfeitConcern`** is deployed and wired, **P**/**M** profiles can record an **opaque** `reasonHash` and timestamps for a passport ID. That is an **on-chain signal** from that profile at that time — **not** a cryptographic proof that an object is fake, and **not** a substitute for physical inspection or legal process.
 - **Optional future features** described in **SPEC** (e.g. global `dataHash` uniqueness, **author ECDSA attestation**) are **not** security properties until deployed in bytecode for your registry — see **SPEC** *Planned* sections.
 
 ### URLs vs hashes (important)
@@ -36,13 +39,13 @@ This document describes the threat model, known limitations, and recommendations
 
 ---
 
-## v0.3-specific trust boundaries
+## Reference line trust boundaries (v0.4 / v0.3-shaped tuple)
 
 ### Governance (single on-chain address)
 
 - **`governance`** is one `address` (constructor defaults to deployer; should be moved to a multisig/Safe via **`transferGovernance`**).
 - A compromised **`governance`** can affect **policy-level** actions allowed by the contract (e.g. revoke passports alongside creator, register mint extensions, aux updates where permitted). There is **no** on-chain timelock in the reference bytecode — operate multisig and procedures off-chain.
-- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes). **Stable v1 is planned to omit this mechanism** (see `docs/IDEAS_V1.md`).
+- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes). **Stable v1 is planned to omit this mechanism** (see [`docs/IDEAS_V1.md`](docs/IDEAS_V1.md)).
 
 ### Mint agent (delegated mint)
 
@@ -69,19 +72,26 @@ This document describes the threat model, known limitations, and recommendations
 
 - **`auxCommitmentHash` / `auxCommitmentUri`** may be updated by **creator or governance** per **SPEC**; they are **not** the same immutability class as `dataHash`.
 
+### Optional satellite: `ODPCounterfeitConcern` (v0.4+)
+
+- Deployed **separately** from the main registry; constructor **pins one** `ObjectDigitalPassport` address. Static pages use **`NET.counterfeitConcern`** — a **wrong address** means **wrong or empty** reads.
+- **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**).
+- The chain stores **`reasonHash`** (and optional audit fields per deployment), **not** the full free-text reason. Treat as **institutional opinion** bound to that registry and timestamp, not as universal truth.
+
 ---
 
 ## Known risks and mitigations (carried forward)
 
 ### 1. Social engineering and phishing
 
-**Risk:** Fake verifier site; fake “official” P/M institution; malicious `dataUrl` / `noteUrl`.
+**Risk:** Fake verifier site; fake “official” P/M institution; malicious `dataUrl` / `noteUrl`; **misleading interpretation** of a concern flag as “certified fake”.
 
 **Mitigation:**
 
 - Compare fetched content to on-chain hashes locally.
 - Treat profile IDs as opaque strings; verify them on **official** sites.
 - Do not trust `noteUrl` without domain checks.
+- For **concern** flags: read **which profile** raised them and **when**; confirm policy out-of-band if decisions matter.
 
 ### 2. Stolen creator or owner wallet
 
@@ -117,7 +127,7 @@ Same as v0.1: **`freeze()`** only; cannot alter historical records. Protect offl
 
 When verifying an object:
 
-- [ ] **Chain and contract:** you are connected to the intended network and registry address (or known-good deployment).
+- [ ] **Chain and contract:** you are connected to the intended network and registry address (or known-good deployment); if using **concern** data, **`NET.counterfeitConcern`** matches the deployment you trust.
 - [ ] Passport ID matches QR / bundle (`humanId` / `passportId`).
 - [ ] Passport data status shows **AUTHENTIC** (hash check succeeded).
 - [ ] **`creatorId`** matches what the issuer publishes on an **official** site.
@@ -126,6 +136,7 @@ When verifying an object:
 - [ ] Proof records — find each **`creatorId`** on the institution’s site if you rely on proofs.
 - [ ] NFC — challenge-response where applicable; numbered seal — visual compare.
 - [ ] `dataUrl` / image URLs — legitimate domains; verify file hashes where offered.
+- [ ] **Concern flag (if present):** confirm the **prover** profile ID and that your tool reads the **same** main + satellite addresses as the issuer’s deployment.
 
 ---
 
@@ -144,6 +155,8 @@ Described in **[`SPEC.md`](SPEC.md)** for roadmap alignment only:
 
 A pass through **Remix** (or similar IDE/static tooling) on the reference **`ObjectDigitalPassport.sol`** reported **no major on-chain issues** immediately suggesting direct theft or classic scam patterns, and noted sensible patterns: **custom errors**, **input validation**, **role checks** (`governance`, creator, owner paths), **`notFrozen`** on writes, and limited reentrancy surface on core paths.
 
+**Scope note:** operators who deploy **`ODPCounterfeitConcern`** should include that artifact in their review process; it is a **separate** contract with its own trust boundary (paired main registry address).
+
 **Limits of this class of tools:** they do **not** model **off-chain** trust (`dataUrl` / hosted files), **governance** policy (malicious extensions, revocation power), **economic** abuse (e.g. a **mint agent** burning a principal’s **C/B** monthly quota), or deployment/configuration mistakes. **`mint*ViaExtension`** uses **`staticcall`** into **governance-approved** extension contracts — not classic reentrancy into this registry, but a **trust boundary** on the extension’s correctness.
 
 Treat **formal verification**, **timelocks** for governance (off-chain multisig process if bytecode stays minimal), and **event** consistency as **production hardening**, not conclusions from a single static run.
@@ -155,4 +168,4 @@ Treat **formal verification**, **timelocks** for governance (off-chain multisig 
 Open an issue at:
 [https://github.com/object-digital-passport/object-digital-passport/issues](https://github.com/object-digital-passport/object-digital-passport/issues)
 
-For sensitive disclosures, contact via GitHub private security advisory.
+For sensitive disclosures, use **[GitHub private security advisories](https://github.com/object-digital-passport/object-digital-passport/security/advisories)** for this repository.

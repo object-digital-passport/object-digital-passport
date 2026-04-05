@@ -10,7 +10,7 @@
 
 | | |
 |:--|:--|
-| **[object-digital-passport](https://github.com/object-digital-passport/object-digital-passport)** | Reference stack: [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md), Solidity contract, static web UI, deploy & tooling · **v0.2** |
+| **[object-digital-passport](https://github.com/object-digital-passport/object-digital-passport)** | Reference stack: [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md), Solidity contract, static web UI, deploy & tooling · **v0.4** |
 
 Pin the main repository on this organization page so visitors see it first.
 
@@ -19,7 +19,7 @@ Pin the main repository on this organization page so visitors see it first.
 ### Start here
 
 - **Specification (normative):** [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md)
-- **Security & threat model:** [`SECURITY.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SECURITY.md)
+- **Security & threat model:** [`SECURITY.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SECURITY.md) · [RU](https://github.com/object-digital-passport/object-digital-passport/blob/main/localization/ru/SECURITY.md)
 - **Contributing:** [`CONTRIBUTING.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/CONTRIBUTING.md)
 - **Versioning & releases:** [`docs/VERSIONING_AND_RELEASES.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/VERSIONING_AND_RELEASES.md)
 

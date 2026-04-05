@@ -4,7 +4,7 @@
 
 See also **[`docs/README.md`](README.md)** for an index of all docs in this folder and pointers to **`SPEC.md`**.
 
-**On-chain reference lines:** **v0.1**, **v0.2**, and **v0.3** are **separate registries** — not backward compatible with each other (address + bytecode + ABI). The **v0.3** specification records **design intent** to align with a future **stable v1** (migration to be defined in v1). Normative wording: **[`SPEC.md`](../SPEC.md)** → *IMPORTANT: 0.x deployments, the reference v0.3 line, and alignment toward v1*.
+**On-chain reference lines:** **v0.1**, **v0.2**, **v0.3**, and **v0.4** (packed **`CONTRACT_VERSION` = 4** on current **`main`**) are **separate registries** — not backward compatible with each other (address + bytecode + ABI). The specification records **design intent** to align with a future **stable v1** (migration to be defined in v1). Normative wording: **[`SPEC.md`](../SPEC.md)** → *IMPORTANT: 0.x deployments, the reference v0.3 line, and alignment toward v1* (same section covers generation **4** / v0.4 as the live reference in this repo).
 
 This document explains how **product versions** (e.g. **v0.1**), **`main`**, and **git tags** work together — and what “I don’t want to change v0.1 anymore” means in practice.
 

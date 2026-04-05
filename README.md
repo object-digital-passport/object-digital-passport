@@ -231,7 +231,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 
 For threat model and trust boundaries:
 
-- `[SECURITY.md](SECURITY.md)`
+- `[SECURITY.md](SECURITY.md)` · Russian: [`localization/ru/SECURITY.md`](localization/ru/SECURITY.md)
 
 Verification basics:
 
