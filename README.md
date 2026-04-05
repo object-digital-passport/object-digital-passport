@@ -1,7 +1,7 @@
 # Object Digital Passport · v0.4
 
-[License: MIT](LICENSE)
-[GitHub stars](https://github.com/object-digital-passport/object-digital-passport/stargazers)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub Repo stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=social)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
 
 ## What ODP is
 
