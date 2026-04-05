@@ -57,7 +57,7 @@ If you are new, follow this order:
 
 4. **Going deeper.** What is new in this line: [RELEASE_v0.4.md](RELEASE_v0.4.md). Earlier changes vs older lines: [RELEASE_v0.3.md](RELEASE_v0.3.md). To **deploy your own** registry (for developers): [deploy/README.md](deploy/README.md).
 
-**0.x is a draft.** The project is **0.x**: behaviour and deployments can change. Each contract address is its **own** registry; records do **not** move between different deployments by themselves. This repo documents the **v0.4** reference line; for versioning details see [docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md).
+**Still early days.** ODP is in **development, testing, and gathering feedback**—rules and deployments can still change. We aim for a **stable 1.x release around January 2027** as the long-term baseline. If you need a **record meant to last many years** with minimal rule churn, **consider waiting for that stable release**. Each contract address is its **own** registry; records do **not** move between deployments by themselves. More on versioning: [docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md).
 
 ## Quick Start (5 minutes)
 
