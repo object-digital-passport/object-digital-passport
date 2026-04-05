@@ -10,15 +10,15 @@ This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By part
 
 ## Language (GitHub and the community)
 
-**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is **[`SPEC.md`](SPEC.md)** (English). Translations under [`localization/`](localization/) are informational; discussion that changes the protocol should still be tracked in English on GitHub.
+**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is `**[SPEC.md](SPEC.md)`** (English). Translations under `[localization/](localization/)` are informational; discussion that changes the protocol should still be tracked in English on GitHub.
 
 ## Where to start
 
-- Read the normative protocol in **[`SPEC.md`](SPEC.md)** and the overview in **[`README.md`](README.md)**.
-- **Good first issues:** look for issues labeled **`good first issue`** or **`help wanted`** (maintainers apply these when tasks are suitable for newcomers).
-- **Gaps in the standard:** if something feels **missing or underspecified** in **`SPEC.md`**, open a **Standard gap** issue (template) — short proposals welcome.
+- Read the normative protocol in `**[SPEC.md](SPEC.md)**` and the overview in `**[README.md](README.md)**`.
+- **Good first issues:** look for issues labeled `**good first issue`** or `**help wanted**` (maintainers apply these when tasks are suitable for newcomers).
+- **Gaps in the standard:** if something feels **missing or underspecified** in `**SPEC.md`**, open a **Standard gap** issue (template) — short proposals welcome.
 - **Spec / protocol ideas:** open a **Specification / protocol discussion** issue (template) for questions or changes to existing rules, or discuss before large PRs.
-- **Security:** do **not** post exploitable details in public issues — follow **[`SECURITY.md`](SECURITY.md)** (Russian: [`localization/ru/SECURITY.md`](localization/ru/SECURITY.md)).
+- **Security:** do **not** post exploitable details in public issues — follow `**[SECURITY.md](SECURITY.md)`** (Russian: `[localization/ru/SECURITY.md](localization/ru/SECURITY.md)`).
 
 ## Fork and pull request (short)
 
@@ -26,22 +26,24 @@ This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By part
 2. **Branch** from `main` with a descriptive name, e.g. `fix/verify-mobile`, `docs/contributing-typos`.
 3. **Change** with focused commits; match existing style in each area (`web/`, `contracts/`, `tools/`, Markdown).
 4. **Test** what you can locally (static pages, Hardhat, `mint.py`) — there may not be CI for every path yet.
-5. **Open a PR** into **`main`** — the PR template will prompt for summary and checklist.
+5. **Open a PR** into `**main`** — the PR template will prompt for summary and checklist.
 6. **Respond** to review feedback; maintainers aim to reply within a few days (small projects vary by availability).
 
 ## Beyond code
 
-Reviews of English and translated copy, UX, visual design, accessibility, and localization ([`localization/`](localization/)) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on [`SPEC.md`](SPEC.md) and the static pages helps.
+Reviews of English and translated copy, UX, visual design, accessibility, and localization (`[localization/](localization/)`) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on `[SPEC.md](SPEC.md)` and the static pages helps.
 
 ## Areas of the repo
 
-| Area | Notes |
-|------|--------|
-| **`SPEC.md`** | Breaking changes need discussion; pin spec version for implementers. |
-| **`contracts/`** | On-chain immutability: many fixes require a **new deployment** and version line — note in PR. |
-| **`web/`** | Static HTML/JS/CSS; keep accessibility and mobile flows in mind. |
-| **`deploy/`** | Hardhat; never commit private keys. |
-| **`tools/`** | Python CLI; document new flags in `--help` or README. |
+
+| Area             | Notes                                                                                         |
+| ---------------- | --------------------------------------------------------------------------------------------- |
+| `**SPEC.md`**    | Breaking changes need discussion; pin spec version for implementers.                          |
+| `**contracts/**` | On-chain immutability: many fixes require a **new deployment** and version line — note in PR. |
+| `**web/`**       | Static HTML/JS/CSS; keep accessibility and mobile flows in mind.                              |
+| `**deploy/**`    | Hardhat; never commit private keys.                                                           |
+| `**tools/**`     | Python CLI; document new flags in `--help` or README.                                         |
+
 
 ## Style
 
@@ -53,25 +55,27 @@ Reviews of English and translated copy, UX, visual design, accessibility, and lo
 
 Suggested labels to create in **Issues → Labels** (helps contributors find work):
 
-| Label | Use |
-|-------|-----|
-| `good first issue` | Small, well-scoped, good for first PR |
-| `help wanted` | Maintainer would like community help |
-| `bug` | Something broken |
-| `enhancement` | Feature or improvement |
-| `spec` | Protocol / SPEC.md related |
-| `documentation` | Docs / copy only |
 
-GitHub’s default **`good first issue`** and **`help wanted`** are widely recognized ([community health](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions)).
+| Label              | Use                                   |
+| ------------------ | ------------------------------------- |
+| `good first issue` | Small, well-scoped, good for first PR |
+| `help wanted`      | Maintainer would like community help  |
+| `bug`              | Something broken                      |
+| `enhancement`      | Feature or improvement                |
+| `spec`             | Protocol / SPEC.md related            |
+| `documentation`    | Docs / copy only                      |
+
+
+GitHub’s default `**good first issue`** and `**help wanted**` are widely recognized ([community health](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions)).
 
 ## Versions and “freezing” a line
 
-This project ties **released** work to **git tags** (e.g. **`v0.1`**).  
-How **`main`**, tags, and patch releases interact is documented in **[`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md)**.
+This project ties **released** work to **git tags** (e.g. `**v0.1`**).  
+How `**main**`, tags, and patch releases interact is documented in `**[docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md)**`.
 
 ## Maintainer setup (branch protection) — optional, enable later
 
-If you want **`main`** to accept changes only via pull requests, follow **[`.github/BRANCH_PROTECTION.md`](.github/BRANCH_PROTECTION.md)** and turn the rules on in **GitHub → Settings**. Not required for contributors day-to-day.
+If you want `**main**` to accept changes only via pull requests, follow `**[.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md)**` and turn the rules on in **GitHub → Settings**. Not required for contributors day-to-day.
 
 ## Optional: GitHub Discussions
 
