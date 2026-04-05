@@ -20,6 +20,16 @@
     return _ctx && typeof _ctx.esc === "function" ? _ctx.esc(s) : String(s ?? "");
   }
 
+  /** One classed status line with plain text only (safe for RPC/exception messages; avoids XSS via innerHTML). */
+  function setOdpInfoTextLine(el, className, text) {
+    if (!el) return;
+    el.replaceChildren();
+    var d = global.document.createElement("div");
+    d.className = className;
+    d.textContent = text == null ? "" : String(text);
+    el.appendChild(d);
+  }
+
   function getContract() {
     return _ctx && _ctx.getContract();
   }
@@ -473,7 +483,7 @@
       if (revokeBlock) revokeBlock.style.display = "none";
       if (paffBlock) paffBlock.style.display = "none";
       void passportV03RefreshCounterfeitUi();
-      if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m) + "</div>";
+      setOdpInfoTextLine(errEl, "info e", m);
     }
   }
 
@@ -533,7 +543,7 @@
           void passportV03RefreshState();
         } catch (e2) {
           var m2 = e2 && (e2.reason || e2.message) ? String(e2.reason || e2.message) : String(e2);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m2) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m2);
         }
         govTx.disabled = false;
       };
@@ -575,7 +585,7 @@
           void passportV03RefreshState();
         } catch (e4) {
           var m4 = e4 && (e4.reason || e4.message) ? String(e4.reason || e4.message) : String(e4);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m4) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m4);
         }
         transferBtn.disabled = false;
       };
@@ -623,7 +633,7 @@
           void passportV03RefreshState();
         } catch (e6) {
           var m6 = e6 && (e6.reason || e6.message) ? String(e6.reason || e6.message) : String(e6);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m6) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m6);
         }
         delBtn.disabled = false;
       };
@@ -652,7 +662,7 @@
           void passportV03RefreshState();
         } catch (e7) {
           var m7 = e7 && (e7.reason || e7.message) ? String(e7.reason || e7.message) : String(e7);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m7) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m7);
         }
         revDel.disabled = false;
       };
@@ -709,7 +719,7 @@
           void passportV03RefreshState();
         } catch (e9) {
           var m9 = e9 && (e9.reason || e9.message) ? String(e9.reason || e9.message) : String(e9);
-          if (errUrl) errUrl.innerHTML = '<div class="info e">' + esc(m9) + "</div>";
+          setOdpInfoTextLine(errUrl, "info e", m9);
         }
         agentUrlBtn.disabled = false;
       };
@@ -749,7 +759,7 @@
           void passportV03RefreshState();
         } catch (e10) {
           var m10 = e10 && (e10.reason || e10.message) ? String(e10.reason || e10.message) : String(e10);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m10) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m10);
         }
         revP.disabled = false;
       };
@@ -792,7 +802,7 @@
           void passportV03RefreshState();
         } catch (e11) {
           var m11 = e11 && (e11.reason || e11.message) ? String(e11.reason || e11.message) : String(e11);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m11) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m11);
         }
         cfRaise.disabled = false;
       };
@@ -825,7 +835,7 @@
           void passportV03RefreshState();
         } catch (e12) {
           var m12 = e12 && (e12.reason || e12.message) ? String(e12.reason || e12.message) : String(e12);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m12) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m12);
         }
         cfClear.disabled = false;
       };
@@ -858,7 +868,7 @@
               "</code></div>";
         } catch (e13) {
           var m13 = e13 && (e13.reason || e13.message) ? String(e13.reason || e13.message) : String(e13);
-          if (errEl) errEl.innerHTML = '<div class="info e">' + esc(m13) + "</div>";
+          setOdpInfoTextLine(errEl, "info e", m13);
         }
         paffBtn.disabled = false;
       };

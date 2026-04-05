@@ -1,0 +1,3 @@
+# CodeQL: skip generated WalletConnect bundle (esbuild output from npm deps; not maintained as source).
+paths-ignore:
+  - web/odp-wallet-wc.bundle.js
