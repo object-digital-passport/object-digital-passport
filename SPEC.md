@@ -89,7 +89,7 @@ The following describes the **reference stack in this repository (v0.4)**. At mi
 - **P-affiliation audit**: `**getPAffiliationAudit`**, `**detachPAffiliation`** (parent P); timestamps for join / detach
 - **Compact reverts**: failures use `**error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference `**ObjectDigitalPassport`** is deployed **with a linked library** `**ODPPassportLib`** (shared `**error EC`**) so the registry creation bytecode stays within the 24 KiB (EIP-170) limit; deploy library first, then the registry (see repository deploy scripts). Local Hardhat tests may use `**allowUnlimitedContractSize`**; verify `**[ODP] EIP-170:`** output after compile before mainnet deploy.
 
-**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and `**RELEASE_v0.4.md`**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
+**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`localization/ru/RELEASE_v0.4.md`](localization/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
 
 **Type-definition governance with on-chain timelock** is not stored in the reference bytecode; operate governance (multisig / DAO) off-chain and document hashes in releases if needed.
 
@@ -1575,7 +1575,7 @@ The **reference static pages** in this repository (`**passport.html`**, `**creat
 
 WalletConnect relies on **relay** infrastructure and a wallet app (QR scan or deep link); **availability, privacy, and trust** of that channel are between the user, the wallet vendor, and WalletConnect — **not** specified here. On-chain semantics are unchanged: `**msg.sender`**, creator wallet, and `**chainId`** remain authoritative.
 
-For **repository wiring** (Reown Cloud Project ID, lazy-loaded bundle, session restore after reload), see `**web/odp-wc-config.js`**, `**web/odp-wallet-wc-loader.js`**, and `**[RELEASE_v0.4.md](RELEASE_v0.4.md)**`.
+For **repository wiring** (Reown Cloud Project ID, lazy-loaded bundle, session restore after reload), see `**web/odp-wc-config.js`**, `**web/odp-wallet-wc-loader.js`**, and `**[docs/V0.4.md](docs/V0.4.md)**`.
 
 ### Key generation principle
 

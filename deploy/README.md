@@ -74,7 +74,7 @@ npx hardhat run scripts/deploy.js --network polygon
 3. Попытается задеплоить **`ODPCounterfeitConcern`** (спутник: флаг «institutional concern» для **P/M**); при ошибке — предупреждение.
 4. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
 
-После деплоя пропишите адрес в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** (`NET.contract`); для v0.3+ при необходимости **`NET.docAnchor`** и **`NET.counterfeitConcern`** (если задеплоен спутник v0.4+). Отличия релизов — **[`RELEASE_v0.3.md`](../RELEASE_v0.3.md)**, **[`RELEASE_v0.4.md`](../RELEASE_v0.4.md)**.
+После деплоя пропишите адрес в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** (`NET.contract`); для v0.3+ при необходимости **`NET.docAnchor`** и **`NET.counterfeitConcern`** (если задеплоен спутник v0.4+). Отличия релизов — **[`localization/ru/RELEASE_v0.3.md`](../localization/ru/RELEASE_v0.3.md)**, **[`localization/ru/RELEASE_v0.4.md`](../localization/ru/RELEASE_v0.4.md)** · указатели **[`docs/V0.3.md`](../docs/V0.3.md)**, **[`docs/V0.4.md`](../docs/V0.4.md)**.
 
 ---
 

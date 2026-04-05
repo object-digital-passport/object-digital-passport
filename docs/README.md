@@ -10,8 +10,8 @@
 | **[`deploy/README.md`](../deploy/README.md)** | Step-by-step Hardhat deploy (`.env`, compile, Polygon mainnet); EIP-170 gate before `polygon`. |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix branches vs feature lines. |
 | **[`V0.2-DRAFT.md`](V0.2-DRAFT.md)** | Historical / exploratory notes (folder-first hosting, hash boundaries). Several items have since landed in **SPEC v0.2**; read **SPEC** for what is binding. |
-| **[`V0.3.md`](V0.3.md)** | **v0.3 vs v0.2:** [`RELEASE_v0.3.md`](../RELEASE_v0.3.md); deploy / **`NET.*`:** [`../deploy/README.md`](../deploy/README.md); **SPEC**. |
-| **[`V0.4.md`](V0.4.md)** | **v0.4 line (current `main`):** on-chain generation **4**, optional `ODPCounterfeitConcern`, web + SPEC — [`RELEASE_v0.4.md`](../RELEASE_v0.4.md). Default **`NET.*`** in this repo target that deployment. |
+| **[`V0.3.md`](V0.3.md)** | **v0.3 vs v0.2:** [`localization/ru/RELEASE_v0.3.md`](../localization/ru/RELEASE_v0.3.md); deploy / **`NET.*`:** [`../deploy/README.md`](../deploy/README.md); **SPEC**. |
+| **[`V0.4.md`](V0.4.md)** | **v0.4 line (current `main`):** on-chain generation **4**, optional `ODPCounterfeitConcern`, web + SPEC — [`localization/ru/RELEASE_v0.4.md`](../localization/ru/RELEASE_v0.4.md). Default **`NET.*`** in this repo target that deployment. |
 | **[`SECURITY.md`](../SECURITY.md)** | **Threat model & trust boundaries** for the v0.4 reference line (main + satellite). RU: [`localization/ru/SECURITY.md`](../localization/ru/SECURITY.md). |
 | **[`IDEAS_V1.md`](IDEAS_V1.md)** | Informal **v1** directions (not spec); includes notes on retiring **`freeze()`**-style global lock. |
 | **[`community/discussion-passport-ui-v0.4-EN.md`](community/discussion-passport-ui-v0.4-EN.md)** | English draft for a **GitHub Discussion** (reference passport UI vs spec, toward v0.4). Publish with **`scripts/gh-create-discussion-from-doc.sh`** after `gh auth login`. |

@@ -15,7 +15,7 @@ This document describes the threat model, known limitations, and recommendations
 - The profile ID (`creatorId`) is tied to the **registered wallet** for that profile at registration time.
 - **No one** — including the deployer — can delete or rewrite immutable hash fields on existing passports.
 - **Contract version:** deployments expose `CONTRACT_VERSION` / generation; verifiers should confirm they read the intended registry (address + chain).
-- **UTC-aligned prefixes (v0.4 reference bytecode):** `mintDigital` / `mintPhysical` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp` (see **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**). This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
+- **UTC-aligned prefixes (v0.4 reference bytecode):** `mintDigital` / `mintPhysical` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp` (see **[`docs/V0.4.md`](docs/V0.4.md)** and **[`localization/ru/RELEASE_v0.4.md`](localization/ru/RELEASE_v0.4.md)**). This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
 
 ## Registry versions: v0.4 vs older 0.x and future v1
 
@@ -75,7 +75,7 @@ This document describes the threat model, known limitations, and recommendations
 ### Optional satellite: `ODPCounterfeitConcern` (v0.4+)
 
 - Deployed **separately** from the main registry; constructor **pins one** `ObjectDigitalPassport` address. Static pages use **`NET.counterfeitConcern`** — a **wrong address** means **wrong or empty** reads.
-- **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`RELEASE_v0.4.md`](RELEASE_v0.4.md)**).
+- **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`localization/ru/RELEASE_v0.4.md`](localization/ru/RELEASE_v0.4.md)**).
 - The chain stores **`reasonHash`** (and optional audit fields per deployment), **not** the full free-text reason. Treat as **institutional opinion** bound to that registry and timestamp, not as universal truth.
 
 ---

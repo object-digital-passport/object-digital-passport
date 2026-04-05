@@ -89,7 +89,7 @@
 - **Аудит P-affiliation**: `**getPAffiliationAudit`**, `**detachPAffiliation`** (родитель P); метки времени join / detach
 - **Компактные revert**: ошибки через `**error EC(uint16 code)`** — расшифровка по исходнику (строковые сообщения убраны ради размера байткода). Эталонный `**ObjectDigitalPassport`** деплоится **с линкуемой библиотекой** `**ODPPassportLib`** (общий `**error EC`**), чтобы реестр укладывался в 24 KiB (EIP-170); сначала библиотека, затем контракт (см. скрипты деплоя в репозитории). В Hardhat допускается `**allowUnlimitedContractSize`**; перед mainnet проверьте вывод `**[ODP] EIP-170:`** после `compile`.
 
-**Претензия к подделке / institutional concern (v0.4):** спутник `**ODPCounterfeitConcern`** (не на монолите). Семантика и `**NET.counterfeitConcern`** — в `**[SPEC.md](../../SPEC.md)`** и `**[RELEASE_v0.4.md](../../RELEASE_v0.4.md)`**.
+**Претензия к подделке / institutional concern (v0.4):** спутник `**ODPCounterfeitConcern`** (не на монолите). Семантика и `**NET.counterfeitConcern`** — в `**[SPEC.md](../../SPEC.md)`** и в указателях **[`../../docs/V0.4.md`](../../docs/V0.4.md)** / **[`../RELEASE_v0.4.md`](../RELEASE_v0.4.md)**.
 
 **On-chain governance определений типов с timelock** в байткоде эталона не хранится; multisig / DAO — оффчейн, при необходимости фиксируйте хэши в релизах.
 
@@ -1515,7 +1515,7 @@ ODP не задаёт способ хранения ключей; нужен т�
 
 WalletConnect использует **relay** и приложение кошелька (QR или deep link); **доступность, конфиденциальность и доверие** к этому каналу — между пользователем, вендором кошелька и инфраструктурой WalletConnect — **здесь не нормируются**. Семантика on-chain не меняется: авторитетны `**msg.sender`**, кошелёк создателя и `**chainId`**.
 
-**Сборка репозитория** (Project ID в Reown Cloud, ленивая загрузка бандла, восстановление сессии после перезагрузки): `**web/odp-wc-config.js`**, `**web/odp-wallet-wc-loader.js`**, `**[RELEASE_v0.4.md](../../RELEASE_v0.4.md)**`.
+**Сборка репозитория** (Project ID в Reown Cloud, ленивая загрузка бандла, восстановление сессии после перезагрузки): `**web/odp-wc-config.js`**, `**web/odp-wallet-wc-loader.js`**, `**[../../docs/V0.4.md](../../docs/V0.4.md)**`.
 
 ### Принцип генерации ключа
 
