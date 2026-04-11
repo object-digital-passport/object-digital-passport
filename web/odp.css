@@ -132,11 +132,19 @@ html[data-theme="blue"] {
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* RU: avoid English flash before async i18n (odp-i18n-boot.js + odpInitI18n reveal) */
+@keyframes odp-i18n-failsafe {
+  to {
+    visibility: visible;
+  }
+}
 html.odp-i18n-pending body {
   visibility: hidden;
+  /* If JS never settles (Safari + MetaMask handoff), still show UI after ~4.5s */
+  animation: odp-i18n-failsafe 0.01s 4.5s forwards;
 }
 html.odp-i18n-ready body {
   visibility: visible;
+  animation: none;
 }
 
 html {

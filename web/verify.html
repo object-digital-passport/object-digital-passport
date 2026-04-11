@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
-<script src="odp-i18n-boot.js?v=1"></script>
+<script src="odp-i18n-boot.js?v=2"></script>
 <script src="odp-wc-config.js?v=1"></script>
 <script src="odp-wallet-wc-loader.js?v=1"></script>
 <title>ODP v0.4.1 — Verify</title>
@@ -27,12 +27,12 @@
   After deploying the contract, set CONTRACT_ADDRESS below.
 -->
 
-<link rel="stylesheet" href="odp.css">
+<link rel="stylesheet" href="odp.css?v=20260406i18n">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-Htz1SE4Sl5aitpvFgr2j0sfsGUIuSXI6t8hEyrlQ93zflEF3a29bH2AvkUROUw7J" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.4.1"></script>
 <script src="odp-date-format.js?v=1"></script>
-<script src="odp-i18n.js?v=8"></script>
+<script src="odp-i18n.js?v=15"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-9Q0jWoineiIq95JeIyBsNV90KKLfDsbkj29k/YFxf76a2JwkHDYkMuSbNGN6XJfV" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 </head>
@@ -3069,7 +3069,32 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (o && !o.hidden) closeQrScanner();
     }
   });
-  await init();
+  try {
+    await init();
+  } catch (err) {
+    console.error("[ODP] verify init failed:", err);
+    try {
+      if (typeof odpRevealI18nUi === "function") odpRevealI18nUi();
+    } catch (_) {}
+    try {
+      document.documentElement.classList.remove("odp-i18n-pending");
+      document.documentElement.classList.add("odp-i18n-ready");
+    } catch (_) {}
+    const page = document.querySelector(".page");
+    if (page) {
+      const d = document.createElement("div");
+      d.className = "info error";
+      d.style.maxWidth = "520px";
+      d.style.margin = "16px auto";
+      d.style.lineHeight = "1.55";
+      const msg = err && err.message ? String(err.message) : String(err);
+      d.innerHTML =
+        "Page failed to finish loading. Try reload or private mode.<br><br><code style=\"font-size:11px;word-break:break-all\">" +
+        esc(msg) +
+        "</code>";
+      page.insertBefore(d, page.firstChild);
+    }
+  }
   attachOdpQuickVerifyHandlers();
   const docFileEl = document.getElementById("docAttestFile");
   const docDropEl = document.getElementById("docAttestFileDrop");
