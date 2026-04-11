@@ -18,4 +18,15 @@
   if (g.document && g.document.documentElement && resolve() === "ru") {
     g.document.documentElement.classList.add("odp-i18n-pending");
   }
+  /* If odp-i18n.js never runs or fetch hangs, do not leave body hidden forever */
+  g.setTimeout(function () {
+    try {
+      var h = g.document && g.document.documentElement;
+      if (!h || !h.classList) return;
+      if (h.classList.contains("odp-i18n-pending")) {
+        h.classList.remove("odp-i18n-pending");
+        h.classList.add("odp-i18n-ready");
+      }
+    } catch (e1) {}
+  }, 2800);
 })(typeof window !== "undefined" ? window : globalThis);

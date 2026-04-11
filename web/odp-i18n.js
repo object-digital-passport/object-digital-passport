@@ -59,6 +59,26 @@
     } catch (eR) {}
   }
 
+  global.odpRevealI18nUi = revealI18nUi;
+
+  /** Safari / in-app browser: restore from MetaMask can leave i18n wedged; always unhide chrome. */
+  try {
+    if (global.addEventListener) {
+      global.addEventListener(
+        "pageshow",
+        function () {
+          revealI18nUi();
+        },
+        false
+      );
+      global.addEventListener("visibilitychange", function () {
+        try {
+          if (global.document && !global.document.hidden) revealI18nUi();
+        } catch (eV) {}
+      });
+    }
+  } catch (eEv) {}
+
   function t(key) {
     var parts = String(key).split(".");
     var cur = _merged;
