@@ -156,19 +156,15 @@ function odpEthersLib() {
   } catch (err) {}
 })();
 
-/** MetaMask / in-app browsers often break `tx.wait()`; poll receipts instead of hanging forever. */
+/**
+ * Safari / MetaMask in-app often never resolve `provider.waitForTransaction` (promise hangs).
+ * Poll `getTransactionReceipt` only — same data the UI would see after reload.
+ */
 async function waitForTransactionReceiptReliable(tx, prov) {
   const hash = tx && tx.hash;
   const p = prov || provider || (signer && signer.provider);
   if (!hash || !p) throw new Error("waitForTransactionReceiptReliable: missing hash or provider");
   const timeoutMs = 15 * 60 * 1000;
-  if (typeof p.waitForTransaction === "function") {
-    try {
-      return await p.waitForTransaction(hash, 1, timeoutMs);
-    } catch {
-      /* fall through — some providers throw; polling below */
-    }
-  }
   const deadline = Date.now() + timeoutMs;
   let lastErr;
   while (Date.now() < deadline) {
