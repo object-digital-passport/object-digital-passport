@@ -821,7 +821,7 @@ These fields are part of the hashed `passport.json`; changing them changes `data
 
 Top-level `year` and `month` **must** match the **UTC** calendar values passed to the mint transaction and stored on-chain — they are part of the hashed document and tie the `ODP-YYYY-MM-…` Passport ID prefix to the **mint** month. They do **not** assert the historical year a physical object was made or a file was authored. When the UI collects a separate “object year” (e.g. form field `f_year`), implementations **should** emit `**objectYear`** (integer) when it differs from the mint `year`, so provenance can still record e.g. a 19th-century work minted in 2026.
 
-### Registration instant and local clock (normative)
+### Registration instant (UTC-only clock strings) (normative)
 
 
 | Field                       | Required | Type               | Description                                                                                                                                                                          |
@@ -835,6 +835,8 @@ Top-level `year` and `month` **must** match the **UTC** calendar values passed t
 
 Implementations MUST use the **same** UTC instant for `registeredAt`, `registration.utcIso8601`, and `registration.localIso8601`.
 If local device time is shown to users, implementations MUST normalize that instant to **UTC (GMT+0)** before writing `passport.json`.
+
+Implementations MUST **not** record the user’s **device-local IANA time zone** (e.g. `Europe/Berlin`), MUST **not** emit **non-`+00:00`** numeric offsets in `registration.localIso8601`, and MUST **not** derive `registration.*` from the device’s **local calendar wall clock**. The field name `localIso8601` is **legacy naming** only: the value must still encode the **same UTC instant** with offset `+00:00` only (see reference `tools/mint.py` and web mint).
 
 ### Minimal valid passport — physical object
 
@@ -996,8 +998,8 @@ If local device time is shown to users, implementations MUST normalize that inst
   "registeredAt": 1748000000,
   "registration": {
     "ianaTimeZone": "UTC",
-    "localIso8601": "2026-03-22T16:30:45-05:00",
-    "utcIso8601": "2026-03-22T21:30:45Z"
+    "localIso8601": "2026-03-22T18:30:45+00:00",
+    "utcIso8601": "2026-03-22T18:30:45Z"
   },
   "description": "...",
   "digital": {

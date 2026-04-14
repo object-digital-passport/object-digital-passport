@@ -2257,25 +2257,14 @@ function joinPassportBundleUrl(baseNormalized, humanId) {
 }
 
 /**
- * Wall-clock instant at mint (second precision) + IANA zone; `registeredAt` stays Unix UTC seconds.
+ * Registration clock for `passport.json`: one instant in UTC only (SPEC reference / privacy mode).
+ * Does not record device IANA zone, local wall clock, or non-UTC offsets — matches `tools/mint.py`.
  */
 function buildRegistrationClock(now) {
   const registeredAt = Math.floor(now.getTime() / 1000);
   const pad = function (n) {
     return String(n).padStart(2, "0");
   };
-  const y = now.getFullYear();
-  const mo = pad(now.getMonth() + 1);
-  const da = pad(now.getDate());
-  const h = pad(now.getHours());
-  const mi = pad(now.getMinutes());
-  const s = pad(now.getSeconds());
-  const offMin = -now.getTimezoneOffset();
-  const sign = offMin >= 0 ? "+" : "-";
-  const a = Math.abs(offMin);
-  const oh = pad(Math.floor(a / 60));
-  const om = pad(a % 60);
-  const localIso8601 = y + "-" + mo + "-" + da + "T" + h + ":" + mi + ":" + s + sign + oh + ":" + om;
   const utcIso8601 =
     now.getUTCFullYear() +
     "-" +
@@ -2289,13 +2278,22 @@ function buildRegistrationClock(now) {
     ":" +
     pad(now.getUTCSeconds()) +
     "Z";
-  let ianaTimeZone = "UTC";
-  try {
-    ianaTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-  } catch (e0) {}
+  const localIso8601 =
+    now.getUTCFullYear() +
+    "-" +
+    pad(now.getUTCMonth() + 1) +
+    "-" +
+    pad(now.getUTCDate()) +
+    "T" +
+    pad(now.getUTCHours()) +
+    ":" +
+    pad(now.getUTCMinutes()) +
+    ":" +
+    pad(now.getUTCSeconds()) +
+    "+00:00";
   return {
     registeredAt: registeredAt,
-    registration: { ianaTimeZone: ianaTimeZone, localIso8601: localIso8601, utcIso8601: utcIso8601 },
+    registration: { ianaTimeZone: "UTC", localIso8601: localIso8601, utcIso8601: utcIso8601 },
   };
 }
 

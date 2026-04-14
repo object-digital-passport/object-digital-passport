@@ -540,7 +540,11 @@ def issuer_role_from_creator_id(cid: str) -> str:
 
 
 def registration_clock_block(utc_now: datetime):
-    """Privacy-safe registration clock block: UTC-only representations."""
+    """Privacy-safe registration clock block: UTC-only representations.
+
+    Never records device-local IANA zone or non-+00:00 offsets; localIso8601 is
+    the same instant as utcIso8601 with legacy +00:00 suffix (SPEC reference mode).
+    """
     unix = int(utc_now.timestamp())
     utc_iso = utc_now.strftime("%Y-%m-%dT%H:%M:%SZ")
     # Use UTC-only timezone metadata to avoid leaking device locale.
