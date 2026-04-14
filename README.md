@@ -2,6 +2,8 @@ Object Digital Passport — profile and verification
 
 # Object Digital Passport · v0.4.1
 
+![Object Digital Passport cover](docs/images/odp-cover-en.png)
+
 *Reference implementation snapshot · protocol line **v0.4** (on-chain generation **4**). Release notes: `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)`.*
 
 [License: MIT](LICENSE)
