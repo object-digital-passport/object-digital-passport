@@ -40,7 +40,7 @@ Reviews of English and translated copy, UX, visual design, accessibility, and lo
 | ---------------- | --------------------------------------------------------------------------------------------- |
 | `**SPEC.md`**    | Breaking changes need discussion; pin spec version for implementers.                          |
 | `**contracts/**` | On-chain immutability: many fixes require a **new deployment** and version line — note in PR. |
-| `**web/`**       | Static HTML/JS/CSS; keep accessibility and mobile flows in mind.                              |
+| `**web/`**       | Static HTML/JS/CSS; keep accessibility and mobile flows in mind. **`passport.json`** `registration.*` must stay **UTC-only** (no device-local IANA zone; `localIso8601` only `+00:00`) — [SPEC.md](SPEC.md) (registration instant). |
 | `**deploy/**`    | Hardhat; never commit private keys.                                                           |
 | `**tools/**`     | Python CLI; document new flags in `--help` or README.                                         |
 
