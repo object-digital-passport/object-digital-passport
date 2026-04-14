@@ -1,5 +1,3 @@
-Object Digital Passport — profile and verification
-
 # Object Digital Passport · v0.4.1
 
 ![Object Digital Passport cover](docs/images/odp-cover-en.png)
