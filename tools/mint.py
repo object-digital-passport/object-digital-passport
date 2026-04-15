@@ -482,7 +482,7 @@ def cmd_register(args):
     print(f"  Registering as type {t}...")
     # bytes1 encoding: "C"→b"C", "B"→b"B", "P"→b"P"
     type_bytes = t.encode('ascii')
-    print("  v0.2: gas only (no protocol fee)")
+    print("  Network fees only (no separate ODP protocol fee)")
     tx_hash, _ = send_tx(
         w3, account,
         contract.functions.registerCreator(type_bytes),
