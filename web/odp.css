@@ -4,7 +4,7 @@
  * Used by creator.html, passport.html, verify.html
  * Themes: blue (light, default), dark — switched via data-theme on <html> (see odp-theme.js)
  */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Mono:wght@300;400;500&display=swap');
+/* External font @import removed to avoid render-blocking CSS fetches. */
 
 /* ── Dark theme (default) ── */
 :root {
