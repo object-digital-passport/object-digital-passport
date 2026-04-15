@@ -638,20 +638,23 @@ function _dbgLogCreatorShareExportModal(phase) {
         const nat = document.getElementById("shareModalNative");
         const wrap = document.getElementById("shareModalPreviewWrap");
         const imgEl = document.getElementById("shareModalPreviewImg");
+        const debugIngestEnabled = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
         if (!panel || !nat) {
-          fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
-            body: JSON.stringify({
-              sessionId: "c94472",
-              location: "creator.html:_dbgLogCreatorShareExportModal",
-              message: "missing nodes",
-              data: { phase, hasPanel: !!panel, hasNat: !!nat },
-              timestamp: Date.now(),
-              runId: "post-fix",
-              hypothesisId: "H3",
-            }),
-          }).catch(() => {});
+          if (debugIngestEnabled) {
+            fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+              body: JSON.stringify({
+                sessionId: "c94472",
+                location: "creator.html:_dbgLogCreatorShareExportModal",
+                message: "missing nodes",
+                data: { phase, hasPanel: !!panel, hasNat: !!nat },
+                timestamp: Date.now(),
+                runId: "post-fix",
+                hypothesisId: "H3",
+              }),
+            }).catch(() => {});
+          }
           return;
         }
         const pr = panel.getBoundingClientRect();
@@ -670,19 +673,21 @@ function _dbgLogCreatorShareExportModal(phase) {
           imgNatural: imgEl ? { w: imgEl.naturalWidth, h: imgEl.naturalHeight } : null,
           viewportH: window.innerHeight,
         };
-        fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
-          body: JSON.stringify({
-            sessionId: "c94472",
-            location: "creator.html:_dbgLogCreatorShareExportModal",
-            message: "share export modal layout",
-            data,
-            timestamp: Date.now(),
-            runId: "post-fix",
-            hypothesisId: "H1-H4",
-          }),
-        }).catch(() => {});
+        if (debugIngestEnabled) {
+          fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+            body: JSON.stringify({
+              sessionId: "c94472",
+              location: "creator.html:_dbgLogCreatorShareExportModal",
+              message: "share export modal layout",
+              data,
+              timestamp: Date.now(),
+              runId: "post-fix",
+              hypothesisId: "H1-H4",
+            }),
+          }).catch(() => {});
+        }
       } catch (e) {
         fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
           method: "POST",
