@@ -2,7 +2,7 @@
 """
 Object Digital Passport — Mint CLI
 Author: Andrei Chernikov
-Specification v0.3 (CLI targets v0.3 contract ABI)
+Specification v0.4 (CLI targets v0.4 contract ABI)
 
 Usage:
     python mint.py                  # interactive mint → saves passports/<Passport ID>.odpass (SPEC §15)
