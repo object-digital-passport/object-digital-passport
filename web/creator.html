@@ -631,6 +631,8 @@ function revokeShareModalPreviewUrl() {
 
 // #region agent log
 function _dbgLogCreatorShareExportModal(phase) {
+  const debugFetchEnabled = window.__ENABLE_CREATOR_DEBUG_FETCH__ === true;
+  if (!debugFetchEnabled) return;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       try {
