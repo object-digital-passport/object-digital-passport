@@ -5,6 +5,8 @@
 (function (g) {
   "use strict";
   var STORAGE_KEY = "odp_locale";
+  /* Failsafe: reveal page if odp-i18n.js does not complete; keep in sync with related CSS/JS timing. */
+  var FAILSAFE_REVEAL_TIMEOUT_MS = 2800;
   function resolve() {
     try {
       var s = g.localStorage && g.localStorage.getItem(STORAGE_KEY);
@@ -28,5 +30,5 @@
         h.classList.add("odp-i18n-ready");
       }
     } catch (e1) {}
-  }, 2800);
+  }, FAILSAFE_REVEAL_TIMEOUT_MS);
 })(typeof window !== "undefined" ? window : globalThis);
