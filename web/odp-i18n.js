@@ -224,15 +224,28 @@
       revealI18nUi();
     }, 4000);
 
+    function getI18nVersion() {
+      if (global && typeof global.ODP_I18N_VERSION === "string" && global.ODP_I18N_VERSION) {
+        return global.ODP_I18N_VERSION;
+      }
+      return "1";
+    }
+
+    function versionedI18nUrl(url) {
+      var u = new URL(url, global.location && global.location.href ? global.location.href : undefined);
+      u.searchParams.set("v", getI18nVersion());
+      return u.toString();
+    }
+
     return global
-      .fetch(firstCommonUrl, { cache: "no-store" })
+      .fetch(versionedI18nUrl(firstCommonUrl), { cache: "default" })
       .then(function (r) {
         if (!r.ok) throw new Error("i18n fetch failed: " + r.status);
         return r.json();
       })
       .then(function (enCommon) {
         return global
-          .fetch(new URL("en/" + page + ".json", base).toString(), { cache: "no-store" })
+          .fetch(versionedI18nUrl(new URL("en/" + page + ".json", base).toString()), { cache: "default" })
           .then(function (r) {
             if (!r.ok) throw new Error("i18n page fetch failed: " + r.status);
             return r.json();
@@ -245,7 +258,7 @@
               if (ei >= mergeNames.length) return Promise.resolve(a);
               var name = mergeNames[ei++];
               return global
-                .fetch(new URL("en/" + name + ".json", base).toString(), { cache: "no-store" })
+                .fetch(versionedI18nUrl(new URL("en/" + name + ".json", base).toString()), { cache: "default" })
                 .then(function (r) {
                   if (!r.ok) throw new Error("i18n merge en/" + name + " failed: " + r.status);
                   return r.json();
@@ -263,14 +276,14 @@
           return Promise.resolve();
         }
         return global
-          .fetch(new URL("ru/common.json", base).toString(), { cache: "no-store" })
+          .fetch(versionedI18nUrl(new URL("ru/common.json", base).toString()), { cache: "default" })
           .then(function (r) {
             if (!r.ok) throw new Error("ru common fetch failed: " + r.status);
             return r.json();
           })
           .then(function (ruCommon) {
             return global
-              .fetch(new URL("ru/" + page + ".json", base).toString(), { cache: "no-store" })
+              .fetch(versionedI18nUrl(new URL("ru/" + page + ".json", base).toString()), { cache: "default" })
               .then(function (r) {
                 if (!r.ok) throw new Error("ru page fetch failed: " + r.status);
                 return r.json();
@@ -286,7 +299,7 @@
               if (ri >= mergeNames.length) return Promise.resolve(a);
               var name = mergeNames[ri++];
               return global
-                .fetch(new URL("ru/" + name + ".json", base).toString(), { cache: "no-store" })
+                .fetch(versionedI18nUrl(new URL("ru/" + name + ".json", base).toString()), { cache: "default" })
                 .then(function (r) {
                   if (!r.ok) throw new Error("i18n merge ru/" + name + " failed: " + r.status);
                   return r.json();
