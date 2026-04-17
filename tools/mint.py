@@ -2,7 +2,7 @@
 """
 Object Digital Passport — Mint CLI
 Author: Andrei Chernikov
-Specification v0.3 (CLI targets v0.3 contract ABI)
+Specification v0.4 (CLI targets v0.4 contract ABI)
 
 Usage:
     python mint.py                  # interactive mint → saves passports/<Passport ID>.odpass (SPEC §15)
@@ -482,7 +482,7 @@ def cmd_register(args):
     print(f"  Registering as type {t}...")
     # bytes1 encoding: "C"→b"C", "B"→b"B", "P"→b"P"
     type_bytes = t.encode('ascii')
-    print("  v0.2: gas only (no protocol fee)")
+    print("  Network fees only (no separate ODP protocol fee)")
     tx_hash, _ = send_tx(
         w3, account,
         contract.functions.registerCreator(type_bytes),
