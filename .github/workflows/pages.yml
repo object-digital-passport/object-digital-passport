@@ -52,7 +52,7 @@ jobs:
           else
             echo "ODP_CONTRACT_ADDRESS empty — set Actions secret or repo Variable ODP_CONTRACT_ADDRESS, then redeploy"
           fi
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
