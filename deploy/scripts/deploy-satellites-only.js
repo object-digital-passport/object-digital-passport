@@ -1,9 +1,10 @@
 /**
- * Deploy both optional satellites against an existing ObjectDigitalPassport registry:
+ * Deploy selected optional satellites against an existing ObjectDigitalPassport registry:
  *   1) ODPWalletDocumentAnchor — wallet-level file SHA-256 attestation
  *   2) ODPCounterfeitConcern — P/M institutional authenticity concern
  *
- * Main registry stays unchanged; deploy order matches the full deploy.js script.
+ * This helper intentionally does NOT deploy the v0.5 split-line proof / relations / extension satellites;
+ * use the full deploy flow for those, because they require additional wiring.
  *
  * Usage:
  *   ODP_REGISTRY_ADDRESS=0x... npx hardhat run scripts/deploy-satellites-only.js --network polygon

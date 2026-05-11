@@ -10,25 +10,6 @@
     "inputs": [
       {
         "internalType": "string",
-        "name": "passportId",
-        "type": "string"
-      }
-    ],
-    "name": "exists",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
         "name": "creatorId",
         "type": "string"
       }
@@ -80,6 +61,77 @@
         "internalType": "string",
         "name": "",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "passportId",
+        "type": "string"
+      }
+    ],
+    "name": "getPassportClassification",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "contentClass",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "lifecycleStatus",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "aiStatus",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "verificationMethod",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "editionModel",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "revoked",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "revokedAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "revocationReasonHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "mintAgent",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct IODPRegistryForCounterfeit.PassportClassificationView",
+        "name": "",
+        "type": "tuple"
       }
     ],
     "stateMutability": "view",

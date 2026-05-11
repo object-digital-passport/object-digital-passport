@@ -2,7 +2,7 @@
 """
 Object Digital Passport — Mint CLI
 Author: Andrei Chernikov
-Specification v0.4 (CLI targets v0.4 contract ABI)
+Specification v0.5 (CLI targets the current v0.5 contract line)
 
 Usage:
     python mint.py                  # interactive mint → saves passports/<Passport ID>.odpass (SPEC §15)
@@ -59,6 +59,47 @@ NETWORKS = {
         "chain_id": 137,
         "explorer": "https://polygonscan.com",
     },
+}
+
+ARTIFACT_ABI_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "artifacts"
+    / "contracts"
+    / "ObjectDigitalPassport.sol"
+    / "ObjectDigitalPassport.json"
+)
+
+CONTENT_CLASS_CODES = {
+    "static": 1,
+    "time_based": 2,
+    "spatial": 3,
+    "textual": 4,
+    "composite": 5,
+    "executable": 6,
+}
+STATUS_CODES = {
+    "concept": 1,
+    "prototype": 2,
+    "produced_object": 3,
+    "archived": 4,
+}
+AI_STATUS_CODES = {
+    "none": 1,
+    "assisted": 2,
+    "generated": 3,
+}
+VERIFICATION_METHOD_CODES = {
+    "self_asserted": 1,
+    "institutional": 2,
+    "nfc": 3,
+    "c2pa": 4,
+    "hybrid": 5,
+}
+EDITION_MODEL_CODES = {
+    "unique": 1,
+    "limited": 2,
+    "open": 3,
+    "dynamic": 4,
 }
 
 CONTRACT_ABI = [
@@ -270,6 +311,14 @@ def generate_qr(human_id: str, output_path: str):
     img = qr.make_image(fill_color="black", back_color="white")
     img.save(output_path)
 
+def load_contract_abi():
+    if ARTIFACT_ABI_PATH.exists():
+        try:
+            return json.loads(ARTIFACT_ABI_PATH.read_text(encoding="utf-8"))["abi"]
+        except Exception:
+            pass
+    return CONTRACT_ABI
+
 def connect(network_key: str, private_key: str, contract_address: str):
     net = NETWORKS[network_key]
     w3  = Web3(Web3.HTTPProvider(net["rpc"]))
@@ -279,7 +328,7 @@ def connect(network_key: str, private_key: str, contract_address: str):
     account  = w3.eth.account.from_key(private_key)
     contract = w3.eth.contract(
         address=Web3.to_checksum_address(contract_address),
-        abi=CONTRACT_ABI
+        abi=load_contract_abi()
     )
     return w3, account, contract, net
 
@@ -313,7 +362,7 @@ def bytes32_to_hex0x(b: bytes) -> str:
 
 
 def human_id_from_mint_receipt(contract, receipt):
-    """Decode Passport ID (event arg humanId) from PassportMinted in the mint receipt."""
+    """Decode Passport ID from PassportMinted in the mint receipt."""
     try:
         ev = contract.events.PassportMinted()
     except Exception:
@@ -324,7 +373,11 @@ def human_id_from_mint_receipt(contract, receipt):
             entries = proc(receipt)
             if entries:
                 a = entries[0]["args"] if isinstance(entries[0], dict) else entries[0].args
-                hid = a.get("humanId") if isinstance(a, dict) else getattr(a, "humanId", None)
+                hid = (
+                    a.get("passportId") or a.get("humanId")
+                    if isinstance(a, dict)
+                    else getattr(a, "passportId", None) or getattr(a, "humanId", None)
+                )
                 if hid:
                     return str(hid)
         except Exception:
@@ -335,7 +388,11 @@ def human_id_from_mint_receipt(contract, receipt):
             try:
                 parsed = plog(log)
                 a = parsed["args"] if isinstance(parsed, dict) else parsed.args
-                hid = a.get("humanId") if isinstance(a, dict) else getattr(a, "humanId", None)
+                hid = (
+                    a.get("passportId") or a.get("humanId")
+                    if isinstance(a, dict)
+                    else getattr(a, "passportId", None) or getattr(a, "humanId", None)
+                )
                 if hid:
                     return str(hid)
             except Exception:
@@ -589,6 +646,16 @@ def cmd_mint(args):
     now       = datetime.now(timezone.utc)
     reg_year  = int(prompt("Year", str(now.year)))
     reg_month = now.month
+    domain    = prompt("Domain (e.g. contemporary_art / digital_art / software)", "contemporary_art" if is_physical else "digital_art")
+    description = prompt_optional("Description")
+    creation_date = prompt_optional("Creation date / period (e.g. 2026-02-18 or 2025-11)")
+    status = prompt("Status (concept / prototype / produced_object / archived)", "produced_object")
+    content_class = prompt("Content class (static / time_based / spatial / textual / composite / executable)", "static")
+    ai_status = prompt("AI status (none / assisted / generated)", "none")
+    edition_model = prompt("Edition model (unique / limited / open / dynamic)", "limited" if is_physical else "unique")
+    location = prompt_optional("Current location")
+    rights_note = prompt_optional("Rights note")
+    condition_note = prompt_optional("Condition note")
 
     if is_physical:
         obj_type = prompt(
@@ -645,7 +712,7 @@ def cmd_mint(args):
     seal_type     = 0
     seal_data     = {}
     nfc_pub_key   = b""
-    nfc_model_str = ""   # "NTAG424DNA_TT" if NFC seal, "" otherwise
+    nfc_model_str = ""   # "NTAG424DNA" / "NTAG424DNA_TAGTAMPER" if NFC seal, "" otherwise
 
     if is_physical:
         print()
@@ -658,10 +725,10 @@ def cmd_mint(args):
 
         if seal_type in (1, 3):
             print()
-            print("  NFC chip data (NTAG 424 DNA TagTamper only):")
+            print("  NFC chip data (NTAG 424 DNA / TagTamper):")
             nfc_uid    = prompt("Chip UID (hex, e.g. 04a3f912cc8b4e)")
             nfc_key    = prompt("Chip public key (hex)")
-            nfc_model  = prompt("Model (must be NTAG424DNA_TT)", "NTAG424DNA_TT")
+            nfc_model  = prompt("Model (NTAG424DNA / NTAG424DNA_TAGTAMPER)", "NTAG424DNA_TAGTAMPER")
             nfc_date   = prompt("Installation date (YYYY-MM-DD)", now.strftime("%Y-%m-%d"))
             nfc_notes  = prompt_optional("Notes (location, installation method)")
             nfc_pub_key = bytes.fromhex(nfc_key.replace("0x", ""))
@@ -696,41 +763,74 @@ def cmd_mint(args):
     print("  [5/6] Building passport...")
 
     reg_unix, reg_clock = registration_clock_block(now)
+    creator_name = prompt("Creator name (for passport)")
+    verification_method = prompt(
+        "Verification method (self_asserted / institutional / nfc / c2pa / hybrid)",
+        "nfc" if (is_physical and seal_type in (1, 3)) else ("c2pa" if not is_physical else "self_asserted"),
+    )
     passport = {
-        "version":    "0.2",
+        "version":    "0.5",
         "passportId": None,  # filled after mint
-        "objectType": "physical" if is_physical else "digital",
-        "type":       obj_type,
         "title":      title,
-        "issuerRole": issuer_role_from_creator_id(creator_id),
-        "creator": {
-            "name":      prompt("Creator name (for passport)"),
-            "wallet":    account.address,
-            "creatorId": creator_id,
+        "domain":     domain,
+        "objectType": "physical" if is_physical else "digital",
+        "status":     status,
+        "contentClass": content_class,
+        "aiStatus":   ai_status,
+        "verificationMethod": verification_method,
+        "editionModel": edition_model,
+        "authorship": {
+            "author": {
+                "name": creator_name,
+                "wallet": account.address,
+                "creatorId": creator_id,
+            }
         },
         "year":         reg_year,
         "month":        reg_month,
         "registeredAt": reg_unix,
         "registration": reg_clock,
     }
+    if description:
+        passport["description"] = description
+    if creation_date:
+        passport["creationDate"] = creation_date
+
+    current_state = {}
+    if location:
+        current_state["location"] = location
+    if rights_note:
+        current_state["rightsNote"] = rights_note
+    if condition_note:
+        current_state["conditionNote"] = condition_note
+    if current_state:
+        passport["currentState"] = current_state
+
+    passport["edition"] = {"model": edition_model}
+    if is_physical and edition_n and edition_t:
+        passport["edition"]["number"] = int(edition_n)
+        passport["edition"]["total"] = int(edition_t)
 
     if is_physical:
-        if medium:    passport["medium"] = medium
+        physical = {}
+        if obj_type:
+            physical["category"] = obj_type
+        if medium:
+            physical["medium"] = medium
         if materials_raw:
-            passport["materials"] = [
+            physical["materials"] = [
                 {"name": m.strip()} for m in materials_raw.split(",") if m.strip()
             ]
-        if edition_n and edition_t:
-            passport["edition"] = {"number": int(edition_n), "total": int(edition_t)}
         if seal_data:
-            passport["seal"] = seal_data
+            physical["seal"] = seal_data
+        if physical:
+            passport["physical"] = physical
     else:
         digital = {"subtype": subtype}
-        if fmt:          digital["format"]   = fmt
+        if fmt:
+            digital["format"] = fmt
         digital["fileHash"] = f"sha256:{file_hash_bytes.hex()}"
         digital["fileSize"] = file_size
-        if image_path:
-            digital["dataUrl"] = data_url
         passport["digital"] = digital
 
     if image_path:
@@ -791,43 +891,62 @@ def cmd_mint(args):
     print()
     print("  Minting (gas only, no protocol fee)...")
 
+    core = {
+        "year": reg_year,
+        "month": reg_month,
+        "title": title,
+        "domain": domain,
+        "contentClass": CONTENT_CLASS_CODES.get(content_class, 1),
+        "lifecycleStatus": STATUS_CODES.get(status, 3),
+        "aiStatus": AI_STATUS_CODES.get(ai_status, 1),
+        "verificationMethod": VERIFICATION_METHOD_CODES.get(verification_method, 1),
+        "editionModel": EDITION_MODEL_CODES.get(edition_model, 1),
+        "currentLocation": location,
+        "rightsNote": rights_note,
+        "conditionNote": condition_note,
+        "damageHistoryHash": ZERO_BYTES32,
+        "damageHistoryUrl": "",
+    }
+
     if is_physical:
         fn = contract.functions.mintPhysical(
-            reg_year,
-            reg_month,
-            to_bytes32(data_hash_bytes),
-            data_url,
-            to_bytes32(image_hash_bytes),
-            image_url,
-            seal_type,
-            to_bytes32(seal_hash_bytes),
-            nfc_pub_key,
-            nfc_model_str,   # "NTAG424DNA_TT" or ""
-            ZERO_BYTES32,
-            "",
-            ZERO_BYTES32,
-            "",
+            {
+                "core": core,
+                "dataHash": to_bytes32(data_hash_bytes),
+                "dataUrl": data_url,
+                "imageHash": to_bytes32(image_hash_bytes),
+                "imageUrl": image_url,
+                "sealType": seal_type,
+                "sealHash": to_bytes32(seal_hash_bytes),
+                "nfcPublicKey": nfc_pub_key,
+                "nfcModel": nfc_model_str,
+                "imageHash2": ZERO_BYTES32,
+                "imageUrl2": "",
+                "imageHash3": ZERO_BYTES32,
+                "imageUrl3": "",
+                "auxCommitmentHash": ZERO_BYTES32,
+                "auxCommitmentUri": "",
+            },
             False,           # dataUrlIsFolderBase — CLI uses full dataUrl; use web UI for folder-base mint
-            ZERO_BYTES32,
-            "",
             "",              # mintOnBehalfOfCreatorId — empty = mint as connected wallet
         )
     else:
         fn = contract.functions.mintDigital(
-            reg_year,
-            reg_month,
-            to_bytes32(data_hash_bytes),
-            data_url,
-            to_bytes32(image_hash_bytes),
-            image_url,
-            ZERO_BYTES32,
-            "",
-            ZERO_BYTES32,
-            "",
-            to_bytes32(file_hash_bytes),
+            {
+                "core": core,
+                "dataHash": to_bytes32(data_hash_bytes),
+                "dataUrl": data_url,
+                "imageHash": to_bytes32(image_hash_bytes),
+                "imageUrl": image_url,
+                "imageHash2": ZERO_BYTES32,
+                "imageUrl2": "",
+                "imageHash3": ZERO_BYTES32,
+                "imageUrl3": "",
+                "fileHash": to_bytes32(file_hash_bytes),
+                "auxCommitmentHash": ZERO_BYTES32,
+                "auxCommitmentUri": "",
+            },
             False,           # dataUrlIsFolderBase
-            ZERO_BYTES32,
-            "",
             "",              # mintOnBehalfOfCreatorId
         )
 

@@ -10,42 +10,70 @@ import * as Contracts from "./index.js";
 
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
-  getContractFactory(name: 'IODPRegistryForCounterfeit', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForCounterfeit__factory>
+  getContractFactory(name: 'IODPExtension', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPExtension__factory>
+getContractFactory(name: 'IODPRegistryForCounterfeit', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForCounterfeit__factory>
 getContractFactory(name: 'ODPCounterfeitConcern', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPCounterfeitConcern__factory>
+getContractFactory(name: 'IODPRegistryForExtensionMint', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForExtensionMint__factory>
+getContractFactory(name: 'ODPExtensionMintRouter', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPExtensionMintRouter__factory>
 getContractFactory(name: 'ODPPassportLib', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPPassportLib__factory>
+getContractFactory(name: 'IODPRegistryForProofs', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForProofs__factory>
+getContractFactory(name: 'ODPPassportProofRegistry', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPPassportProofRegistry__factory>
+getContractFactory(name: 'IODPRegistryForRelations', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForRelations__factory>
+getContractFactory(name: 'ODPRegistryRelations', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPRegistryRelations__factory>
 getContractFactory(name: 'IODPWalletLookup', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPWalletLookup__factory>
 getContractFactory(name: 'ODPWalletDocumentAnchor', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPWalletDocumentAnchor__factory>
-getContractFactory(name: 'IODPExtension', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPExtension__factory>
+getContractFactory(name: 'IODPRelationsLookup', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRelationsLookup__factory>
 getContractFactory(name: 'ObjectDigitalPassport', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ObjectDigitalPassport__factory>
 getContractFactory(name: 'ODPPassThroughDigitalExtension', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPPassThroughDigitalExtension__factory>
 getContractFactory(name: 'ODPPassThroughPhysicalExtension', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPPassThroughPhysicalExtension__factory>
 
-  getContractAt(name: 'IODPRegistryForCounterfeit', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForCounterfeit>
+  getContractAt(name: 'IODPExtension', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPExtension>
+getContractAt(name: 'IODPRegistryForCounterfeit', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForCounterfeit>
 getContractAt(name: 'ODPCounterfeitConcern', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPCounterfeitConcern>
+getContractAt(name: 'IODPRegistryForExtensionMint', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForExtensionMint>
+getContractAt(name: 'ODPExtensionMintRouter', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPExtensionMintRouter>
 getContractAt(name: 'ODPPassportLib', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPPassportLib>
+getContractAt(name: 'IODPRegistryForProofs', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForProofs>
+getContractAt(name: 'ODPPassportProofRegistry', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPPassportProofRegistry>
+getContractAt(name: 'IODPRegistryForRelations', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForRelations>
+getContractAt(name: 'ODPRegistryRelations', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPRegistryRelations>
 getContractAt(name: 'IODPWalletLookup', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPWalletLookup>
 getContractAt(name: 'ODPWalletDocumentAnchor', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPWalletDocumentAnchor>
-getContractAt(name: 'IODPExtension', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPExtension>
+getContractAt(name: 'IODPRelationsLookup', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRelationsLookup>
 getContractAt(name: 'ObjectDigitalPassport', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ObjectDigitalPassport>
 getContractAt(name: 'ODPPassThroughDigitalExtension', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPPassThroughDigitalExtension>
 getContractAt(name: 'ODPPassThroughPhysicalExtension', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPPassThroughPhysicalExtension>
 
-  deployContract(name: 'IODPRegistryForCounterfeit', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForCounterfeit>
+  deployContract(name: 'IODPExtension', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPExtension>
+deployContract(name: 'IODPRegistryForCounterfeit', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForCounterfeit>
 deployContract(name: 'ODPCounterfeitConcern', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPCounterfeitConcern>
+deployContract(name: 'IODPRegistryForExtensionMint', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForExtensionMint>
+deployContract(name: 'ODPExtensionMintRouter', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPExtensionMintRouter>
 deployContract(name: 'ODPPassportLib', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassportLib>
+deployContract(name: 'IODPRegistryForProofs', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForProofs>
+deployContract(name: 'ODPPassportProofRegistry', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassportProofRegistry>
+deployContract(name: 'IODPRegistryForRelations', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForRelations>
+deployContract(name: 'ODPRegistryRelations', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPRegistryRelations>
 deployContract(name: 'IODPWalletLookup', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPWalletLookup>
 deployContract(name: 'ODPWalletDocumentAnchor', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPWalletDocumentAnchor>
-deployContract(name: 'IODPExtension', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPExtension>
+deployContract(name: 'IODPRelationsLookup', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRelationsLookup>
 deployContract(name: 'ObjectDigitalPassport', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ObjectDigitalPassport>
 deployContract(name: 'ODPPassThroughDigitalExtension', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassThroughDigitalExtension>
 deployContract(name: 'ODPPassThroughPhysicalExtension', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassThroughPhysicalExtension>
 
-  deployContract(name: 'IODPRegistryForCounterfeit', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForCounterfeit>
+  deployContract(name: 'IODPExtension', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPExtension>
+deployContract(name: 'IODPRegistryForCounterfeit', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForCounterfeit>
 deployContract(name: 'ODPCounterfeitConcern', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPCounterfeitConcern>
+deployContract(name: 'IODPRegistryForExtensionMint', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForExtensionMint>
+deployContract(name: 'ODPExtensionMintRouter', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPExtensionMintRouter>
 deployContract(name: 'ODPPassportLib', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassportLib>
+deployContract(name: 'IODPRegistryForProofs', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForProofs>
+deployContract(name: 'ODPPassportProofRegistry', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassportProofRegistry>
+deployContract(name: 'IODPRegistryForRelations', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForRelations>
+deployContract(name: 'ODPRegistryRelations', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPRegistryRelations>
 deployContract(name: 'IODPWalletLookup', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPWalletLookup>
 deployContract(name: 'ODPWalletDocumentAnchor', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPWalletDocumentAnchor>
-deployContract(name: 'IODPExtension', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPExtension>
+deployContract(name: 'IODPRelationsLookup', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRelationsLookup>
 deployContract(name: 'ObjectDigitalPassport', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ObjectDigitalPassport>
 deployContract(name: 'ODPPassThroughDigitalExtension', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassThroughDigitalExtension>
 deployContract(name: 'ODPPassThroughPhysicalExtension', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassThroughPhysicalExtension>

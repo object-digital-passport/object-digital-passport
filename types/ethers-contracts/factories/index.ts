@@ -2,7 +2,11 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as odpCounterfeitConcernSol from './ODPCounterfeitConcern.sol/index.js';
+export * as odpExtensionMintRouterSol from './ODPExtensionMintRouter.sol/index.js';
+export * as odpPassportProofRegistrySol from './ODPPassportProofRegistry.sol/index.js';
+export * as odpRegistryRelationsSol from './ODPRegistryRelations.sol/index.js';
 export * as odpWalletDocumentAnchorSol from './ODPWalletDocumentAnchor.sol/index.js';
 export * as objectDigitalPassportSol from './ObjectDigitalPassport.sol/index.js';
 export * as examples from './examples/index.js';
+export { IODPExtension__factory } from './IODPExtension__factory.js';
 export { ODPPassportLib__factory } from './ODPPassportLib__factory.js';

@@ -4,6 +4,26 @@
 import type { BaseContract, BigNumberish, BytesLike, FunctionFragment, Result, Interface, EventFragment, AddressLike, ContractRunner, ContractMethod, Listener } from "ethers"
 import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, TypedLogDescription, TypedListener, TypedContractMethod } from "../common.js"
   
+    export type PassportCoreMintInputsStruct = {year: BigNumberish, month: BigNumberish, title: string, domain: string, contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: BytesLike, damageHistoryUrl: string}
+
+    export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string] & {year: bigint, month: bigint, title: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string }
+  
+
+    export type DigitalMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
+
+    export type DigitalMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
+  
+
+    export type MixedMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
+
+    export type MixedMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
+  
+
+    export type PhysicalMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
+
+    export type PhysicalMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
+  
+
 export declare namespace ObjectDigitalPassport {
       
     export type CreatorRecordStruct = {creatorId: string, wallet: AddressLike, typePrefix: BytesLike, timestamp: BigNumberish}
@@ -11,232 +31,97 @@ export declare namespace ObjectDigitalPassport {
     export type CreatorRecordStructOutput = [creatorId: string, wallet: string, typePrefix: string, timestamp: bigint] & {creatorId: string, wallet: string, typePrefix: string, timestamp: bigint }
   
 
-    export type PassportStruct = {passportId: string, contractVersion: BigNumberish, creator: AddressLike, owner: AddressLike, creatorId: string, year: BigNumberish, month: BigNumberish, objectType: string, dataHash: BytesLike, imageHash: BytesLike, imageHash2: BytesLike, imageHash3: BytesLike, fileHash: BytesLike, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, dataUrl: string, imageUrl: string, imageUrl2: string, imageUrl3: string, timestamp: BigNumberish, revoked: boolean, revokedAt: BigNumberish, revocationReasonHash: BytesLike, auxCommitmentHash: BytesLike, auxCommitmentUri: string, mintAgent: AddressLike}
+    export type PassportClassificationViewStruct = {contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish, timestamp: BigNumberish, revoked: boolean, revokedAt: BigNumberish, revocationReasonHash: BytesLike, mintAgent: AddressLike}
 
-    export type PassportStructOutput = [passportId: string, contractVersion: bigint, creator: string, owner: string, creatorId: string, year: bigint, month: bigint, objectType: string, dataHash: string, imageHash: string, imageHash2: string, imageHash3: string, fileHash: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, dataUrl: string, imageUrl: string, imageUrl2: string, imageUrl3: string, timestamp: bigint, revoked: boolean, revokedAt: bigint, revocationReasonHash: string, auxCommitmentHash: string, auxCommitmentUri: string, mintAgent: string] & {passportId: string, contractVersion: bigint, creator: string, owner: string, creatorId: string, year: bigint, month: bigint, objectType: string, dataHash: string, imageHash: string, imageHash2: string, imageHash3: string, fileHash: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, dataUrl: string, imageUrl: string, imageUrl2: string, imageUrl3: string, timestamp: bigint, revoked: boolean, revokedAt: bigint, revocationReasonHash: string, auxCommitmentHash: string, auxCommitmentUri: string, mintAgent: string }
+    export type PassportClassificationViewStructOutput = [contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, timestamp: bigint, revoked: boolean, revokedAt: bigint, revocationReasonHash: string, mintAgent: string] & {contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, timestamp: bigint, revoked: boolean, revokedAt: bigint, revocationReasonHash: string, mintAgent: string }
   
 
-    export type ProofRecordStruct = {proofId: string, contractVersion: BigNumberish, prover: string, passportId: string, noteHash: BytesLike, noteUrl: string, timestamp: BigNumberish}
+    export type PassportHeaderViewStruct = {passportId: string, contractVersion: BigNumberish, creator: AddressLike, owner: AddressLike, creatorId: string, year: BigNumberish, month: BigNumberish, title: string, domain: string, objectType: string}
 
-    export type ProofRecordStructOutput = [proofId: string, contractVersion: bigint, prover: string, passportId: string, noteHash: string, noteUrl: string, timestamp: bigint] & {proofId: string, contractVersion: bigint, prover: string, passportId: string, noteHash: string, noteUrl: string, timestamp: bigint }
+    export type PassportHeaderViewStructOutput = [passportId: string, contractVersion: bigint, creator: string, owner: string, creatorId: string, year: bigint, month: bigint, title: string, domain: string, objectType: string] & {passportId: string, contractVersion: bigint, creator: string, owner: string, creatorId: string, year: bigint, month: bigint, title: string, domain: string, objectType: string }
+  
+
+    export type PassportMediaViewStruct = {dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike}
+
+    export type PassportMediaViewStructOutput = [dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string] & {dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string }
+  
+
+    export type PassportPhysicalViewStruct = {sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string}
+
+    export type PassportPhysicalViewStructOutput = [sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string] & {sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string }
+  
+
+    export type PassportStateViewStruct = {currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: BytesLike, damageHistoryUrl: string, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
+
+    export type PassportStateViewStructOutput = [currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
   
     }
 
   export interface ObjectDigitalPassportInterface extends Interface {
-    getFunction(nameOrSignature: "CONTRACT_VERSION" | "cancelMintAgentRequest" | "cancelPAffiliationRequest" | "confirmMintAgentRole" | "confirmPAffiliation" | "delegateCreatorPublishing" | "deployer" | "detachPAffiliation" | "exists" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getCreatorPublishingDelegation" | "getPAffiliatedChildren" | "getPAffiliatedChildrenPaged" | "getPAffiliatedParent" | "getPAffiliationAudit" | "getPassport" | "getPassportsByCreator" | "getPassportsByCreatorPaged" | "getProof" | "getProofsByInstitution" | "getProofsForPassport" | "getRemainingMints" | "governance" | "isPAffiliationPending" | "mintAgentDelegationPending" | "mintAgentForCreator" | "mintDigital" | "mintDigitalViaExtension" | "mintPhysical" | "mintPhysicalViaExtension" | "proposePAffiliation" | "registerCreator" | "renounceMintAgentRole" | "requestMintAgentRole" | "revokeCreatorPublishing" | "revokeMintAgentRole" | "revokePassport" | "setMintExtension" | "submitProof" | "transferGovernance" | "transferPassport" | "typeToExtension" | "updatePassportAuxCommitment" | "updatePassportUrls"): FunctionFragment;
+    getFunction(nameOrSignature: "CONTRACT_VERSION" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportHeader" | "getPassportMedia" | "getPassportPhysical" | "getPassportState" | "getPassportsByCreatorPaged" | "governance" | "mintDigital" | "mintMixed" | "mintPhysical" | "registerCreator" | "revokePassport" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportAuxCommitment" | "updatePassportCondition" | "updatePassportLocation" | "updatePassportNdppCommitment" | "updatePassportRights" | "updatePassportStatus" | "updatePassportUrls"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "ContractFrozen" | "CreatorPublishingDelegated" | "CreatorPublishingDelegationRevoked" | "CreatorRegistered" | "ExtensionMintUsed" | "GovernanceTransferred" | "MintAgentUpdate" | "PAffiliationConfirmed" | "PAffiliationDetached" | "PAffiliationProposed" | "PassportAuxCommitmentUpdated" | "PassportMinted" | "PassportRevoked" | "PassportTransferred" | "PassportUrlsUpdated" | "ProofSubmitted"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "CreatorRegistered" | "PassportAuxCommitmentUpdated" | "PassportConditionUpdated" | "PassportLocationUpdated" | "PassportMinted" | "PassportNdppCommitmentUpdated" | "PassportRevoked" | "PassportRightsUpdated" | "PassportStatusUpdated" | "PassportTransferred" | "PassportUrlsUpdated"): EventFragment;
 
     encodeFunctionData(functionFragment: 'CONTRACT_VERSION', values?: undefined): string;
-encodeFunctionData(functionFragment: 'cancelMintAgentRequest', values: [string]): string;
-encodeFunctionData(functionFragment: 'cancelPAffiliationRequest', values: [string]): string;
-encodeFunctionData(functionFragment: 'confirmMintAgentRole', values: [AddressLike]): string;
-encodeFunctionData(functionFragment: 'confirmPAffiliation', values: [string]): string;
-encodeFunctionData(functionFragment: 'delegateCreatorPublishing', values: [AddressLike, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'deployer', values?: undefined): string;
-encodeFunctionData(functionFragment: 'detachPAffiliation', values: [string]): string;
-encodeFunctionData(functionFragment: 'exists', values: [string]): string;
-encodeFunctionData(functionFragment: 'freeze', values?: undefined): string;
-encodeFunctionData(functionFragment: 'frozen', values?: undefined): string;
 encodeFunctionData(functionFragment: 'getCreator', values: [string]): string;
 encodeFunctionData(functionFragment: 'getCreatorByWallet', values: [AddressLike]): string;
-encodeFunctionData(functionFragment: 'getCreatorPublishingDelegation', values: [AddressLike]): string;
-encodeFunctionData(functionFragment: 'getPAffiliatedChildren', values: [string]): string;
-encodeFunctionData(functionFragment: 'getPAffiliatedChildrenPaged', values: [string, BigNumberish, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'getPAffiliatedParent', values: [string]): string;
-encodeFunctionData(functionFragment: 'getPAffiliationAudit', values: [string]): string;
-encodeFunctionData(functionFragment: 'getPassport', values: [string]): string;
-encodeFunctionData(functionFragment: 'getPassportsByCreator', values: [AddressLike]): string;
+encodeFunctionData(functionFragment: 'getPassportClassification', values: [string]): string;
+encodeFunctionData(functionFragment: 'getPassportHeader', values: [string]): string;
+encodeFunctionData(functionFragment: 'getPassportMedia', values: [string]): string;
+encodeFunctionData(functionFragment: 'getPassportPhysical', values: [string]): string;
+encodeFunctionData(functionFragment: 'getPassportState', values: [string]): string;
 encodeFunctionData(functionFragment: 'getPassportsByCreatorPaged', values: [AddressLike, BigNumberish, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'getProof', values: [string]): string;
-encodeFunctionData(functionFragment: 'getProofsByInstitution', values: [string]): string;
-encodeFunctionData(functionFragment: 'getProofsForPassport', values: [string]): string;
-encodeFunctionData(functionFragment: 'getRemainingMints', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'governance', values?: undefined): string;
-encodeFunctionData(functionFragment: 'isPAffiliationPending', values: [string, string]): string;
-encodeFunctionData(functionFragment: 'mintAgentDelegationPending', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'mintAgentForCreator', values: [string]): string;
-encodeFunctionData(functionFragment: 'mintDigital', values: [BigNumberish, BigNumberish, BytesLike, string, BytesLike, string, BytesLike, string, BytesLike, string, BytesLike, boolean, BytesLike, string, string]): string;
-encodeFunctionData(functionFragment: 'mintDigitalViaExtension', values: [BytesLike, BytesLike, boolean, string]): string;
-encodeFunctionData(functionFragment: 'mintPhysical', values: [BigNumberish, BigNumberish, BytesLike, string, BytesLike, string, BigNumberish, BytesLike, BytesLike, string, BytesLike, string, BytesLike, string, boolean, BytesLike, string, string]): string;
-encodeFunctionData(functionFragment: 'mintPhysicalViaExtension', values: [BytesLike, BytesLike, boolean, string]): string;
-encodeFunctionData(functionFragment: 'proposePAffiliation', values: [string]): string;
+encodeFunctionData(functionFragment: 'mintDigital', values: [DigitalMintInputsStruct, boolean, string]): string;
+encodeFunctionData(functionFragment: 'mintMixed', values: [MixedMintInputsStruct, boolean, string]): string;
+encodeFunctionData(functionFragment: 'mintPhysical', values: [PhysicalMintInputsStruct, boolean, string]): string;
 encodeFunctionData(functionFragment: 'registerCreator', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'renounceMintAgentRole', values: [string]): string;
-encodeFunctionData(functionFragment: 'requestMintAgentRole', values: [string]): string;
-encodeFunctionData(functionFragment: 'revokeCreatorPublishing', values?: undefined): string;
-encodeFunctionData(functionFragment: 'revokeMintAgentRole', values?: undefined): string;
 encodeFunctionData(functionFragment: 'revokePassport', values: [string, BytesLike]): string;
-encodeFunctionData(functionFragment: 'setMintExtension', values: [BytesLike, AddressLike]): string;
-encodeFunctionData(functionFragment: 'submitProof', values: [string, BytesLike, string, BigNumberish, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'setExtensionRouter', values: [AddressLike]): string;
+encodeFunctionData(functionFragment: 'setRelationsSatellite', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'transferGovernance', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'transferPassport', values: [string, AddressLike]): string;
-encodeFunctionData(functionFragment: 'typeToExtension', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'updatePassportAuxCommitment', values: [string, BytesLike, string]): string;
+encodeFunctionData(functionFragment: 'updatePassportCondition', values: [string, string, BytesLike, string]): string;
+encodeFunctionData(functionFragment: 'updatePassportLocation', values: [string, string]): string;
+encodeFunctionData(functionFragment: 'updatePassportNdppCommitment', values: [string, BytesLike, string]): string;
+encodeFunctionData(functionFragment: 'updatePassportRights', values: [string, string]): string;
+encodeFunctionData(functionFragment: 'updatePassportStatus', values: [string, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'updatePassportUrls', values: [string, string, string, BytesLike]): string;
 
     decodeFunctionResult(functionFragment: 'CONTRACT_VERSION', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'cancelMintAgentRequest', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'cancelPAffiliationRequest', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'confirmMintAgentRole', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'confirmPAffiliation', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'delegateCreatorPublishing', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'deployer', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'detachPAffiliation', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'exists', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'freeze', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'frozen', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getCreatorByWallet', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getCreatorPublishingDelegation', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliatedChildren', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliatedChildrenPaged', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliatedParent', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliationAudit', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPassport', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPassportsByCreator', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getPassportClassification', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getPassportHeader', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getPassportMedia', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getPassportPhysical', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getPassportState', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getPassportsByCreatorPaged', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getProof', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getProofsByInstitution', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getProofsForPassport', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getRemainingMints', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'governance', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'isPAffiliationPending', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'mintAgentDelegationPending', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'mintAgentForCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintDigital', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'mintDigitalViaExtension', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'mintMixed', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintPhysical', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'mintPhysicalViaExtension', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'proposePAffiliation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'registerCreator', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'renounceMintAgentRole', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'requestMintAgentRole', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'revokeCreatorPublishing', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'revokePassport', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'setMintExtension', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'submitProof', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'setExtensionRouter', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'setRelationsSatellite', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transferGovernance', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transferPassport', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'typeToExtension', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'updatePassportAuxCommitment', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'updatePassportCondition', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'updatePassportLocation', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'updatePassportNdppCommitment', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'updatePassportRights', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'updatePassportStatus', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): Result;
   }
 
   
-    export namespace ContractFrozenEvent {
-      export type InputTuple = [timestamp: BigNumberish];
-      export type OutputTuple = [timestamp: bigint];
-      export interface OutputObject {timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace CreatorPublishingDelegatedEvent {
-      export type InputTuple = [creator: AddressLike, agent: AddressLike, expiresAt: BigNumberish];
-      export type OutputTuple = [creator: string, agent: string, expiresAt: bigint];
-      export interface OutputObject {creator: string, agent: string, expiresAt: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace CreatorPublishingDelegationRevokedEvent {
-      export type InputTuple = [creator: AddressLike, timestamp: BigNumberish];
-      export type OutputTuple = [creator: string, timestamp: bigint];
-      export interface OutputObject {creator: string, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
     export namespace CreatorRegisteredEvent {
       export type InputTuple = [creatorId: string, wallet: AddressLike, typePrefix: BytesLike, timestamp: BigNumberish];
       export type OutputTuple = [creatorId: string, wallet: string, typePrefix: string, timestamp: bigint];
       export interface OutputObject {creatorId: string, wallet: string, typePrefix: string, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace ExtensionMintUsedEvent {
-      export type InputTuple = [mintClass: BytesLike, kind: BigNumberish, passportId: string];
-      export type OutputTuple = [mintClass: string, kind: bigint, passportId: string];
-      export interface OutputObject {mintClass: string, kind: bigint, passportId: string };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace GovernanceTransferredEvent {
-      export type InputTuple = [previous: AddressLike, next: AddressLike, timestamp: BigNumberish];
-      export type OutputTuple = [previous: string, next: string, timestamp: bigint];
-      export interface OutputObject {previous: string, next: string, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace MintAgentUpdateEvent {
-      export type InputTuple = [principalCreatorId: string, agent: AddressLike, kind: BigNumberish, timestamp: BigNumberish];
-      export type OutputTuple = [principalCreatorId: string, agent: string, kind: bigint, timestamp: bigint];
-      export interface OutputObject {principalCreatorId: string, agent: string, kind: bigint, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace PAffiliationConfirmedEvent {
-      export type InputTuple = [parentPId: string, childPId: string, timestamp: BigNumberish];
-      export type OutputTuple = [parentPId: string, childPId: string, timestamp: bigint];
-      export interface OutputObject {parentPId: string, childPId: string, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace PAffiliationDetachedEvent {
-      export type InputTuple = [parentPId: string, childPId: string, timestamp: BigNumberish];
-      export type OutputTuple = [parentPId: string, childPId: string, timestamp: bigint];
-      export interface OutputObject {parentPId: string, childPId: string, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace PAffiliationProposedEvent {
-      export type InputTuple = [parentPId: string, childPId: string, timestamp: BigNumberish];
-      export type OutputTuple = [parentPId: string, childPId: string, timestamp: bigint];
-      export interface OutputObject {parentPId: string, childPId: string, timestamp: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -257,10 +142,46 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
 
   
 
+    export namespace PassportConditionUpdatedEvent {
+      export type InputTuple = [passportId: string, newConditionNote: string, newDamageHistoryHash: BytesLike, newDamageHistoryUrl: string, updatedBy: AddressLike, timestamp: BigNumberish];
+      export type OutputTuple = [passportId: string, newConditionNote: string, newDamageHistoryHash: string, newDamageHistoryUrl: string, updatedBy: string, timestamp: bigint];
+      export interface OutputObject {passportId: string, newConditionNote: string, newDamageHistoryHash: string, newDamageHistoryUrl: string, updatedBy: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace PassportLocationUpdatedEvent {
+      export type InputTuple = [passportId: string, newLocation: string, updatedBy: AddressLike, timestamp: BigNumberish];
+      export type OutputTuple = [passportId: string, newLocation: string, updatedBy: string, timestamp: bigint];
+      export interface OutputObject {passportId: string, newLocation: string, updatedBy: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
     export namespace PassportMintedEvent {
-      export type InputTuple = [passportId: string, creator: AddressLike, creatorId: string, objectType: string, year: BigNumberish, month: BigNumberish, dataHash: BytesLike, sealType: BigNumberish, nfcModel: string, timestamp: BigNumberish, mintAgent: AddressLike];
-      export type OutputTuple = [passportId: string, creator: string, creatorId: string, objectType: string, year: bigint, month: bigint, dataHash: string, sealType: bigint, nfcModel: string, timestamp: bigint, mintAgent: string];
-      export interface OutputObject {passportId: string, creator: string, creatorId: string, objectType: string, year: bigint, month: bigint, dataHash: string, sealType: bigint, nfcModel: string, timestamp: bigint, mintAgent: string };
+      export type InputTuple = [passportId: string, creator: AddressLike, creatorId: string, title: string, domain: string, objectType: string, contentClass: BigNumberish, year: BigNumberish, month: BigNumberish, dataHash: BytesLike, sealType: BigNumberish, nfcModel: string, timestamp: BigNumberish, mintAgent: AddressLike];
+      export type OutputTuple = [passportId: string, creator: string, creatorId: string, title: string, domain: string, objectType: string, contentClass: bigint, year: bigint, month: bigint, dataHash: string, sealType: bigint, nfcModel: string, timestamp: bigint, mintAgent: string];
+      export interface OutputObject {passportId: string, creator: string, creatorId: string, title: string, domain: string, objectType: string, contentClass: bigint, year: bigint, month: bigint, dataHash: string, sealType: bigint, nfcModel: string, timestamp: bigint, mintAgent: string };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace PassportNdppCommitmentUpdatedEvent {
+      export type InputTuple = [passportId: string, newHash: BytesLike, newUri: string, updatedBy: AddressLike, timestamp: BigNumberish];
+      export type OutputTuple = [passportId: string, newHash: string, newUri: string, updatedBy: string, timestamp: bigint];
+      export interface OutputObject {passportId: string, newHash: string, newUri: string, updatedBy: string, timestamp: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -273,6 +194,30 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
       export type InputTuple = [passportId: string, revokedBy: AddressLike, reasonHash: BytesLike, timestamp: BigNumberish];
       export type OutputTuple = [passportId: string, revokedBy: string, reasonHash: string, timestamp: bigint];
       export interface OutputObject {passportId: string, revokedBy: string, reasonHash: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace PassportRightsUpdatedEvent {
+      export type InputTuple = [passportId: string, newRightsNote: string, updatedBy: AddressLike, timestamp: BigNumberish];
+      export type OutputTuple = [passportId: string, newRightsNote: string, updatedBy: string, timestamp: bigint];
+      export interface OutputObject {passportId: string, newRightsNote: string, updatedBy: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace PassportStatusUpdatedEvent {
+      export type InputTuple = [passportId: string, newLifecycleStatus: BigNumberish, updatedBy: AddressLike, timestamp: BigNumberish];
+      export type OutputTuple = [passportId: string, newLifecycleStatus: bigint, updatedBy: string, timestamp: bigint];
+      export interface OutputObject {passportId: string, newLifecycleStatus: bigint, updatedBy: string, timestamp: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -297,18 +242,6 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
       export type InputTuple = [passportId: string, newDataUrl: string, newImageUrl: string];
       export type OutputTuple = [passportId: string, newDataUrl: string, newImageUrl: string];
       export interface OutputObject {passportId: string, newDataUrl: string, newImageUrl: string };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace ProofSubmittedEvent {
-      export type InputTuple = [proofId: string, passportId: string, prover: string, timestamp: BigNumberish];
-      export type OutputTuple = [proofId: string, passportId: string, prover: string, timestamp: bigint];
-      export interface OutputObject {proofId: string, passportId: string, prover: string, timestamp: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -359,86 +292,6 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
-    cancelMintAgentRequest: TypedContractMethod<
-      [principalCreatorId: string, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    cancelPAffiliationRequest: TypedContractMethod<
-      [parentPId: string, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    confirmMintAgentRole: TypedContractMethod<
-      [agent: AddressLike, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    confirmPAffiliation: TypedContractMethod<
-      [childPId: string, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    delegateCreatorPublishing: TypedContractMethod<
-      [agent: AddressLike, expiresAt: BigNumberish, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    deployer: TypedContractMethod<
-      [],
-      [string],
-      'view'
-    >
-    
-
-    
-    detachPAffiliation: TypedContractMethod<
-      [childPId: string, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    exists: TypedContractMethod<
-      [passportId: string, ],
-      [boolean],
-      'view'
-    >
-    
-
-    
-    freeze: TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    frozen: TypedContractMethod<
-      [],
-      [boolean],
-      'view'
-    >
-    
-
-    
     getCreator: TypedContractMethod<
       [creatorId: string, ],
       [ObjectDigitalPassport.CreatorRecordStructOutput],
@@ -455,57 +308,41 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
-    getCreatorPublishingDelegation: TypedContractMethod<
-      [creatorWallet: AddressLike, ],
-      [[string, bigint] & {agent: string, expiresAt: bigint }],
-      'view'
-    >
-    
-
-    
-    getPAffiliatedChildren: TypedContractMethod<
-      [parentPId: string, ],
-      [string[]],
-      'view'
-    >
-    
-
-    
-    getPAffiliatedChildrenPaged: TypedContractMethod<
-      [parentPId: string, offset: BigNumberish, limit: BigNumberish, ],
-      [[string[], bigint] & {result: string[], total: bigint }],
-      'view'
-    >
-    
-
-    
-    getPAffiliatedParent: TypedContractMethod<
-      [childPId: string, ],
-      [string],
-      'view'
-    >
-    
-
-    
-    getPAffiliationAudit: TypedContractMethod<
-      [childPId: string, ],
-      [[string, bigint, bigint, string] & {activeParent: string, joinedAt: bigint, detachedAt: bigint, lastDetachedFromParent: string }],
-      'view'
-    >
-    
-
-    
-    getPassport: TypedContractMethod<
+    getPassportClassification: TypedContractMethod<
       [passportId: string, ],
-      [ObjectDigitalPassport.PassportStructOutput],
+      [ObjectDigitalPassport.PassportClassificationViewStructOutput],
       'view'
     >
     
 
     
-    getPassportsByCreator: TypedContractMethod<
-      [creator: AddressLike, ],
-      [string[]],
+    getPassportHeader: TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportHeaderViewStructOutput],
+      'view'
+    >
+    
+
+    
+    getPassportMedia: TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportMediaViewStructOutput],
+      'view'
+    >
+    
+
+    
+    getPassportPhysical: TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportPhysicalViewStructOutput],
+      'view'
+    >
+    
+
+    
+    getPassportState: TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportStateViewStructOutput],
       'view'
     >
     
@@ -519,38 +356,6 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
-    getProof: TypedContractMethod<
-      [proofId: string, ],
-      [ObjectDigitalPassport.ProofRecordStructOutput],
-      'view'
-    >
-    
-
-    
-    getProofsByInstitution: TypedContractMethod<
-      [creatorId: string, ],
-      [string[]],
-      'view'
-    >
-    
-
-    
-    getProofsForPassport: TypedContractMethod<
-      [passportId: string, ],
-      [string[]],
-      'view'
-    >
-    
-
-    
-    getRemainingMints: TypedContractMethod<
-      [wallet: AddressLike, ],
-      [bigint],
-      'view'
-    >
-    
-
-    
     governance: TypedContractMethod<
       [],
       [string],
@@ -559,40 +364,16 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
-    isPAffiliationPending: TypedContractMethod<
-      [parentPId: string, childPId: string, ],
-      [boolean],
-      'view'
-    >
-    
-
-    
-    mintAgentDelegationPending: TypedContractMethod<
-      [arg0: BytesLike, ],
-      [boolean],
-      'view'
-    >
-    
-
-    
-    mintAgentForCreator: TypedContractMethod<
-      [arg0: string, ],
-      [string],
-      'view'
-    >
-    
-
-    
     mintDigital: TypedContractMethod<
-      [year: BigNumberish, month: BigNumberish, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike, dataUrlIsFolderBase: boolean, auxCommitmentHash: BytesLike, auxCommitmentUri: string, mintOnBehalfOfCreatorId: string, ],
+      [dm: DigitalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >
     
 
     
-    mintDigitalViaExtension: TypedContractMethod<
-      [mintClass: BytesLike, payload: BytesLike, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
+    mintMixed: TypedContractMethod<
+      [mm: MixedMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >
@@ -600,24 +381,8 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
 
     
     mintPhysical: TypedContractMethod<
-      [year: BigNumberish, month: BigNumberish, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, dataUrlIsFolderBase: boolean, auxCommitmentHash: BytesLike, auxCommitmentUri: string, mintOnBehalfOfCreatorId: string, ],
+      [m: PhysicalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
-      'nonpayable'
-    >
-    
-
-    
-    mintPhysicalViaExtension: TypedContractMethod<
-      [mintClass: BytesLike, payload: BytesLike, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
-      [string],
-      'nonpayable'
-    >
-    
-
-    
-    proposePAffiliation: TypedContractMethod<
-      [parentPId: string, ],
-      [void],
       'nonpayable'
     >
     
@@ -631,38 +396,6 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
-    renounceMintAgentRole: TypedContractMethod<
-      [principalCreatorId: string, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    requestMintAgentRole: TypedContractMethod<
-      [principalCreatorId: string, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    revokeCreatorPublishing: TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
-    revokeMintAgentRole: TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
     revokePassport: TypedContractMethod<
       [passportId: string, reasonHash: BytesLike, ],
       [void],
@@ -671,17 +404,17 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
-    setMintExtension: TypedContractMethod<
-      [mintClass: BytesLike, extension: AddressLike, ],
+    setExtensionRouter: TypedContractMethod<
+      [router: AddressLike, ],
       [void],
       'nonpayable'
     >
     
 
     
-    submitProof: TypedContractMethod<
-      [passportId: string, noteHash: BytesLike, noteUrl: string, year: BigNumberish, month: BigNumberish, ],
-      [string],
+    setRelationsSatellite: TypedContractMethod<
+      [satellite: AddressLike, ],
+      [void],
       'nonpayable'
     >
     
@@ -703,16 +436,48 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
-    typeToExtension: TypedContractMethod<
-      [arg0: BytesLike, ],
-      [string],
-      'view'
+    updatePassportAuxCommitment: TypedContractMethod<
+      [passportId: string, newHash: BytesLike, newUri: string, ],
+      [void],
+      'nonpayable'
     >
     
 
     
-    updatePassportAuxCommitment: TypedContractMethod<
+    updatePassportCondition: TypedContractMethod<
+      [passportId: string, newConditionNote: string, newDamageHistoryHash: BytesLike, newDamageHistoryUrl: string, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    updatePassportLocation: TypedContractMethod<
+      [passportId: string, newLocation: string, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    updatePassportNdppCommitment: TypedContractMethod<
       [passportId: string, newHash: BytesLike, newUri: string, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    updatePassportRights: TypedContractMethod<
+      [passportId: string, newRightsNote: string, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    updatePassportStatus: TypedContractMethod<
+      [passportId: string, newLifecycleStatus: BigNumberish, ],
       [void],
       'nonpayable'
     >
@@ -734,56 +499,6 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
       [bigint],
       'view'
     >;
-getFunction(nameOrSignature: 'cancelMintAgentRequest'): TypedContractMethod<
-      [principalCreatorId: string, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'cancelPAffiliationRequest'): TypedContractMethod<
-      [parentPId: string, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'confirmMintAgentRole'): TypedContractMethod<
-      [agent: AddressLike, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'confirmPAffiliation'): TypedContractMethod<
-      [childPId: string, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'delegateCreatorPublishing'): TypedContractMethod<
-      [agent: AddressLike, expiresAt: BigNumberish, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'deployer'): TypedContractMethod<
-      [],
-      [string],
-      'view'
-    >;
-getFunction(nameOrSignature: 'detachPAffiliation'): TypedContractMethod<
-      [childPId: string, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'exists'): TypedContractMethod<
-      [passportId: string, ],
-      [boolean],
-      'view'
-    >;
-getFunction(nameOrSignature: 'freeze'): TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'frozen'): TypedContractMethod<
-      [],
-      [boolean],
-      'view'
-    >;
 getFunction(nameOrSignature: 'getCreator'): TypedContractMethod<
       [creatorId: string, ],
       [ObjectDigitalPassport.CreatorRecordStructOutput],
@@ -794,39 +509,29 @@ getFunction(nameOrSignature: 'getCreatorByWallet'): TypedContractMethod<
       [string],
       'view'
     >;
-getFunction(nameOrSignature: 'getCreatorPublishingDelegation'): TypedContractMethod<
-      [creatorWallet: AddressLike, ],
-      [[string, bigint] & {agent: string, expiresAt: bigint }],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPAffiliatedChildren'): TypedContractMethod<
-      [parentPId: string, ],
-      [string[]],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPAffiliatedChildrenPaged'): TypedContractMethod<
-      [parentPId: string, offset: BigNumberish, limit: BigNumberish, ],
-      [[string[], bigint] & {result: string[], total: bigint }],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPAffiliatedParent'): TypedContractMethod<
-      [childPId: string, ],
-      [string],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPAffiliationAudit'): TypedContractMethod<
-      [childPId: string, ],
-      [[string, bigint, bigint, string] & {activeParent: string, joinedAt: bigint, detachedAt: bigint, lastDetachedFromParent: string }],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPassport'): TypedContractMethod<
+getFunction(nameOrSignature: 'getPassportClassification'): TypedContractMethod<
       [passportId: string, ],
-      [ObjectDigitalPassport.PassportStructOutput],
+      [ObjectDigitalPassport.PassportClassificationViewStructOutput],
       'view'
     >;
-getFunction(nameOrSignature: 'getPassportsByCreator'): TypedContractMethod<
-      [creator: AddressLike, ],
-      [string[]],
+getFunction(nameOrSignature: 'getPassportHeader'): TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportHeaderViewStructOutput],
+      'view'
+    >;
+getFunction(nameOrSignature: 'getPassportMedia'): TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportMediaViewStructOutput],
+      'view'
+    >;
+getFunction(nameOrSignature: 'getPassportPhysical'): TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportPhysicalViewStructOutput],
+      'view'
+    >;
+getFunction(nameOrSignature: 'getPassportState'): TypedContractMethod<
+      [passportId: string, ],
+      [ObjectDigitalPassport.PassportStateViewStructOutput],
       'view'
     >;
 getFunction(nameOrSignature: 'getPassportsByCreatorPaged'): TypedContractMethod<
@@ -834,69 +539,24 @@ getFunction(nameOrSignature: 'getPassportsByCreatorPaged'): TypedContractMethod<
       [[string[], bigint] & {result: string[], total: bigint }],
       'view'
     >;
-getFunction(nameOrSignature: 'getProof'): TypedContractMethod<
-      [proofId: string, ],
-      [ObjectDigitalPassport.ProofRecordStructOutput],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getProofsByInstitution'): TypedContractMethod<
-      [creatorId: string, ],
-      [string[]],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getProofsForPassport'): TypedContractMethod<
-      [passportId: string, ],
-      [string[]],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getRemainingMints'): TypedContractMethod<
-      [wallet: AddressLike, ],
-      [bigint],
-      'view'
-    >;
 getFunction(nameOrSignature: 'governance'): TypedContractMethod<
       [],
       [string],
       'view'
     >;
-getFunction(nameOrSignature: 'isPAffiliationPending'): TypedContractMethod<
-      [parentPId: string, childPId: string, ],
-      [boolean],
-      'view'
-    >;
-getFunction(nameOrSignature: 'mintAgentDelegationPending'): TypedContractMethod<
-      [arg0: BytesLike, ],
-      [boolean],
-      'view'
-    >;
-getFunction(nameOrSignature: 'mintAgentForCreator'): TypedContractMethod<
-      [arg0: string, ],
-      [string],
-      'view'
-    >;
 getFunction(nameOrSignature: 'mintDigital'): TypedContractMethod<
-      [year: BigNumberish, month: BigNumberish, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike, dataUrlIsFolderBase: boolean, auxCommitmentHash: BytesLike, auxCommitmentUri: string, mintOnBehalfOfCreatorId: string, ],
+      [dm: DigitalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'mintDigitalViaExtension'): TypedContractMethod<
-      [mintClass: BytesLike, payload: BytesLike, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
+getFunction(nameOrSignature: 'mintMixed'): TypedContractMethod<
+      [mm: MixedMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'mintPhysical'): TypedContractMethod<
-      [year: BigNumberish, month: BigNumberish, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, dataUrlIsFolderBase: boolean, auxCommitmentHash: BytesLike, auxCommitmentUri: string, mintOnBehalfOfCreatorId: string, ],
+      [m: PhysicalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'mintPhysicalViaExtension'): TypedContractMethod<
-      [mintClass: BytesLike, payload: BytesLike, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
-      [string],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'proposePAffiliation'): TypedContractMethod<
-      [parentPId: string, ],
-      [void],
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'registerCreator'): TypedContractMethod<
@@ -904,39 +564,19 @@ getFunction(nameOrSignature: 'registerCreator'): TypedContractMethod<
       [string],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'renounceMintAgentRole'): TypedContractMethod<
-      [principalCreatorId: string, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'requestMintAgentRole'): TypedContractMethod<
-      [principalCreatorId: string, ],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'revokeCreatorPublishing'): TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
-    >;
-getFunction(nameOrSignature: 'revokeMintAgentRole'): TypedContractMethod<
-      [],
-      [void],
-      'nonpayable'
-    >;
 getFunction(nameOrSignature: 'revokePassport'): TypedContractMethod<
       [passportId: string, reasonHash: BytesLike, ],
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'setMintExtension'): TypedContractMethod<
-      [mintClass: BytesLike, extension: AddressLike, ],
+getFunction(nameOrSignature: 'setExtensionRouter'): TypedContractMethod<
+      [router: AddressLike, ],
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'submitProof'): TypedContractMethod<
-      [passportId: string, noteHash: BytesLike, noteUrl: string, year: BigNumberish, month: BigNumberish, ],
-      [string],
+getFunction(nameOrSignature: 'setRelationsSatellite'): TypedContractMethod<
+      [satellite: AddressLike, ],
+      [void],
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'transferGovernance'): TypedContractMethod<
@@ -949,13 +589,33 @@ getFunction(nameOrSignature: 'transferPassport'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'typeToExtension'): TypedContractMethod<
-      [arg0: BytesLike, ],
-      [string],
-      'view'
-    >;
 getFunction(nameOrSignature: 'updatePassportAuxCommitment'): TypedContractMethod<
       [passportId: string, newHash: BytesLike, newUri: string, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'updatePassportCondition'): TypedContractMethod<
+      [passportId: string, newConditionNote: string, newDamageHistoryHash: BytesLike, newDamageHistoryUrl: string, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'updatePassportLocation'): TypedContractMethod<
+      [passportId: string, newLocation: string, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'updatePassportNdppCommitment'): TypedContractMethod<
+      [passportId: string, newHash: BytesLike, newUri: string, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'updatePassportRights'): TypedContractMethod<
+      [passportId: string, newRightsNote: string, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'updatePassportStatus'): TypedContractMethod<
+      [passportId: string, newLifecycleStatus: BigNumberish, ],
       [void],
       'nonpayable'
     >;
@@ -965,75 +625,54 @@ getFunction(nameOrSignature: 'updatePassportUrls'): TypedContractMethod<
       'nonpayable'
     >;
 
-    getEvent(key: 'ContractFrozen'): TypedContractEvent<ContractFrozenEvent.InputTuple, ContractFrozenEvent.OutputTuple, ContractFrozenEvent.OutputObject>;
-getEvent(key: 'CreatorPublishingDelegated'): TypedContractEvent<CreatorPublishingDelegatedEvent.InputTuple, CreatorPublishingDelegatedEvent.OutputTuple, CreatorPublishingDelegatedEvent.OutputObject>;
-getEvent(key: 'CreatorPublishingDelegationRevoked'): TypedContractEvent<CreatorPublishingDelegationRevokedEvent.InputTuple, CreatorPublishingDelegationRevokedEvent.OutputTuple, CreatorPublishingDelegationRevokedEvent.OutputObject>;
-getEvent(key: 'CreatorRegistered'): TypedContractEvent<CreatorRegisteredEvent.InputTuple, CreatorRegisteredEvent.OutputTuple, CreatorRegisteredEvent.OutputObject>;
-getEvent(key: 'ExtensionMintUsed'): TypedContractEvent<ExtensionMintUsedEvent.InputTuple, ExtensionMintUsedEvent.OutputTuple, ExtensionMintUsedEvent.OutputObject>;
-getEvent(key: 'GovernanceTransferred'): TypedContractEvent<GovernanceTransferredEvent.InputTuple, GovernanceTransferredEvent.OutputTuple, GovernanceTransferredEvent.OutputObject>;
-getEvent(key: 'MintAgentUpdate'): TypedContractEvent<MintAgentUpdateEvent.InputTuple, MintAgentUpdateEvent.OutputTuple, MintAgentUpdateEvent.OutputObject>;
-getEvent(key: 'PAffiliationConfirmed'): TypedContractEvent<PAffiliationConfirmedEvent.InputTuple, PAffiliationConfirmedEvent.OutputTuple, PAffiliationConfirmedEvent.OutputObject>;
-getEvent(key: 'PAffiliationDetached'): TypedContractEvent<PAffiliationDetachedEvent.InputTuple, PAffiliationDetachedEvent.OutputTuple, PAffiliationDetachedEvent.OutputObject>;
-getEvent(key: 'PAffiliationProposed'): TypedContractEvent<PAffiliationProposedEvent.InputTuple, PAffiliationProposedEvent.OutputTuple, PAffiliationProposedEvent.OutputObject>;
+    getEvent(key: 'CreatorRegistered'): TypedContractEvent<CreatorRegisteredEvent.InputTuple, CreatorRegisteredEvent.OutputTuple, CreatorRegisteredEvent.OutputObject>;
 getEvent(key: 'PassportAuxCommitmentUpdated'): TypedContractEvent<PassportAuxCommitmentUpdatedEvent.InputTuple, PassportAuxCommitmentUpdatedEvent.OutputTuple, PassportAuxCommitmentUpdatedEvent.OutputObject>;
+getEvent(key: 'PassportConditionUpdated'): TypedContractEvent<PassportConditionUpdatedEvent.InputTuple, PassportConditionUpdatedEvent.OutputTuple, PassportConditionUpdatedEvent.OutputObject>;
+getEvent(key: 'PassportLocationUpdated'): TypedContractEvent<PassportLocationUpdatedEvent.InputTuple, PassportLocationUpdatedEvent.OutputTuple, PassportLocationUpdatedEvent.OutputObject>;
 getEvent(key: 'PassportMinted'): TypedContractEvent<PassportMintedEvent.InputTuple, PassportMintedEvent.OutputTuple, PassportMintedEvent.OutputObject>;
+getEvent(key: 'PassportNdppCommitmentUpdated'): TypedContractEvent<PassportNdppCommitmentUpdatedEvent.InputTuple, PassportNdppCommitmentUpdatedEvent.OutputTuple, PassportNdppCommitmentUpdatedEvent.OutputObject>;
 getEvent(key: 'PassportRevoked'): TypedContractEvent<PassportRevokedEvent.InputTuple, PassportRevokedEvent.OutputTuple, PassportRevokedEvent.OutputObject>;
+getEvent(key: 'PassportRightsUpdated'): TypedContractEvent<PassportRightsUpdatedEvent.InputTuple, PassportRightsUpdatedEvent.OutputTuple, PassportRightsUpdatedEvent.OutputObject>;
+getEvent(key: 'PassportStatusUpdated'): TypedContractEvent<PassportStatusUpdatedEvent.InputTuple, PassportStatusUpdatedEvent.OutputTuple, PassportStatusUpdatedEvent.OutputObject>;
 getEvent(key: 'PassportTransferred'): TypedContractEvent<PassportTransferredEvent.InputTuple, PassportTransferredEvent.OutputTuple, PassportTransferredEvent.OutputObject>;
 getEvent(key: 'PassportUrlsUpdated'): TypedContractEvent<PassportUrlsUpdatedEvent.InputTuple, PassportUrlsUpdatedEvent.OutputTuple, PassportUrlsUpdatedEvent.OutputObject>;
-getEvent(key: 'ProofSubmitted'): TypedContractEvent<ProofSubmittedEvent.InputTuple, ProofSubmittedEvent.OutputTuple, ProofSubmittedEvent.OutputObject>;
 
     filters: {
       
-      'ContractFrozen(uint256)': TypedContractEvent<ContractFrozenEvent.InputTuple, ContractFrozenEvent.OutputTuple, ContractFrozenEvent.OutputObject>;
-      ContractFrozen: TypedContractEvent<ContractFrozenEvent.InputTuple, ContractFrozenEvent.OutputTuple, ContractFrozenEvent.OutputObject>;
-    
-
-      'CreatorPublishingDelegated(address,address,uint256)': TypedContractEvent<CreatorPublishingDelegatedEvent.InputTuple, CreatorPublishingDelegatedEvent.OutputTuple, CreatorPublishingDelegatedEvent.OutputObject>;
-      CreatorPublishingDelegated: TypedContractEvent<CreatorPublishingDelegatedEvent.InputTuple, CreatorPublishingDelegatedEvent.OutputTuple, CreatorPublishingDelegatedEvent.OutputObject>;
-    
-
-      'CreatorPublishingDelegationRevoked(address,uint256)': TypedContractEvent<CreatorPublishingDelegationRevokedEvent.InputTuple, CreatorPublishingDelegationRevokedEvent.OutputTuple, CreatorPublishingDelegationRevokedEvent.OutputObject>;
-      CreatorPublishingDelegationRevoked: TypedContractEvent<CreatorPublishingDelegationRevokedEvent.InputTuple, CreatorPublishingDelegationRevokedEvent.OutputTuple, CreatorPublishingDelegationRevokedEvent.OutputObject>;
-    
-
       'CreatorRegistered(string,address,bytes1,uint256)': TypedContractEvent<CreatorRegisteredEvent.InputTuple, CreatorRegisteredEvent.OutputTuple, CreatorRegisteredEvent.OutputObject>;
       CreatorRegistered: TypedContractEvent<CreatorRegisteredEvent.InputTuple, CreatorRegisteredEvent.OutputTuple, CreatorRegisteredEvent.OutputObject>;
-    
-
-      'ExtensionMintUsed(bytes1,uint8,string)': TypedContractEvent<ExtensionMintUsedEvent.InputTuple, ExtensionMintUsedEvent.OutputTuple, ExtensionMintUsedEvent.OutputObject>;
-      ExtensionMintUsed: TypedContractEvent<ExtensionMintUsedEvent.InputTuple, ExtensionMintUsedEvent.OutputTuple, ExtensionMintUsedEvent.OutputObject>;
-    
-
-      'GovernanceTransferred(address,address,uint256)': TypedContractEvent<GovernanceTransferredEvent.InputTuple, GovernanceTransferredEvent.OutputTuple, GovernanceTransferredEvent.OutputObject>;
-      GovernanceTransferred: TypedContractEvent<GovernanceTransferredEvent.InputTuple, GovernanceTransferredEvent.OutputTuple, GovernanceTransferredEvent.OutputObject>;
-    
-
-      'MintAgentUpdate(string,address,uint8,uint256)': TypedContractEvent<MintAgentUpdateEvent.InputTuple, MintAgentUpdateEvent.OutputTuple, MintAgentUpdateEvent.OutputObject>;
-      MintAgentUpdate: TypedContractEvent<MintAgentUpdateEvent.InputTuple, MintAgentUpdateEvent.OutputTuple, MintAgentUpdateEvent.OutputObject>;
-    
-
-      'PAffiliationConfirmed(string,string,uint256)': TypedContractEvent<PAffiliationConfirmedEvent.InputTuple, PAffiliationConfirmedEvent.OutputTuple, PAffiliationConfirmedEvent.OutputObject>;
-      PAffiliationConfirmed: TypedContractEvent<PAffiliationConfirmedEvent.InputTuple, PAffiliationConfirmedEvent.OutputTuple, PAffiliationConfirmedEvent.OutputObject>;
-    
-
-      'PAffiliationDetached(string,string,uint256)': TypedContractEvent<PAffiliationDetachedEvent.InputTuple, PAffiliationDetachedEvent.OutputTuple, PAffiliationDetachedEvent.OutputObject>;
-      PAffiliationDetached: TypedContractEvent<PAffiliationDetachedEvent.InputTuple, PAffiliationDetachedEvent.OutputTuple, PAffiliationDetachedEvent.OutputObject>;
-    
-
-      'PAffiliationProposed(string,string,uint256)': TypedContractEvent<PAffiliationProposedEvent.InputTuple, PAffiliationProposedEvent.OutputTuple, PAffiliationProposedEvent.OutputObject>;
-      PAffiliationProposed: TypedContractEvent<PAffiliationProposedEvent.InputTuple, PAffiliationProposedEvent.OutputTuple, PAffiliationProposedEvent.OutputObject>;
     
 
       'PassportAuxCommitmentUpdated(string,bytes32,string,address,uint256)': TypedContractEvent<PassportAuxCommitmentUpdatedEvent.InputTuple, PassportAuxCommitmentUpdatedEvent.OutputTuple, PassportAuxCommitmentUpdatedEvent.OutputObject>;
       PassportAuxCommitmentUpdated: TypedContractEvent<PassportAuxCommitmentUpdatedEvent.InputTuple, PassportAuxCommitmentUpdatedEvent.OutputTuple, PassportAuxCommitmentUpdatedEvent.OutputObject>;
     
 
-      'PassportMinted(string,address,string,string,uint32,uint8,bytes32,uint8,string,uint256,address)': TypedContractEvent<PassportMintedEvent.InputTuple, PassportMintedEvent.OutputTuple, PassportMintedEvent.OutputObject>;
+      'PassportConditionUpdated(string,string,bytes32,string,address,uint256)': TypedContractEvent<PassportConditionUpdatedEvent.InputTuple, PassportConditionUpdatedEvent.OutputTuple, PassportConditionUpdatedEvent.OutputObject>;
+      PassportConditionUpdated: TypedContractEvent<PassportConditionUpdatedEvent.InputTuple, PassportConditionUpdatedEvent.OutputTuple, PassportConditionUpdatedEvent.OutputObject>;
+    
+
+      'PassportLocationUpdated(string,string,address,uint256)': TypedContractEvent<PassportLocationUpdatedEvent.InputTuple, PassportLocationUpdatedEvent.OutputTuple, PassportLocationUpdatedEvent.OutputObject>;
+      PassportLocationUpdated: TypedContractEvent<PassportLocationUpdatedEvent.InputTuple, PassportLocationUpdatedEvent.OutputTuple, PassportLocationUpdatedEvent.OutputObject>;
+    
+
+      'PassportMinted(string,address,string,string,string,string,uint8,uint32,uint8,bytes32,uint8,string,uint256,address)': TypedContractEvent<PassportMintedEvent.InputTuple, PassportMintedEvent.OutputTuple, PassportMintedEvent.OutputObject>;
       PassportMinted: TypedContractEvent<PassportMintedEvent.InputTuple, PassportMintedEvent.OutputTuple, PassportMintedEvent.OutputObject>;
+    
+
+      'PassportNdppCommitmentUpdated(string,bytes32,string,address,uint256)': TypedContractEvent<PassportNdppCommitmentUpdatedEvent.InputTuple, PassportNdppCommitmentUpdatedEvent.OutputTuple, PassportNdppCommitmentUpdatedEvent.OutputObject>;
+      PassportNdppCommitmentUpdated: TypedContractEvent<PassportNdppCommitmentUpdatedEvent.InputTuple, PassportNdppCommitmentUpdatedEvent.OutputTuple, PassportNdppCommitmentUpdatedEvent.OutputObject>;
     
 
       'PassportRevoked(string,address,bytes32,uint256)': TypedContractEvent<PassportRevokedEvent.InputTuple, PassportRevokedEvent.OutputTuple, PassportRevokedEvent.OutputObject>;
       PassportRevoked: TypedContractEvent<PassportRevokedEvent.InputTuple, PassportRevokedEvent.OutputTuple, PassportRevokedEvent.OutputObject>;
+    
+
+      'PassportRightsUpdated(string,string,address,uint256)': TypedContractEvent<PassportRightsUpdatedEvent.InputTuple, PassportRightsUpdatedEvent.OutputTuple, PassportRightsUpdatedEvent.OutputObject>;
+      PassportRightsUpdated: TypedContractEvent<PassportRightsUpdatedEvent.InputTuple, PassportRightsUpdatedEvent.OutputTuple, PassportRightsUpdatedEvent.OutputObject>;
+    
+
+      'PassportStatusUpdated(string,uint8,address,uint256)': TypedContractEvent<PassportStatusUpdatedEvent.InputTuple, PassportStatusUpdatedEvent.OutputTuple, PassportStatusUpdatedEvent.OutputObject>;
+      PassportStatusUpdated: TypedContractEvent<PassportStatusUpdatedEvent.InputTuple, PassportStatusUpdatedEvent.OutputTuple, PassportStatusUpdatedEvent.OutputObject>;
     
 
       'PassportTransferred(string,address,address,uint256)': TypedContractEvent<PassportTransferredEvent.InputTuple, PassportTransferredEvent.OutputTuple, PassportTransferredEvent.OutputObject>;
@@ -1042,10 +681,6 @@ getEvent(key: 'ProofSubmitted'): TypedContractEvent<ProofSubmittedEvent.InputTup
 
       'PassportUrlsUpdated(string,string,string)': TypedContractEvent<PassportUrlsUpdatedEvent.InputTuple, PassportUrlsUpdatedEvent.OutputTuple, PassportUrlsUpdatedEvent.OutputObject>;
       PassportUrlsUpdated: TypedContractEvent<PassportUrlsUpdatedEvent.InputTuple, PassportUrlsUpdatedEvent.OutputTuple, PassportUrlsUpdatedEvent.OutputObject>;
-    
-
-      'ProofSubmitted(string,string,string,uint256)': TypedContractEvent<ProofSubmittedEvent.InputTuple, ProofSubmittedEvent.OutputTuple, ProofSubmittedEvent.OutputObject>;
-      ProofSubmitted: TypedContractEvent<ProofSubmittedEvent.InputTuple, ProofSubmittedEvent.OutputTuple, ProofSubmittedEvent.OutputObject>;
     
     };
   }

@@ -11,13 +11,13 @@
 <script src="odp-i18n-boot.js?v=2"></script>
 <script src="odp-wc-config.js?v=1"></script>
 <script src="odp-wallet-wc-loader.js?v=1"></script>
-<title>ODP v0.4.1 — Register profile</title>
+<title>ODP v0.5.0 — Register profile</title>
 <link rel="stylesheet" href="odp.css?v=20260406i18n">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-Htz1SE4Sl5aitpvFgr2j0sfsGUIuSXI6t8hEyrlQ93zflEF3a29bH2AvkUROUw7J" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.4.1"></script>
+<script src="odp-contract.js?v=0.5.0"></script>
 <script src="odp-date-format.js?v=1"></script>
-<script src="odp-passport-v03-ops.js?v=0.4.2"></script>
+<script src="odp-passport-v03-ops.js?v=0.5.0"></script>
 <script src="odp-i18n.js?v=15"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
@@ -30,7 +30,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="creator.meta.h1">Profile</h1>
-    <p class="sub" data-i18n="creator.meta.sub">Object Digital Passport · Specification v0.4.1</p>
+    <p class="sub" data-i18n="creator.meta.sub">Object Digital Passport · Specification v0.5.0</p>
     <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
   <div class="header-toolbar">
@@ -96,6 +96,7 @@ const NET = {
   explorer: "https://polygonscan.com",
   contract: "0x35c29A1faC6e39925BeF616bb5222F024E5D6132",
   contractGenerationFallback: null,
+  relations: "",
   counterfeitConcern: "0x7C2EAaC6b0E4c14765d4064885A175fD057f680e",
 };
 
@@ -190,6 +191,14 @@ function render() {
           typeof odpCounterfeitWriteContract === "function"
             ? odpCounterfeitWriteContract(contract, NET, odpContractGeneration, signer)
             : null,
+        getRelationsReadContract: () =>
+          typeof odpRelationsReadContract === "function"
+            ? odpRelationsReadContract(contract, NET, provider || signer)
+            : contract,
+        getRelationsWriteContract: () =>
+          typeof odpRelationsWriteContract === "function"
+            ? odpRelationsWriteContract(contract, NET, signer)
+            : contract,
         t,
         esc,
         isProfilePage: true,
@@ -943,12 +952,16 @@ function bindPAffiliationHandlers() {
       allChildrenCache = [];
       loadMoreBtn.disabled = true;
 
-      const parentPId = await contract.getPAffiliatedParent(creatorId);
+      const relContract =
+        typeof odpRelationsReadContract === "function"
+          ? odpRelationsReadContract(contract, NET, contract.signer || contract.provider || contract)
+          : contract;
+      const parentPId = await relContract.getPAffiliatedParent(creatorId);
       const hasParent = parentPId && String(parentPId).trim().length > 0;
       activeParentVal.textContent = hasParent ? parentPId : "—";
       proposeBtn.disabled = hasParent;
 
-      const children = await contract.getPAffiliatedChildren(creatorId);
+      const children = await relContract.getPAffiliatedChildren(creatorId);
       allChildrenCache = Array.isArray(children) ? children.slice() : [];
       total = allChildrenCache.length;
       loaded = allChildrenCache.slice(0, limit);
@@ -989,7 +1002,11 @@ function bindPAffiliationHandlers() {
     proposeBtn.disabled = true;
     proposeResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.sending"))}</div>`;
     try {
-      const tx = await contract.proposePAffiliation(parentPId);
+      const relWriter =
+        typeof odpRelationsWriteContract === "function"
+          ? odpRelationsWriteContract(contract, NET, contract.signer || contract.provider || contract)
+          : contract;
+      const tx = await relWriter.proposePAffiliation(parentPId);
       await tx.wait();
       proposeResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.proposed"))} <code class="mono">${esc(tx.hash)}</code></div>`;
       await refresh();
@@ -1011,14 +1028,18 @@ function bindPAffiliationHandlers() {
     cancelBtn.disabled = true;
     cancelResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.cancelChecking"))}</div>`;
     try {
-      const pending = await contract.isPAffiliationPending(parentPId, creatorId);
+      const relWriter =
+        typeof odpRelationsWriteContract === "function"
+          ? odpRelationsWriteContract(contract, NET, contract.signer || contract.provider || contract)
+          : contract;
+      const pending = await relWriter.isPAffiliationPending(parentPId, creatorId);
       if (!pending) {
         cancelResult.innerHTML = `<div class="info warn">${esc(t("creator.pAff.cancelNoPending"))}</div>`;
         cancelBtn.disabled = false;
         return;
       }
       cancelResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.sending"))}</div>`;
-      const tx = await contract.cancelPAffiliationRequest(parentPId);
+      const tx = await relWriter.cancelPAffiliationRequest(parentPId);
       await tx.wait();
       cancelResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.cancelDone"))} <code class="mono">${esc(tx.hash)}</code></div>`;
       await refresh();
@@ -1040,13 +1061,17 @@ function bindPAffiliationHandlers() {
     confirmBtn.disabled = true;
     confirmResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.checkingPending"))}</div>`;
     try {
-      const pending = await contract.isPAffiliationPending(creatorId, childPId);
+      const relWriter =
+        typeof odpRelationsWriteContract === "function"
+          ? odpRelationsWriteContract(contract, NET, contract.signer || contract.provider || contract)
+          : contract;
+      const pending = await relWriter.isPAffiliationPending(creatorId, childPId);
       if (!pending) {
         confirmResult.innerHTML = `<div class="info warn">${esc(t("creator.pAff.noPending"))}</div>`;
         confirmBtn.disabled = false;
         return;
       }
-      const tx = await contract.confirmPAffiliation(childPId);
+      const tx = await relWriter.confirmPAffiliation(childPId);
       await tx.wait();
       confirmResult.innerHTML = `<div class="info neutral">${esc(t("creator.pAff.confirmed"))} <code class="mono">${esc(tx.hash)}</code></div>`;
       await refresh();
