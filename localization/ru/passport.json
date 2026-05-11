@@ -1,9 +1,9 @@
 {
   "passport": {
     "meta": {
-      "documentTitle": "ODP v0.4.1 — Создать паспорт",
+      "documentTitle": "ODP v0.5.0 — Создать паспорт",
       "h1": "Создать паспорт",
-      "sub": "Object Digital Passport · спецификация\u00a0v0.4.1"
+      "sub": "Object Digital Passport · спецификация\u00a0v0.5.0"
     },
     "appLoading": "Подключение кошелька…",
     "connect": {
