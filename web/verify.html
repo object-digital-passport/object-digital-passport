@@ -11,12 +11,12 @@
 <script src="odp-i18n-boot.js?v=2"></script>
 <script src="odp-wc-config.js?v=1"></script>
 <script src="odp-wallet-wc-loader.js?v=1"></script>
-<title>ODP v0.4.1 — Verify</title>
+<title>ODP v0.5.0 — Verify</title>
 
 <!--
   Object Digital Passport — Verifier
   Author: Andrei Chernikov
-  Specification v0.4.1 (site); normative protocol line v0.4 — see SPEC.md
+  Specification v0.5.0 (site); normative protocol line v0.5 — see SPEC.md
 
   Shared styles: odp.css (same themes as Creator / Passport; default is light/blue)
 
@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="odp.css?v=20260406i18n">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-Htz1SE4Sl5aitpvFgr2j0sfsGUIuSXI6t8hEyrlQ93zflEF3a29bH2AvkUROUw7J" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.4.1"></script>
+<script src="odp-contract.js?v=0.5.0"></script>
 <script src="odp-date-format.js?v=1"></script>
 <script src="odp-i18n.js?v=15"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-9Q0jWoineiIq95JeIyBsNV90KKLfDsbkj29k/YFxf76a2JwkHDYkMuSbNGN6XJfV" crossorigin="anonymous"></script>
@@ -43,7 +43,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="verify.meta.h1">Verify</h1>
-    <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.4.1</p>
+    <p class="sub" data-i18n="verify.meta.sub">Object Digital Passport · Specification v0.5.0</p>
     <div id="odpStackLabelHeader" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
   <div class="header-toolbar">
@@ -132,6 +132,7 @@
     <div class="verify-tool-grid">
     <button type="button" class="btn btn-sec" data-tool="doc-attest" onclick="activateVerifyTool('doc-attest', true)" data-i18n="verify.tools.docAttest">Document attest (I own this doc)</button>
     <button type="button" class="btn btn-sec" data-tool="doc-check" onclick="activateVerifyTool('doc-check', true)" data-i18n="verify.tools.docCheck">Document hash check</button>
+    <button type="button" class="btn btn-sec" data-tool="offline-check" onclick="activateVerifyTool('offline-check', true)" data-i18n="verify.tools.offlineCheck">Offline payload check</button>
     </div>
   </div>
 </section>
@@ -201,6 +202,37 @@
   </section>
 </div>
 
+<div class="verify-tool-workspace" id="offlineVerifySection" hidden>
+  <div class="section-title" data-i18n="verify.offlineTool.sectionTitle">Offline payload check</div>
+  <p class="fhint verify-tool-workspace-lead" data-i18n="verify.offlineTool.lead">
+    Load a compact odpOffline payload from a file or paste Base64, then compare it with the passport's current on-chain NDPP anchor.
+  </p>
+  <section class="card verify-tool-card">
+    <div class="verify-tool-card-pad">
+      <label class="search-label verify-tool-field-label" for="offlineVerifyPassportId" data-i18n="verify.offlineTool.passportIdLabel">Passport ID</label>
+      <input
+        type="text"
+        id="offlineVerifyPassportId"
+        class="verify-tool-input"
+        data-i18n-placeholder="verify.offlineTool.passportIdPlaceholder"
+        placeholder="ODP-2026-03-123456789"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <label class="search-label verify-tool-field-label" for="offlineVerifyFile" data-i18n="verify.offlineTool.fileLabel">Offline payload file</label>
+      <div class="drop-zone json-drop" id="offlineVerifyFileDrop">
+        <input type="file" id="offlineVerifyFile" accept=".cbor,.ndef,.bin,application/octet-stream,application/cbor">
+        <p class="doc-tool-drop-lines"><span data-i18n="verify.offlineTool.fileDropLine1">Choose payload file</span><br>
+        <span style="opacity:0.6;font-size:11px" data-i18n="verify.offlineTool.fileDropLine2">Raw CBOR or NDEF file — processed locally</span></p>
+      </div>
+      <label class="search-label verify-tool-field-label" for="offlineVerifyBase64" data-i18n="verify.offlineTool.base64Label">Or paste Base64 payload</label>
+      <textarea id="offlineVerifyBase64" rows="5" class="verify-tool-input" data-i18n-placeholder="verify.offlineTool.base64Placeholder" placeholder="Base64 raw CBOR payload"></textarea>
+      <button type="button" class="btn" id="offlineVerifyBtn" onclick="verifyOfflinePayload()" data-i18n="verify.offlineTool.submitBtn">Check offline payload</button>
+      <div id="offlineVerifyResult" class="verify-tool-result"></div>
+    </div>
+  </section>
+</div>
+
 <div id="qrScanOverlay" class="qr-scan-overlay" hidden>
   <div class="qr-scan-panel">
     <p class="qr-scan-title" data-i18n="verify.qr.title">Scan QR</p>
@@ -243,6 +275,8 @@ const NET = {
   rpcUrls:  POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
   contract: "0x35c29A1faC6e39925BeF616bb5222F024E5D6132",
+  relations: "",
+  proofRegistry: "",
   /** Optional `ODPWalletDocumentAnchor` for `attestExternalDocument` when the main registry is v0.3+ (EIP-170). */
   docAnchor: "0xcb3AF1d0530ca1D8D78528E4ED93ac7C2eb64210",
   /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
@@ -762,13 +796,17 @@ function verifyReadContractsOrdered() {
 
 /** Collect all proof IDs using paged reads when available (avoids huge single RPC responses). */
 async function fetchProofIdsForPassport(readContract, humanId) {
-  const all = await readContract.getProofsForPassport(humanId);
+  const proofReader =
+    typeof odpProofReadContract === "function"
+      ? odpProofReadContract(readContract, NET, odpContractGeneration, readContract.provider || readContract)
+      : readContract;
+  const all = await proofReader.getProofsForPassport(humanId);
   return Array.isArray(all) ? all : [];
 }
 
 /** v0.3+: `resolvePassport` removed from contract — same data via `getPassport` + `getCreator` + proof list length. */
 async function fetchResolvedPassport(reader, humanId) {
-  const passport = await reader.getPassport(humanId);
+  const passport = await odpGetPassportRecord(reader, humanId);
   const creator = await reader.getCreator(passport.creatorId);
   let proofCount = 0;
   try {
@@ -857,11 +895,13 @@ function activateVerifyTool(tool, updateUrl, doScroll) {
   }
   const toolElAttest = document.getElementById("docAttestSection");
   const toolElCheck = document.getElementById("docVerifySection");
+  const toolElOffline = document.getElementById("offlineVerifySection");
   const subnav = document.getElementById("verifyToolSubnav");
   const subnavTitle = document.getElementById("verifyToolSubnavTitle");
   const toolsMenu = document.getElementById("verifyToolsMenu");
   if (toolElAttest) toolElAttest.hidden = true;
   if (toolElCheck) toolElCheck.hidden = true;
+  if (toolElOffline) toolElOffline.hidden = true;
   const idSec = document.getElementById("verifyIdSection");
   if (idSec) idSec.hidden = false;
 
@@ -909,6 +949,26 @@ function activateVerifyTool(tool, updateUrl, doScroll) {
       else f.focus({ preventScroll: true });
     }
     markActive("doc-check");
+    return;
+  }
+  if (selectedTool === "offline-check") {
+    if (toolElOffline) toolElOffline.hidden = false;
+    if (idSec) idSec.hidden = true;
+    if (toolsMenu) toolsMenu.hidden = true;
+    if (subnav) subnav.style.display = "";
+    if (subnavTitle) subnavTitle.textContent = typeof window.odpT === "function" ? window.odpT("verify.tools.offlineCheck") : "Offline payload check";
+    const toolId = document.getElementById("offlineVerifyPassportId");
+    const mainId = document.getElementById("idInput");
+    if (toolId && !String(toolId.value || "").trim() && mainId) {
+      const parsed = parseVerifyToken(String(mainId.value || ""));
+      if (parsed && parsed.kind === "passport") toolId.value = parsed.id;
+    }
+    if (scroll) scrollToVerifySection(document.getElementById("offlineVerifySection"));
+    if (toolId) {
+      if (scroll) toolId.focus();
+      else toolId.focus({ preventScroll: true });
+    }
+    markActive("offline-check");
   }
 }
 
@@ -1124,8 +1184,12 @@ async function verifyFromOdpBundleQuick(file) {
     let proofIds = [];
     let proofs = [];
     try {
+      const proofReader =
+        typeof odpProofReadContract === "function"
+          ? odpProofReadContract(readContract, NET, odpContractGeneration, readContract.provider || readContract)
+          : readContract;
       proofIds = await fetchProofIdsForPassport(readContract, humanId);
-      proofs = await Promise.all(proofIds.map((id) => readContract.getProof(id).catch(() => null)));
+      proofs = await Promise.all(proofIds.map((id) => proofReader.getProof(id).catch(() => null)));
       proofs = proofs.filter(Boolean);
     } catch {}
 
@@ -1258,9 +1322,13 @@ async function verify() {
     let proofIds = [];
     let proofs   = [];
     try {
+      const proofReader =
+        typeof odpProofReadContract === "function"
+          ? odpProofReadContract(readContract, NET, odpContractGeneration, readContract.provider || readContract)
+          : readContract;
       proofIds = await fetchProofIdsForPassport(readContract, humanId);
       proofs = await Promise.all(
-        proofIds.map(id => readContract.getProof(id).catch(() => null))
+        proofIds.map(id => proofReader.getProof(id).catch(() => null))
       );
       proofs = proofs.filter(Boolean);
     } catch {}
@@ -1455,6 +1523,10 @@ function formatUnixUtcSeconds(sec) {
 function renderPassportJsonExtras(passport, isDigital) {
   if (!passport || typeof passport !== "object") return "";
   const p = passport;
+  const author = passportAuthor(p);
+  const objectType = String(p.objectType || "").toLowerCase();
+  const digitalLike = isDigital || isDigitalLikeObjectType(objectType);
+  const physicalLike = !digitalLike || isPhysicalLikeObjectType(objectType);
   const rows = [];
 
   if (p.version != null) {
@@ -1501,13 +1573,14 @@ function renderPassportJsonExtras(passport, isDigital) {
         `<div class="field full"><div class="fl">registration.ianaTimeZone</div><div class="fv">${esc(String(r.ianaTimeZone))}</div></div>`
       );
   }
-  if (p.creator && p.creator.wallet) {
+  if (author.wallet) {
     rows.push(
-      `<div class="field full"><div class="fl">Creator wallet (in JSON)</div><div class="fv mono">${esc(String(p.creator.wallet))}</div></div>`
+      `<div class="field full"><div class="fl">Creator wallet (in JSON)</div><div class="fv mono">${esc(String(author.wallet))}</div></div>`
     );
   }
-  if (p.dimensions && typeof p.dimensions === "object") {
-    const d = p.dimensions;
+  const physical = p.physical && typeof p.physical === "object" ? p.physical : p;
+  if (physical.dimensions && typeof physical.dimensions === "object") {
+    const d = physical.dimensions;
     const parts = [d.width, d.height, d.depth, d.unit].filter((x) => x != null && x !== "");
     rows.push(
       `<div class="field full"><div class="fl">Dimensions</div><div class="fv">${esc(parts.length ? parts.map(String).join(" × ") : JSON.stringify(d))}</div></div>`
@@ -1525,7 +1598,7 @@ function renderPassportJsonExtras(passport, isDigital) {
       );
     }
   }
-  if (isDigital && p.digital && typeof p.digital === "object") {
+  if (digitalLike && p.digital && typeof p.digital === "object") {
     const d = p.digital;
     if (d.fileHash) {
       rows.push(
@@ -1543,7 +1616,7 @@ function renderPassportJsonExtras(passport, isDigital) {
       );
     }
   }
-  if (!isDigital && p.seal && typeof p.seal === "object") {
+  if (physicalLike && p.seal && typeof p.seal === "object") {
     if (p.seal.nfc && typeof p.seal.nfc === "object") {
       const n = p.seal.nfc;
       if (n.uid) rows.push(`<div class="field"><div class="fl">${esc(t("verify.localPreview.nfcChipId"))}</div><div class="fv mono">${esc(String(n.uid))}</div></div>`);
@@ -1574,8 +1647,8 @@ function renderPassportJsonExtras(passport, isDigital) {
       });
     }
   }
-  if (Array.isArray(p.materials) && p.materials.some((m) => m && typeof m === "object" && m.notes)) {
-    const bits = p.materials
+  if (Array.isArray(physical.materials) && physical.materials.some((m) => m && typeof m === "object" && m.notes)) {
+    const bits = physical.materials
       .map((m) => {
         if (!m) return "";
         if (typeof m === "string") return esc(m);
@@ -1625,7 +1698,11 @@ async function verifyFetchDelegationOpts(readContract, creatorWallet) {
       odpSupportsV03(odpContractGeneration)
     ) {
       const cw = ethers.utils.getAddress(String(creatorWallet));
-      const d = await readContract.getCreatorPublishingDelegation(cw);
+      const relReader =
+        typeof odpRelationsReadContract === "function"
+          ? odpRelationsReadContract(readContract, NET, readContract.provider || readContract)
+          : readContract;
+      const d = await relReader.getCreatorPublishingDelegation(cw);
       const agent = d.agent || d[0];
       const rawExp = d.expiresAt !== undefined ? d.expiresAt : d[1];
       const expBn = ethers.BigNumber.isBigNumber(rawExp)
@@ -1652,6 +1729,73 @@ function formatOdpProtocolBadge(contractVersion) {
   if (v === 0) return "ODP mint v0.1-era (byte 0)";
   if (v < 16) return `ODP spec 0.${v}`;
   return `ODP spec ${Math.floor(v / 16)}.${v % 16}`;
+}
+
+function passportAuthor(passport) {
+  if (passport && passport.authorship && passport.authorship.author && typeof passport.authorship.author === "object") {
+    return passport.authorship.author;
+  }
+  if (passport && passport.creator && typeof passport.creator === "object") {
+    return passport.creator;
+  }
+  return {};
+}
+
+function isDigitalLikeObjectType(v) {
+  const s = String(v || "").toLowerCase();
+  return s === "digital" || s === "mixed";
+}
+
+function isPhysicalLikeObjectType(v) {
+  const s = String(v || "").toLowerCase();
+  return s === "physical" || s === "mixed";
+}
+
+function displayContentClass(v) {
+  const n = Number(v);
+  if (n === 1) return "static";
+  if (n === 2) return "time_based";
+  if (n === 3) return "spatial";
+  if (n === 4) return "textual";
+  if (n === 5) return "composite";
+  if (n === 6) return "executable";
+  return v != null && v !== "" ? String(v) : "";
+}
+
+function displayLifecycleStatus(v) {
+  const n = Number(v);
+  if (n === 1) return "concept";
+  if (n === 2) return "prototype";
+  if (n === 3) return "produced_object";
+  if (n === 4) return "archived";
+  return v != null && v !== "" ? String(v) : "";
+}
+
+function displayAiStatus(v) {
+  const n = Number(v);
+  if (n === 1) return "none";
+  if (n === 2) return "assisted";
+  if (n === 3) return "generated";
+  return v != null && v !== "" ? String(v) : "";
+}
+
+function displayVerificationMethod(v) {
+  const n = Number(v);
+  if (n === 1) return "self_asserted";
+  if (n === 2) return "institutional";
+  if (n === 3) return "nfc";
+  if (n === 4) return "c2pa";
+  if (n === 5) return "hybrid";
+  return v != null && v !== "" ? String(v) : "";
+}
+
+function displayEditionModel(v) {
+  const n = Number(v);
+  if (n === 1) return "unique";
+  if (n === 2) return "limited";
+  if (n === 3) return "open";
+  if (n === 4) return "dynamic";
+  return v != null && v !== "" ? String(v) : "";
 }
 
 /** Normalized 0x + 64 hex for P/M proof `noteHash` (bytes32). */
@@ -1745,7 +1889,9 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
   const showPrior =
     resolvedOnAddress &&
     String(resolvedOnAddress).toLowerCase() !== String(net_.contract || "").toLowerCase();
-  const isDigital = rec.objectType === "digital";
+  const objType = passport?.objectType || rec.objectType || "—";
+  const isDigital = isDigitalLikeObjectType(objType);
+  const isPhysical = isPhysicalLikeObjectType(objType);
   const sidecarHashes = odpPassportSidecarHashes(rec);
   const hasImage = odpNonZeroBytes32(sidecarHashes.imageHash);
   const hasImage2 = odpNonZeroBytes32(sidecarHashes.imageHash2);
@@ -1772,14 +1918,25 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
     noPublicUrl:  t("verify.result.noPublicUrlDesc"),
   }[dataStatus];
 
-  const title   = passport?.title    || "—";
-  const cname   = passport?.creator?.name || (creator ? creator.creatorId : "—");
-  const objType = passport?.objectType || rec.objectType;
-  const contentClass = passport?.contentClass || null;
-  const medium  = passport?.medium   || null;
-  const edition = passport?.edition  ? `${passport.edition.number} / ${passport.edition.total}` : null;
-  const materials = passport?.materials?.map(m => m.name || m).join(", ") || null;
+  const author = passportAuthor(passport);
+  const title   = passport?.title || rec.title || "—";
+  const cname   = author.name || (creator ? creator.creatorId : rec.creatorId || "—");
+  const contentClass = passport?.contentClass || displayContentClass(rec.contentClass) || null;
+  const lifecycleStatus = passport?.status || displayLifecycleStatus(rec.lifecycleStatus) || null;
+  const aiStatus = passport?.aiStatus || displayAiStatus(rec.aiStatus) || null;
+  const verificationMethod = passport?.verificationMethod || displayVerificationMethod(rec.verificationMethod) || null;
+  const editionModel = passport?.edition?.model || displayEditionModel(rec.editionModel) || null;
+  const physical = passport?.physical && typeof passport.physical === "object" ? passport.physical : passport;
+  const medium  = physical?.medium || null;
+  const edition = passport?.edition ? `${passport.edition.number} / ${passport.edition.total}` : null;
+  const materials = physical?.materials?.map(m => m.name || m).join(", ") || null;
+  const refinementTags = Array.isArray(passport?.refinementTags) && passport.refinementTags.length ? passport.refinementTags.join(", ") : null;
+  const marks = Array.isArray(physical?.marks) && physical.marks.length ? physical.marks.join(", ") : null;
   const desc    = passport?.description || null;
+  const domain = passport?.domain || rec.domain || null;
+  const currentLocation = passport?.currentState?.location || rec.currentLocation || null;
+  const rightsNote = passport?.currentState?.rightsNote || rec.rightsNote || null;
+  const conditionNote = passport?.currentState?.conditionNote || rec.conditionNote || null;
   const chainUtc = formatUnixUtcSeconds(rec.timestamp);
   const localReg =
     passport && passport.registration && typeof passport.registration === "object" ? passport.registration : null;
@@ -1912,13 +2069,38 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           <div class="field">
             <div class="fl">Type</div>
             <div class="fv">
-              <span class="type-badge ${isDigital ? 'digital' : ''}">${esc(objType)}</span>
+              <span class="type-badge ${objType === 'digital' ? 'digital' : objType === 'mixed' ? 'mixed' : ''}">${esc(objType)}</span>
             </div>
           </div>
+          ${domain ? `
+          <div class="field">
+            <div class="fl">Domain</div>
+            <div class="fv">${esc(domain)}</div>
+          </div>` : ""}
           ${contentClass ? `
           <div class="field">
             <div class="fl">Content class</div>
             <div class="fv">${esc(String(contentClass))}</div>
+          </div>` : ""}
+          ${lifecycleStatus ? `
+          <div class="field">
+            <div class="fl">Status</div>
+            <div class="fv">${esc(String(lifecycleStatus))}</div>
+          </div>` : ""}
+          ${aiStatus ? `
+          <div class="field">
+            <div class="fl">AI status</div>
+            <div class="fv">${esc(String(aiStatus))}</div>
+          </div>` : ""}
+          ${verificationMethod ? `
+          <div class="field">
+            <div class="fl">Verification</div>
+            <div class="fv">${esc(String(verificationMethod))}</div>
+          </div>` : ""}
+          ${editionModel ? `
+          <div class="field">
+            <div class="fl">Edition model</div>
+            <div class="fv">${esc(String(editionModel))}</div>
           </div>` : ""}
 
           ${edition ? `
@@ -1937,6 +2119,31 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           <div class="field full">
             <div class="fl">Materials</div>
             <div class="fv">${esc(materials)}</div>
+          </div>` : ""}
+          ${refinementTags ? `
+          <div class="field full">
+            <div class="fl">Refinement tags</div>
+            <div class="fv">${esc(refinementTags)}</div>
+          </div>` : ""}
+          ${marks ? `
+          <div class="field full">
+            <div class="fl">Physical marks</div>
+            <div class="fv">${esc(marks)}</div>
+          </div>` : ""}
+          ${currentLocation ? `
+          <div class="field full">
+            <div class="fl">Current location</div>
+            <div class="fv">${esc(currentLocation)}</div>
+          </div>` : ""}
+          ${rightsNote ? `
+          <div class="field full">
+            <div class="fl">Rights note</div>
+            <div class="fv">${esc(rightsNote)}</div>
+          </div>` : ""}
+          ${conditionNote ? `
+          <div class="field full">
+            <div class="fl">Condition note</div>
+            <div class="fv">${esc(conditionNote)}</div>
           </div>` : ""}
 
           ${desc ? `
@@ -2004,6 +2211,24 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             <div class="vinfo-val">${rec.dataHash}</div>
           </div>
         </div>
+
+        ${
+          typeof rec.ndppCommitmentHash !== "undefined" && odpNonZeroBytes32(rec.ndppCommitmentHash)
+            ? `<div class="vrow" style="margin-top:10px">
+          <span class="vbadge na">${esc(t("verify.detail.ndppBadge"))}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">${esc(t("verify.detail.ndppFingerprintLabel"))}</div>
+            <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(odpBytes32HexLower(rec.ndppCommitmentHash))}</div>
+            ${
+              rec.ndppCommitmentUri
+                ? `<div style="margin-top:8px"><a class="ext-link" href="${esc(String(rec.ndppCommitmentUri))}" target="_blank" rel="noopener noreferrer">${esc(t("verify.detail.ndppOpenLink"))}</a></div>`
+                : ""
+            }
+            <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(t("verify.detail.ndppExplain"))}</p>
+          </div>
+        </div>`
+            : ""
+        }
 
         ${
           typeof rec.auxCommitmentHash !== "undefined" && odpNonZeroBytes32(rec.auxCommitmentHash)
@@ -2244,16 +2469,26 @@ async function verifyFile(e, onchain) {
 /** Show key passport fields after local file hash matches (same ideas as main card). */
 function renderLocalPassportPreview(p) {
   if (!p || typeof p !== "object") return "";
+  const author = passportAuthor(p);
   const title = p.title != null ? String(p.title) : "—";
-  const cname = p.creator && p.creator.name != null ? String(p.creator.name) : "—";
-  const cid = p.creator && p.creator.creatorId != null ? String(p.creator.creatorId) : "—";
-  const cwallet = p.creator && p.creator.wallet != null ? String(p.creator.wallet) : "";
+  const cname = author.name != null ? String(author.name) : "—";
+  const cid = author.creatorId != null ? String(author.creatorId) : "—";
+  const cwallet = author.wallet != null ? String(author.wallet) : "";
   const pidRaw = p.passportId !== undefined ? p.passportId : p.humanId;
   const humanJson = pidRaw === undefined ? "—" : pidRaw === null ? "null" : String(pidRaw);
   const objType = (p.objectType != null ? String(p.objectType) : p.type != null ? String(p.type) : "—");
-  const contentClass = p.contentClass != null ? String(p.contentClass) : "";
-  const isDigital = String(p.objectType || "").toLowerCase() === "digital";
+  const contentClass = displayContentClass(p.contentClass);
+  const isDigitalLike = isDigitalLikeObjectType(objType);
+  const isPhysicalLike = isPhysicalLikeObjectType(objType);
   const ver = p.version != null ? String(p.version) : "—";
+  const lifecycleStatus = p.status || displayLifecycleStatus(p.lifecycleStatus);
+  const aiStatus = p.aiStatus || displayAiStatus(p.aiStatus);
+  const verificationMethod = p.verificationMethod || displayVerificationMethod(p.verificationMethod);
+  const editionModel = p.edition && p.edition.model ? String(p.edition.model) : displayEditionModel(p.editionModel);
+  const domain = p.domain != null ? String(p.domain) : "";
+  const currentState = p.currentState && typeof p.currentState === "object" ? p.currentState : {};
+  const physical = p.physical && typeof p.physical === "object" ? p.physical : p;
+  const digital = p.digital && typeof p.digital === "object" ? p.digital : null;
 
   const parts = [];
   parts.push(
@@ -2262,11 +2497,16 @@ function renderLocalPassportPreview(p) {
     `<div class="field"><div class="fl">Creator</div><div class="fv">${esc(cname)}</div></div>`,
     `<div class="field"><div class="fl">${esc(t("verify.fields.profile"))}</div><div class="fv"><span class="creator-id-val">${esc(cid)}</span></div></div>`,
     `<div class="field"><div class="fl">${esc(t("verify.localPreview.passportIdInFile"))}</div><div class="fv"><span class="human-id-val">${esc(humanJson)}</span></div></div>`,
-    `<div class="field"><div class="fl">Object / type</div><div class="fv"><span class="type-badge ${isDigital ? "digital" : ""}">${esc(objType)}</span></div></div>`
+    `<div class="field"><div class="fl">Object / type</div><div class="fv"><span class="type-badge ${objType === "digital" ? "digital" : objType === "mixed" ? "mixed" : ""}">${esc(objType)}</span></div></div>`
   );
+  if (domain) parts.push(`<div class="field"><div class="fl">Domain</div><div class="fv">${esc(domain)}</div></div>`);
   if (contentClass) {
     parts.push(`<div class="field"><div class="fl">Content class</div><div class="fv">${esc(contentClass)}</div></div>`);
   }
+  if (lifecycleStatus) parts.push(`<div class="field"><div class="fl">Status</div><div class="fv">${esc(lifecycleStatus)}</div></div>`);
+  if (aiStatus) parts.push(`<div class="field"><div class="fl">AI status</div><div class="fv">${esc(aiStatus)}</div></div>`);
+  if (verificationMethod) parts.push(`<div class="field"><div class="fl">Verification</div><div class="fv">${esc(verificationMethod)}</div></div>`);
+  if (editionModel) parts.push(`<div class="field"><div class="fl">Edition model</div><div class="fv">${esc(editionModel)}</div></div>`);
 
   if (p.year != null || p.month != null) {
     const y = p.year != null ? String(p.year) : "—";
@@ -2278,16 +2518,25 @@ function renderLocalPassportPreview(p) {
       `<div class="field"><div class="fl">Edition</div><div class="fv">${esc(String(p.edition.number))} / ${esc(String(p.edition.total))}</div></div>`
     );
   }
-  if (p.medium) parts.push(`<div class="field full"><div class="fl">Medium</div><div class="fv">${esc(String(p.medium))}</div></div>`);
-  if (Array.isArray(p.materials) && p.materials.length) {
-    const m = p.materials.map((x) => (typeof x === "string" ? x : x && x.name)).filter(Boolean).join(", ");
+  if (currentState.location) parts.push(`<div class="field full"><div class="fl">Current location</div><div class="fv">${esc(String(currentState.location))}</div></div>`);
+  if (currentState.rightsNote) parts.push(`<div class="field full"><div class="fl">Rights note</div><div class="fv">${esc(String(currentState.rightsNote))}</div></div>`);
+  if (currentState.conditionNote) parts.push(`<div class="field full"><div class="fl">Condition note</div><div class="fv">${esc(String(currentState.conditionNote))}</div></div>`);
+  if (physical.medium) parts.push(`<div class="field full"><div class="fl">Medium</div><div class="fv">${esc(String(physical.medium))}</div></div>`);
+  if (Array.isArray(physical.materials) && physical.materials.length) {
+    const m = physical.materials.map((x) => (typeof x === "string" ? x : x && x.name)).filter(Boolean).join(", ");
     if (m) parts.push(`<div class="field full"><div class="fl">Materials</div><div class="fv">${esc(m)}</div></div>`);
+  }
+  if (Array.isArray(p.refinementTags) && p.refinementTags.length) {
+    parts.push(`<div class="field full"><div class="fl">Refinement tags</div><div class="fv">${esc(p.refinementTags.join(", "))}</div></div>`);
+  }
+  if (Array.isArray(physical.marks) && physical.marks.length) {
+    parts.push(`<div class="field full"><div class="fl">Physical marks</div><div class="fv">${esc(physical.marks.join(", "))}</div></div>`);
   }
   if (p.description) {
     parts.push(`<div class="field full"><div class="fl">Description</div><div class="fv">${esc(String(p.description))}</div></div>`);
   }
-  if (isDigital && p.digital && typeof p.digital === "object") {
-    const d = p.digital;
+  if (isDigitalLike && digital) {
+    const d = digital;
     parts.push(
       `<div class="field"><div class="fl">File type</div><div class="fv">${esc(d.format || "—")}</div></div>`
     );
@@ -2299,7 +2548,7 @@ function renderLocalPassportPreview(p) {
       parts.push(`<div class="field full"><div class="fl">c2pa.manifestHash</div><div class="vinfo-val" style="font-size:11px">${esc(String(d.c2pa.manifestHash))}</div></div>`);
     }
   }
-  if (p.seal && typeof p.seal === "object" && !isDigital) {
+  if (isPhysicalLike && p.seal && typeof p.seal === "object") {
     if (p.seal.numbered && p.seal.numbered.number) {
       parts.push(
         `<div class="field full"><div class="fl">Seal</div><div class="fv">${esc(String(p.seal.numbered.number))} · ${esc(String(p.seal.numbered.type || ""))}</div></div>`
@@ -2983,6 +3232,156 @@ async function verifyDocAttestation() {
   }
 }
 
+async function loadPassportRecordForOfflineCheck(humanId) {
+  let lastErr = null;
+  for (const c of verifyReadContractsOrdered()) {
+    try {
+      const rec = await odpGetPassportRecord(c, humanId);
+      return { record: rec, reader: c };
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error(t("verify.offlineTool.passportNotFound").replace("{id}", humanId));
+}
+
+async function verifyOfflinePayload() {
+  const out = document.getElementById("offlineVerifyResult");
+  const fileEl = document.getElementById("offlineVerifyFile");
+  const base64El = document.getElementById("offlineVerifyBase64");
+  const idEl = document.getElementById("offlineVerifyPassportId");
+  if (!out || !fileEl || !base64El || !idEl) return;
+  if (!provider) {
+    out.innerHTML = `<div class="err-box">${esc(t("verify.offlineTool.needNet"))}</div>`;
+    return;
+  }
+  const rawId = String(idEl.value || "").trim();
+  const token = parseVerifyToken(rawId);
+  if (!token || token.kind !== "passport") {
+    out.innerHTML = `<div class="err-box">${esc(t("verify.offlineTool.needPassportId"))}</div>`;
+    return;
+  }
+  const file = fileEl.files && fileEl.files[0];
+  const base64Raw = String(base64El.value || "").replace(/\s+/g, "");
+  if (!file && !base64Raw) {
+    out.innerHTML = `<div class="err-box">${esc(t("verify.offlineTool.needPayload"))}</div>`;
+    return;
+  }
+  out.innerHTML = `<div class="loading"><div class="spin"></div><span>${esc(t("verify.offlineTool.loading"))}</span></div>`;
+  try {
+    let bytes;
+    if (file) {
+      bytes = new Uint8Array(await file.arrayBuffer());
+    } else {
+      bytes = odpOfflineBytesFromBase64(base64Raw);
+    }
+    const parsed = odpOfflineDecodeBytes(bytes);
+    const payloadHash = await odpOfflineSha256Hex(parsed.payloadBytes);
+    const loaded = await loadPassportRecordForOfflineCheck(token.id);
+    const rec = loaded.record;
+    const expectedHash = odpBytes32HexLower(rec.ndppCommitmentHash);
+    const expectedDataHash = odpBytes32HexLower(rec.dataHash);
+    const actualDataHash = odpBytes32HexLower(parsed.semantic.identity.dataHash);
+    const expectedContract = String((loaded.reader && loaded.reader.address) || "").toLowerCase();
+    const actualContract = String(parsed.semantic.registry.contract || "").toLowerCase();
+    const passportMatches = String(parsed.semantic.identity.passportId || "") === token.id;
+    const dataHashMatches = !!actualDataHash && actualDataHash === expectedDataHash;
+    const chainMatches = Number(parsed.semantic.registry.chainId || 0) === Number(NET.chainId || 0);
+    const contractMatches = !!actualContract && actualContract === expectedContract;
+    const ndppAnchored = expectedHash && expectedHash !== ZERO32.toLowerCase();
+    const hashMatches = ndppAnchored && payloadHash.toLowerCase() === expectedHash;
+    let statusClass = "neutral";
+    let statusLabel = t("verify.offlineTool.statusNoAnchorTitle");
+    let statusDesc = t("verify.offlineTool.statusNoAnchorDesc");
+    let statusIcon = "•";
+    if (ndppAnchored && hashMatches) {
+      statusClass = "authentic";
+      statusLabel = t("verify.offlineTool.statusMatchTitle");
+      statusDesc = t("verify.offlineTool.statusMatchDesc");
+      statusIcon = "✓";
+    } else if (ndppAnchored) {
+      statusClass = "invalid";
+      statusLabel = t("verify.offlineTool.statusMismatchTitle");
+      statusDesc = t("verify.offlineTool.statusMismatchDesc");
+      statusIcon = "✕";
+    }
+    const warnings = [];
+    if (!passportMatches) warnings.push(t("verify.offlineTool.warnPassportId"));
+    if (!dataHashMatches) warnings.push(t("verify.offlineTool.warnDataHash"));
+    if (!chainMatches) warnings.push(t("verify.offlineTool.warnChain"));
+    if (!contractMatches) warnings.push(t("verify.offlineTool.warnContract"));
+    const state = parsed.semantic.state;
+    const stateAsOf = state && state.asOf
+      ? odpFormatDateTimeLocalDDMMYYYY(new Date(Number(state.asOf) * 1000))
+      : "—";
+    out.innerHTML = `
+      <div class="status-bar ${statusClass}">
+        <div class="status-icon">${statusIcon}</div>
+        <div class="status-text">
+          <div class="status-label">${esc(statusLabel)}</div>
+          <div class="status-desc">${esc(statusDesc)}</div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="card-body">
+          <div class="field full">
+            <div class="fl">${esc(t("verify.offlineTool.fingerprintLabel"))}</div>
+            <div class="fv mono">${esc(payloadHash)}</div>
+          </div>
+          <div class="field full">
+            <div class="fl">${esc(t("verify.offlineTool.expectedNdppLabel"))}</div>
+            <div class="fv mono">${esc(ndppAnchored ? expectedHash : t("verify.offlineTool.noNdpp"))}</div>
+          </div>
+          <div class="field">
+            <div class="fl">${esc(t("verify.offlineTool.formatLabel"))}</div>
+            <div class="fv">${esc(String(parsed.format || "cbor").toUpperCase())}</div>
+          </div>
+          <div class="field">
+            <div class="fl">${esc(t("verify.offlineTool.payloadSizeLabel"))}</div>
+            <div class="fv">${esc(String((parsed.footprint && parsed.footprint.payloadBytes) || 0))} B</div>
+          </div>
+          <div class="field full">
+            <div class="fl">${esc(t("verify.offlineTool.identityTitle"))}</div>
+            <div class="fv">
+              <div><strong>${esc(t("verify.offlineTool.passportIdShort"))}:</strong> ${esc(parsed.semantic.identity.passportId || "—")}</div>
+              <div><strong>${esc(t("verify.offlineTool.creatorIdShort"))}:</strong> ${esc(parsed.semantic.identity.creatorId || "—")}</div>
+              <div><strong>${esc(t("verify.offlineTool.titleShort"))}:</strong> ${esc(parsed.semantic.identity.title || "—")}</div>
+              <div><strong>${esc(t("verify.offlineTool.objectTypeShort"))}:</strong> ${esc(parsed.semantic.identity.objectType || "—")}</div>
+              <div><strong>${esc(t("verify.offlineTool.contentClassShort"))}:</strong> ${esc(parsed.semantic.identity.contentClass || "—")}</div>
+              <div><strong>${esc(t("verify.offlineTool.verificationMethodShort"))}:</strong> ${esc(parsed.semantic.identity.verificationMethod || "—")}</div>
+            </div>
+          </div>
+          <div class="field full">
+            <div class="fl">${esc(t("verify.offlineTool.dataHashLabel"))}</div>
+            <div class="fv mono">${esc(actualDataHash || "—")}</div>
+          </div>
+          ${
+            state
+              ? `<div class="field full">
+            <div class="fl">${esc(t("verify.offlineTool.stateTitle"))}</div>
+            <div class="fv">
+              <div><strong>${esc(t("verify.offlineTool.stateAsOfLabel"))}:</strong> ${esc(stateAsOf)}</div>
+              <div><strong>${esc(t("verify.offlineTool.stateStatusLabel"))}:</strong> ${esc(state.status || "—")}</div>
+              <div><strong>${esc(t("verify.offlineTool.stateFlagsLabel"))}:</strong> ${esc([
+                state.revoked ? t("verify.offlineTool.flagRevoked") : "",
+                state.counterfeitConcern ? t("verify.offlineTool.flagCounterfeit") : "",
+              ].filter(Boolean).join(", ") || t("verify.offlineTool.flagNone"))}</div>
+            </div>
+          </div>`
+              : ""
+          }
+          ${
+            warnings.length
+              ? `<div class="info warn" style="margin-top:10px;line-height:1.55">${warnings.map((w) => esc(w)).join("<br>")}</div>`
+              : ""
+          }
+        </div>
+      </div>`;
+  } catch (e) {
+    out.innerHTML = `<div class="err-box">${esc(e && e.message ? e.message : String(e))}</div>`;
+  }
+}
+
 function verifyPaffFmtTs(sec) {
   const n = Number(sec);
   if (!n || Number.isNaN(n)) return "—";
@@ -3158,6 +3557,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (docVerifyDropEl) docVerifyDropEl.classList.add("has-file");
       if (dropText) dropText.innerHTML = `<span>${esc(f.name || t("verify.doc.fileLabel"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(fmtSize(f.size || 0))}</span>`;
       await verifyDocAttestation();
+    });
+  }
+  const offlineVerifyFileEl = document.getElementById("offlineVerifyFile");
+  const offlineVerifyDropEl = document.getElementById("offlineVerifyFileDrop");
+  if (offlineVerifyFileEl) {
+    offlineVerifyFileEl.addEventListener("change", async () => {
+      const f = offlineVerifyFileEl.files && offlineVerifyFileEl.files[0];
+      const dropText = offlineVerifyDropEl && offlineVerifyDropEl.querySelector(".doc-tool-drop-lines");
+      if (!f) {
+        if (offlineVerifyDropEl) offlineVerifyDropEl.classList.remove("has-file");
+        if (dropText) dropText.innerHTML = `<span>${esc(t("verify.offlineTool.fileDropLine1"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(t("verify.offlineTool.fileDropLine2"))}</span>`;
+        return;
+      }
+      if (offlineVerifyDropEl) offlineVerifyDropEl.classList.add("has-file");
+      if (dropText) dropText.innerHTML = `<span>${esc(f.name || t("verify.offlineTool.fileLabel"))}</span><br><span style="font-size:11px;opacity:0.6">${esc(fmtSize(f.size || 0))}</span>`;
     });
   }
 });

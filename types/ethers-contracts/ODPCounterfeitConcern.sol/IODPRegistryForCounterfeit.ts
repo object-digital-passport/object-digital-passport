@@ -10,20 +10,25 @@ export declare namespace IODPRegistryForCounterfeit {
 
     export type CreatorRecordStructOutput = [creatorId: string, wallet: string, typePrefix: string, timestamp: bigint] & {creatorId: string, wallet: string, typePrefix: string, timestamp: bigint }
   
+
+    export type PassportClassificationViewStruct = {contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish, timestamp: BigNumberish, revoked: boolean, revokedAt: BigNumberish, revocationReasonHash: BytesLike, mintAgent: AddressLike}
+
+    export type PassportClassificationViewStructOutput = [contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, timestamp: bigint, revoked: boolean, revokedAt: bigint, revocationReasonHash: string, mintAgent: string] & {contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, timestamp: bigint, revoked: boolean, revokedAt: bigint, revocationReasonHash: string, mintAgent: string }
+  
     }
 
   export interface IODPRegistryForCounterfeitInterface extends Interface {
-    getFunction(nameOrSignature: "exists" | "getCreator" | "getCreatorByWallet"): FunctionFragment;
+    getFunction(nameOrSignature: "getCreator" | "getCreatorByWallet" | "getPassportClassification"): FunctionFragment;
 
     
 
-    encodeFunctionData(functionFragment: 'exists', values: [string]): string;
-encodeFunctionData(functionFragment: 'getCreator', values: [string]): string;
+    encodeFunctionData(functionFragment: 'getCreator', values: [string]): string;
 encodeFunctionData(functionFragment: 'getCreatorByWallet', values: [AddressLike]): string;
+encodeFunctionData(functionFragment: 'getPassportClassification', values: [string]): string;
 
-    decodeFunctionResult(functionFragment: 'exists', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getCreator', data: BytesLike): Result;
+    decodeFunctionResult(functionFragment: 'getCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getCreatorByWallet', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getPassportClassification', data: BytesLike): Result;
   }
 
   
@@ -62,14 +67,6 @@ decodeFunctionResult(functionFragment: 'getCreatorByWallet', data: BytesLike): R
 
     
     
-    exists: TypedContractMethod<
-      [passportId: string, ],
-      [boolean],
-      'view'
-    >
-    
-
-    
     getCreator: TypedContractMethod<
       [creatorId: string, ],
       [IODPRegistryForCounterfeit.CreatorRecordStructOutput],
@@ -85,15 +82,18 @@ decodeFunctionResult(functionFragment: 'getCreatorByWallet', data: BytesLike): R
     >
     
 
+    
+    getPassportClassification: TypedContractMethod<
+      [passportId: string, ],
+      [IODPRegistryForCounterfeit.PassportClassificationViewStructOutput],
+      'view'
+    >
+    
+
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-    getFunction(nameOrSignature: 'exists'): TypedContractMethod<
-      [passportId: string, ],
-      [boolean],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getCreator'): TypedContractMethod<
+    getFunction(nameOrSignature: 'getCreator'): TypedContractMethod<
       [creatorId: string, ],
       [IODPRegistryForCounterfeit.CreatorRecordStructOutput],
       'view'
@@ -101,6 +101,11 @@ getFunction(nameOrSignature: 'getCreator'): TypedContractMethod<
 getFunction(nameOrSignature: 'getCreatorByWallet'): TypedContractMethod<
       [wallet: AddressLike, ],
       [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'getPassportClassification'): TypedContractMethod<
+      [passportId: string, ],
+      [IODPRegistryForCounterfeit.PassportClassificationViewStructOutput],
       'view'
     >;
 

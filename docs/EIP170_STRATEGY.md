@@ -4,7 +4,11 @@ The Ethereum **Spurious Dragon** rule caps **contract creation bytecode** at **2
 
 ## Current situation
 
-- The reference registry [`contracts/ObjectDigitalPassport.sol`](../contracts/ObjectDigitalPassport.sol) is compiled with the optimizer (`runs: 1`, `viaIR: true` in [`hardhat.config.ts`](../hardhat.config.ts)) and **links** [`contracts/ODPPassportLib.sol`](../contracts/ODPPassportLib.sol) so deployed **registry** bytecode stays **≤ 24 KiB** (library is a **separate** on-chain contract; both must be under the limit at creation — run `npm run compile` from the repo root and read **`[ODP] EIP-170:`**).
+- The deployable reference line now uses a **split architecture**:
+  - main registry: [`contracts/ObjectDigitalPassport.sol`](../contracts/ObjectDigitalPassport.sol)
+  - linked library: [`contracts/ODPPassportLib.sol`](../contracts/ODPPassportLib.sol)
+  - satellites: [`contracts/ODPRegistryRelations.sol`](../contracts/ODPRegistryRelations.sol), [`contracts/ODPPassportProofRegistry.sol`](../contracts/ODPPassportProofRegistry.sol), [`contracts/ODPExtensionMintRouter.sol`](../contracts/ODPExtensionMintRouter.sol), plus optional document-anchor / counterfeit satellites
+- With optimizer `runs: 1` and `viaIR: true` (see [`hardhat.config.ts`](../hardhat.config.ts)), the **main registry** is intended to stay **≤ 24 KiB**. Run `npm run compile` from the repo root and inspect **`[ODP] EIP-170:`** before public deployment.
 - **Hardhat** network is configured with **`allowUnlimitedContractSize: true`** so local tests can run; this **does not** apply to public chains.
 
 ## Before any mainnet / Amoy deploy
@@ -19,7 +23,7 @@ The Ethereum **Spurious Dragon** rule caps **contract creation bytecode** at **2
 
 ### Option B — Satellite contracts
 
-- Move **mint-agent delegation** and/or **future** features (unique `dataHash` registry, ECDSA helper) to a **small secondary contract** the main registry `call`s or that users approve — **design in SPEC first** to keep trust boundaries clear.
+- Preferred reference approach for v0.5+: keep creator/passport core on the main registry, and move optional / orthogonal surfaces into satellites with explicit pairing to the same registry address.
 
 ### Option C — New deployment line
 

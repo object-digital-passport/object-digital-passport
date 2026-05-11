@@ -46,7 +46,7 @@
 - [18. Интероп, позиционирование, DID (информативно)](#18-интероп-позиционирование-did-информативно)
 - [19. URI-схема и опциональные резолверы (информативно)](#19-uri-схема-и-опциональные-резолверы-информативно)
 
-## ВАЖНО: деплойменты 0.x, эталонная линия v0.4 и путь к v1
+## ВАЖНО: деплойменты 0.x, эталонная линия v0.5 и путь к v1
 
 Этот репозиторий описывает линию протокола **v0.X**. На этапе **0.X** правила контракта ещё могут меняться.
 
@@ -55,7 +55,7 @@
 - **Деплоймент** — один адрес контракта (**один экземпляр реестра**).
 - Ваш `creatorId` и паспортные записи относятся **только** к этому деплойменту.
 - Новый деплоймент **не переносит** старые записи автоматически; тот же кошелёк в другом реестре может получить **другой** `creatorId`.
-- **Этот документ — перевод ветки с эталонной линией v0.4** (упакованный **`CONTRACT_VERSION`** = 4). Другие адреса = отдельные реестры; интеграции **обязаны** сопоставлять **сеть + адрес + `CONTRACT_VERSION`** с ABI. Нормативный текст — английский **[SPEC.md](../../SPEC.md)**.
+- **Этот документ — перевод ветки с эталонной линией v0.5** (упакованный **`CONTRACT_VERSION`** = 5). Другие адреса = отдельные реестры; интеграции **обязаны** сопоставлять **сеть + адрес + `CONTRACT_VERSION`** с ABI. В allowlist NFC-моделей референсной линии: `**NTAG424DNA`** и `**NTAG424DNA_TAGTAMPER`**. Нормативный текст — английский **[SPEC.md](../../SPEC.md)**.
 
 Если вам нужен сценарий **«один кошелёк + один долгоживущий `creatorId`»** между поколениями протокола, ориентируйтесь на будущий стабильный **v1**, который может явно описать миграцию или двойное чтение.
 
@@ -90,6 +90,14 @@
 - **Компактные revert**: ошибки через `**error EC(uint16 code)`** — расшифровка по исходнику (строковые сообщения убраны ради размера байткода). Эталонный `**ObjectDigitalPassport`** деплоится **с линкуемой библиотекой** `**ODPPassportLib`** (общий `**error EC`**), чтобы реестр укладывался в 24 KiB (EIP-170); сначала библиотека, затем контракт (см. скрипты деплоя в репозитории). В Hardhat допускается `**allowUnlimitedContractSize`**; перед mainnet проверьте вывод `**[ODP] EIP-170:`** после `compile`.
 
 **Претензия к подделке / institutional concern (v0.4):** спутник `**ODPCounterfeitConcern`** (не на монолите). Семантика и `**NET.counterfeitConcern`** — в [SPEC.md](../../SPEC.md) и в указателях [`../../docs/V0.4.md`](../../docs/V0.4.md) / [`../RELEASE_v0.4.md`](../RELEASE_v0.4.md).
+
+> **Примечание о deployable split-line v0.5:** в реально деплоимой эталонной линии **основной реестр** хранит creator records, core passport state, mint, transfer, revoke и mutable passport fields. Чтобы уложиться в `EIP-170`, часть поверхностей вынесена в **спутники**:
+> - `**ODPRegistryRelations`** — P-affiliation, mint-agent delegation, creator publishing delegation
+> - `**ODPPassportProofRegistry`** — `**submitProof`** и чтение proof
+> - `**ODPExtensionMintRouter`** — `**setMintExtension`** и `**mint*ViaExtension`**
+> - опциональные `**ODPWalletDocumentAnchor`** и `**ODPCounterfeitConcern`**
+>
+> Интеграции НЕ ДОЛЖНЫ предполагать, что эти методы существуют на ABI deployable `**ObjectDigitalPassport`**. Их SHOULD направлять в спутник, настроенный для того же адреса реестра (`**NET.relations`**, `**NET.proofRegistry`** и т.п.). В deployable split-line основной реестр также не обязан содержать convenience-метод `**getRemainingMints()`** и глобальный `**freeze()`**.
 
 **On-chain governance определений типов с timelock** в байткоде эталона не хранится; multisig / DAO — оффчейн, при необходимости фиксируйте хэши в релизах.
 
@@ -547,7 +555,7 @@ Proof от институции, чей ID нельзя найти на их о�
 | ------------- | ------------ | ------------------------------------------------- |
 | `uid`         | yes          | 7-байтовый UID чипа, hex в нижнем регистре        |
 | `publicKey`   | yes          | открытый ключ ECC, hex строка                     |
-| `model`       | yes          | `NTAG424DNA_TT` — принимается только TagTamper    |
+| `model`       | yes          | `NTAG424DNA` или `NTAG424DNA_TAGTAMPER` — должно совпадать с on-chain `nfcModel` |
 | `installedAt` | yes          | дата установки в ISO 8601 (например `2026-03-15`) |
 | `notes`       | no           | способ установки, место, материал герметизации    |
 
@@ -623,13 +631,13 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 
 ## 8. On-chain запись
 
-Раздел соответствует структуре `**Passport`** референсного `**ObjectDigitalPassport`** (упакованный `**contractVersion` = 4** при mint в этой линии). Порядок полей в ABI-тапле может отличаться; **имена** полей нормативны.
+Раздел соответствует структуре `**Passport`** референсного `**ObjectDigitalPassport`** (упакованный `**contractVersion` = 5** при mint в этой линии). Порядок полей в ABI-тапле может отличаться; **имена** полей нормативны.
 
 
 | Поле                   | Тип       | Обязательное | Описание                                                                                                                                                                                                                               |
 | ---------------------- | --------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `passportId`           | `string`  | да           | Passport ID, напр. `ODP-2026-03-004829301` (эталон **v0.4** ABI; legacy `humanId` в старых ABI)                                                                                                                                        |
-| `contractVersion`      | `uint8`   | да           | Упаковано при mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (эталонная линия в этом репо → **4**)                                                                                                                                               |
+| `contractVersion`      | `uint8`   | да           | Упаковано при mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (эталонная линия в этом репо → **5**)                                                                                                                                               |
 | `creator`              | `address` | да           | **Неизменяемый** кошелёк issuer (минтер)                                                                                                                                                                                               |
 | `owner`                | `address` | да           | Текущий держатель; **изначально = `creator`**; меняется только через `**transferPassport**`                                                                                                                                            |
 | `creatorId`            | `string`  | да           | ID профиля (до mint кошелёк должен быть зарегистрирован)                                                                                                                                                                               |
@@ -644,7 +652,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 | `sealType`             | `uint8`   | нет          | Physical: `1` NFC, `2` нумерованная, `3` обе. Digital: **0**                                                                                                                                                                           |
 | `sealHash`             | `bytes32` | нет          | SHA-256 `seal` в `passport.json`; нужен для physical                                                                                                                                                                                   |
 | `nfcPublicKey`         | `bytes`   | нет          | Публичный ключ NFC; пусто без NFC                                                                                                                                                                                                      |
-| `nfcModel`             | `string`  | нет          | `**NTAG424DNA_TT`** при NFC seal; иначе пусто (контракт сравнивает хэш строки)                                                                                                                                                         |
+| `nfcModel`             | `string`  | нет          | `**NTAG424DNA`** или `**NTAG424DNA_TAGTAMPER`** при NFC seal; иначе пусто                                                                                                                                                         |
 | `dataUrl`              | `string`  | нет          | HTTPS URL бандла **§15 `.odpass`** (макс. **512** символов). Может быть `**""`** — тогда HTTP-верификаторы не скачают файл. При mint может разрешаться из «папки» (см. ниже). **Нельзя** указывать «голый» `.json` — только `.odpass`. |
 | `imageUrl`             | `string`  | нет          | Подсказка URL основного изображения (макс. **512** символов)                                                                                                                                                                           |
 | `imageUrl2`            | `string`  | нет          | URL второго изображения (макс. **512**); пусто, если `imageHash2` ноль                                                                                                                                                                 |
@@ -655,28 +663,33 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 | `revocationReasonHash` | `bytes32` | нет          | `**keccak256(UTF-8 reason)`**; **0**, если не отозван                                                                                                                                                                                  |
 | `auxCommitmentHash`    | `bytes32` | нет          | Опциональный **второй** коммитмент (напр. PDF COA), независимый от `dataHash`. **0** = не используется; при **0** поле `auxCommitmentUri` **ДОЛЖНО** быть пустым                                                                       |
 | `auxCommitmentUri`     | `string`  | нет          | HTTPS-подсказка для aux-файла (макс. **512** символов при ненулевом хэше); **пусто**, если хэш **0**                                                                                                                                   |
+| `ndppCommitmentHash`   | `bytes32` | нет          | Опциональный выделенный коммитмент для **NDPP / public offline payload** (например QR/NFC-данные публичного раскрытия или long-DPP-style snapshot). **0** = не используется; при **0** поле `ndppCommitmentUri` **ДОЛЖНО** быть пустым |
+| `ndppCommitmentUri`    | `string`  | нет          | HTTPS-подсказка для NDPP payload или snapshot (макс. **512** символов при ненулевом хэше); **пусто**, если хэш **0**                                                                                                                  |
 
 
 **Выводимое:** время цепи для off-chain отображают в **UTC**; отдельного поля `timestampTimeZone` нет.
 
-**Неизменяемость хэшей после mint:** `dataHash`, `**imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` никогда не меняются on-chain. `**auxCommitmentHash` / `auxCommitmentUri` изменяемы** через `**updatePassportAuxCommitment`** (только `**creator` или `governance`**; паспорт не должен быть отозван).
+**Неизменяемость хэшей после mint:** `dataHash`, `**imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` никогда не меняются on-chain. `**auxCommitmentHash` / `auxCommitmentUri` и `**ndppCommitmentHash` / `ndppCommitmentUri` изменяемы** через `**updatePassportAuxCommitment`** / `**updatePassportNdppCommitment`** (только `**creator` или `governance`**; паспорт не должен быть отозван).
 
 **Папочный `dataUrl` при mint:** если `dataUrlIsFolderBase` = true, в вызов передаётся только **корень HTTPS-папки**; контракт сохраняет `stripTrailingSlash(folder) + "/" + passportId + ".odpass"` после известного Passport ID (имя файла бандла §15). `**updatePassportUrls`** всегда задаёт **буквальные** строки (без разрешения папки) и обновляет **только** `dataUrl` и **основной** `imageUrl` — не `imageUrl2` / `imageUrl3`.
 
-### Референсный контракт — mint (эталон v0.4)
+### Референсный контракт — mint (эталон v0.5)
 
-- `**mintPhysical(..., imageHash3, imageUrl3, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
-- `**mintDigital(..., imageHash3, imageUrl3, fileHash, dataUrlIsFolderBase, auxCommitmentHash, auxCommitmentUri)`**
-- `**mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** / `**mintPhysicalViaExtension(mintClass, payload, dataUrlIsFolderBase)`** — зарегистрированный governance `**IODPExtension`**; `**normalize`** возвращает `abi.encode` 13-кортежа (digital + aux) или 16-кортежа (physical + aux, без `dataUrlIsFolderBase`). При успехе эмитится `**ExtensionMintUsed(mintClass, kind, passportId)**` (`**kind`**: `0` digital, `1` physical), дополнительно к `**PassportMinted`**.
+- `**mintPhysical(m, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** — `**m**` это tuple `PhysicalMintInputs` с `core`, media hashes/URLs, seal fields и aux / NDPP commitment fields.
+- `**mintDigital(dm, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** — `**dm**` это tuple `DigitalMintInputs` с `core`, media hashes/URLs, file hash и aux / NDPP commitment fields.
+- `**mintMixed(mm, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** — `**mm**` это tuple `MixedMintInputs`, включающий и physical, и digital integrity fields плюс aux / NDPP commitment fields.
+- `**mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** / `**mintPhysicalViaExtension(...)**` — зарегистрированный governance `**IODPExtension`**; `**normalize`** возвращает ABI-кодирование соответствующего mint tuple v0.5. При успехе эмитится `**ExtensionMintUsed(mintClass, kind, passportId)**` (`**kind`**: `0` digital, `1` physical), дополнительно к `**PassportMinted`**.
 - `**updatePassportAuxCommitment(passportId, newHash, newUri)**` — `**creator` или `governance**`; те же правила пустоты aux, что при mint; событие `**PassportAuxCommitmentUpdated**`.
+- `**updatePassportNdppCommitment(passportId, newHash, newUri)**` — `**creator` или `governance**`; те же правила пустоты/хэша для выделенного NDPP-слота; событие `**PassportNdppCommitmentUpdated**`.
 
-### Референсный контракт — владение, URL, отзыв (эталон v0.4)
+### Референсный контракт — владение, URL, отзыв (эталон v0.5)
 
 
 | Функция                                                                      | Кто может вызывать                                                              | Примечания                                                             |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `updatePassportUrls(passportId, newDataUrl, newImageUrl, confirmedDataHash)` | `**creator` или `owner**`, либо **активный агент публикации эмитента**          | Нужно `confirmedDataHash == dataHash`; отозванные паспорты отклоняются |
 | `updatePassportAuxCommitment(passportId, newHash, newUri)`                   | `**creator` или `governance`**                                                  | Отозванные паспорты отклоняются; правила aux как при mint              |
+| `updatePassportNdppCommitment(passportId, newHash, newUri)`                  | `**creator` или `governance`**                                                  | Отозванные паспорты отклоняются; правила NDPP как при mint             |
 | `transferPassport(passportId, newOwner)`                                     | `**owner`**                                                                     | `newOwner != address(0)`                                               |
 | `delegateCreatorPublishing(agent, expiresAt)`                                | **Зарегистрированный профиль** (`msg.sender`); слот на кошелёк `**msg.sender`** | Один активный агент на кошелёк эмитента; `expiresAt > block.timestamp` |
 | `revokeCreatorPublishing()`                                                  | **Зарегистрированный профиль** (очищает свой слот)                              |                                                                        |
@@ -686,7 +699,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 
 **Counterfeit concern:** в эталонном стеке — спутник `**ODPCounterfeitConcern`** (см. §4 и раздел «ВАЖНО» в начале).
 
-### Референсный контракт — деплой, freeze, governance (эталон v0.4)
+### Референсный контракт — деплой, freeze, governance (эталон v0.5)
 
 > **Стабильная v1 (план):** описанный ниже реестровый механизм `**freeze()`** **не** входит в задуманную стабильную линию протокола — он будет **убран** или заменён иной моделью управления. См. `[docs/IDEAS_V1.md](../../docs/IDEAS_V1.md)`.
 
@@ -770,18 +783,81 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 3. `**creator` или `owner`** могут обновить `dataUrl` (и основной `imageUrl`) через `**updatePassportUrls**` (эталон **v0.4**) **без** повторного mint, если размещённый `**.odpass`** по-прежнему содержит тот же `passport.json` для `dataHash` и паспорт не отозван.
 4. **Референсные и совместимые UIs** **ДОЛЖНЫ** требовать **явного подтверждения** перед mint: публикация `**.odpass`** — ответственность создателя; публичная проверка зависит от доступности файла `**.odpass`** по URL при заданном `dataUrl`; пользователь должен скачать бандл до закрытия экрана успеха, если UI это предлагает.
 
-### Роль issuer и дополнительная метадата (нормативно)
+### Каноническая схема паспорта v0.5 (нормативно)
 
+Канонический `passport.json` для текущей линии — это форма **v0.5**, используемая референсным контрактом и веб-интерфейсом. Старые верхнеуровневые таксономии `type` / `digital.subtype` больше **не** являются главным классификатором. Обязательная ось классификации теперь такая:
 
-| Поле                 | Обязательное  | Тип      | Описание                                                                                                                                                                                                                                                                                                                                                                   |
-| -------------------- | ------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `issuerRole`         | рекомендуется | `string` | Одно из: `individual`, `brand`, `proof_institution`, `museum`. Описывает **роль issuer в сети** для этого паспорта (например музей, каталогизирующий работу ушедшего художника → `museum`). **ДОЛЖНО** согласовываться с **префиксом `creatorId`** (`C`/`B`/`P`/`M`) по ситуации.                                                                                          |
-| `additionalMetadata` | опционально   | `object` | Произвольные **строковые ключи**, сопоставленные **строковым значениям** (Unicode NFC). Используйте для фактов, специфичных для институции или объекта, которые **не** описаны в других полях — например номер инвентаря, accession id, флаг постоянной коллекции, заметка по выставке. Ключи **ДОЛЖНЫ** быть стабильными идентификаторами (`snake_case` или `camelCase`). |
+- `domain`
+- `objectType`
+- `status`
+- `contentClass`
+- опционально `refinementTags`
 
+#### Обязательные верхнеуровневые группы полей
 
-Эти поля входят в хэшируемую часть `passport.json`; изменение приводит к изменению `dataHash`.
+| Поле / группа | Обязательное | Тип | Примечание |
+| --- | --- | --- | --- |
+| `version` | yes | `string` | Для этой линии ДОЛЖНО быть `"0.5"`. |
+| `passportId` | yes | `string` | ДОЛЖНО совпадать с Passport ID on-chain. |
+| `title` | yes | `string` | Человекочитаемое название. |
+| `description` | рекомендуется | `string` | Краткое описание объекта. |
+| `creationDate` | рекомендуется | `string` | Дата создания объекта или якорь периода создания; формат SHOULD быть однозначным и ISO-подобным. |
+| `authorship` | yes | `object` | Содержит `author` (обязательно), опционально `coAuthors`, опционально `team`. |
+| `domain` | yes | `string` | Область / поле, например `contemporary_art`, `graphic_design`, `software`. |
+| `objectType` | yes | `string` | Одно из `physical`, `digital`, `mixed`. |
+| `status` | yes | `string` | Lifecycle-состояние, зеркалируемое в on-chain `lifecycleStatus`. |
+| `contentClass` | yes | `string` | Одно из контролируемых значений ниже. |
+| `aiStatus` | yes | `string` | Одно из контролируемых значений ниже. |
+| `verificationMethod` | yes | `string` | Одно из контролируемых значений ниже. |
+| `edition` | yes | `object` | ДОЛЖНО содержать `model`; МОЖЕТ содержать `number` и `total`, если это осмысленно. |
+| `year`, `month` | yes | integer | UTC год/месяц минта; ДОЛЖНЫ совпадать с on-chain mint inputs. |
+| `registeredAt`, `registration` | yes | number / object | Представление момента регистрации только через UTC; см. ниже. |
 
-### Таксономия класса контента (вектор v0.5; рекомендуется уже сейчас)
+#### Контролируемые значения
+
+| Поле | Допустимые значения |
+| --- | --- |
+| `status` | `concept`, `prototype`, `produced_object`, `archived` |
+| `contentClass` | `static`, `time_based`, `spatial`, `textual`, `composite`, `executable` |
+| `aiStatus` | `none`, `assisted`, `generated` |
+| `verificationMethod` | `self_asserted`, `institutional`, `nfc`, `c2pa`, `hybrid` |
+| `edition.model` | `unique`, `limited`, `open`, `dynamic` |
+
+#### Объектно-специфические блоки
+
+| Блок | Обязателен когда | Примечание |
+| --- | --- | --- |
+| `currentState` | рекомендуется для всех объектов | Снимок изменяемого состояния: `location`, `rightsNote`, `conditionNote`, опционально `damageHistoryHash`, `damageHistoryUrl`. |
+| `physical` | `objectType = physical` или `mixed` | Структурированные физические факты: `category`, `medium`, `materials`, `dimensions`, `weight`, `marks`, `seal`. |
+| `digital` | `objectType = digital` или `mixed` | Структурированные цифровые факты: `subtype`, `format`, `fileHash`, `fileSize`, опционально `c2pa`. |
+| `image` | рекомендуется | Основное preview-изображение: hash / URL. |
+| `images` | опционально | Дополнительные preview-изображения. |
+| `refinementTags` | опционально | Свободные уточняющие ярлыки; не заменяют контролируемую таксономию. |
+| `additionalMetadata` | опционально | Стабильная метадата со строковыми ключами, не описанная отдельными полями. |
+
+#### Семантика mixed-объекта
+
+Если `objectType = mixed`, канонический JSON **ДОЛЖЕН** содержать **оба** блока: `physical` и `digital`. Верификатор должен понимать такой паспорт как один объект реестра с двумя поверхностями доверия:
+
+1. физический слой, привязанный к seal / NFC / numbered marks;
+2. цифровой слой, привязанный к `fileHash` и цифровым дескрипторам.
+
+`mixed` — это **не** запасной ярлык на случай сомнений, а явное утверждение, что обе стороны объекта являются first-class.
+
+#### Mutable vs immutable (нормативно)
+
+Линия v0.5 намеренно разделяет неизменяемый hash-bound документ и выбранное изменяемое on-chain состояние:
+
+- **Неизменяемо и входит в `dataHash`:**
+  `title`, `description`, `creationDate`, `authorship`, `domain`, `objectType`, `contentClass`, `refinementTags`, `aiStatus`, `verificationMethod`, `edition`, `image`, `images`, `physical`, `digital`, `additionalMetadata`, `year`, `month`, `registeredAt`, `registration`.
+- **Изменяемые on-chain поля текущего состояния:**
+  `status`, `currentState.location`, `currentState.rightsNote`, `currentState.conditionNote`, `currentState.damageHistoryHash`, `currentState.damageHistoryUrl`.
+- **Правило авторитетности после mint:**
+  если hash-bound JSON snapshot и on-chain mutable state расходятся, верификатор **ДОЛЖЕН** считать авторитетными именно **on-chain current-state fields** для текущего статуса / локации / прав / состояния.
+- **Append-only history:**
+  `ProofRecord` остаётся отдельным append-only on-chain слоем. Подробные provenance / ownership / damage histories SHOULD вестись как append-only off-chain документы, а в `currentState` хранится текущий pointer или summary.
+
+### Таксономия класса контента (нормативно для v0.5)
 
 Чтобы не привязывать протокол к быстро устаревающим ярлыкам форматов файлов, реализации ДОЛЖНЫ добавлять верхнеуровневый `contentClass` в `passport.json` со значением из списка:
 
@@ -791,8 +867,6 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 - `textual` — семантическое символьное содержание
 - `composite` — структурированный multi-file bundle
 - `executable` — исполняемая логика, производящая результат
-
-Для текущей линии v0.4 `contentClass` остаётся off-chain метаданным (входит в `dataHash`) и не меняет tuple on-chain. В планируемой контрактной линии v0.5 ожидается перевод в обязательное первоклассное поле.
 
 ### Календарные `year` / `month` в `passport.json` (нормативно, референс v0.4+)
 
@@ -815,87 +889,29 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 
 Реализации **НЕ ДОЛЖНЫ** записывать **IANA-часовой пояс устройства** (например `Europe/Berlin`), **НЕ ДОЛЖНЫ** выводить в `registration.localIso8601` смещение, **отличное от `+00:00`**, и **НЕ ДОЛЖНЫ** строить `registration.*` от **локальных календарных часов** устройства. Имя поля `localIso8601` — **историческое**: значение по-прежнему кодирует **тот же момент в UTC** только со смещением `+00:00` (см. референс `tools/mint.py` и веб-минт).
 
-### Минимально валидный паспорт — физический объект
+### Канонический пример v0.5 — физический объект
 
 ```json
 {
-  "version": "0.2",
+  "version": "0.5",
   "passportId": "ODP-2026-03-004829301",
-  "objectType": "physical",
-  "type": "artwork",
   "title": "Object Community #1",
-  "issuerRole": "individual",
-  "creator": {
-    "name": "Пример владельца",
-    "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174-005"
-  },
-  "year": 2026,
-  "month": 3,
-  "registeredAt": 1748000000,
-  "registration": {
-    "ianaTimeZone": "UTC",
-    "localIso8601": "2026-03-22T18:30:45+00:00",
-    "utcIso8601": "2026-03-22T18:30:45Z"
-  },
-  "seal": {
-    "nfc": {
-      "uid": "04a3f912cc8b4e",
-      "publicKey": "04b2e3f1a9c3d2...",
-      "model": "NTAG424DNA_TT",
-      "installedAt": "2026-03-15"
-    }
-  }
-}
-```
-
-### Минимально валидный паспорт — цифровой объект
-
-```json
-{
-  "version": "0.2",
-  "passportId": "ODP-2026-03-000193847",
-  "objectType": "digital",
-  "type": "digital",
-  "title": "Untitled #7",
-  "issuerRole": "individual",
-  "creator": {
-    "name": "Пример владельца",
-    "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174-005"
-  },
-  "year": 2026,
-  "month": 3,
-  "registeredAt": 1748000000,
-  "registration": {
-    "ianaTimeZone": "UTC",
-    "localIso8601": "2026-03-22T18:30:45+00:00",
-    "utcIso8601": "2026-03-22T18:30:45Z"
-  },
-  "digital": {
-    "subtype": "image",
-    "format": "TIFF",
-    "fileHash": "sha256:abc123...",
-    "fileSize": 48392810
-  }
-}
-```
-
-### Полный паспорт — физический объект (все опциональные поля)
-
-```json
-{
-  "version": "0.2",
-  "passportId": "ODP-2026-03-004829301",
+  "description": "Подписанный mixed-media объект с NFC-backed seal.",
+  "creationDate": "2025-11",
+  "domain": "contemporary_art",
   "objectType": "physical",
-  "type": "artwork",
-  "title": "Object Community #1",
-  "issuerRole": "individual",
-  "creator": {
-    "name": "Пример владельца",
-    "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174-005",
-    "url": "https://artist.com"
+  "status": "produced_object",
+  "contentClass": "static",
+  "aiStatus": "assisted",
+  "verificationMethod": "nfc",
+  "edition": { "model": "limited", "number": 1, "total": 3 },
+  "authorship": {
+    "author": {
+      "name": "Пример владельца",
+      "wallet": "0x742d...f2c8",
+      "creatorId": "C-482-930-174-005"
+    },
+    "team": "Studio North"
   },
   "year": 2026,
   "month": 3,
@@ -905,70 +921,56 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
     "localIso8601": "2026-03-22T18:30:45+00:00",
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
-  "medium": "mixed media, Polaroid",
-  "materials": [
-    { "name": "canvas", "notes": "linen, primed" },
-    { "name": "oil paint", "notes": "natural pigment" },
-    { "name": "Polaroid photograph" }
-  ],
-  "dimensions": {
-    "width": 60,
-    "height": 40,
-    "unit": "cm"
+  "currentState": {
+    "location": "архив автора",
+    "rightsNote": "Выставка по запросу",
+    "conditionNote": "Отличное"
   },
-  "edition": {
-    "number": 1,
-    "total": 3
-  },
-  "description": "...",
+  "refinementTags": ["artwork", "mixed_media", "signed"],
   "image": {
-    "url": "https://artist.com/works/001.jpg",
+    "url": "https://artist.example/objects/001-main.jpg",
     "hash": "sha256:abc123..."
   },
-  "seal": {
-    "nfc": {
-      "uid": "04a3f912cc8b4e",
-      "publicKey": "04b2e3f1a9c3d2...",
-      "model": "NTAG424DNA_TT",
-      "installedAt": "2026-03-15",
-      "notes": "Embedded under varnish, bottom-right corner"
-    },
-    "numbered": {
-      "number": "SL-00429831",
-      "type": "holographic sticker",
-      "color": "silver",
-      "size": "30x30mm",
-      "notes": "Applied over artist signature"
+  "physical": {
+    "category": "artwork",
+    "medium": "mixed media",
+    "materials": [{ "name": "canvas" }, { "name": "oil paint" }],
+    "dimensions": { "width": 60, "height": 40, "unit": "cm" },
+    "marks": [{ "type": "signature", "description": "Подпись на обороте" }],
+    "seal": {
+      "nfc": {
+        "uid": "04a3f912cc8b4e",
+        "publicKey": "04b2e3f1a9c3d2...",
+        "model": "NTAG424DNA_TAGTAMPER",
+        "installedAt": "2026-03-15"
+      }
     }
-  },
-  "provenance": [
-    {
-      "event": "created",
-      "date": "2026-02-22",
-      "note": "Grey Scheme exhibition, Moscow"
-    }
-  ],
-  "additionalMetadata": {
-    "studio_notes": "Пример примечания аттестации"
   }
 }
 ```
 
-### Полный паспорт — цифровой объект (все опциональные поля)
+### Канонический пример v0.5 — цифровой объект
 
 ```json
 {
-  "version": "0.2",
+  "version": "0.5",
   "passportId": "ODP-2026-03-000193847",
-  "objectType": "digital",
-  "type": "digital",
   "title": "Untitled #7",
-  "issuerRole": "individual",
-  "creator": {
-    "name": "Пример владельца",
-    "wallet": "0x742d...f2c8",
-    "creatorId": "C-482-930-174-005",
-    "url": "https://artist.com"
+  "description": "Single-edition digital work with optional C2PA manifest.",
+  "creationDate": "2026-02-18",
+  "domain": "digital_art",
+  "objectType": "digital",
+  "status": "produced_object",
+  "contentClass": "static",
+  "aiStatus": "generated",
+  "verificationMethod": "c2pa",
+  "edition": { "model": "unique" },
+  "authorship": {
+    "author": {
+      "name": "Пример владельца",
+      "wallet": "0x742d...f2c8",
+      "creatorId": "C-482-930-174-005"
+    }
   },
   "year": 2026,
   "month": 3,
@@ -978,58 +980,98 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
     "localIso8601": "2026-03-22T18:30:45+00:00",
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
-  "description": "...",
+  "currentState": {
+    "rightsNote": "Коллекционер получает только display rights"
+  },
+  "refinementTags": ["image", "generative"],
+  "image": {
+    "url": "https://artist.example/works/007-preview.jpg",
+    "hash": "sha256:preview789..."
+  },
   "digital": {
     "subtype": "image",
     "format": "TIFF",
     "fileHash": "sha256:abc123...",
     "fileSize": 48392810,
-    "dataUrl": "https://artist.com/works/007-original.tiff",
     "c2pa": {
       "manifestHash": "sha256:def456...",
-      "specVersion": "2.1"
+      "activeManifest": "Adobe Content Credentials"
     }
-  },
-  "image": {
-    "url": "https://artist.com/works/007-preview.jpg",
-    "hash": "sha256:preview789..."
-  },
-  "provenance": [
-    {
-      "event": "created",
-      "date": "2026-03-01"
-    }
-  ],
-  "additionalMetadata": {
-    "rights_note": "Пример: автор сохраняет авторские права; NFT не передаёт исключительные права."
   }
 }
 ```
 
-### Возможные значения `digital.subtype`
+### Канонический пример v0.5 — mixed object
 
+```json
+{
+  "version": "0.5",
+  "passportId": "ODP-2026-03-000555120",
+  "title": "Executable Sculpture #2",
+  "description": "Физическая скульптура, связанная с исполняемым realtime software.",
+  "creationDate": "2026-01-30",
+  "domain": "contemporary_art",
+  "objectType": "mixed",
+  "status": "prototype",
+  "contentClass": "composite",
+  "aiStatus": "assisted",
+  "verificationMethod": "hybrid",
+  "edition": { "model": "dynamic" },
+  "authorship": {
+    "author": {
+      "name": "Пример владельца",
+      "wallet": "0x742d...f2c8",
+      "creatorId": "C-482-930-174-005"
+    },
+    "coAuthors": [{ "name": "Collaborator A" }]
+  },
+  "year": 2026,
+  "month": 3,
+  "registeredAt": 1748000000,
+  "registration": {
+    "ianaTimeZone": "UTC",
+    "localIso8601": "2026-03-22T18:30:45+00:00",
+    "utcIso8601": "2026-03-22T18:30:45Z"
+  },
+  "currentState": {
+    "location": "studio lab",
+    "rightsNote": "Выставка и документация по соглашению",
+    "conditionNote": "Электроника прототипа обслужена в 2026-03",
+    "damageHistoryHash": "sha256:0011aa...",
+    "damageHistoryUrl": "https://artist.example/objects/executable-sculpture-2-condition-log.json"
+  },
+  "refinementTags": ["installation", "software", "sensor_based"],
+  "image": {
+    "url": "https://artist.example/works/executable-sculpture-2-main.jpg",
+    "hash": "sha256:1122bb..."
+  },
+  "physical": {
+    "category": "object",
+    "materials": [{ "name": "aluminium" }, { "name": "custom electronics" }],
+    "marks": [{ "type": "label", "description": "Внутренний серийный номер ES-2" }],
+    "seal": {
+      "numbered": {
+        "number": "SL-00429831",
+        "type": "holographic sticker"
+      }
+    }
+  },
+  "digital": {
+    "subtype": "software",
+    "format": "ZIP",
+    "fileHash": "sha256:99aa77...",
+    "fileSize": 148392810
+  },
+  "additionalMetadata": {
+    "installationPower": "220V",
+    "controllerVersion": "2.3.1"
+  }
+}
+```
 
-| Значение   | Форматы             | Рекомендуемый master-формат            |
-| ---------- | ------------------- | -------------------------------------- |
-| `image`    | TIFF, PNG, PSD, RAW | Оригинал без сжатия                    |
-| `video`    | ProRes, MOV, MP4    | Мастер без перекодирования             |
-| `3d`       | GLB, OBJ, FBX       | GLB (канонический для этого протокола) |
-| `audio`    | WAV, FLAC, AIFF     | Несжатый мастер                        |
-| `document` | PDF                 | Оригинальный PDF                       |
-| `other`    | Any                 | Оригинальный файл                      |
+### Legacy note on old subtype/category fields
 
-
-### Возможные значения `type`
-
-
-| Значение      | Используется с                                              |
-| ------------- | ----------------------------------------------------------- |
-| `artwork`     | Живопись, скульптура, рисунок, смешанные техники            |
-| `photography` | Фотография, Polaroid, отпечатки                             |
-| `digital`     | Цифровое искусство, generative, программно-созданное        |
-| `collectible` | Коллекционные предметы, лимитированные издания, memorabilia |
-| `document`    | Документы, сертификаты, рукописи                            |
-| `object`      | Любой другой физический объект                              |
+`physical.category` и `digital.subtype` МОГУТ сохраняться как описательные подполя, но это **вторичные дескрипторы**. Первичная классификация v0.5 ДОЛЖНА исходить из `domain`, `objectType`, `status`, `contentClass` и опциональных `refinementTags`.
 
 
 ### Принцип цифрового авторства
@@ -1154,6 +1196,30 @@ imageHash = SHA-256( raw image file bytes )
 
 Перед хэшированием ни в коем случае не модифицируйте файл.
 
+### `ndppCommitmentHash` (опциональный NDPP / public offline payload)
+
+```
+ndppCommitmentHash = SHA-256( raw bytes NDPP payload )
+```
+
+`**ndppCommitmentHash`** якорит опциональный **публичный offline payload** без превращения основного реестра в хранилище большого JSON. Типичные примеры:
+
+- байты, переносимые NFC / QR как NDPP-style public payload,
+- компактный публичный snapshot для offline- или low-bandwidth-проверки,
+- long-DPP-style public disclosure файл, публикуемый отдельно от канонического `**.odpass`**.
+
+ODP **НЕ ДОЛЖЕН** моделироваться так, будто каждый паспорт обязан быть объектом NFC Forum DPP / NDPP. NFC и NDPP — это только **опциональный carrier layer**. Паспорт может выпускаться и проверяться через QR, прямую публикацию `**.odpass`**, печатный сертификат, ручной ввод Passport ID или другой совместимый транспорт вообще без NFC-метки.
+
+Аналогично, DPP / sustainability disclosure **не равно** authenticity. Нормативное ядро ODP — это on-chain registry, Passport ID, канонический `**passport.json`** / `**.odpass`** и правила hash verification из этой спецификации. NDPP-совместимый payload — это лишь слой удобной public disclosure / offline delivery, но не новая основа модели подлинности.
+
+В этой линии реестр **не** задаёт один обязательный NDPP media type. Payload **МОЖЕТ** быть JSON, CBOR, NDEF-payload byte string, ZIP или другой детерминированной последовательностью байтов, о которой договорились issuer и verifier stack. Верификаторы **обязаны хэшировать точные raw-байты**, полученные из файла / carrier / URL, и сравнивать их с `**ndppCommitmentHash`**.
+
+`**ndppCommitmentUri`** — только подсказка, где можно получить эти байты. Он **не** заменяет `**dataUrl`**, а NDPP **не** заменяет верификацию канонического `**passport.json`** / `**.odpass`**, привязанного через `**dataHash`**.
+
+ODP **не требует** sustainability-полей вроде состава материалов, ремонтопригодности, recycling instructions, end-of-life disclosure или carbon-footprint reporting. Реализации **МОГУТ** публиковать такие данные внутри отдельного NDPP / public-disclosure payload, когда это уместно, но эти поля не входят в нормативное ядро ODP, если другой профиль явно не требует иного.
+
+Для NFC Forum-compatible NDEF carriers реализации **ДОЛЖНЫ** размещать стандартную URL / URI запись **первой** ради широкой совместимости со смартфонами. Дополнительно они **МОГУТ** добавлять отдельную ODP-specific запись с компактными verification metadata или иным детерминированным public payload, чьи raw-байты заякорены через `**ndppCommitmentHash`**.
+
 ---
 
 ## 11. Алгоритм верификации
@@ -1163,9 +1229,14 @@ imageHash = SHA-256( raw image file bytes )
 ```
 Ввод: passportId (из QR, NFC или ручного ввода)
 
-1. Запрос к контракту: getPassport(passportId)
-   → { dataHash, objectType, sealType, sealHash,
-       nfcPublicKey, fileHash, dataUrl, creator, creatorId, timestamp }
+1. Запросить read surface контракта:
+   - `getPassportHeader(passportId)`
+   - `getPassportClassification(passportId)`
+   - `getPassportMedia(passportId)`
+   - `getPassportPhysical(passportId)`
+   - `getPassportState(passportId)`
+   → собрать поля, нужные для верификации (`dataHash`, `objectType`, `sealType`, `sealHash`,
+     `nfcPublicKey`, `fileHash`, `dataUrl`, `creator`, `creatorId`, `timestamp`, текущее состояние)
 
 2. Если запись не найдена → INVALID
 
@@ -1210,7 +1281,7 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 **Шаги верификации:**
 
 1. `recoveredAddress = ecrecover(EIP191(message), signature)` (как в `ethers.verifyMessage` или аналоге).
-2. `getPassport(passportId)` у реестра этой сети → прочитать `creator`.
+2. `getPassportHeader(passportId)` у реестра этой сети → прочитать `creator`.
 3. **Совпадение**, если `recoveredAddress == creator` (сравнение адресов без учёта регистра).
 
 Верификатор должен подтвердить, что `chainId` и `contract` в сообщении совпадают с проверяемым деплойментом. Реализации могут отклонять сообщения, у которых строка `passportId` не соответствует паспорту, который проверяется.
@@ -1239,6 +1310,29 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 - **Закрепить (submit):** зарегистрированный кошелёк вызывает `attestExternalDocument` на `**ODPWalletDocumentAnchor`**; UI допускает опциональный HTTPS URL (макс. 512 символов).
 - **Проверить (verify):** загрузка файла, локальный SHA-256, поиск аттестаций по `**ExternalDocumentAttested`** (`documentHash` в topic), подтверждение через `**getExternalDocumentAttestation`** на якоре; **глобальный** поиск без ввода profile ID.
 
+### Уровень 1D — NDPP / public offline payload (опциональный carrier layer)
+
+**Назначение:** заякорить компактный **публичный** payload для offline- или low-bandwidth-раскрытия без замены канонического `**passport.json`** / `**.odpass`**.
+
+Этот уровень **опционален**. Паспорт остаётся валидным и без NFC, и без NDPP, и без какого-либо специального carrier payload сверх канонической связки registry + `**.odpass`**.
+
+**On-chain (`ObjectDigitalPassport`, эталон v0.5):**
+
+- `**ndppCommitmentHash`** / `**ndppCommitmentUri`** в записи паспорта.
+- `**updatePassportNdppCommitment(passportId, newHash, newUri)`** — только `**creator`** или `**governance`**; то же правило пустоты/хэша, что и у aux commitment.
+
+**Верификация:**
+
+1. Получить NDPP payload bytes из ожидаемого источника (например байты, считанные через NFC, файл по QR, или raw body, загруженный по `**ndppCommitmentUri`**).
+2. Вычислить `**SHA-256(raw bytes)`**.
+3. Сравнить с on-chain `**ndppCommitmentHash`**.
+4. **Совпадение**    → публичный offline payload сейчас заякорен для этого паспорта.
+5. **Нет совпадения** → mismatch NDPP payload.
+
+**Интерпретация для верификатора:** NDPP — это **дополнительный слой публичной информации**, а не основной integrity anchor паспорта. Совпавший NDPP payload можно показывать как заякоренные public disclosure data; mismatch означает, что именно NDPP-слой не прошёл проверку, но сам по себе не отменяет результат канонической проверки `**dataHash`** / `**.odpass`**. И наоборот: совпавший `**dataHash`** не валидирует отдельный NDPP payload автоматически, пока не совпадёт и его собственный хэш.
+
+Если carrier использует NFC Forum-compatible NDEF, верификаторы и issuers должны воспринимать сам NFC-носитель только как удобный транспорт. Стандартная URL / URI запись может быть phone-friendly точкой входа, а любая дополнительная ODP-specific verification record остаётся вторичной и опциональной.
+
 ### Уровень 2A — проверка NFC seal (physical, sealType 1 или 3)
 
 ```
@@ -1248,7 +1342,7 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 4. Match    → SEAL_NFC_AUTHENTIC
    No match → SEAL_NFC_INVALID
 
-If chip is NTAG424DNA_TT:
+If chip model is `NTAG424DNA_TAGTAMPER`:
 5. Read tamper status
    INTACT   → SEAL_NFC_INTACT
    TAMPERED → SEAL_NFC_TAMPERED
@@ -1344,28 +1438,47 @@ URI `**odp://`** **не** указывает **chain ID** и **адрес рее
 Уровень 1 (основное чтение)
 
 - `exists(passportId) -> bool` (не делает revert)
-- `getPassport(passportId) -> Passport` (полная структура; reverts если не найден)
+- `getPassportHeader(passportId) -> PassportHeaderView`
+- `getPassportClassification(passportId) -> PassportClassificationView`
+- `getPassportMedia(passportId) -> PassportMediaView`
+- `getPassportPhysical(passportId) -> PassportPhysicalView`
+- `getPassportState(passportId) -> PassportStateView`
 - `getCreator(creatorId) -> CreatorRecord`
-- `getProofsForPassport(passportId) -> string[]` (ID доказательств; верификаторы SHOULD пагинировать **на клиенте**, если список может быть большим)
-- `getProof(proofId) -> ProofRecord`
-- `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
-- `getPAffiliationAudit(childPId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
-- `governance() -> address` · `deployer() -> address` · `frozen() -> bool`
+- `governance() -> address`
 
 Опционально — **counterfeit / authenticity concern:** `getCounterfeitConcern(passportId) -> (active, proverCreatorId, reasonHash, ts)` на `**ODPCounterfeitConcern`** (спутник); не на `**ODPWalletDocumentAnchor`**. Запись: `**raiseCounterfeitConcern(passportId, reasonHash)`**, `**clearCounterfeitConcern(passportId)**` (**P** / **M**).
 
+Опционально — **спутник proof (`ODPPassportProofRegistry`):**
+
+- `submitProof(passportId, noteHash, noteUrl, year, month) -> proofId`
+- `getProofsForPassport(passportId) -> string[]` (ID доказательств; верификаторы SHOULD пагинировать **на клиенте**, если список может быть большим)
+- `getProof(proofId) -> ProofRecord`
+
+Опционально — **спутник relations (`ODPRegistryRelations`):**
+
+- `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
+- `getPAffiliationAudit(childPId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
+- `delegateCreatorPublishing(agent, expiresAt)`
+- `revokeCreatorPublishing()`
+- `requestMintAgentRole(principalCreatorId)` / `confirmMintAgentRole(agent)` / `revokeMintAgentRole()`
+
+Опционально — **router extension mint (`ODPExtensionMintRouter`):**
+
+- `setMintExtension(mintClass, extension)`
+- `mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`
+- `mintPhysicalViaExtension(mintClass, payload, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`
+
 Опциональные списки Уровня 1
 
-- `getPassportsByCreator(creatorWallet) -> string[]` (полный список; UI SHOULD пагинировать на клиенте или использовать paged ниже)
-- `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> string[]` (эталонный основной реестр **v0.4**) — срез; `**getProofsForPassportPaged`** **не** входит в байткод (компромисс размера)
+- `getPassportsByCreatorPaged(creatorWallet, offset, limit) -> string[]` — bounded slice на deployable main registry
+- legacy / convenience `getPassportsByCreator(creatorWallet) -> string[]` может существовать в старых деплоях, но deployable split-line интеграции SHOULD от него не зависеть
 
-**Составное чтение (вместо удалённого `resolvePassport`):** `getPassport` + `getCreator(passport.creatorId)` + `getProofsForPassport(passportId).length` + `CONTRACT_VERSION` (публичная константа).
+**Составное чтение (вместо удалённого `resolvePassport`):** `getPassport*View` с main registry + `getCreator(passport.creatorId)` + опциональный счётчик proof через спутник + `CONTRACT_VERSION` (публичная константа).
 
 Инварианты (гарантии)
 
 - Хэши неизменяемы после mint: `dataHash`, `**imageHash`, `imageHash2`, `imageHash3`**, `fileHash`, `sealHash`.
 - `updatePassportUrls()` может менять **только** primary `dataUrl` и `**imageUrl`** (не `imageUrl2`/`imageUrl3`) и требует `confirmedDataHash == on-chain dataHash`; вызывать могут `**creator` или `owner`**, либо **активный агент публикации** (`getCreatorPublishingDelegation(passport.creator)`).
-- `freeze()` — **только deployer**, необратимо останавливает новые записи; чтение без изменений. **В стабильной v1 этот механизм не планируется.**
 - `**submitProof` reverts**, если паспорт **отозван**.
 
 Аффилиация (P → P, один уровень)
@@ -1574,6 +1687,18 @@ ODP задуман как **криптографический слой дове
 - `**images**` — до трёх логических изображений (primary ↔ `imageHash`, доп. ↔ `imageHash2`/`imageHash3`)
 
 Верификатор не трактует цену как юридическую оферту.
+
+### 18.1.1 Паттерн связки с GS1 Digital Link
+
+GS1 Digital Link **необязателен** и остаётся **внешним** по отношению к core-протоколу ODP. Практический паттерн: использовать URI GS1 Digital Link как стандартизованный **URL/QR-вход**, а ODP оставлять слоем **криптографической верификации**.
+
+Минимальный паттерн интеграции:
+
+1. GS1 Digital Link идентифицирует **GTIN** и, если есть, **серийный номер**.
+2. Страница-резолвер или сервис сопоставляет эту GS1-пару с паспортом ODP и открывает нужную страницу паспорта или верификации с требуемым контекстом реестра.
+3. Далее верификатор проверяет ODP **Passport ID**, канонические байты `**.odpass`** / `**passport.json`** относительно on-chain `**dataHash`**, а опциональные `**ndpp`** / public offline payload использует только как дополнительный слой транспортировки или раскрытия данных.
+
+`**identifiers.gtin`** в `**passport.json`** — естественное off-chain место для выравнивания записи ODP с идентификаторами GS1. Сам по себе GS1 Digital Link **не** доказывает подлинность и **не** заменяет реестр ODP, Passport ID или проверку хэшей.
 
 ### 18.2 DID (`did:odp`)
 

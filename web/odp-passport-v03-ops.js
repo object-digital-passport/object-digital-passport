@@ -68,6 +68,24 @@
     return null;
   }
 
+  function getRelationsReadContract() {
+    var c = getContract();
+    if (_ctx && typeof _ctx.getRelationsReadContract === "function") {
+      var x = _ctx.getRelationsReadContract();
+      if (x) return x;
+    }
+    return c;
+  }
+
+  function getRelationsWriteContract() {
+    var c = getContract();
+    if (_ctx && typeof _ctx.getRelationsWriteContract === "function") {
+      var w = _ctx.getRelationsWriteContract();
+      if (w) return w;
+    }
+    return c;
+  }
+
   function profileLetter(id) {
     if (typeof global.odpPassportProfileTypeLetter === "function") {
       return global.odpPassportProfileTypeLetter(id);
@@ -369,7 +387,7 @@
       stateEl.innerHTML = esc(t("passport.v03Ops.loading"));
     }
     try {
-      var p = await contract.getPassport(hid);
+      var p = await odpGetPassportRecord(contract, hid);
       passportV03Last = { passportId: hid, humanId: hid, p: p };
       var govAddr = null;
       if (typeof contract.governance === "function") govAddr = await contract.governance();
@@ -379,9 +397,10 @@
       var ZERO = "0x0000000000000000000000000000000000000000";
       var agent = ZERO;
       var expBn = global.ethers.BigNumber.from(0);
-      if (typeof contract.getCreatorPublishingDelegation === "function" && creatorAddr) {
+      var relRead = getRelationsReadContract();
+      if (relRead && typeof relRead.getCreatorPublishingDelegation === "function" && creatorAddr) {
         var cw = global.ethers.utils.getAddress(String(creatorAddr));
-        var d = await contract.getCreatorPublishingDelegation(cw);
+        var d = await relRead.getCreatorPublishingDelegation(cw);
         agent = String((d.agent || d[0]) || ZERO);
         var rawExp = d.expiresAt !== undefined ? d.expiresAt : d[1];
         expBn = global.ethers.BigNumber.isBigNumber(rawExp) ? rawExp : global.ethers.BigNumber.from(rawExp || 0);
@@ -621,7 +640,8 @@
         delBtn.disabled = true;
         if (errEl) errEl.innerHTML = '<div class="info neutral">' + esc(t("passport.v03Ops.sending")) + "</div>";
         try {
-          var tx5 = await contract.delegateCreatorPublishing(agent, expAt);
+          var relWrite = getRelationsWriteContract();
+          var tx5 = await relWrite.delegateCreatorPublishing(agent, expAt);
           await tx5.wait();
           if (errEl)
             errEl.innerHTML =
@@ -650,7 +670,8 @@
         revDel.disabled = true;
         if (errEl) errEl.innerHTML = '<div class="info neutral">' + esc(t("passport.v03Ops.sending")) + "</div>";
         try {
-          var tx6 = await contract.revokeCreatorPublishing();
+          var relWrite = getRelationsWriteContract();
+          var tx6 = await relWrite.revokeCreatorPublishing();
           await tx6.wait();
           if (errEl)
             errEl.innerHTML =
@@ -857,7 +878,8 @@
         paffBtn.disabled = true;
         if (errEl) errEl.innerHTML = '<div class="info neutral">' + esc(t("passport.v03Ops.sending")) + "</div>";
         try {
-          var tx12 = await contract.detachPAffiliation(childP);
+          var relWrite = getRelationsWriteContract();
+          var tx12 = await relWrite.detachPAffiliation(childP);
           await tx12.wait();
           if (errEl)
             errEl.innerHTML =

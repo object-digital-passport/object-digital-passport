@@ -89,6 +89,56 @@ async function main() {
     console.log(`  ⚠️  ODPCounterfeitConcern deploy skipped: ${e && e.message ? e.message : e}`);
   }
 
+  let relationsAddress = null;
+  try {
+    console.log("\n  Deploying ODPRegistryRelations (satellite: affiliations + delegations)...");
+    const RelationsFactory = await ethers.getContractFactory("ODPRegistryRelations");
+    const relations = await RelationsFactory.deploy(address);
+    await relations.waitForDeployment();
+    relationsAddress = await relations.getAddress();
+    console.log(`  ✅ Relations satellite: ${relationsAddress}`);
+    console.log("     Wiring main registry → setRelationsSatellite(...)");
+    const tx = await contract.setRelationsSatellite(relationsAddress);
+    await tx.wait();
+  } catch (e) {
+    console.log(`  ⚠️  ODPRegistryRelations deploy skipped: ${e && e.message ? e.message : e}`);
+  }
+
+  let proofRegistryAddress = null;
+  try {
+    console.log("\n  Deploying ODPPassportProofRegistry (satellite: institutional proofs)...");
+    const ProofFactory = await ethers.getContractFactory("ODPPassportProofRegistry", {
+      libraries: {
+        "project/contracts/ODPPassportLib.sol:ODPPassportLib": passportLibAddress,
+      },
+    });
+    const proofs = await ProofFactory.deploy(address);
+    await proofs.waitForDeployment();
+    proofRegistryAddress = await proofs.getAddress();
+    console.log(`  ✅ Proof registry satellite: ${proofRegistryAddress}`);
+  } catch (e) {
+    console.log(`  ⚠️  ODPPassportProofRegistry deploy skipped: ${e && e.message ? e.message : e}`);
+  }
+
+  let extensionRouterAddress = null;
+  try {
+    console.log("\n  Deploying ODPExtensionMintRouter (satellite: extension mint routing)...");
+    const RouterFactory = await ethers.getContractFactory("ODPExtensionMintRouter", {
+      libraries: {
+        "project/contracts/ODPPassportLib.sol:ODPPassportLib": passportLibAddress,
+      },
+    });
+    const router = await RouterFactory.deploy(address);
+    await router.waitForDeployment();
+    extensionRouterAddress = await router.getAddress();
+    console.log(`  ✅ Extension mint router: ${extensionRouterAddress}`);
+    console.log("     Wiring main registry → setExtensionRouter(...)");
+    const tx = await contract.setExtensionRouter(extensionRouterAddress);
+    await tx.wait();
+  } catch (e) {
+    console.log(`  ⚠️  ODPExtensionMintRouter deploy skipped: ${e && e.message ? e.message : e}`);
+  }
+
   const deployedVersion = await contract.CONTRACT_VERSION();
   const dv = BigInt(deployedVersion.toString());
   const specMajor = dv / 16n;
@@ -119,21 +169,37 @@ async function main() {
 
     const z = ethers.ZeroHash;
     const mintTx = await contract.mintDigital(
-      now.getFullYear(),                  // year (uint32)
-      now.getMonth() + 1,                 // month (uint8)
-      fakeDataHash,                       // dataHash (bytes32)
-      "https://example.com/passport.odpass",// dataUrl (§15 bundle)
-      fakeImageHash,                      // imageHash (bytes32)
-      "https://example.com/preview.jpg",  // imageUrl
-      z,                                  // imageHash2 (v0.3)
-      "",                                 // imageUrl2
-      z,                                  // imageHash3
-      "",                                 // imageUrl3
-      fakeFileHash,                       // fileHash (bytes32) — required for digital
-      false,                              // dataUrlIsFolderBase — full URL, not folder root
-      z,                                  // auxCommitmentHash
-      "",                                 // auxCommitmentUri
-      ""                                  // mintOnBehalfOfCreatorId (self-mint)
+      {
+        core: {
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          title: "Deployment smoke test",
+          domain: "software",
+          contentClass: 6,
+          lifecycleStatus: 2,
+          aiStatus: 1,
+          verificationMethod: 1,
+          editionModel: 1,
+          currentLocation: "",
+          rightsNote: "",
+          conditionNote: "",
+          damageHistoryHash: z,
+          damageHistoryUrl: "",
+        },
+        dataHash: fakeDataHash,
+        dataUrl: "https://example.com/passport.odpass",
+        imageHash: fakeImageHash,
+        imageUrl: "https://example.com/preview.jpg",
+        imageHash2: z,
+        imageUrl2: "",
+        imageHash3: z,
+        imageUrl3: "",
+        fileHash: fakeFileHash,
+        auxCommitmentHash: z,
+        auxCommitmentUri: "",
+      },
+      false,
+      ""
     );
     const mintReceipt = await mintTx.wait();
 
@@ -152,19 +218,16 @@ async function main() {
 
     // 3. Verify getPassport + getCreator + proofs (resolvePassport removed from bytecode in v0.3)
     console.log("\n  3. Resolving passport (multi-call)...");
-    const passport = await contract.getPassport(passportId);
+    const passport = await contract.getPassportHeader(passportId);
     const creator = await contract.getCreator(passport.creatorId);
-    const proofIds = await contract.getProofsForPassport(passportId);
-    const proofCount = proofIds.length;
+    const proofCount = proofRegistryAddress
+      ? (await (await ethers.getContractAt("ODPPassportProofRegistry", proofRegistryAddress)).getProofsForPassport(passportId)).length
+      : 0;
     const version = await contract.CONTRACT_VERSION();
     console.log(`     ✅ contractVersion: ${version}`);
     console.log(`     ✅ objectType:      ${passport.objectType}`);
     console.log(`     ✅ creatorId:       ${passport.creatorId}`);
     console.log(`     ✅ proofCount:      ${proofCount}`);
-
-    // 4. Check remaining mints
-    const remaining = await contract.getRemainingMints(deployer.address);
-    console.log(`\n  4. Remaining mints this month: ${remaining}`);
 
     console.log("\n  ✅ Smoke test passed");
   }
@@ -183,6 +246,9 @@ async function main() {
     contractAddress:          address,
     walletDocumentAnchorAddress,
     counterfeitConcernAddress,
+    relationsAddress,
+    proofRegistryAddress,
+    extensionRouterAddress,
     contractVersion:  Number(deployedVersion),
     deployedBy:       deployer.address,
     deployedAt:       new Date().toISOString(),

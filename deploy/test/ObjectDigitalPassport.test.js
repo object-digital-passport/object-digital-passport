@@ -28,8 +28,14 @@ function nonZeroFileHash(n) {
 const NO_EXTRA_IMAGES = [ethers.ZeroHash, "", ethers.ZeroHash, ""];
 /** v0.3: optional aux commitment (hash 0 ⇒ URI must be empty) */
 const AUX_EMPTY = [ethers.ZeroHash, ""];
+/** v0.5 NDPP / offline-public commitment (hash 0 ⇒ URI must be empty) */
+const NDPP_EMPTY = [ethers.ZeroHash, ""];
 /** v0.3+: last mint arg — empty string = mint as caller’s registered profile */
 const MINT_SELF = "";
+const DIGITAL_EXTENSION_PAYLOAD_TYPE =
+  "tuple(tuple(uint32 year,uint8 month,string title,string domain,uint8 contentClass,uint8 lifecycleStatus,uint8 aiStatus,uint8 verificationMethod,uint8 editionModel,string currentLocation,string rightsNote,string conditionNote,bytes32 damageHistoryHash,string damageHistoryUrl) core,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 imageHash2,string imageUrl2,bytes32 imageHash3,string imageUrl3,bytes32 fileHash,bytes32 auxCommitmentHash,string auxCommitmentUri,bytes32 ndppCommitmentHash,string ndppCommitmentUri)";
+const PHYSICAL_EXTENSION_PAYLOAD_TYPE =
+  "tuple(tuple(uint32 year,uint8 month,string title,string domain,uint8 contentClass,uint8 lifecycleStatus,uint8 aiStatus,uint8 verificationMethod,uint8 editionModel,string currentLocation,string rightsNote,string conditionNote,bytes32 damageHistoryHash,string damageHistoryUrl) core,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,uint8 sealType,bytes32 sealHash,bytes nfcPublicKey,string nfcModel,bytes32 imageHash2,string imageUrl2,bytes32 imageHash3,string imageUrl3,bytes32 auxCommitmentHash,string auxCommitmentUri,bytes32 ndppCommitmentHash,string ndppCommitmentUri)";
 
 /** Fixed UTC instants for `evm_setNextBlockTimestamp` — must match mint `year`/`month` args. */
 const TS_UTC = {
@@ -57,29 +63,115 @@ async function syncMintYm() {
   MINT_M = d.getUTCMonth() + 1;
 }
 
-function encodePhysicalMintPayload(args) {
-  const coder = ethers.AbiCoder.defaultAbiCoder();
-  return coder.encode(
-    [
-      "uint32",
-      "uint8",
-      "bytes32",
-      "string",
-      "bytes32",
-      "string",
-      "uint8",
-      "bytes32",
-      "bytes",
-      "string",
-      "bytes32",
-      "string",
-      "bytes32",
-      "string",
-      "bytes32",
-      "string",
-    ],
-    args
+function v05Core(year, month) {
+  return {
+    year,
+    month,
+    title: "Test passport",
+    domain: "software",
+    contentClass: 6,
+    lifecycleStatus: 2,
+    aiStatus: 1,
+    verificationMethod: 1,
+    editionModel: 1,
+    currentLocation: "",
+    rightsNote: "",
+    conditionNote: "",
+    damageHistoryHash: ethers.ZeroHash,
+    damageHistoryUrl: "",
+  };
+}
+
+function legacyDigitalMintArgsToV05(args) {
+  const year = args[0];
+  const month = args[1];
+  const dataHash = args[2];
+  const dataUrl = args[3];
+  const imageHash = args[4];
+  const imageUrl = args[5];
+  const imageHash2 = args[6];
+  const imageUrl2 = args[7];
+  const imageHash3 = args[8];
+  const imageUrl3 = args[9];
+  const fileHash = args[10];
+  const dataUrlIsFolderBase = args[11];
+  const auxCommitmentHash = args[12];
+  const auxCommitmentUri = args[13];
+  const ndppCommitmentHash = args.length >= 17 ? args[14] : ethers.ZeroHash;
+  const ndppCommitmentUri = args.length >= 17 ? args[15] : "";
+  const mintOnBehalfOfCreatorId = args.length >= 17 ? args[16] : args[14];
+  return {
+    input: {
+      core: v05Core(year, month),
+      dataHash,
+      dataUrl,
+      imageHash,
+      imageUrl,
+      imageHash2,
+      imageUrl2,
+      imageHash3,
+      imageUrl3,
+      fileHash,
+      auxCommitmentHash,
+      auxCommitmentUri,
+      ndppCommitmentHash,
+      ndppCommitmentUri,
+    },
+    dataUrlIsFolderBase,
+    mintOnBehalfOfCreatorId,
+  };
+}
+
+async function callMintDigital(contract, signer, args) {
+  const built = legacyDigitalMintArgsToV05(args);
+  return contract.connect(signer).mintDigital(
+    built.input,
+    built.dataUrlIsFolderBase,
+    built.mintOnBehalfOfCreatorId,
   );
+}
+
+async function readPassport(contract, passportId) {
+  const [header, classification, media, physical, state] = await Promise.all([
+    contract.getPassportHeader(passportId),
+    contract.getPassportClassification(passportId),
+    contract.getPassportMedia(passportId),
+    contract.getPassportPhysical(passportId),
+    contract.getPassportState(passportId),
+  ]);
+  const normalize = (part) => (part && typeof part.toObject === "function" ? part.toObject() : part);
+  return {
+    ...normalize(header),
+    ...normalize(classification),
+    ...normalize(media),
+    ...normalize(physical),
+    ...normalize(state),
+  };
+}
+
+function encodePhysicalMintPayload(args) {
+  const ndppCommitmentHash = args.length >= 18 ? args[16] : ethers.ZeroHash;
+  const ndppCommitmentUri = args.length >= 18 ? args[17] : "";
+  const coder = ethers.AbiCoder.defaultAbiCoder();
+  return coder.encode([PHYSICAL_EXTENSION_PAYLOAD_TYPE], [{
+    core: v05Core(args[0], args[1]),
+    dataHash: args[2],
+    dataUrl: args[3],
+    imageHash: args[4],
+    imageUrl: args[5],
+    sealType: args[6],
+    sealHash: args[7],
+    nfcPublicKey: args[8],
+    nfcModel: args[9],
+    imageHash2: args[10],
+    imageUrl2: args[11],
+    imageHash3: args[12],
+    imageUrl3: args[13],
+    auxCommitmentHash: args[14],
+    auxCommitmentUri: args[15],
+    ndppCommitmentHash,
+    ndppCommitmentUri,
+  }]);
 }
 
 describe("ObjectDigitalPassport", function () {
@@ -96,6 +188,28 @@ describe("ObjectDigitalPassport", function () {
     });
     const contract = await Factory.deploy();
     await contract.waitForDeployment();
+    const RelationsFactory = await ethers.getContractFactory("ODPRegistryRelations");
+    const relations = await RelationsFactory.deploy(contract.target);
+    await relations.waitForDeployment();
+    await contract.setRelationsSatellite(relations.target);
+    const ProofFactory = await ethers.getContractFactory("ODPPassportProofRegistry", {
+      libraries: {
+        "project/contracts/ODPPassportLib.sol:ODPPassportLib": libAddress,
+      },
+    });
+    const proofRegistry = await ProofFactory.deploy(contract.target);
+    await proofRegistry.waitForDeployment();
+    const ExtensionRouterFactory = await ethers.getContractFactory("ODPExtensionMintRouter", {
+      libraries: {
+        "project/contracts/ODPPassportLib.sol:ODPPassportLib": libAddress,
+      },
+    });
+    const extensionRouter = await ExtensionRouterFactory.deploy(contract.target);
+    await extensionRouter.waitForDeployment();
+    await contract.setExtensionRouter(extensionRouter.target);
+    contract.relations = relations;
+    contract.proofRegistry = proofRegistry;
+    contract.extensionRouter = extensionRouter;
     return contract;
   }
 
@@ -105,7 +219,7 @@ describe("ObjectDigitalPassport", function () {
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       await expect(
-        c.connect(w).mintDigital(
+        callMintDigital(c, w, [
           2000,
           1,
           nonZeroDataHash(6801),
@@ -117,7 +231,7 @@ describe("ObjectDigitalPassport", function () {
           false,
           ...AUX_EMPTY,
           MINT_SELF,
-        ),
+        ]),
       )
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(68n);
@@ -142,7 +256,7 @@ describe("ObjectDigitalPassport", function () {
       ]);
       await c.connect(wP).registerCreator(TYPE_P);
       await mineAt(TS_UTC.JUN_2031);
-      await expect(c.connect(wP).submitProof(passportId, zeroHash(), "", 2031, 5)).to.be.revertedWithCustomError(c, "EC").withArgs(
+      await expect(c.proofRegistry.connect(wP).submitProof(passportId, zeroHash(), "", 2031, 5)).to.be.revertedWithCustomError(c.proofRegistry, "EC").withArgs(
         68n,
       );
     });
@@ -161,11 +275,43 @@ describe("ObjectDigitalPassport", function () {
    * @param {string} [passportOwner] when minting via mint agent, pass principal wallet (creator on record); default `signer.address`
    */
   async function mintDigitalAndId(contract, signer, args, passportOwner) {
-    const tx = await contract.connect(signer).mintDigital(...args);
+    const tx = await callMintDigital(contract, signer, args);
     await tx.wait();
     const ownerAddr = passportOwner !== undefined && passportOwner !== null ? passportOwner : signer.address;
-    const ids = await contract.getPassportsByCreator(ownerAddr);
+    const ids = await listCreatorPassports(contract, ownerAddr);
     return ids[ids.length - 1];
+  }
+
+  async function listCreatorPassports(contract, ownerAddr, pageSize = 100) {
+    const out = [];
+    let offset = 0n;
+    for (;;) {
+      const page = await contract.getPassportsByCreatorPaged(ownerAddr, offset, pageSize);
+      const rows = page.result || page[0] || [];
+      const total = BigInt(page.total || page[1] || 0);
+      out.push(...rows);
+      offset = BigInt(out.length);
+      if (!rows.length || (total && offset >= total)) break;
+    }
+    return out;
+  }
+
+  async function getRemainingMintsEstimate(contract, wallet) {
+    const creatorId = await contract.getCreatorByWallet(wallet);
+    if (!creatorId) return 0n;
+    const creator = await contract.getCreator(creatorId);
+    const tp = creator.typePrefix;
+    if (tp === TYPE_P || tp === TYPE_M) return (2n ** 32n) - 1n;
+    const limit = tp === TYPE_B ? 100000n : 1000n;
+    const ids = await listCreatorPassports(contract, wallet);
+    let used = 0n;
+    for (const id of ids) {
+      const header = await contract.getPassportHeader(id);
+      if (BigInt(header.year) === BigInt(MINT_Y) && BigInt(header.month) === BigInt(MINT_M)) {
+        used += 1n;
+      }
+    }
+    return used >= limit ? 0n : limit - used;
   }
 
   describe("getRemainingMints by tier", function () {
@@ -174,8 +320,8 @@ describe("ObjectDigitalPassport", function () {
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const lim = 1000n;
-      expect(await c.getRemainingMints(w.address)).to.equal(lim);
-      await c.connect(w).mintDigital(
+      expect(await getRemainingMintsEstimate(c, w.address)).to.equal(lim);
+      await callMintDigital(c, w, [
         MINT_Y,
         MINT_M,
         nonZeroDataHash(1),
@@ -187,8 +333,8 @@ describe("ObjectDigitalPassport", function () {
         false,
         ...AUX_EMPTY,
         MINT_SELF,
-      );
-      expect(await c.getRemainingMints(w.address)).to.equal(lim - 1n);
+      ]);
+      expect(await getRemainingMintsEstimate(c, w.address)).to.equal(lim - 1n);
     });
 
     it("B: after one mint, remaining is MONTHLY_LIMIT_B - 1", async function () {
@@ -196,8 +342,8 @@ describe("ObjectDigitalPassport", function () {
       const [_, wB] = await ethers.getSigners();
       await c.connect(wB).registerCreator(TYPE_B);
       const lim = 100000n;
-      expect(await c.getRemainingMints(wB.address)).to.equal(lim);
-      await c.connect(wB).mintDigital(
+      expect(await getRemainingMintsEstimate(c, wB.address)).to.equal(lim);
+      await callMintDigital(c, wB, [
         MINT_Y,
         MINT_M,
         nonZeroDataHash(2),
@@ -209,8 +355,8 @@ describe("ObjectDigitalPassport", function () {
         false,
         ...AUX_EMPTY,
         MINT_SELF,
-      );
-      expect(await c.getRemainingMints(wB.address)).to.equal(lim - 1n);
+      ]);
+      expect(await getRemainingMintsEstimate(c, wB.address)).to.equal(lim - 1n);
     });
 
     it("P: getRemainingMints stays at uint32 max (unlimited)", async function () {
@@ -218,8 +364,8 @@ describe("ObjectDigitalPassport", function () {
       const [_, __, wP] = await ethers.getSigners();
       await c.connect(wP).registerCreator(TYPE_P);
       const max32 = 2n ** 32n - 1n;
-      expect(await c.getRemainingMints(wP.address)).to.equal(max32);
-      await c.connect(wP).mintDigital(
+      expect(await getRemainingMintsEstimate(c, wP.address)).to.equal(max32);
+      await callMintDigital(c, wP, [
         MINT_Y,
         MINT_M,
         nonZeroDataHash(3),
@@ -231,8 +377,8 @@ describe("ObjectDigitalPassport", function () {
         false,
         ...AUX_EMPTY,
         MINT_SELF,
-      );
-      expect(await c.getRemainingMints(wP.address)).to.equal(max32);
+      ]);
+      expect(await getRemainingMintsEstimate(c, wP.address)).to.equal(max32);
     });
 
     it("M: getRemainingMints stays at uint32 max (unlimited)", async function () {
@@ -240,8 +386,8 @@ describe("ObjectDigitalPassport", function () {
       const [_, __, ___, wM] = await ethers.getSigners();
       await c.connect(wM).registerCreator(TYPE_M);
       const max32 = 2n ** 32n - 1n;
-      expect(await c.getRemainingMints(wM.address)).to.equal(max32);
-      await c.connect(wM).mintDigital(
+      expect(await getRemainingMintsEstimate(c, wM.address)).to.equal(max32);
+      await callMintDigital(c, wM, [
         MINT_Y,
         MINT_M,
         nonZeroDataHash(31),
@@ -253,8 +399,8 @@ describe("ObjectDigitalPassport", function () {
         false,
         ...AUX_EMPTY,
         MINT_SELF,
-      );
-      expect(await c.getRemainingMints(wM.address)).to.equal(max32);
+      ]);
+      expect(await getRemainingMintsEstimate(c, wM.address)).to.equal(max32);
     });
 
     it("M: can submitProof like P", async function () {
@@ -276,9 +422,9 @@ describe("ObjectDigitalPassport", function () {
       ]);
       await c.connect(wM).registerCreator(TYPE_M);
       await mineAt(TS_UTC.JUN_2031);
-      const tx = await c.connect(wM).submitProof(passportId, zeroHash(), "", 2031, 6);
+      const tx = await c.proofRegistry.connect(wM).submitProof(passportId, zeroHash(), "", 2031, 6);
       await tx.wait();
-      const ids = await c.getProofsForPassport(passportId);
+      const ids = await c.proofRegistry.getProofsForPassport(passportId);
       expect(ids.length).to.equal(1);
     });
   });
@@ -302,7 +448,7 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
         MINT_SELF,
       ]);
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       const expectUrl = `https://example.com/passports/${passportId}.odpass`;
       expect(p.dataUrl).to.equal(expectUrl);
     });
@@ -325,7 +471,7 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
         MINT_SELF,
       ]);
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       expect(p.dataUrl).to.equal(`https://example.com/foo//bar/${passportId}.odpass`);
     });
 
@@ -349,7 +495,7 @@ describe("ObjectDigitalPassport", function () {
       const dh = nonZeroDataHash(11);
       const full = `https://other.host/${passportId}.odpass`;
       await c.connect(w).updatePassportUrls(passportId, full, "", dh);
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       expect(p.dataUrl).to.equal(full);
     });
   });
@@ -372,11 +518,11 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
         MINT_SELF,
       ]);
-      let p = await c.getPassport(passportId);
+      let p = await readPassport(c, passportId);
       expect(p.owner).to.equal(wA.address);
       expect(p.mintAgent).to.equal(ethers.ZeroAddress);
       await c.connect(wA).transferPassport(passportId, wB.address);
-      p = await c.getPassport(passportId);
+      p = await readPassport(c, passportId);
       expect(p.owner).to.equal(wB.address);
       expect(p.creator).to.equal(wA.address);
     });
@@ -400,11 +546,11 @@ describe("ObjectDigitalPassport", function () {
       ]);
       const reason = ethers.keccak256(ethers.toUtf8Bytes("test-revoke"));
       await c.connect(wA).revokePassport(passportId, reason);
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       expect(p.revoked).to.equal(true);
       await c.connect(wP).registerCreator(TYPE_P);
-      await expect(c.connect(wP).submitProof(passportId, zeroHash(), "", 2031, 1)).to.be.revertedWithCustomError(
-        c,
+      await expect(c.proofRegistry.connect(wP).submitProof(passportId, zeroHash(), "", 2031, 1)).to.be.revertedWithCustomError(
+        c.proofRegistry,
         "EC"
       );
     });
@@ -416,15 +562,15 @@ describe("ObjectDigitalPassport", function () {
       await c.connect(wParent).registerCreator(TYPE_P);
       const childId = await c.getCreatorByWallet(wChild.address);
       const parentId = await c.getCreatorByWallet(wParent.address);
-      await c.connect(wChild).proposePAffiliation(parentId);
-      await c.connect(wParent).confirmPAffiliation(childId);
-      expect(await c.getPAffiliatedParent(childId)).to.equal(parentId);
-      let a = await c.getPAffiliationAudit(childId);
+      await c.relations.connect(wChild).proposePAffiliation(parentId);
+      await c.relations.connect(wParent).confirmPAffiliation(childId);
+      expect(await c.relations.getPAffiliatedParent(childId)).to.equal(parentId);
+      let a = await c.relations.getPAffiliationAudit(childId);
       expect(a.joinedAt > 0n).to.equal(true);
       expect(a.detachedAt).to.equal(0n);
-      await c.connect(wParent).detachPAffiliation(childId);
-      expect(await c.getPAffiliatedParent(childId)).to.equal("");
-      a = await c.getPAffiliationAudit(childId);
+      await c.relations.connect(wParent).detachPAffiliation(childId);
+      expect(await c.relations.getPAffiliatedParent(childId)).to.equal("");
+      a = await c.relations.getPAffiliationAudit(childId);
       expect(a.detachedAt > 0n).to.equal(true);
       expect(a.lastDetachedFromParent).to.equal(parentId);
     });
@@ -435,25 +581,25 @@ describe("ObjectDigitalPassport", function () {
     const MINT_CLASS_V = "0x56";
 
     function encodeDigitalMintPayload(args) {
+      const ndppCommitmentHash = args.length >= 15 ? args[13] : ethers.ZeroHash;
+      const ndppCommitmentUri = args.length >= 15 ? args[14] : "";
       const coder = ethers.AbiCoder.defaultAbiCoder();
-      return coder.encode(
-        [
-          "uint32",
-          "uint8",
-          "bytes32",
-          "string",
-          "bytes32",
-          "string",
-          "bytes32",
-          "string",
-          "bytes32",
-          "string",
-          "bytes32",
-          "bytes32",
-          "string",
-        ],
-        args
-      );
+      return coder.encode([DIGITAL_EXTENSION_PAYLOAD_TYPE], [{
+        core: v05Core(args[0], args[1]),
+        dataHash: args[2],
+        dataUrl: args[3],
+        imageHash: args[4],
+        imageUrl: args[5],
+        imageHash2: args[6],
+        imageUrl2: args[7],
+        imageHash3: args[8],
+        imageUrl3: args[9],
+        fileHash: args[10],
+        auxCommitmentHash: args[11],
+        auxCommitmentUri: args[12],
+        ndppCommitmentHash,
+        ndppCommitmentUri,
+      }]);
     }
 
     it("mints after governance setMintExtension", async function () {
@@ -461,7 +607,7 @@ describe("ObjectDigitalPassport", function () {
       const Ext = await ethers.getContractFactory("ODPPassThroughDigitalExtension");
       const ext = await Ext.deploy();
       await ext.waitForDeployment();
-      await c.setMintExtension(MINT_CLASS_V, ext.target);
+      await c.extensionRouter.setMintExtension(MINT_CLASS_V, ext.target);
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const args = [
@@ -476,17 +622,17 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
       ];
       const payload = encodeDigitalMintPayload(args);
-      const tx = await c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false, "");
+      const tx = await c.extensionRouter.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false, "");
       const receipt = await tx.wait();
-      const ids = await c.getPassportsByCreator(w.address);
+      const ids = await listCreatorPassports(c, w.address);
       const passportId = ids[ids.length - 1];
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       expect(p.objectType).to.equal("digital");
       expect(p.dataHash).to.equal(nonZeroDataHash(900));
       const ev = receipt.logs
         .map((l) => {
           try {
-            return c.interface.parseLog(l);
+            return c.extensionRouter.interface.parseLog(l);
           } catch {
             return null;
           }
@@ -512,8 +658,8 @@ describe("ObjectDigitalPassport", function () {
         nonZeroFileHash(901),
         ...AUX_EMPTY,
       ]);
-      await expect(c.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false, ""))
-        .to.be.revertedWithCustomError(c, "EC")
+      await expect(c.extensionRouter.connect(w).mintDigitalViaExtension(MINT_CLASS_V, payload, false, ""))
+        .to.be.revertedWithCustomError(c.extensionRouter, "EC")
         .withArgs(64n);
     });
 
@@ -522,14 +668,14 @@ describe("ObjectDigitalPassport", function () {
       const Ext = await ethers.getContractFactory("ODPPassThroughDigitalExtension");
       const ext = await Ext.deploy();
       await ext.waitForDeployment();
-      await expect(c.setMintExtension(TYPE_C, ext.target)).to.be.revertedWithCustomError(c, "EC").withArgs(65n);
+      await expect(c.extensionRouter.setMintExtension(TYPE_C, ext.target)).to.be.revertedWithCustomError(c.extensionRouter, "EC").withArgs(65n);
     });
 
     it("reverts EC(66) when extension address has no code", async function () {
       const c = await deployFixture();
       const [_, eoa] = await ethers.getSigners();
-      await expect(c.setMintExtension(MINT_CLASS_V, eoa.address))
-        .to.be.revertedWithCustomError(c, "EC")
+      await expect(c.extensionRouter.setMintExtension(MINT_CLASS_V, eoa.address))
+        .to.be.revertedWithCustomError(c.extensionRouter, "EC")
         .withArgs(66n);
     });
 
@@ -539,13 +685,13 @@ describe("ObjectDigitalPassport", function () {
       const Ext = await ethers.getContractFactory("ODPPassThroughDigitalExtension");
       const ext = await Ext.deploy();
       await ext.waitForDeployment();
-      await expect(c.connect(w2).setMintExtension(MINT_CLASS_V, ext.target))
-        .to.be.revertedWithCustomError(c, "EC")
+      await expect(c.extensionRouter.connect(w2).setMintExtension(MINT_CLASS_V, ext.target))
+        .to.be.revertedWithCustomError(c.extensionRouter, "EC")
         .withArgs(56n);
     });
   });
 
-  describe("v0.3 aux commitment and physical extension", function () {
+  describe("v0.5 aux / NDPP commitments and physical extension", function () {
     const MINT_CLASS_W = "0x57";
 
     it("mintDigital stores aux commitment when provided", async function () {
@@ -567,9 +713,34 @@ describe("ObjectDigitalPassport", function () {
         "https://coa.example/cert.pdf",
         MINT_SELF,
       ]);
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       expect(p.auxCommitmentHash).to.equal(auxH);
       expect(p.auxCommitmentUri).to.equal("https://coa.example/cert.pdf");
+    });
+
+    it("mintDigital stores NDPP commitment when provided", async function () {
+      const c = await deployFixture();
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const ndppH = nonZeroFileHash(779);
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
+        nonZeroDataHash(779),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(780),
+        false,
+        ...AUX_EMPTY,
+        ndppH,
+        "https://public.example/ODP-ndpp.json",
+        MINT_SELF,
+      ]);
+      const p = await readPassport(c, passportId);
+      expect(p.ndppCommitmentHash).to.equal(ndppH);
+      expect(p.ndppCommitmentUri).to.equal("https://public.example/ODP-ndpp.json");
     });
 
     it("creator and governance may updatePassportAuxCommitment", async function () {
@@ -591,11 +762,11 @@ describe("ObjectDigitalPassport", function () {
       ]);
       const h1 = nonZeroFileHash(601);
       await c.connect(w).updatePassportAuxCommitment(passportId, h1, "https://a.example/a.pdf");
-      let p = await c.getPassport(passportId);
+      let p = await readPassport(c, passportId);
       expect(p.auxCommitmentHash).to.equal(h1);
       const h2 = nonZeroFileHash(602);
       await c.connect(gov).updatePassportAuxCommitment(passportId, h2, "https://b.example/b.pdf");
-      p = await c.getPassport(passportId);
+      p = await readPassport(c, passportId);
       expect(p.auxCommitmentHash).to.equal(h2);
     });
 
@@ -624,12 +795,42 @@ describe("ObjectDigitalPassport", function () {
         .withArgs(67n);
     });
 
+    it("creator and governance may updatePassportNdppCommitment", async function () {
+      const c = await deployFixture();
+      const [gov, w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const passportId = await mintDigitalAndId(c, w, [
+        MINT_Y,
+        MINT_M,
+        nonZeroDataHash(612),
+        "",
+        zeroHash(),
+        "",
+        ...NO_EXTRA_IMAGES,
+        nonZeroFileHash(612),
+        false,
+        ...AUX_EMPTY,
+        ...NDPP_EMPTY,
+        MINT_SELF,
+      ]);
+      const h1 = nonZeroFileHash(613);
+      await c.connect(w).updatePassportNdppCommitment(passportId, h1, "https://a.example/ndpp.json");
+      let p = await readPassport(c, passportId);
+      expect(p.ndppCommitmentHash).to.equal(h1);
+      expect(p.ndppCommitmentUri).to.equal("https://a.example/ndpp.json");
+      const h2 = nonZeroFileHash(614);
+      await c.connect(gov).updatePassportNdppCommitment(passportId, h2, "https://b.example/ndpp.json");
+      p = await readPassport(c, passportId);
+      expect(p.ndppCommitmentHash).to.equal(h2);
+      expect(p.ndppCommitmentUri).to.equal("https://b.example/ndpp.json");
+    });
+
     it("mintPhysicalViaExtension mints physical and emits ExtensionMintUsed kind=1", async function () {
       const c = await deployFixture();
       const Ext = await ethers.getContractFactory("ODPPassThroughPhysicalExtension");
       const ext = await Ext.deploy();
       await ext.waitForDeployment();
-      await c.setMintExtension(MINT_CLASS_W, ext.target);
+      await c.extensionRouter.setMintExtension(MINT_CLASS_W, ext.target);
       const [w] = await ethers.getSigners();
       await c.connect(w).registerCreator(TYPE_C);
       const phyArgs = [
@@ -647,16 +848,16 @@ describe("ObjectDigitalPassport", function () {
         ...AUX_EMPTY,
       ];
       const payload = encodePhysicalMintPayload(phyArgs);
-      const tx = await c.connect(w).mintPhysicalViaExtension(MINT_CLASS_W, payload, false, "");
+      const tx = await c.extensionRouter.connect(w).mintPhysicalViaExtension(MINT_CLASS_W, payload, false, "");
       const receipt = await tx.wait();
-      const ids = await c.getPassportsByCreator(w.address);
+      const ids = await listCreatorPassports(c, w.address);
       const passportId = ids[ids.length - 1];
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       expect(p.objectType).to.equal("physical");
       const ev = receipt.logs
         .map((l) => {
           try {
-            return c.interface.parseLog(l);
+            return c.extensionRouter.interface.parseLog(l);
           } catch {
             return null;
           }
@@ -674,13 +875,13 @@ describe("ObjectDigitalPassport", function () {
       const [wArtist, wAgent] = await ethers.getSigners();
       await c.connect(wArtist).registerCreator(TYPE_C);
       const artistId = await c.getCreatorByWallet(wArtist.address);
-      await c.connect(wAgent).requestMintAgentRole(artistId);
+      await c.relations.connect(wAgent).requestMintAgentRole(artistId);
       const pendKey = ethers.keccak256(
         ethers.solidityPacked(["string", "address"], [artistId, wAgent.address])
       );
-      expect(await c.mintAgentDelegationPending(pendKey)).to.equal(true);
-      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
-      expect(await c.mintAgentForCreator(artistId)).to.equal(wAgent.address);
+      expect(await c.relations.mintAgentDelegationPending(pendKey)).to.equal(true);
+      await c.relations.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      expect(await c.relations.mintAgentForCreator(artistId)).to.equal(wAgent.address);
       const passportId = await mintDigitalAndId(
         c,
         wAgent,
@@ -699,14 +900,14 @@ describe("ObjectDigitalPassport", function () {
         ],
         wArtist.address
       );
-      const p = await c.getPassport(passportId);
+      const p = await readPassport(c, passportId);
       expect(p.creatorId).to.equal(artistId);
       expect(p.creator).to.equal(wArtist.address);
       expect(p.owner).to.equal(wArtist.address);
       expect(p.mintAgent).to.equal(wAgent.address);
-      const ids = await c.getPassportsByCreator(wArtist.address);
+      const ids = await listCreatorPassports(c, wArtist.address);
       expect(ids.includes(passportId)).to.equal(true);
-      const idsAgent = await c.getPassportsByCreator(wAgent.address);
+      const idsAgent = await listCreatorPassports(c, wAgent.address);
       expect(idsAgent.length).to.equal(0);
     });
 
@@ -715,10 +916,10 @@ describe("ObjectDigitalPassport", function () {
       const [wArtist, wAgent, wEvil] = await ethers.getSigners();
       await c.connect(wArtist).registerCreator(TYPE_C);
       const artistId = await c.getCreatorByWallet(wArtist.address);
-      await c.connect(wAgent).requestMintAgentRole(artistId);
-      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      await c.relations.connect(wAgent).requestMintAgentRole(artistId);
+      await c.relations.connect(wArtist).confirmMintAgentRole(wAgent.address);
       await expect(
-        c.connect(wEvil).mintDigital(
+        callMintDigital(c, wEvil, [
           MINT_Y,
           MINT_M,
           nonZeroDataHash(702),
@@ -730,7 +931,7 @@ describe("ObjectDigitalPassport", function () {
           false,
           ...AUX_EMPTY,
           artistId
-        )
+        ])
       )
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(72n);
@@ -742,9 +943,9 @@ describe("ObjectDigitalPassport", function () {
       await c.connect(wArtist).registerCreator(TYPE_C);
       const artistId = await c.getCreatorByWallet(wArtist.address);
       const lim = 1000n;
-      expect(await c.getRemainingMints(wArtist.address)).to.equal(lim);
-      await c.connect(wAgent).requestMintAgentRole(artistId);
-      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      expect(await getRemainingMintsEstimate(c, wArtist.address)).to.equal(lim);
+      await c.relations.connect(wAgent).requestMintAgentRole(artistId);
+      await c.relations.connect(wArtist).confirmMintAgentRole(wAgent.address);
       await mintDigitalAndId(
         c,
         wAgent,
@@ -763,7 +964,7 @@ describe("ObjectDigitalPassport", function () {
         ],
         wArtist.address
       );
-      expect(await c.getRemainingMints(wArtist.address)).to.equal(lim - 1n);
+      expect(await getRemainingMintsEstimate(c, wArtist.address)).to.equal(lim - 1n);
     });
 
     it("revokeMintAgentRole blocks further agent mints", async function () {
@@ -771,12 +972,12 @@ describe("ObjectDigitalPassport", function () {
       const [wArtist, wAgent] = await ethers.getSigners();
       await c.connect(wArtist).registerCreator(TYPE_C);
       const artistId = await c.getCreatorByWallet(wArtist.address);
-      await c.connect(wAgent).requestMintAgentRole(artistId);
-      await c.connect(wArtist).confirmMintAgentRole(wAgent.address);
-      await c.connect(wArtist).revokeMintAgentRole();
-      expect(await c.mintAgentForCreator(artistId)).to.equal(ethers.ZeroAddress);
+      await c.relations.connect(wAgent).requestMintAgentRole(artistId);
+      await c.relations.connect(wArtist).confirmMintAgentRole(wAgent.address);
+      await c.relations.connect(wArtist).revokeMintAgentRole();
+      expect(await c.relations.mintAgentForCreator(artistId)).to.equal(ethers.ZeroAddress);
       await expect(
-        c.connect(wAgent).mintDigital(
+        callMintDigital(c, wAgent, [
           MINT_Y,
           MINT_M,
           nonZeroDataHash(704),
@@ -788,7 +989,7 @@ describe("ObjectDigitalPassport", function () {
           false,
           ...AUX_EMPTY,
           artistId
-        )
+        ])
       )
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(72n);
@@ -819,7 +1020,7 @@ describe("ObjectDigitalPassport", function () {
       const [wC, wP] = await ethers.getSigners();
       await reg.connect(wC).registerCreator(TYPE_C);
       await (
-        await reg.connect(wC).mintDigital(
+        await callMintDigital(reg, wC, [
           MINT_Y,
           MINT_M,
           nonZeroDataHash(800),
@@ -831,9 +1032,9 @@ describe("ObjectDigitalPassport", function () {
           false,
           ...AUX_EMPTY,
           MINT_SELF
-        )
+        ])
       ).wait();
-      const ids800 = await reg.getPassportsByCreator(wC.address);
+      const ids800 = await listCreatorPassports(reg, wC.address);
       const passportId = ids800[ids800.length - 1];
       await reg.connect(wP).registerCreator(TYPE_P);
       const rh = ethers.keccak256(ethers.toUtf8Bytes("concern"));
@@ -851,7 +1052,7 @@ describe("ObjectDigitalPassport", function () {
       const [wC] = await ethers.getSigners();
       await reg.connect(wC).registerCreator(TYPE_C);
       await (
-        await reg.connect(wC).mintDigital(
+        await callMintDigital(reg, wC, [
           MINT_Y,
           MINT_M,
           nonZeroDataHash(801),
@@ -863,9 +1064,9 @@ describe("ObjectDigitalPassport", function () {
           false,
           ...AUX_EMPTY,
           MINT_SELF
-        )
+        ])
       ).wait();
-      const ids801 = await reg.getPassportsByCreator(wC.address);
+      const ids801 = await listCreatorPassports(reg, wC.address);
       const passportId = ids801[ids801.length - 1];
       const rh = ethers.keccak256(ethers.toUtf8Bytes("x"));
       await expect(cf.connect(wC).raiseCounterfeitConcern(passportId, rh))

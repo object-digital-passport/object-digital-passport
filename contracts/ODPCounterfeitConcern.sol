@@ -17,9 +17,22 @@ interface IODPRegistryForCounterfeit {
         uint256 timestamp;
     }
 
+    struct PassportClassificationView {
+        uint8 contentClass;
+        uint8 lifecycleStatus;
+        uint8 aiStatus;
+        uint8 verificationMethod;
+        uint8 editionModel;
+        uint256 timestamp;
+        bool revoked;
+        uint256 revokedAt;
+        bytes32 revocationReasonHash;
+        address mintAgent;
+    }
+
     function getCreatorByWallet(address wallet) external view returns (string memory);
     function getCreator(string calldata creatorId) external view returns (CreatorRecord memory);
-    function exists(string calldata passportId) external view returns (bool);
+    function getPassportClassification(string calldata passportId) external view returns (PassportClassificationView memory);
 }
 
 contract ODPCounterfeitConcern {
@@ -52,7 +65,7 @@ contract ODPCounterfeitConcern {
 
     function raiseCounterfeitConcern(string calldata passportId, bytes32 reasonHash) external {
         if (!(reasonHash != bytes32(0))) revert EC(16);
-        if (!odpRegistry.exists(passportId)) revert EC(12);
+        odpRegistry.getPassportClassification(passportId);
 
         string memory callerId = odpRegistry.getCreatorByWallet(msg.sender);
         if (!(bytes(callerId).length > 0)) revert EC(7);

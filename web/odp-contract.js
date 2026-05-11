@@ -8,7 +8,7 @@
   "use strict";
 
   /** Static site / repo release: bump Y for docs-only; bump X with new contract (see README). */
-  var ODP_SITE_VERSION = "0.4.1";
+  var ODP_SITE_VERSION = "0.5.0";
 
   var CV_ABI = [
     { name: "CONTRACT_VERSION", type: "function", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
@@ -130,6 +130,194 @@
     return new global.ethers.Contract(sat, odpCounterfeitConcernAbiFragments(), signer);
   }
 
+  function odpSatelliteAddress(net, key) {
+    if (!net || net[key] == null) return null;
+    var d = String(net[key]).trim();
+    return /^0x[a-fA-F0-9]{40}$/i.test(d) ? d : null;
+  }
+
+  function odpProofRegistryAbiFragments(generation, net) {
+    var pid = odpPassportIdAbiName(generation, net);
+    return [
+      {
+        name: "submitProof",
+        type: "function",
+        stateMutability: "nonpayable",
+        inputs: [
+          { name: pid, type: "string" },
+          { name: "noteHash", type: "bytes32" },
+          { name: "noteUrl", type: "string" },
+          { name: "year", type: "uint32" },
+          { name: "month", type: "uint8" },
+        ],
+        outputs: [{ name: "proofId", type: "string" }],
+      },
+      {
+        name: "getProofsByInstitution",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "creatorId", type: "string" }],
+        outputs: [{ name: "", type: "string[]" }],
+      },
+      {
+        name: "getProofsForPassport",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: pid, type: "string" }],
+        outputs: [{ name: "", type: "string[]" }],
+      },
+      {
+        name: "getProof",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "proofId", type: "string" }],
+        outputs: [
+          {
+            name: "",
+            type: "tuple",
+            components: [
+              { name: "proofId", type: "string" },
+              { name: "contractVersion", type: "uint8" },
+              { name: "prover", type: "string" },
+              { name: pid, type: "string" },
+              { name: "noteHash", type: "bytes32" },
+              { name: "noteUrl", type: "string" },
+              { name: "timestamp", type: "uint256" },
+            ],
+          },
+        ],
+      },
+    ];
+  }
+
+  function odpRelationsAbiFragments() {
+    return [
+      { name: "proposePAffiliation", type: "function", stateMutability: "nonpayable", inputs: [{ name: "parentPId", type: "string" }], outputs: [] },
+      { name: "confirmPAffiliation", type: "function", stateMutability: "nonpayable", inputs: [{ name: "childPId", type: "string" }], outputs: [] },
+      { name: "cancelPAffiliationRequest", type: "function", stateMutability: "nonpayable", inputs: [{ name: "parentPId", type: "string" }], outputs: [] },
+      { name: "detachPAffiliation", type: "function", stateMutability: "nonpayable", inputs: [{ name: "childPId", type: "string" }], outputs: [] },
+      { name: "isPAffiliationPending", type: "function", stateMutability: "view", inputs: [{ name: "parentPId", type: "string" }, { name: "childPId", type: "string" }], outputs: [{ name: "", type: "bool" }] },
+      { name: "getPAffiliatedParent", type: "function", stateMutability: "view", inputs: [{ name: "childPId", type: "string" }], outputs: [{ name: "", type: "string" }] },
+      { name: "getPAffiliatedChildren", type: "function", stateMutability: "view", inputs: [{ name: "parentPId", type: "string" }], outputs: [{ name: "", type: "string[]" }] },
+      {
+        name: "getPAffiliationAudit",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "childPId", type: "string" }],
+        outputs: [
+          { name: "activeParent", type: "string" },
+          { name: "joinedAt", type: "uint256" },
+          { name: "detachedAt", type: "uint256" },
+          { name: "lastDetachedFromParent", type: "string" },
+        ],
+      },
+      {
+        name: "getPAffiliatedChildrenPaged",
+        type: "function",
+        stateMutability: "view",
+        inputs: [
+          { name: "parentPId", type: "string" },
+          { name: "offset", type: "uint256" },
+          { name: "limit", type: "uint256" },
+        ],
+        outputs: [
+          { name: "result", type: "string[]" },
+          { name: "total", type: "uint256" },
+        ],
+      },
+      { name: "delegateCreatorPublishing", type: "function", stateMutability: "nonpayable", inputs: [{ name: "agent", type: "address" }, { name: "expiresAt", type: "uint256" }], outputs: [] },
+      { name: "revokeCreatorPublishing", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+      {
+        name: "getCreatorPublishingDelegation",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "creatorWallet", type: "address" }],
+        outputs: [
+          { name: "agent", type: "address" },
+          { name: "expiresAt", type: "uint256" },
+        ],
+      },
+      { name: "requestMintAgentRole", type: "function", stateMutability: "nonpayable", inputs: [{ name: "principalCreatorId", type: "string" }], outputs: [] },
+      { name: "confirmMintAgentRole", type: "function", stateMutability: "nonpayable", inputs: [{ name: "agent", type: "address" }], outputs: [] },
+      { name: "revokeMintAgentRole", type: "function", stateMutability: "nonpayable", inputs: [], outputs: [] },
+      { name: "renounceMintAgentRole", type: "function", stateMutability: "nonpayable", inputs: [{ name: "principalCreatorId", type: "string" }], outputs: [] },
+      { name: "cancelMintAgentRequest", type: "function", stateMutability: "nonpayable", inputs: [{ name: "principalCreatorId", type: "string" }], outputs: [] },
+      { name: "mintAgentForCreator", type: "function", stateMutability: "view", inputs: [{ name: "creatorId", type: "string" }], outputs: [{ name: "", type: "address" }] },
+      { name: "mintAgentDelegationPending", type: "function", stateMutability: "view", inputs: [{ name: "key", type: "bytes32" }], outputs: [{ name: "", type: "bool" }] },
+    ];
+  }
+
+  function odpProofReadContract(mainContract, net, generation, providerOrSigner) {
+    var sat = odpSatelliteAddress(net, "proofRegistry");
+    if (!sat || !mainContract || !providerOrSigner || typeof global.ethers === "undefined") return mainContract;
+    if (!odpRegistryAddressesMatch(net.contract, mainContract.address)) return mainContract;
+    return new global.ethers.Contract(sat, odpProofRegistryAbiFragments(generation, net), providerOrSigner);
+  }
+
+  function odpProofWriteContract(mainContract, net, generation, signer) {
+    return odpProofReadContract(mainContract, net, generation, signer);
+  }
+
+  function odpRelationsReadContract(mainContract, net, providerOrSigner) {
+    var sat = odpSatelliteAddress(net, "relations");
+    if (!sat || !mainContract || !providerOrSigner || typeof global.ethers === "undefined") return mainContract;
+    if (!odpRegistryAddressesMatch(net.contract, mainContract.address)) return mainContract;
+    return new global.ethers.Contract(sat, odpRelationsAbiFragments(), providerOrSigner);
+  }
+
+  function odpRelationsWriteContract(mainContract, net, signer) {
+    return odpRelationsReadContract(mainContract, net, signer);
+  }
+
+  async function odpListCreatorPassports(mainContract, creator, pageSize) {
+    var size = Math.max(1, Number(pageSize || 100));
+    if (!mainContract || !creator) return [];
+    if (typeof mainContract.getPassportsByCreatorPaged !== "function") {
+      return typeof mainContract.getPassportsByCreator === "function" ? mainContract.getPassportsByCreator(creator) : [];
+    }
+    var all = [];
+    var offset = 0;
+    for (;;) {
+      var page = await mainContract.getPassportsByCreatorPaged(creator, offset, size);
+      var rows = page && page.result ? page.result : page[0];
+      var total = page && page.total != null ? Number(page.total) : Number(page[1] || 0);
+      rows = Array.isArray(rows) ? rows : [];
+      all = all.concat(rows);
+      offset += rows.length;
+      if (!rows.length || (total && offset >= total)) break;
+      if (rows.length < size && !total) break;
+    }
+    return all;
+  }
+
+  async function odpEstimateRemainingMints(mainContract, wallet) {
+    if (!mainContract || !wallet || typeof mainContract.getCreatorByWallet !== "function" || typeof mainContract.getCreator !== "function") {
+      return null;
+    }
+    var creatorId = await mainContract.getCreatorByWallet(wallet);
+    if (!creatorId) return { remaining: 0, limit: 0, used: 0, unlimited: false };
+    var creator = await mainContract.getCreator(creatorId);
+    var typePrefix = creator && creator.typePrefix != null ? String(creator.typePrefix) : "";
+    if (typePrefix === "P" || typePrefix === "M") {
+      return { remaining: null, limit: null, used: 0, unlimited: true };
+    }
+    var limit = typePrefix === "B" ? 100000 : 1000;
+    var ids = await odpListCreatorPassports(mainContract, wallet, 100);
+    var now = new Date();
+    var year = now.getUTCFullYear();
+    var month = now.getUTCMonth() + 1;
+    var used = 0;
+    for (var i = 0; i < ids.length; i++) {
+      try {
+        var header = await mainContract.getPassportHeader(ids[i]);
+        var hy = Number(header && header.year != null ? header.year : 0);
+        var hm = Number(header && header.month != null ? header.month : 0);
+        if (hy === year && hm === month) used++;
+      } catch (_) {}
+    }
+    return { remaining: Math.max(0, limit - used), limit: limit, used: used, unlimited: false };
+  }
+
   /** getPassport passport tuple — v0.2 layout (CONTRACT_VERSION packed < 3). */
   function odpPassportTupleComponentsV02() {
     return [
@@ -192,7 +380,56 @@
     return out;
   }
 
+  function odpPassportTupleComponentsV05(generation, net) {
+    var idn = odpPassportIdAbiName(generation, net);
+    return [
+      { name: idn, type: "string" },
+      { name: "contractVersion", type: "uint8" },
+      { name: "creator", type: "address" },
+      { name: "owner", type: "address" },
+      { name: "creatorId", type: "string" },
+      { name: "year", type: "uint32" },
+      { name: "month", type: "uint8" },
+      { name: "title", type: "string" },
+      { name: "domain", type: "string" },
+      { name: "objectType", type: "string" },
+      { name: "contentClass", type: "uint8" },
+      { name: "lifecycleStatus", type: "uint8" },
+      { name: "aiStatus", type: "uint8" },
+      { name: "verificationMethod", type: "uint8" },
+      { name: "editionModel", type: "uint8" },
+      { name: "currentLocation", type: "string" },
+      { name: "rightsNote", type: "string" },
+      { name: "conditionNote", type: "string" },
+      { name: "damageHistoryHash", type: "bytes32" },
+      { name: "damageHistoryUrl", type: "string" },
+      { name: "dataHash", type: "bytes32" },
+      { name: "imageHash", type: "bytes32" },
+      { name: "imageHash2", type: "bytes32" },
+      { name: "imageHash3", type: "bytes32" },
+      { name: "fileHash", type: "bytes32" },
+      { name: "sealType", type: "uint8" },
+      { name: "sealHash", type: "bytes32" },
+      { name: "nfcPublicKey", type: "bytes" },
+      { name: "nfcModel", type: "string" },
+      { name: "dataUrl", type: "string" },
+      { name: "imageUrl", type: "string" },
+      { name: "imageUrl2", type: "string" },
+      { name: "imageUrl3", type: "string" },
+      { name: "timestamp", type: "uint256" },
+      { name: "revoked", type: "bool" },
+      { name: "revokedAt", type: "uint256" },
+      { name: "revocationReasonHash", type: "bytes32" },
+      { name: "auxCommitmentHash", type: "bytes32" },
+      { name: "auxCommitmentUri", type: "string" },
+      { name: "ndppCommitmentHash", type: "bytes32" },
+      { name: "ndppCommitmentUri", type: "string" },
+      { name: "mintAgent", type: "address" },
+    ];
+  }
+
   function odpPassportTupleComponents(generation, net) {
+    if (generation >= 5) return odpPassportTupleComponentsV05(generation, net);
     return odpSupportsV03(generation) ? odpPassportTupleComponentsV03(generation, net) : odpPassportTupleComponentsV02();
   }
 
@@ -724,11 +961,545 @@
     var pid = odpPassportIdAbiName(generation, net);
     var folder = generation >= 2;
     var mintMut = "nonpayable";
-    var hasContentClass = odpSupportsContentClass(generation);
+    if (generation >= 5) {
+      var coreMintInputs = [
+        { name: "year", type: "uint32" },
+        { name: "month", type: "uint8" },
+        { name: "title", type: "string" },
+        { name: "domain", type: "string" },
+        { name: "contentClass", type: "uint8" },
+        { name: "lifecycleStatus", type: "uint8" },
+        { name: "aiStatus", type: "uint8" },
+        { name: "verificationMethod", type: "uint8" },
+        { name: "editionModel", type: "uint8" },
+        { name: "currentLocation", type: "string" },
+        { name: "rightsNote", type: "string" },
+        { name: "conditionNote", type: "string" },
+        { name: "damageHistoryHash", type: "bytes32" },
+        { name: "damageHistoryUrl", type: "string" },
+      ];
+      var commonTail = [
+        { name: "dataHash", type: "bytes32" },
+        { name: "dataUrl", type: "string" },
+        { name: "imageHash", type: "bytes32" },
+        { name: "imageUrl", type: "string" },
+      ];
+      var extraImages = [
+        { name: "imageHash2", type: "bytes32" },
+        { name: "imageUrl2", type: "string" },
+        { name: "imageHash3", type: "bytes32" },
+        { name: "imageUrl3", type: "string" },
+      ];
+      var physicalSeal = [
+        { name: "sealType", type: "uint8" },
+        { name: "sealHash", type: "bytes32" },
+        { name: "nfcPublicKey", type: "bytes" },
+        { name: "nfcModel", type: "string" },
+      ];
+      var filePart = [{ name: "fileHash", type: "bytes32" }];
+      var physicalMintTuple = {
+        name: "m",
+        type: "tuple",
+        components: [
+          { name: "core", type: "tuple", components: coreMintInputs },
+          { name: "dataHash", type: "bytes32" },
+          { name: "dataUrl", type: "string" },
+          { name: "imageHash", type: "bytes32" },
+          { name: "imageUrl", type: "string" },
+          { name: "sealType", type: "uint8" },
+          { name: "sealHash", type: "bytes32" },
+          { name: "nfcPublicKey", type: "bytes" },
+          { name: "nfcModel", type: "string" },
+          { name: "imageHash2", type: "bytes32" },
+          { name: "imageUrl2", type: "string" },
+          { name: "imageHash3", type: "bytes32" },
+          { name: "imageUrl3", type: "string" },
+          { name: "auxCommitmentHash", type: "bytes32" },
+          { name: "auxCommitmentUri", type: "string" },
+          { name: "ndppCommitmentHash", type: "bytes32" },
+          { name: "ndppCommitmentUri", type: "string" },
+        ],
+      };
+      var digitalMintTuple = {
+        name: "dm",
+        type: "tuple",
+        components: [
+          { name: "core", type: "tuple", components: coreMintInputs },
+          { name: "dataHash", type: "bytes32" },
+          { name: "dataUrl", type: "string" },
+          { name: "imageHash", type: "bytes32" },
+          { name: "imageUrl", type: "string" },
+          { name: "imageHash2", type: "bytes32" },
+          { name: "imageUrl2", type: "string" },
+          { name: "imageHash3", type: "bytes32" },
+          { name: "imageUrl3", type: "string" },
+          { name: "fileHash", type: "bytes32" },
+          { name: "auxCommitmentHash", type: "bytes32" },
+          { name: "auxCommitmentUri", type: "string" },
+          { name: "ndppCommitmentHash", type: "bytes32" },
+          { name: "ndppCommitmentUri", type: "string" },
+        ],
+      };
+      var mixedMintTuple = {
+        name: "mm",
+        type: "tuple",
+        components: [
+          { name: "core", type: "tuple", components: coreMintInputs },
+          { name: "dataHash", type: "bytes32" },
+          { name: "dataUrl", type: "string" },
+          { name: "imageHash", type: "bytes32" },
+          { name: "imageUrl", type: "string" },
+          { name: "sealType", type: "uint8" },
+          { name: "sealHash", type: "bytes32" },
+          { name: "nfcPublicKey", type: "bytes" },
+          { name: "nfcModel", type: "string" },
+          { name: "imageHash2", type: "bytes32" },
+          { name: "imageUrl2", type: "string" },
+          { name: "imageHash3", type: "bytes32" },
+          { name: "imageUrl3", type: "string" },
+          { name: "fileHash", type: "bytes32" },
+          { name: "auxCommitmentHash", type: "bytes32" },
+          { name: "auxCommitmentUri", type: "string" },
+          { name: "ndppCommitmentHash", type: "bytes32" },
+          { name: "ndppCommitmentUri", type: "string" },
+        ],
+      };
+      var sharedSuffix = [
+        { name: "dataUrlIsFolderBase", type: "bool" },
+        { name: "mintOnBehalfOfCreatorId", type: "string" },
+      ];
+      var passportHeaderView = [
+        { name: "passportId", type: "string" },
+        { name: "contractVersion", type: "uint8" },
+        { name: "creator", type: "address" },
+        { name: "owner", type: "address" },
+        { name: "creatorId", type: "string" },
+        { name: "year", type: "uint32" },
+        { name: "month", type: "uint8" },
+        { name: "title", type: "string" },
+        { name: "domain", type: "string" },
+        { name: "objectType", type: "string" },
+      ];
+      var passportClassificationView = [
+        { name: "contentClass", type: "uint8" },
+        { name: "lifecycleStatus", type: "uint8" },
+        { name: "aiStatus", type: "uint8" },
+        { name: "verificationMethod", type: "uint8" },
+        { name: "editionModel", type: "uint8" },
+        { name: "timestamp", type: "uint256" },
+        { name: "revoked", type: "bool" },
+        { name: "revokedAt", type: "uint256" },
+        { name: "revocationReasonHash", type: "bytes32" },
+        { name: "mintAgent", type: "address" },
+      ];
+      var passportMediaView = [
+        { name: "dataHash", type: "bytes32" },
+        { name: "dataUrl", type: "string" },
+        { name: "imageHash", type: "bytes32" },
+        { name: "imageUrl", type: "string" },
+        { name: "imageHash2", type: "bytes32" },
+        { name: "imageUrl2", type: "string" },
+        { name: "imageHash3", type: "bytes32" },
+        { name: "imageUrl3", type: "string" },
+        { name: "fileHash", type: "bytes32" },
+      ];
+      var passportPhysicalView = [
+        { name: "sealType", type: "uint8" },
+        { name: "sealHash", type: "bytes32" },
+        { name: "nfcPublicKey", type: "bytes" },
+        { name: "nfcModel", type: "string" },
+      ];
+      var passportStateView = [
+        { name: "currentLocation", type: "string" },
+        { name: "rightsNote", type: "string" },
+        { name: "conditionNote", type: "string" },
+        { name: "damageHistoryHash", type: "bytes32" },
+        { name: "damageHistoryUrl", type: "string" },
+        { name: "auxCommitmentHash", type: "bytes32" },
+        { name: "auxCommitmentUri", type: "string" },
+        { name: "ndppCommitmentHash", type: "bytes32" },
+        { name: "ndppCommitmentUri", type: "string" },
+      ];
+      var passportMintedEvent =
+        "event PassportMinted(string indexed " +
+        pid +
+        ",address indexed creator,string creatorId,string title,string domain,string objectType,uint8 contentClass,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp,address mintAgent)";
 
+      return [
+        {
+          name: "getCreatorByWallet",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "wallet", type: "address" }],
+          outputs: [{ name: "", type: "string" }],
+        },
+        {
+          name: "getPassportsByCreator",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creator", type: "address" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
+          name: "getPassportsByCreatorPaged",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "creator", type: "address" },
+            { name: "offset", type: "uint256" },
+            { name: "limit", type: "uint256" },
+          ],
+          outputs: [
+            { name: "result", type: "string[]" },
+            { name: "total", type: "uint256" },
+          ],
+        },
+        {
+          name: "getPassportHeader",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: passportHeaderView,
+            },
+          ],
+        },
+        {
+          name: "getPassportClassification",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: passportClassificationView,
+            },
+          ],
+        },
+        {
+          name: "getPassportMedia",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: passportMediaView,
+            },
+          ],
+        },
+        {
+          name: "getPassportPhysical",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: passportPhysicalView,
+            },
+          ],
+        },
+        {
+          name: "getPassportState",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: passportStateView,
+            },
+          ],
+        },
+        passportMintedEvent,
+        { name: "mintPhysical", type: "function", stateMutability: mintMut, inputs: [physicalMintTuple].concat(sharedSuffix), outputs: [{ name: pid, type: "string" }] },
+        { name: "mintDigital", type: "function", stateMutability: mintMut, inputs: [digitalMintTuple].concat(sharedSuffix), outputs: [{ name: pid, type: "string" }] },
+        { name: "mintMixed", type: "function", stateMutability: mintMut, inputs: [mixedMintTuple].concat(sharedSuffix), outputs: [{ name: pid, type: "string" }] },
+        {
+          name: "updatePassportUrls",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newDataUrl", type: "string" },
+            { name: "newImageUrl", type: "string" },
+            { name: "confirmedDataHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "updatePassportStatus",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newLifecycleStatus", type: "uint8" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "updatePassportLocation",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newLocation", type: "string" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "updatePassportRights",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newRightsNote", type: "string" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "updatePassportCondition",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newConditionNote", type: "string" },
+            { name: "newDamageHistoryHash", type: "bytes32" },
+            { name: "newDamageHistoryUrl", type: "string" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "updatePassportAuxCommitment",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newHash", type: "bytes32" },
+            { name: "newUri", type: "string" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "updatePassportNdppCommitment",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newHash", type: "bytes32" },
+            { name: "newUri", type: "string" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "getRemainingMints",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "wallet", type: "address" }],
+          outputs: [{ name: "", type: "uint32" }],
+        },
+        {
+          name: "submitProof",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "noteHash", type: "bytes32" },
+            { name: "noteUrl", type: "string" },
+            { name: "year", type: "uint32" },
+            { name: "month", type: "uint8" },
+          ],
+          outputs: [{ name: "proofId", type: "string" }],
+        },
+        {
+          name: "getProofsByInstitution",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorId", type: "string" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
+          name: "getProofsForPassport",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
+          name: "getProof",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "proofId", type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: [
+                { name: "proofId", type: "string" },
+                { name: "contractVersion", type: "uint8" },
+                { name: "prover", type: "string" },
+                { name: pid, type: "string" },
+                { name: "noteHash", type: "bytes32" },
+                { name: "noteUrl", type: "string" },
+                { name: "timestamp", type: "uint256" },
+              ],
+            },
+          ],
+        },
+        {
+          name: "transferPassport",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newOwner", type: "address" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "delegateCreatorPublishing",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "agent", type: "address" },
+            { name: "expiresAt", type: "uint256" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "revokeCreatorPublishing",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [],
+          outputs: [],
+        },
+        {
+          name: "getCreatorPublishingDelegation",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorWallet", type: "address" }],
+          outputs: [
+            { name: "agent", type: "address" },
+            { name: "expiresAt", type: "uint256" },
+          ],
+        },
+        {
+          name: "requestMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "confirmMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "agent", type: "address" }],
+          outputs: [],
+        },
+        {
+          name: "revokeMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [],
+          outputs: [],
+        },
+        {
+          name: "renounceMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "cancelMintAgentRequest",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "mintAgentForCreator",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "", type: "string" }],
+          outputs: [{ name: "", type: "address" }],
+        },
+        {
+          name: "mintAgentDelegationPending",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "", type: "bytes32" }],
+          outputs: [{ name: "", type: "bool" }],
+        },
+        {
+          name: "revokePassport",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "getPAffiliationAudit",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [
+            { name: "activeParent", type: "string" },
+            { name: "joinedAt", type: "uint256" },
+            { name: "detachedAt", type: "uint256" },
+            { name: "lastDetachedFromParent", type: "string" },
+          ],
+        },
+        {
+          name: "detachPAffiliation",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "governance",
+          type: "function",
+          stateMutability: "view",
+          inputs: [],
+          outputs: [{ name: "", type: "address" }],
+        },
+        {
+          name: "transferGovernance",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "newGovernance", type: "address" }],
+          outputs: [],
+        },
+      ];
+    }
+
+    var hasContentClass = odpSupportsContentClass(generation);
     var mintPhysicalInputs = [
       { name: "year", type: "uint32" },
       { name: "month", type: "uint8" },
+    ];
+    var mintDigitalInputs = [
+      { name: "year", type: "uint32" },
+      { name: "month", type: "uint8" },
+    ];
+    if (hasContentClass) {
+      mintPhysicalInputs.push({ name: "contentClass", type: "uint8" });
+      mintDigitalInputs.push({ name: "contentClass", type: "uint8" });
+    }
+    mintPhysicalInputs.push(
       { name: "dataHash", type: "bytes32" },
       { name: "dataUrl", type: "string" },
       { name: "imageHash", type: "bytes32" },
@@ -736,20 +1507,14 @@
       { name: "sealType", type: "uint8" },
       { name: "sealHash", type: "bytes32" },
       { name: "nfcPublicKey", type: "bytes" },
-      { name: "nfcModel", type: "string" },
-    ];
-    var mintDigitalInputs = [
-      { name: "year", type: "uint32" },
-      { name: "month", type: "uint8" },
+      { name: "nfcModel", type: "string" }
+    );
+    mintDigitalInputs.push(
       { name: "dataHash", type: "bytes32" },
-    if (hasContentClass) {
-      mintPhysicalInputs.splice(2, 0, { name: "contentClass", type: "uint8" });
-      mintDigitalInputs.splice(2, 0, { name: "contentClass", type: "uint8" });
-    }
       { name: "dataUrl", type: "string" },
       { name: "imageHash", type: "bytes32" },
-      { name: "imageUrl", type: "string" },
-    ];
+      { name: "imageUrl", type: "string" }
+    );
     if (odpSupportsV03(generation)) {
       mintPhysicalInputs.push(
         { name: "imageHash2", type: "bytes32" },
@@ -772,14 +1537,24 @@
     if (odpSupportsV03(generation)) {
       mintDigitalInputs.push(
         { name: "auxCommitmentHash", type: "bytes32" },
-        { name: "auxCommitmentUri", type: "string" },
-        { name: "mintOnBehalfOfCreatorId", type: "string" }
+        { name: "auxCommitmentUri", type: "string" }
       );
       mintPhysicalInputs.push(
         { name: "auxCommitmentHash", type: "bytes32" },
-        { name: "auxCommitmentUri", type: "string" },
-        { name: "mintOnBehalfOfCreatorId", type: "string" }
+        { name: "auxCommitmentUri", type: "string" }
       );
+      if (generation >= 5) {
+        mintDigitalInputs.push(
+          { name: "ndppCommitmentHash", type: "bytes32" },
+          { name: "ndppCommitmentUri", type: "string" }
+        );
+        mintPhysicalInputs.push(
+          { name: "ndppCommitmentHash", type: "bytes32" },
+          { name: "ndppCommitmentUri", type: "string" }
+        );
+      }
+      mintDigitalInputs.push({ name: "mintOnBehalfOfCreatorId", type: "string" });
+      mintPhysicalInputs.push({ name: "mintOnBehalfOfCreatorId", type: "string" });
     }
 
     var passportMintedEvent;
@@ -1458,6 +2233,34 @@
     return { contract: contract, generation: gen, abi: abi, legacyUnsupported: false };
   }
 
+  async function odpGetPassportRecord(contract, passportId) {
+    if (!contract || !passportId) throw new Error("contract and passportId required");
+    if (typeof contract.getPassport === "function") {
+      return await contract.getPassport(passportId);
+    }
+    var parts = await Promise.all([
+      contract.getPassportHeader(passportId),
+      contract.getPassportClassification(passportId),
+      contract.getPassportMedia(passportId),
+      contract.getPassportPhysical(passportId),
+      contract.getPassportState(passportId),
+    ]);
+    var merged = {};
+    function normalizeResult(part) {
+      if (part && typeof part.toObject === "function") return part.toObject();
+      return part || {};
+    }
+    for (var i = 0; i < parts.length; i++) {
+      var part = normalizeResult(parts[i]);
+      for (var k in part) {
+        if (Object.prototype.hasOwnProperty.call(part, k) && isNaN(Number(k))) {
+          merged[k] = part[k];
+        }
+      }
+    }
+    return merged;
+  }
+
   /** MetaMask / EIP-1193: pick one provider when `window.ethereum.providers` exists. */
   function odpInjectedEthereum() {
     var w = global.ethereum;
@@ -1522,10 +2325,440 @@
     });
   }
 
+  var ODP_OFFLINE_VERSION = 1;
+  var ODP_OFFLINE_NDEF_TYPE = "odp:off";
+  var ODP_OFFLINE_TARGET_BYTES = 180;
+  var ODP_OFFLINE_SOFT_MAX_BYTES = 200;
+  var ODP_OFFLINE_HARD_MAX_BYTES = 244;
+
+  function odpOfflineUtf8Bytes(text) {
+    return new global.TextEncoder().encode(String(text == null ? "" : text));
+  }
+
+  function odpOfflineHexToBytes(hex, expectedLength) {
+    var s = String(hex == null ? "" : hex).trim();
+    if (!/^0x[0-9a-fA-F]*$/.test(s) || s.length % 2 !== 0) throw new Error("Invalid hex bytes");
+    var out = new Uint8Array((s.length - 2) / 2);
+    for (var i = 0; i < out.length; i++) out[i] = parseInt(s.slice(2 + i * 2, 4 + i * 2), 16);
+    if (expectedLength != null && out.length !== expectedLength) throw new Error("Unexpected byte length");
+    return out;
+  }
+
+  function odpOfflineBytesToHex(bytes) {
+    var b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    var out = "0x";
+    for (var i = 0; i < b.length; i++) out += b[i].toString(16).padStart(2, "0");
+    return out;
+  }
+
+  function odpOfflineConcatBytes(parts) {
+    var total = 0;
+    for (var i = 0; i < parts.length; i++) total += parts[i].length;
+    var out = new Uint8Array(total);
+    var offset = 0;
+    for (var j = 0; j < parts.length; j++) {
+      out.set(parts[j], offset);
+      offset += parts[j].length;
+    }
+    return out;
+  }
+
+  function odpOfflineEncodeCborUint(major, value) {
+    if (!Number.isInteger(value) || value < 0) throw new Error("CBOR encoder supports only non-negative integers");
+    if (value < 24) return new Uint8Array([(major << 5) | value]);
+    if (value < 256) return new Uint8Array([(major << 5) | 24, value]);
+    if (value < 65536) return new Uint8Array([(major << 5) | 25, (value >> 8) & 255, value & 255]);
+    if (value <= 0xffffffff) {
+      return new Uint8Array([(major << 5) | 26, (value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255]);
+    }
+    throw new Error("CBOR integer too large");
+  }
+
+  function odpOfflineEncodeCborValue(value) {
+    if (value instanceof Uint8Array) {
+      return odpOfflineConcatBytes([odpOfflineEncodeCborUint(2, value.length), value]);
+    }
+    if (typeof value === "string") {
+      var textBytes = odpOfflineUtf8Bytes(value);
+      return odpOfflineConcatBytes([odpOfflineEncodeCborUint(3, textBytes.length), textBytes]);
+    }
+    if (typeof value === "number") {
+      return odpOfflineEncodeCborUint(0, value);
+    }
+    if (Array.isArray(value)) {
+      var items = [odpOfflineEncodeCborUint(4, value.length)];
+      for (var i = 0; i < value.length; i++) items.push(odpOfflineEncodeCborValue(value[i]));
+      return odpOfflineConcatBytes(items);
+    }
+    if (value && typeof value === "object") {
+      var keys = Object.keys(value).sort(function (a, b) {
+        var na = Number(a);
+        var nb = Number(b);
+        if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+        return String(a).localeCompare(String(b));
+      });
+      var parts = [odpOfflineEncodeCborUint(5, keys.length)];
+      for (var j = 0; j < keys.length; j++) {
+        var key = keys[j];
+        var nk = Number(key);
+        parts.push(odpOfflineEncodeCborValue(Number.isFinite(nk) ? nk : String(key)));
+        parts.push(odpOfflineEncodeCborValue(value[key]));
+      }
+      return odpOfflineConcatBytes(parts);
+    }
+    throw new Error("Unsupported CBOR value");
+  }
+
+  function odpOfflineReadCborLength(bytes, offset, ai) {
+    if (ai < 24) return { value: ai, offset: offset };
+    if (ai === 24) {
+      if (offset >= bytes.length) throw new Error("Truncated CBOR");
+      return { value: bytes[offset], offset: offset + 1 };
+    }
+    if (ai === 25) {
+      if (offset + 1 >= bytes.length) throw new Error("Truncated CBOR");
+      return { value: (bytes[offset] << 8) | bytes[offset + 1], offset: offset + 2 };
+    }
+    if (ai === 26) {
+      if (offset + 3 >= bytes.length) throw new Error("Truncated CBOR");
+      return {
+        value: bytes[offset] * 0x1000000 + ((bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3]),
+        offset: offset + 4,
+      };
+    }
+    throw new Error("Unsupported CBOR additional info");
+  }
+
+  function odpOfflineDecodeCborValue(bytes, offset) {
+    if (offset >= bytes.length) throw new Error("Truncated CBOR");
+    var first = bytes[offset++];
+    var major = first >> 5;
+    var ai = first & 31;
+    var meta = odpOfflineReadCborLength(bytes, offset, ai);
+    var len = meta.value;
+    offset = meta.offset;
+    if (major === 0) return { value: len, offset: offset };
+    if (major === 2) {
+      if (offset + len > bytes.length) throw new Error("Truncated CBOR bytes");
+      return { value: bytes.slice(offset, offset + len), offset: offset + len };
+    }
+    if (major === 3) {
+      if (offset + len > bytes.length) throw new Error("Truncated CBOR string");
+      return { value: new global.TextDecoder().decode(bytes.slice(offset, offset + len)), offset: offset + len };
+    }
+    if (major === 4) {
+      var arr = [];
+      for (var i = 0; i < len; i++) {
+        var item = odpOfflineDecodeCborValue(bytes, offset);
+        arr.push(item.value);
+        offset = item.offset;
+      }
+      return { value: arr, offset: offset };
+    }
+    if (major === 5) {
+      var obj = {};
+      for (var j = 0; j < len; j++) {
+        var key = odpOfflineDecodeCborValue(bytes, offset);
+        offset = key.offset;
+        var value = odpOfflineDecodeCborValue(bytes, offset);
+        offset = value.offset;
+        obj[String(key.value)] = value.value;
+      }
+      return { value: obj, offset: offset };
+    }
+    throw new Error("Unsupported CBOR major type");
+  }
+
+  function odpOfflineObjectTypeToCode(objectType) {
+    var v = String(objectType == null ? "" : objectType).trim().toLowerCase();
+    if (v === "physical") return 0;
+    if (v === "digital") return 1;
+    if (v === "mixed") return 2;
+    throw new Error("Unsupported object type for odpOffline");
+  }
+
+  function odpOfflineObjectTypeFromCode(code) {
+    if (Number(code) === 0) return "physical";
+    if (Number(code) === 1) return "digital";
+    if (Number(code) === 2) return "mixed";
+    return "unknown";
+  }
+
+  function odpOfflineContentClassFromCode(code) {
+    switch (Number(code)) {
+      case 1: return "static";
+      case 2: return "time_based";
+      case 3: return "spatial";
+      case 4: return "textual";
+      case 5: return "composite";
+      case 6: return "executable";
+      default: return "unknown";
+    }
+  }
+
+  function odpOfflineVerificationMethodFromCode(code) {
+    switch (Number(code)) {
+      case 1: return "self_asserted";
+      case 2: return "institutional";
+      case 3: return "nfc";
+      case 4: return "c2pa";
+      case 5: return "hybrid";
+      default: return "unknown";
+    }
+  }
+
+  function odpOfflineLifecycleStatusFromCode(code) {
+    switch (Number(code)) {
+      case 1: return "concept";
+      case 2: return "prototype";
+      case 3: return "produced_object";
+      case 4: return "archived";
+      default: return "unknown";
+    }
+  }
+
+  function odpOfflineTruncateUtf8(text, maxBytes) {
+    var src = String(text == null ? "" : text);
+    var out = "";
+    var used = 0;
+    var truncated = false;
+    for (var i = 0; i < src.length; i++) {
+      var next = src.charAt(i);
+      var cc = src.charCodeAt(i);
+      if (cc >= 0xd800 && cc <= 0xdbff && i + 1 < src.length) {
+        next = src.slice(i, i + 2);
+        i += 1;
+      }
+      var size = odpOfflineUtf8Bytes(next).length;
+      if (used + size > maxBytes) {
+        truncated = true;
+        break;
+      }
+      out += next;
+      used += size;
+    }
+    return { value: out, bytes: used, truncated: truncated };
+  }
+
+  function odpOfflineToSemantic(decoded) {
+    var top = decoded || {};
+    var reg = Array.isArray(top["1"]) ? top["1"] : [];
+    var identity = top["2"] || {};
+    var state = top["3"] || null;
+    var flags = state ? Number(state["2"] || 0) : 0;
+    return {
+      version: Number(top["0"] || 0),
+      registry: {
+        chainId: Number(reg[0] || 0),
+        contract: reg[1] instanceof Uint8Array ? odpOfflineBytesToHex(reg[1]) : "",
+        contractVersion: Number(reg[2] || 0),
+      },
+      identity: {
+        passportId: String(identity["0"] || ""),
+        creatorId: String(identity["1"] || ""),
+        title: String(identity["2"] || ""),
+        objectTypeCode: Number(identity["3"] || 0),
+        objectType: odpOfflineObjectTypeFromCode(identity["3"]),
+        contentClassCode: Number(identity["4"] || 0),
+        contentClass: odpOfflineContentClassFromCode(identity["4"]),
+        verificationMethodCode: Number(identity["5"] || 0),
+        verificationMethod: odpOfflineVerificationMethodFromCode(identity["5"]),
+        dataHash: identity["6"] instanceof Uint8Array ? odpOfflineBytesToHex(identity["6"]) : "",
+      },
+      state: state
+        ? {
+            asOf: Number(state["0"] || 0),
+            statusCode: Number(state["1"] || 0),
+            status: odpOfflineLifecycleStatusFromCode(state["1"]),
+            flags: flags,
+            revoked: !!(flags & 1),
+            counterfeitConcern: !!(flags & 2),
+          }
+        : null,
+    };
+  }
+
+  function odpOfflineEncodeNdefMessage(payloadBytes) {
+    var payload = payloadBytes instanceof Uint8Array ? payloadBytes : new Uint8Array(payloadBytes || []);
+    if (payload.length > 255) throw new Error("odpOffline payload too large for short-record NDEF");
+    var typeBytes = odpOfflineUtf8Bytes(ODP_OFFLINE_NDEF_TYPE);
+    return odpOfflineConcatBytes([new Uint8Array([0xd4, typeBytes.length, payload.length]), typeBytes, payload]);
+  }
+
+  function odpOfflineWrapNdefFile(messageBytes) {
+    var msg = messageBytes instanceof Uint8Array ? messageBytes : new Uint8Array(messageBytes || []);
+    if (msg.length > 0xffff) throw new Error("NDEF message too large");
+    return odpOfflineConcatBytes([new Uint8Array([(msg.length >> 8) & 255, msg.length & 255]), msg]);
+  }
+
+  function odpOfflineReadNdefMessage(bytes) {
+    var buf = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    if (buf.length >= 3) {
+      var nlen = (buf[0] << 8) | buf[1];
+      if (nlen > 0 && nlen <= buf.length - 2) buf = buf.slice(2, 2 + nlen);
+    }
+    if (!buf.length) throw new Error("Empty NDEF message");
+    var offset = 0;
+    var header = buf[offset++];
+    var sr = !!(header & 0x10);
+    var il = !!(header & 0x08);
+    var tnf = header & 0x07;
+    if (tnf !== 0x04) throw new Error("Not an NFC external-type record");
+    if (offset >= buf.length) throw new Error("Truncated NDEF");
+    var typeLen = buf[offset++];
+    var payloadLen;
+    if (sr) {
+      if (offset >= buf.length) throw new Error("Truncated NDEF payload length");
+      payloadLen = buf[offset++];
+    } else {
+      if (offset + 3 >= buf.length) throw new Error("Truncated NDEF payload length");
+      payloadLen = buf[offset] * 0x1000000 + ((buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3]);
+      offset += 4;
+    }
+    var idLen = 0;
+    if (il) {
+      if (offset >= buf.length) throw new Error("Truncated NDEF id length");
+      idLen = buf[offset++];
+    }
+    if (offset + typeLen + idLen + payloadLen > buf.length) throw new Error("Truncated NDEF body");
+    var type = new global.TextDecoder().decode(buf.slice(offset, offset + typeLen));
+    offset += typeLen + idLen;
+    if (type !== ODP_OFFLINE_NDEF_TYPE) throw new Error("Unexpected NDEF record type: " + type);
+    return {
+      type: type,
+      payloadBytes: buf.slice(offset, offset + payloadLen),
+      messageBytes: buf,
+    };
+  }
+
+  function odpOfflineNdefFootprint(payloadBytesLength) {
+    var payloadLen = Number(payloadBytesLength || 0);
+    var messageBytes = 3 + odpOfflineUtf8Bytes(ODP_OFFLINE_NDEF_TYPE).length + payloadLen;
+    return {
+      payloadBytes: payloadLen,
+      messageBytes: messageBytes,
+      ndefFileBytes: messageBytes + 2,
+      targetBytes: ODP_OFFLINE_TARGET_BYTES,
+      softMaxBytes: ODP_OFFLINE_SOFT_MAX_BYTES,
+      hardMaxBytes: ODP_OFFLINE_HARD_MAX_BYTES,
+      withinTarget: payloadLen <= ODP_OFFLINE_TARGET_BYTES,
+      withinSoftMax: payloadLen <= ODP_OFFLINE_SOFT_MAX_BYTES,
+      withinHardMax: payloadLen <= ODP_OFFLINE_HARD_MAX_BYTES,
+    };
+  }
+
+  function odpOfflineBytesToBase64(bytes) {
+    var b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    var binary = "";
+    for (var i = 0; i < b.length; i++) binary += String.fromCharCode(b[i]);
+    return global.btoa(binary);
+  }
+
+  function odpOfflineBytesFromBase64(text) {
+    var raw = global.atob(String(text == null ? "" : text).trim());
+    var out = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+
+  function odpOfflineBuildMap(passport, opts) {
+    if (!passport) throw new Error("Passport record required");
+    var options = opts || {};
+    var contractAddr = options.contractAddress || passport.contractAddress || (global.NET && global.NET.contract) || "";
+    var chainId = options.chainId != null ? Number(options.chainId) : Number((global.NET && global.NET.chainId) || 0);
+    var contractVersion = options.contractVersion != null ? Number(options.contractVersion) : Number(passport.contractVersion || 0);
+    if (!/^0x[0-9a-fA-F]{40}$/.test(String(contractAddr || "").trim())) throw new Error("Valid contract address required");
+    if (!passport.dataHash) throw new Error("dataHash required");
+    var title = odpOfflineTruncateUtf8(passport.title || "", options.maxTitleBytes != null ? Number(options.maxTitleBytes) : 48);
+    var map = {
+      0: ODP_OFFLINE_VERSION,
+      1: [chainId, odpOfflineHexToBytes(String(contractAddr).trim(), 20), contractVersion],
+      2: {
+        0: String(options.passportId || passport.passportId || passport.humanId || ""),
+        1: String(passport.creatorId || ""),
+        2: title.value,
+        3: odpOfflineObjectTypeToCode(passport.objectType),
+        4: Number(passport.contentClass || 0),
+        5: Number(passport.verificationMethod || 0),
+        6: odpOfflineHexToBytes(String(passport.dataHash || ""), 32),
+      },
+    };
+    if (!map[2][0]) throw new Error("Passport ID required");
+    if (!map[2][1]) throw new Error("creatorId required");
+    if (options.includeState) {
+      var flags = 0;
+      if (passport.revoked) flags |= 1;
+      if (passport.counterfeitConcernActive) flags |= 2;
+      map[3] = {
+        0: options.asOf != null ? Number(options.asOf) : Math.floor(Date.now() / 1000),
+        1: Number(passport.lifecycleStatus || 0),
+        2: flags,
+      };
+    }
+    return {
+      map: map,
+      titleBytes: title.bytes,
+      titleTruncated: title.truncated,
+    };
+  }
+
+  function odpOfflineDecodeBytes(bytesLike) {
+    var raw = bytesLike instanceof Uint8Array ? bytesLike : new Uint8Array(bytesLike || []);
+    var parsed = null;
+    var format = "cbor";
+    try {
+      parsed = odpOfflineReadNdefMessage(raw);
+      raw = parsed.payloadBytes;
+      format = "ndef";
+    } catch (_) {}
+    var decoded = odpOfflineDecodeCborValue(raw, 0);
+    if (decoded.offset !== raw.length) throw new Error("Unexpected trailing bytes in odpOffline payload");
+    return {
+      format: format,
+      payloadBytes: raw,
+      ndef: parsed,
+      decoded: decoded.value,
+      semantic: odpOfflineToSemantic(decoded.value),
+      footprint: odpOfflineNdefFootprint(raw.length),
+    };
+  }
+
+  function odpOfflineEncode(passport, opts) {
+    var built = odpOfflineBuildMap(passport, opts);
+    var payloadBytes = odpOfflineEncodeCborValue(built.map);
+    var ndefMessageBytes = odpOfflineEncodeNdefMessage(payloadBytes);
+    var ndefFileBytes = odpOfflineWrapNdefFile(ndefMessageBytes);
+    return {
+      version: ODP_OFFLINE_VERSION,
+      payloadBytes: payloadBytes,
+      ndefMessageBytes: ndefMessageBytes,
+      ndefFileBytes: ndefFileBytes,
+      payloadHex: odpOfflineBytesToHex(payloadBytes),
+      payloadBase64: odpOfflineBytesToBase64(payloadBytes),
+      decoded: built.map,
+      semantic: odpOfflineToSemantic(built.map),
+      titleBytes: built.titleBytes,
+      titleTruncated: built.titleTruncated,
+      footprint: odpOfflineNdefFootprint(payloadBytes.length),
+    };
+  }
+
+  function odpOfflineSha256Hex(bytesLike) {
+    var raw = bytesLike instanceof Uint8Array ? bytesLike : new Uint8Array(bytesLike || []);
+    return global.crypto.subtle.digest("SHA-256", raw).then(function (digest) {
+      return odpOfflineBytesToHex(new Uint8Array(digest));
+    });
+  }
+
   global.ODP_SITE_VERSION = ODP_SITE_VERSION;
   global.ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG = ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG;
   global.ODP_LIVE_BASE = ODP_LIVE_BASE;
   global.ODP_LATEST_STABLE_MAJOR = ODP_LATEST_STABLE_MAJOR;
+  global.ODP_OFFLINE_VERSION = ODP_OFFLINE_VERSION;
+  global.ODP_OFFLINE_NDEF_TYPE = ODP_OFFLINE_NDEF_TYPE;
+  global.ODP_OFFLINE_TARGET_BYTES = ODP_OFFLINE_TARGET_BYTES;
+  global.ODP_OFFLINE_SOFT_MAX_BYTES = ODP_OFFLINE_SOFT_MAX_BYTES;
+  global.ODP_OFFLINE_HARD_MAX_BYTES = ODP_OFFLINE_HARD_MAX_BYTES;
   global.odpProtocolFeeWei = odpProtocolFeeWei;
   global.odpSupportsFolderBaseMint = odpSupportsFolderBaseMint;
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
@@ -1536,6 +2769,14 @@
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;
   global.odpCounterfeitWriteContract = odpCounterfeitWriteContract;
   global.odpCounterfeitSatelliteAddress = odpCounterfeitSatelliteAddress;
+  global.odpProofRegistryAbiFragments = odpProofRegistryAbiFragments;
+  global.odpRelationsAbiFragments = odpRelationsAbiFragments;
+  global.odpProofReadContract = odpProofReadContract;
+  global.odpProofWriteContract = odpProofWriteContract;
+  global.odpRelationsReadContract = odpRelationsReadContract;
+  global.odpRelationsWriteContract = odpRelationsWriteContract;
+  global.odpListCreatorPassports = odpListCreatorPassports;
+  global.odpEstimateRemainingMints = odpEstimateRemainingMints;
   global.odpSupportsExternalDocAttest = odpSupportsExternalDocAttest;
   global.odpPassportTupleComponents = odpPassportTupleComponents;
   global.odpResolveGeneration = odpResolveGeneration;
@@ -1552,6 +2793,19 @@
   global.odpStackDisclosureParagraphsHtml = odpStackDisclosureParagraphsHtml;
   global.odpProbeContractGenerationCached = odpProbeContractGenerationCached;
   global.odpBuildPassportAbi = odpBuildPassportAbi;
+  global.odpGetPassportRecord = odpGetPassportRecord;
+  global.odpOfflineBytesToHex = odpOfflineBytesToHex;
+  global.odpOfflineHexToBytes = odpOfflineHexToBytes;
+  global.odpOfflineBytesToBase64 = odpOfflineBytesToBase64;
+  global.odpOfflineBytesFromBase64 = odpOfflineBytesFromBase64;
+  global.odpOfflineEncode = odpOfflineEncode;
+  global.odpOfflineDecodeBytes = odpOfflineDecodeBytes;
+  global.odpOfflineSha256Hex = odpOfflineSha256Hex;
+  global.odpOfflineNdefFootprint = odpOfflineNdefFootprint;
+  global.odpOfflineObjectTypeFromCode = odpOfflineObjectTypeFromCode;
+  global.odpOfflineContentClassFromCode = odpOfflineContentClassFromCode;
+  global.odpOfflineVerificationMethodFromCode = odpOfflineVerificationMethodFromCode;
+  global.odpOfflineLifecycleStatusFromCode = odpOfflineLifecycleStatusFromCode;
   global.odpBuildCreatorAbi = odpBuildCreatorAbi;
   global.odpBuildVerifyReadAbi = odpBuildVerifyReadAbi;
   global.odpFinalizeWalletContract = odpFinalizeWalletContract;
