@@ -81,15 +81,15 @@ const NET = {
   rpcUrls: POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
   /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
-  contract: "0x35c29A1faC6e39925BeF616bb5222F024E5D6132",
+  contract: "0x413aEeBB2ac437483Bc68791EaAab492C2a4B346",
   /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
   contractGenerationFallback: null,
   /** Optional relations satellite for affiliation, mint-agent, and publishing delegation. */
-  relations: "",
+  relations: "0x4aA459D68bDABc96A5838fDFb7713B5417dcae73",
   /** Optional proof satellite for institutional attestations. */
-  proofRegistry: "",
+  proofRegistry: "0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0",
   /** Optional `ODPCounterfeitConcern` satellite (paired with `contract`); set after v0.4 deploy. */
-  counterfeitConcern: "0x7C2EAaC6b0E4c14765d4064885A175fD057f680e",
+  counterfeitConcern: "0xd5727f16dB061226E19F82287A81FC9f69E1aDE2",
 };
 
 /** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */

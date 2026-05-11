@@ -1,8 +1,8 @@
-# Object Digital Passport · v0.4.1
+# Object Digital Passport · v0.5
 
 ![Object Digital Passport cover](docs/images/odp-cover-en.png)
 
-*Reference implementation snapshot · protocol line **v0.4** (on-chain generation **4**). Release notes: `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)`.*
+*Reference implementation snapshot · protocol line **v0.5** (on-chain generation **5**). Release notes: `[docs/V0.5.md](docs/V0.5.md)`. Historical v0.4.1 patch notes remain available at `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)`.*
 
 [License: MIT](LICENSE)
 [GitHub Repo stars](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -101,7 +101,7 @@ You **do not** need deep blockchain expertise to try the **[live demo pages](#li
 
 **Technical reference**
 
-- [Reference stack v0.4 (quick facts)](#reference-stack-v04-quick-facts)
+- [Reference stack v0.5 (quick facts)](#reference-stack-v05-quick-facts)
 - [Current Release](#current-release)
 - [Terms You Need](#terms-you-need)
 - [Security and Verification Model](#security-and-verification-model)
@@ -114,10 +114,10 @@ You **do not** need deep blockchain expertise to try the **[live demo pages](#li
 
 If you are new, follow this order:
 
-1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments—not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to “connect”, pause: that is normal for these pages, but scammers use the same trick—read **your** wallet’s help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee**—see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings—see `[web/odp-wc-config.js](web/odp-wc-config.js)` and [docs/V0.4.md](docs/V0.4.md).
+1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments—not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to “connect”, pause: that is normal for these pages, but scammers use the same trick—read **your** wallet’s help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee**—see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings—see `[web/odp-wc-config.js](web/odp-wc-config.js)` and [docs/V0.5.md](docs/V0.5.md).
 2. **This README.** Read it through for a practical “how to use” picture—no code required.
 3. **Rules in full.** The normative protocol text is [SPEC.md](SPEC.md).
-4. **Going deeper.** What is new in this line: [docs/V0.4.md](docs/V0.4.md). Earlier changes vs older lines: [localization/ru/RELEASE_v0.3.md](localization/ru/RELEASE_v0.3.md). To **deploy your own** registry (for developers): [deploy/README.md](deploy/README.md).
+4. **Going deeper.** What is new in this line: [docs/V0.5.md](docs/V0.5.md). Historical v0.4 notes remain in [docs/V0.4.md](docs/V0.4.md), and earlier changes vs older lines are in [localization/ru/RELEASE_v0.3.md](localization/ru/RELEASE_v0.3.md). To **deploy your own** registry (for developers): [deploy/README.md](deploy/README.md).
 
 **Still early days.** ODP is in **development, testing, and gathering feedback**—rules and deployments can still change. We aim for a **stable 1.x release around January 2027** as the long-term baseline. If you need a **record meant to last many years** with minimal rule churn, **consider waiting for that stable release**. Each contract address is its **own** registry; records do **not** move between deployments by themselves. More on versioning: [docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md).
 
@@ -142,7 +142,7 @@ If you are new, follow this order:
 | **C** (Creator)           | Individual author, craft studio | Issue under your own name                                                                                  |
 | **B** (Brand)             | Brand or company                | Issue as an organization                                                                                   |
 | **P** (Proof institution) | Expert / curatorial institution | Can issue **proofs** for others; supports **affiliation** with child institutions                          |
-| **M** (Museum)            | Museum or collection            | Curatorial flows; with **P**, can use extended checks (including concern in v0.4 — see [SPEC.md](SPEC.md)) |
+| **M** (Museum)            | Museum or collection            | Curatorial flows; with **P**, can use extended checks (including institutional concern in the current line — see [SPEC.md](SPEC.md)) |
 
 
 Full rules for limits, proofs, and affiliation: [SPEC.md](SPEC.md).
@@ -186,36 +186,39 @@ Pages:
 - Profile (wallet + network fees): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
 - Passport (wallet + network fees): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
-## Reference stack v0.4 (quick facts)
+## Reference stack v0.5 (quick facts)
 
-**This repository** (`main` branch) is the reference **v0.4** line: on-chain generation **4** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **4**), optional `ODPCounterfeitConcern` satellite, WalletConnect on static pages, and the slimmer main-registry ABI — see [docs/V0.4.md](docs/V0.4.md) and [SPEC.md](SPEC.md). **Default Polygon addresses** in this README and [deploy/deployments/polygon.json](deploy/deployments/polygon.json) match the **generation 4** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
+**This repository** (`main` branch) is the reference **v0.5** line: on-chain generation **5** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **5**), richer passport taxonomy, selected mutable current-state fields, compact offline payload support, and a split satellite architecture for relations / proofs / extension mint routing — see [docs/V0.5.md](docs/V0.5.md) and [SPEC.md](SPEC.md). **Default Polygon addresses** in this README and [deploy/deployments/polygon.json](deploy/deployments/polygon.json) match the **generation 5** deployment baked into the static pages’ `NET.*`; if you self-host, align **chain + contract address + ABI** with your deployment.
 
 
 |                         |                                                                                                                                                                                                            |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Source**              | Branch `main` in this repository — reference **v0.4** stack (contracts + static web).                                                                                                                      |
-| **On-chain generation** | `CONTRACT_VERSION` = **4** (same v0.3-shaped `Passport` tuple as generation **3**).                                                                                                                        |
-| **New vs v0.3 line**    | Optional `ODPCounterfeitConcern` satellite (P/M concern); public `SPEC_*` / `MONTHLY_LIMIT_*` getters removed from the main contract bytecode for **EIP-170** headroom — see [docs/V0.4.md](docs/V0.4.md). |
-| **Deploy order**        | `ODPPassportLib` → `ObjectDigitalPassport` → optional `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` — [deploy/README.md](deploy/README.md).                                                          |
+| **Source**              | Branch `main` in this repository — reference **v0.5** stack (contracts + static web).                                                                                                                                     |
+| **On-chain generation** | `CONTRACT_VERSION` = **5**.                                                                                                                                                                                                  |
+| **New vs v0.4 line**    | Richer `physical` / `digital` / `mixed` model, selected mutable current-state fields, compact offline payload support, and split optional satellites for relations / proofs / extension mint routing — see [docs/V0.5.md](docs/V0.5.md). |
+| **Deploy order**        | `ODPPassportLib` → `ObjectDigitalPassport` → `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` / `ODPRegistryRelations` / `ODPPassportProofRegistry` / `ODPExtensionMintRouter` (+ wiring) — [deploy/README.md](deploy/README.md). |
 
 
 ## Current Release
 
-**Implementation snapshot:** **v0.4.1** — see `**[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)`** (security, GitHub workflow, tooling). Russian: `[localization/ru/RELEASE_v0.4.1.md](localization/ru/RELEASE_v0.4.1.md)`.
+**Implementation snapshot:** **v0.5** — see `**[docs/V0.5.md](docs/V0.5.md)`**. Historical v0.4.1 patch notes remain at `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)`.
 
 Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s static UI defaults:
 
 
 | Item                                                           | Value                                                                                                                        |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Protocol line                                                  | **v0.4** — on-chain generation **4** (`CONTRACT_VERSION` packed byte **4**; same `Passport` tuple shape as generation **3**) |
-| Main registry `ObjectDigitalPassport`                          | `[0x35c29A1faC6e39925BeF616bb5222F024E5D6132](https://polygonscan.com/address/0x35c29A1faC6e39925BeF616bb5222F024E5D6132)`   |
-| Linked library `ODPPassportLib` (verification / bytecode link) | `[0x8D2f3C374CE5424E988aa8AEA93487A327f7450F](https://polygonscan.com/address/0x8D2f3C374CE5424E988aa8AEA93487A327f7450F)`   |
-| Wallet document anchor `ODPWalletDocumentAnchor` (satellite)   | `[0xcb3AF1d0530ca1D8D78528E4ED93ac7C2eb64210](https://polygonscan.com/address/0xcb3AF1d0530ca1D8D78528E4ED93ac7C2eb64210)`   |
-| Counterfeit concern `ODPCounterfeitConcern` (satellite)        | `[0x7C2EAaC6b0E4c14765d4064885A175fD057f680e](https://polygonscan.com/address/0x7C2EAaC6b0E4c14765d4064885A175fD057f680e)`   |
+| Protocol line                                                  | **v0.5** — on-chain generation **5** (`CONTRACT_VERSION` packed byte **5**) |
+| Main registry `ObjectDigitalPassport`                          | `[0x413aEeBB2ac437483Bc68791EaAab492C2a4B346](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346)`   |
+| Linked library `ODPPassportLib` (verification / bytecode link) | `[0x8F856c08286BEe661e465A946726B255768AEd90](https://polygonscan.com/address/0x8F856c08286BEe661e465A946726B255768AEd90)`   |
+| Wallet document anchor `ODPWalletDocumentAnchor` (satellite)   | `[0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee](https://polygonscan.com/address/0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee)`   |
+| Counterfeit concern `ODPCounterfeitConcern` (satellite)        | `[0xd5727f16dB061226E19F82287A81FC9f69E1aDE2](https://polygonscan.com/address/0xd5727f16dB061226E19F82287A81FC9f69E1aDE2)`   |
+| Relations satellite `ODPRegistryRelations`                     | `[0x4aA459D68bDABc96A5838fDFb7713B5417dcae73](https://polygonscan.com/address/0x4aA459D68bDABc96A5838fDFb7713B5417dcae73)`   |
+| Proof registry `ODPPassportProofRegistry`                      | `[0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0](https://polygonscan.com/address/0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0)`   |
+| Extension mint router `ODPExtensionMintRouter`                 | `[0x039F415949bD661360b5D8A066525529631880B2](https://polygonscan.com/address/0x039F415949bD661360b5D8A066525529631880B2)`   |
 
 
-**Release notes:** `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)` · `[docs/V0.4.md](docs/V0.4.md)` · **Earlier line (v0.3 vs v0.2):** `[localization/ru/RELEASE_v0.3.md](localization/ru/RELEASE_v0.3.md)`.
+**Release notes:** `[docs/V0.5.md](docs/V0.5.md)` · historical `[docs/V0.4.md](docs/V0.4.md)` / `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)` · **Earlier line (v0.3 vs v0.2):** `[localization/ru/RELEASE_v0.3.md](localization/ru/RELEASE_v0.3.md)`.
 
 ## Terms You Need
 
@@ -275,7 +278,7 @@ Pointers:
 
 - `[docs/VERSIONING_AND_RELEASES.md](docs/VERSIONING_AND_RELEASES.md)`
 - `[docs/V0.3.md](docs/V0.3.md)`
-- `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)` · `[docs/V0.4.md](docs/V0.4.md)` · `[localization/ru/RELEASE_v0.4.md](localization/ru/RELEASE_v0.4.md)` / `[localization/ru/RELEASE_v0.4.1.md](localization/ru/RELEASE_v0.4.1.md)` (default Polygon addresses match `[deploy/deployments/polygon.json](deploy/deployments/polygon.json)`)
+- `[docs/V0.5.md](docs/V0.5.md)` · historical `[docs/V0.4.md](docs/V0.4.md)` / `[docs/RELEASE_v0.4.1.md](docs/RELEASE_v0.4.1.md)` · `[localization/ru/RELEASE_v0.4.md](localization/ru/RELEASE_v0.4.md)` / `[localization/ru/RELEASE_v0.4.1.md](localization/ru/RELEASE_v0.4.1.md)` (default Polygon addresses match `[deploy/deployments/polygon.json](deploy/deployments/polygon.json)`)
 
 ## Contributing
 

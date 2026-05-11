@@ -1,8 +1,8 @@
 ![Object Digital Passport — профиль и проверка](../../docs/readme/odp_cover_ru.png)
 
-# Object Digital Passport · v0.4.1
+# Object Digital Passport · v0.5
 
-*Снимок реализации · линия протокола **v0.4**. Примечания к релизу: [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md).*
+*Снимок реализации · линия протокола **v0.5**. Примечания к релизу: [`../../docs/V0.5.md`](../../docs/V0.5.md). Исторические патч-заметки v0.4.1 остаются доступны в [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md).*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![GitHub Repo stars](https://img.shields.io/github/stars/object-digital-passport/object-digital-passport?style=social)](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -101,7 +101,7 @@ ODP **не заменяет** экспертизу человека, работ�
 
 **Техническая справка**
 
-- [Стек v0.4 (кратко)](#стек-v04-кратко)
+- [Стек v0.5 (кратко)](#стек-v05-кратко)
 - [Текущий релиз](#текущий-релиз)
 - [Коротко о терминах](#коротко-о-терминах)
 - [Безопасность и модель проверки](#безопасность-и-модель-проверки)
@@ -114,10 +114,10 @@ ODP **не заменяет** экспертизу человека, работ�
 
 Если вы только знакомитесь с ODP, удобно идти по шагам:
 
-1. **Кошелёк.** Чтобы что-то записать в сеть, нужен криптокошелёк — расширение в браузере или приложение. Для тестов заведите **отдельный** кошелёк, не тот, где лежат основные деньги. Запишите резервную фразу и храните её офлайн. Если сайт просит «подключить кошелёк», не спешите — это нормально для таких страниц, но мошенники тоже так делают; читайте справку **вашего** кошелька, например у [MetaMask](https://support.metamask.io/) или [Rabby](https://rabby.io/) (конкретная программа не принципиальна). На **[профиле](https://object-digital-passport.github.io/object-digital-passport/creator.html)** и **[паспорте](https://object-digital-passport.github.io/object-digital-passport/passport.html)** можно подписывать действия и с телефона по QR. За запись в сети платится небольшая **комиссия сети** (в сети Polygon это обычно **POL**); отдельного сбора «за ODP» нет — см. [Сеть и стоимость](#сеть-и-стоимость). Если вы **сами размещаете** копию сайта у себя, для части функций нужны настройки — см. `[../../web/odp-wc-config.js](../../web/odp-wc-config.js)` и [указатель v0.4](../../docs/V0.4.md).
+1. **Кошелёк.** Чтобы что-то записать в сеть, нужен криптокошелёк — расширение в браузере или приложение. Для тестов заведите **отдельный** кошелёк, не тот, где лежат основные деньги. Запишите резервную фразу и храните её офлайн. Если сайт просит «подключить кошелёк», не спешите — это нормально для таких страниц, но мошенники тоже так делают; читайте справку **вашего** кошелька, например у [MetaMask](https://support.metamask.io/) или [Rabby](https://rabby.io/) (конкретная программа не принципиальна). На **[профиле](https://object-digital-passport.github.io/object-digital-passport/creator.html)** и **[паспорте](https://object-digital-passport.github.io/object-digital-passport/passport.html)** можно подписывать действия и с телефона по QR. За запись в сети платится небольшая **комиссия сети** (в сети Polygon это обычно **POL**); отдельного сбора «за ODP» нет — см. [Сеть и стоимость](#сеть-и-стоимость). Если вы **сами размещаете** копию сайта у себя, для части функций нужны настройки — см. `[../../web/odp-wc-config.js](../../web/odp-wc-config.js)` и [указатель v0.5](../../docs/V0.5.md).
 2. **Этот текст.** Дочитайте README до конца — здесь обзор «как пользоваться», без обязательного чтения кода.
 3. **Правила по букве.** Точные правила протокола на английском: **[SPEC (EN)](../../SPEC.md)**. Справочный перевод: **[SPEC](SPEC.md)**.
-4. **Если копаете глубже.** Текущая линия: **[docs/V0.4.md](../../docs/V0.4.md)** · подробные заметки: **[RELEASE_v0.4.md](RELEASE_v0.4.md)**. Ранее (**v0.3 vs v0.2**): **[RELEASE_v0.3.md](RELEASE_v0.3.md)** · **[docs/V0.3.md](../../docs/V0.3.md)**. Как **развернуть свой** реестр в сети (для разработчиков): **[deploy/README](../../deploy/README.md)**.
+4. **Если копаете глубже.** Текущая линия: **[docs/V0.5.md](../../docs/V0.5.md)**. Исторические заметки по v0.4 остаются в **[docs/V0.4.md](../../docs/V0.4.md)** и **[RELEASE_v0.4.md](RELEASE_v0.4.md)**. Ранее (**v0.3 vs v0.2**): **[RELEASE_v0.3.md](RELEASE_v0.3.md)** · **[docs/V0.3.md](../../docs/V0.3.md)**. Как **развернуть свой** реестр в сети (для разработчиков): **[deploy/README](../../deploy/README.md)**.
 
 **Пока это тестовая линия.** Сейчас ODP в фазе **разработки, проверок и сбора отзывов** — правила и развёртывания могут меняться. Мы нацелены на **стабильный релиз линии 1.x** примерно к **январю 2027**: там закрепим правила «на долгий срок». Если вам нужна **действительно долгосрочная** запись и вы не хотите рисковать сменой правил, **лучше дождаться стабильного релиза**. У каждого адреса контракта в сети — **свой** реестр; между разными установками записи **сами не переносятся**. Подробнее о версиях: **[VERSIONING_AND_RELEASES](../../docs/VERSIONING_AND_RELEASES.md)**.
 
@@ -142,7 +142,7 @@ ODP **не заменяет** экспертизу человека, работ�
 | **C** (Creator)           | Индивидуальный автор, мастер, небольшая студия | Выпуск от своего имени без «организационной» оболочки                                                                           |
 | **B** (Brand)             | Бренд, компания, юрлицо                        | Выпуск объектов от имени организации                                                                                            |
 | **P** (Proof institution) | Экспертное / кураторское учреждение            | Может выдавать **подтверждения** (proofs) другим; поддерживается **аффилиация** с дочерними организациями                       |
-| **M** (Museum)            | Музей, коллекция                               | Кураторские и музейные сценарии; вместе с **P** участвуют в расширенных проверках (в т.ч. concern в v0.4 — см. [SPEC](SPEC.md)) |
+| **M** (Museum)            | Музей, коллекция                               | Кураторские и музейные сценарии; вместе с **P** участвуют в расширенных проверках (в т.ч. institutional concern в текущей линии — см. [SPEC](SPEC.md)) |
 
 
 Подробные правила лимитов, proofs и аффилиации — в **[SPEC](SPEC.md)** (нормативный текст на английском).
@@ -186,17 +186,17 @@ ODP **не заменяет** экспертизу человека, работ�
 - Профиль (нужен кошелёк и комиссия сети): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
 - Паспорт (нужен кошелёк и комиссия сети): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
-## Стек v0.4 (кратко)
+## Стек v0.5 (кратко)
 
-**Репозиторий** (ветка `main`) — эталонная линия **v0.4**: on-chain поколение **4** при деплое Solidity из этого дерева (упакованный байт `CONTRACT_VERSION` = **4**), спутники `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern`, WalletConnect на статических страницах и урезанное публичное ABI основного реестра — см. [docs/V0.4.md](../../docs/V0.4.md), **[RELEASE_v0.4.md](RELEASE_v0.4.md)** и справочный [SPEC](SPEC.md); нормативный текст на английском — [SPEC.md](../../SPEC.md). **Адреса Polygon по умолчанию** в корневом README и в [deploy/deployments/polygon.json](../../deploy/deployments/polygon.json) соответствуют деплою **поколения 4**, зашитому в `NET.*` статических страниц; при своём хостинге сверяйте **сеть + адрес + ABI** с вашим развёртыванием.
+**Репозиторий** (ветка `main`) — эталонная линия **v0.5**: on-chain поколение **5** при деплое Solidity из этого дерева (упакованный байт `CONTRACT_VERSION` = **5**), более богатая таксономия паспортов, изменяемые поля текущего состояния, компактный offline payload и вынесенные спутники для relations / proofs / extension mint routing — см. [docs/V0.5.md](../../docs/V0.5.md) и справочный [SPEC](SPEC.md); нормативный текст на английском — [SPEC.md](../../SPEC.md). **Адреса Polygon по умолчанию** в корневом README и в [deploy/deployments/polygon.json](../../deploy/deployments/polygon.json) соответствуют деплою **поколения 5**, зашитому в `NET.*` статических страниц; при своём хостинге сверяйте **сеть + адрес + ABI** с вашим развёртыванием.
 
 
 |                                   |                                                                                                                                                                                               |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Исходники**                     | Ветка `main` в этом репозитории — эталонный стек **v0.4** (контракты + статический веб).                                                                                                      |
-| **Поколение на цепочке**          | `CONTRACT_VERSION` = **4** (та же форма tuple `Passport`, что у поколения **3**).                                                                                                             |
-| **Новое относительно линии v0.3** | Опциональный спутник `ODPCounterfeitConcern` (P/M); из основного байткода убраны публичные геттеры `SPEC_*` / `MONTHLY_LIMIT_*` ради **EIP-170** — см. [docs/V0.4.md](../../docs/V0.4.md). |
-| **Порядок деплоя**                | `ODPPassportLib` → `ObjectDigitalPassport` → при необходимости `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` — [deploy/README.md](../../deploy/README.md).                              |
+| **Исходники**                     | Ветка `main` в этом репозитории — эталонный стек **v0.5** (контракты + статический веб).                                                                                                                                      |
+| **Поколение на цепочке**          | `CONTRACT_VERSION` = **5**.                                                                                                                                                                                                     |
+| **Новое относительно линии v0.4** | Более богатая модель `physical` / `digital` / `mixed`, selected mutable current-state fields, compact offline payload и вынесенные спутники для relations / proofs / extension mint routing — см. [docs/V0.5.md](../../docs/V0.5.md). |
+| **Порядок деплоя**                | `ODPPassportLib` → `ObjectDigitalPassport` → `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` / `ODPRegistryRelations` / `ODPPassportProofRegistry` / `ODPExtensionMintRouter` (+ wiring) — [deploy/README.md](../../deploy/README.md). |
 
 
 ## Текущий релиз
@@ -206,14 +206,17 @@ ODP **не заменяет** экспертизу человека, работ�
 
 | Пункт                                                                   | Значение                                                                                                                   |
 | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Линия протокола                                                         | **v0.4** — on-chain поколение **4** (байт `CONTRACT_VERSION` = **4**; та же форма tuple `Passport`, что у поколения **3**) |
-| Основной реестр `ObjectDigitalPassport`                                 | `[0x35c29A1faC6e39925BeF616bb5222F024E5D6132](https://polygonscan.com/address/0x35c29A1faC6e39925BeF616bb5222F024E5D6132)` |
-| Связанная библиотека `ODPPassportLib` (верификация / линковка байткода) | `[0x8D2f3C374CE5424E988aa8AEA93487A327f7450F](https://polygonscan.com/address/0x8D2f3C374CE5424E988aa8AEA93487A327f7450F)` |
-| Спутник якорей файлов `ODPWalletDocumentAnchor`                         | `[0xcb3AF1d0530ca1D8D78528E4ED93ac7C2eb64210](https://polygonscan.com/address/0xcb3AF1d0530ca1D8D78528E4ED93ac7C2eb64210)` |
-| Спутник `ODPCounterfeitConcern`                                         | `[0x7C2EAaC6b0E4c14765d4064885A175fD057f680e](https://polygonscan.com/address/0x7C2EAaC6b0E4c14765d4064885A175fD057f680e)` |
+| Линия протокола                                                         | **v0.5** — on-chain поколение **5** (байт `CONTRACT_VERSION` = **5**) |
+| Основной реестр `ObjectDigitalPassport`                                 | `[0x413aEeBB2ac437483Bc68791EaAab492C2a4B346](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346)` |
+| Связанная библиотека `ODPPassportLib` (верификация / линковка байткода) | `[0x8F856c08286BEe661e465A946726B255768AEd90](https://polygonscan.com/address/0x8F856c08286BEe661e465A946726B255768AEd90)` |
+| Спутник якорей файлов `ODPWalletDocumentAnchor`                         | `[0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee](https://polygonscan.com/address/0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee)` |
+| Спутник `ODPCounterfeitConcern`                                         | `[0xd5727f16dB061226E19F82287A81FC9f69E1aDE2](https://polygonscan.com/address/0xd5727f16dB061226E19F82287A81FC9f69E1aDE2)` |
+| Спутник `ODPRegistryRelations`                                          | `[0x4aA459D68bDABc96A5838fDFb7713B5417dcae73](https://polygonscan.com/address/0x4aA459D68bDABc96A5838fDFb7713B5417dcae73)` |
+| Спутник `ODPPassportProofRegistry`                                      | `[0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0](https://polygonscan.com/address/0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0)` |
+| Спутник `ODPExtensionMintRouter`                                        | `[0x039F415949bD661360b5D8A066525529631880B2](https://polygonscan.com/address/0x039F415949bD661360b5D8A066525529631880B2)` |
 
 
-**Заметки к релизу:** `[RELEASE_v0.4.md](RELEASE_v0.4.md)` · **ранее (v0.3 vs v0.2):** `[RELEASE_v0.3.md](RELEASE_v0.3.md)`.
+**Заметки к релизу:** `[../../docs/V0.5.md](../../docs/V0.5.md)` · исторические `[../../docs/V0.4.md](../../docs/V0.4.md)` / `[RELEASE_v0.4.md](RELEASE_v0.4.md)` · **ранее (v0.3 vs v0.2):** `[RELEASE_v0.3.md](RELEASE_v0.3.md)`.
 
 ## Коротко о терминах
 
@@ -273,14 +276,14 @@ ODP **не заменяет** экспертизу человека, работ�
 
 - `[../../docs/VERSIONING_AND_RELEASES.md](../../docs/VERSIONING_AND_RELEASES.md)`
 - `[../../docs/V0.3.md](../../docs/V0.3.md)`
-- `[../../docs/V0.4.md](../../docs/V0.4.md)` · `[RELEASE_v0.4.md](RELEASE_v0.4.md)` (on-chain v0.4 + сайт; эталонные адреса Polygon — `[../../deploy/deployments/polygon.json](../../deploy/deployments/polygon.json)`)
+- `[../../docs/V0.5.md](../../docs/V0.5.md)` · исторические `[../../docs/V0.4.md](../../docs/V0.4.md)` / `[RELEASE_v0.4.md](RELEASE_v0.4.md)` (on-chain v0.5 + сайт; эталонные адреса Polygon — `[../../deploy/deployments/polygon.json](../../deploy/deployments/polygon.json)`)
 
 ## Как вносить вклад
 
 - Гайд: `[CONTRIBUTING.md](CONTRIBUTING.md)` (оригинал EN: `[../../CONTRIBUTING.md](../../CONTRIBUTING.md)`)
 - Кодекс: `[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)` (EN: `[../../CODE_OF_CONDUCT.md](../../CODE_OF_CONDUCT.md)`)
 - Индекс документации: `[docs/README.md](docs/README.md)` (EN: `[../../docs/README.md](../../docs/README.md)`)
-- Релиз v0.3 (**отличия от v0.2**): `[RELEASE_v0.3.md](RELEASE_v0.3.md)`; релиз **v0.4**: `[RELEASE_v0.4.md](RELEASE_v0.4.md)` · `[../../docs/V0.4.md](../../docs/V0.4.md)`; версии и теги: `[../../docs/VERSIONING_AND_RELEASES.md](../../docs/VERSIONING_AND_RELEASES.md)`
+- Релиз v0.3 (**отличия от v0.2**): `[RELEASE_v0.3.md](RELEASE_v0.3.md)`; релиз **v0.5**: `[../../docs/V0.5.md](../../docs/V0.5.md)`; историческая линия **v0.4**: `[RELEASE_v0.4.md](RELEASE_v0.4.md)` · `[../../docs/V0.4.md](../../docs/V0.4.md)`; версии и теги: `[../../docs/VERSIONING_AND_RELEASES.md](../../docs/VERSIONING_AND_RELEASES.md)`
 
 Нужны участники **широкого профиля**: ревью протокола и кода, дизайн и редактура, **переводы**, доступность, документация. Цель — не узкий «только код», а совместный вывод стандарта к **стабильной линии к январю 2027**.
 

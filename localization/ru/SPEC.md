@@ -1,6 +1,6 @@
 # Object Digital Passport
 
-### Specification v0.4 — DRAFT
+### Specification v0.5 — DRAFT
 
 > **Перевод справочно.** Нормативная спецификация — только на английском: [../../SPEC.md](../../SPEC.md). Этот текст может содержать ошибки; для интеграций опирайтесь на английский оригинал.
 
@@ -25,7 +25,7 @@
 ## Оглавление
 
 - [Языки и переводы](#языки-и-переводы)
-- [ВАЖНО: деплойменты 0.x, эталонная линия v0.4 и путь к v1](#важно-деплойменты-0x-эталонная-линия-v04-и-путь-к-v1)
+- [ВАЖНО: деплойменты 0.x, эталонная линия v0.5 и путь к v1](#важно-деплойменты-0x-эталонная-линия-v05-и-путь-к-v1)
 - [1. Обзор](#1-обзор)
 - [2. Passport ID](#2-passport-id)
 - [3. ID профиля](#3-id-профиля)
@@ -1292,13 +1292,13 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 
 **Назначение:** связать on-chain **SHA-256** оффчейн-файла (например PDF-контракт) с **кошельком Creator**, чтобы контрагенты могли проверить те же байты без доверия только email-вложениям.
 
-**Эталон v0.4 (нормативно в этой спецификации):** в основном контракте `**ObjectDigitalPassport`** **нет** `attestExternalDocument` / `**getExternalDocumentAttestation`** (удалено ради **EIP-170**). Уровень 1C реализуется только спутником `**ODPWalletDocumentAnchor`**: деплой после основного реестра, в конструктор передаётся адрес реестра. Регистрация проверяется через `**getCreatorByWallet`** основного контракта; доступны `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, событие `**ExternalDocumentAttested**` с индексированным `documentHash` (плюс индексированные `creatorId` и адрес `**attestor**`). Не более одной аттестации на `(wallet, documentHash)` в одном контракте-якоре. В репозитории спутник деплоится из `**deploy/scripts/deploy.js**`; подключение к уже задеплоенному реестру — `**deploy/scripts/deploy-doc-anchor-only.js`** (см. `**deploy/README.md`**). Эталонный деплой Polygon хранит оба адреса в `**deployments/polygon.json`**.
+**Эталон v0.5 (нормативно в этой спецификации):** в основном контракте `**ObjectDigitalPassport`** **нет** `attestExternalDocument` / `**getExternalDocumentAttestation`** (удалено ради **EIP-170**). Уровень 1C реализуется только спутником `**ODPWalletDocumentAnchor`**: деплой после основного реестра, в конструктор передаётся адрес реестра. Регистрация проверяется через `**getCreatorByWallet`** основного контракта; доступны `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, событие `**ExternalDocumentAttested**` с индексированным `documentHash` (плюс индексированные `creatorId` и адрес `**attestor**`). Не более одной аттестации на `(wallet, documentHash)` в одном контракте-якоре. В репозитории спутник деплоится из `**deploy/scripts/deploy.js**`; подключение к уже задеплоенному реестру — `**deploy/scripts/deploy-doc-anchor-only.js`** (см. `**deploy/README.md`**). Эталонный деплой Polygon хранит оба адреса в `**deployments/polygon.json`**.
 
-Старые линии протокола, где эти функции были в монолитном основном реестре, **вне области** этого документа — здесь описан только расклад **v0.4** (основной реестр + `**ODPWalletDocumentAnchor`**).
+Старые линии протокола, где эти функции были в монолитном основном реестре, **вне области** этого документа — здесь описан только расклад **v0.5** (основной реестр + `**ODPWalletDocumentAnchor`**).
 
 Для **второго якоря документа, привязанного к паспорту**, на основном реестре используйте `**auxCommitmentHash` / `auxCommitmentUri`** (mint или `**updatePassportAuxCommitment`**).
 
-**On-chain (`ODPWalletDocumentAnchor`, эталон v0.4):**
+**On-chain (`ODPWalletDocumentAnchor`, эталон v0.5):**
 
 - `attestExternalDocument(bytes32 documentHash, string documentUri)` — вызывающий должен быть зарегистрирован в **основном** реестре; `documentHash` — SHA-256 от raw-байтов файла (как для `fileHash`); `documentUri` опциональный HTTPS URL (макс. 512 символов); **не более одной** аттестации на `(wallet, documentHash)` в этом контракте-якоре.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — возвращает `attested`, `creatorId`, timestamp и `documentUri`.
@@ -1488,7 +1488,7 @@ URI `**odp://`** **не** указывает **chain ID** и **адрес рее
 
 Закрепление документов
 
-- `**getExternalDocumentAttestation(wallet, documentHash)`** на `**ODPWalletDocumentAnchor`** (эталон **v0.4** — задайте `**NET.docAnchor`**) возвращает метаданные для одной аттестации `(wallet, hash)`, если запись есть.
+- `**getExternalDocumentAttestation(wallet, documentHash)`** на `**ODPWalletDocumentAnchor`** (эталон **v0.5** — задайте `**NET.docAnchor`**) возвращает метаданные для одной аттестации `(wallet, hash)`, если запись есть.
 - Референсный `**verify.html`**: проверка хэша и submit требуют поддержки внешних аттестаций (generation ≥ 2) и `**NET.docAnchor`** на `**ODPWalletDocumentAnchor**` (см. §Уровень 1C).
 
 ```

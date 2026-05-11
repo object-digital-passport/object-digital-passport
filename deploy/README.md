@@ -67,12 +67,13 @@ npm run deploy:mainnet
 
 Скрипт:
 
-1. Задеплоит **`ObjectDigitalPassport`**.
+1. Задеплоит **`ODPPassportLib`** и связанный основной реестр **`ObjectDigitalPassport`**.
 2. Попытается задеплоить **`ODPWalletDocumentAnchor`** (спутник для якорей файлов); при ошибке выведет предупреждение.
 3. Попытается задеплоить **`ODPCounterfeitConcern`** (спутник: флаг «institutional concern» для **P/M**); при ошибке — предупреждение.
-4. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
+4. Попытается задеплоить **`ODPRegistryRelations`**, **`ODPPassportProofRegistry`** и **`ODPExtensionMintRouter`**; для relations/router также выполнит wiring вызовами `setRelationsSatellite(...)` и `setExtensionRouter(...)`.
+5. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
 
-После деплоя пропишите адрес в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`** (`NET.contract`); для линии v0.5 при необходимости **`NET.docAnchor`** и **`NET.counterfeitConcern`** (если спутники тоже задеплоены). Для текущей ветки сначала проверьте отчёт **EIP-170** из `npm run compile`: контрактная линия v0.5 уже проходит compile/tests, но размер байткода всё ещё нужно держать под лимитом сети перед mainnet rollout. Исторические указатели: **[`docs/V0.3.md`](../docs/V0.3.md)**, **[`docs/V0.4.md`](../docs/V0.4.md)**.
+После деплоя пропишите адреса в **`web/creator.html`**, **`web/passport.html`**, **`web/verify.html`**: как минимум **`NET.contract`**, а для линии v0.5 также **`NET.docAnchor`**, **`NET.counterfeitConcern`**, **`NET.relations`** и **`NET.proofRegistry`** (если соответствующие спутники задеплоены). Для текущей ветки сначала проверьте отчёт **EIP-170** из `npm run compile`: контрактная линия v0.5 уже проходит compile/tests, но размер байткода всё ещё нужно держать под лимитом сети перед mainnet rollout. Исторические указатели: **[`docs/V0.3.md`](../docs/V0.3.md)**, **[`docs/V0.4.md`](../docs/V0.4.md)**.
 
 ---
 
