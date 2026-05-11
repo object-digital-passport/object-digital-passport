@@ -1774,7 +1774,8 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
 
   const title   = passport?.title    || "—";
   const cname   = passport?.creator?.name || (creator ? creator.creatorId : "—");
-  const objType = passport?.type     || rec.objectType;
+  const objType = passport?.objectType || rec.objectType;
+  const contentClass = passport?.contentClass || null;
   const medium  = passport?.medium   || null;
   const edition = passport?.edition  ? `${passport.edition.number} / ${passport.edition.total}` : null;
   const materials = passport?.materials?.map(m => m.name || m).join(", ") || null;
@@ -1914,6 +1915,11 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
               <span class="type-badge ${isDigital ? 'digital' : ''}">${esc(objType)}</span>
             </div>
           </div>
+          ${contentClass ? `
+          <div class="field">
+            <div class="fl">Content class</div>
+            <div class="fv">${esc(String(contentClass))}</div>
+          </div>` : ""}
 
           ${edition ? `
           <div class="field">
@@ -1942,7 +1948,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           ${isDigital && passport?.digital ? `
           <div class="field">
             <div class="fl">File type</div>
-            <div class="fv">${esc(passport.digital.subtype || "—")}${passport.digital.format ? ` · ${esc(passport.digital.format)}` : ""}</div>
+            <div class="fv">${esc(passport.digital.format || "—")}</div>
           </div>
           <div class="field">
             <div class="fl">File size</div>
@@ -2244,7 +2250,8 @@ function renderLocalPassportPreview(p) {
   const cwallet = p.creator && p.creator.wallet != null ? String(p.creator.wallet) : "";
   const pidRaw = p.passportId !== undefined ? p.passportId : p.humanId;
   const humanJson = pidRaw === undefined ? "—" : pidRaw === null ? "null" : String(pidRaw);
-  const objType = (p.type != null ? String(p.type) : p.objectType != null ? String(p.objectType) : "—");
+  const objType = (p.objectType != null ? String(p.objectType) : p.type != null ? String(p.type) : "—");
+  const contentClass = p.contentClass != null ? String(p.contentClass) : "";
   const isDigital = String(p.objectType || "").toLowerCase() === "digital";
   const ver = p.version != null ? String(p.version) : "—";
 
@@ -2257,6 +2264,9 @@ function renderLocalPassportPreview(p) {
     `<div class="field"><div class="fl">${esc(t("verify.localPreview.passportIdInFile"))}</div><div class="fv"><span class="human-id-val">${esc(humanJson)}</span></div></div>`,
     `<div class="field"><div class="fl">Object / type</div><div class="fv"><span class="type-badge ${isDigital ? "digital" : ""}">${esc(objType)}</span></div></div>`
   );
+  if (contentClass) {
+    parts.push(`<div class="field"><div class="fl">Content class</div><div class="fv">${esc(contentClass)}</div></div>`);
+  }
 
   if (p.year != null || p.month != null) {
     const y = p.year != null ? String(p.year) : "—";
@@ -2279,7 +2289,7 @@ function renderLocalPassportPreview(p) {
   if (isDigital && p.digital && typeof p.digital === "object") {
     const d = p.digital;
     parts.push(
-      `<div class="field"><div class="fl">File type</div><div class="fv">${esc(d.subtype || "—")}${d.format ? ` · ${esc(String(d.format))}` : ""}</div></div>`
+      `<div class="field"><div class="fl">File type</div><div class="fv">${esc(d.format || "—")}</div></div>`
     );
     if (d.fileSize != null && !Number.isNaN(Number(d.fileSize))) {
       parts.push(`<div class="field"><div class="fl">File size</div><div class="fv">${esc(fmtSize(Number(d.fileSize)))}</div></div>`);

@@ -5,6 +5,7 @@ pragma solidity ^0.8.20;
 struct DigitalMintInputs {
     uint32 year;
     uint8 month;
+    uint8 contentClass;
     bytes32 dataHash;
     string dataUrl;
     bytes32 imageHash;
@@ -22,6 +23,7 @@ struct DigitalMintInputs {
 struct PhysicalMintInputs {
     uint32 year;
     uint8 month;
+    uint8 contentClass;
     bytes32 dataHash;
     string dataUrl;
     bytes32 imageHash;

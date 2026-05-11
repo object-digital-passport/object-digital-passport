@@ -77,13 +77,13 @@ import "./ODPPassportLib.sol";
  * (e.g. custom bytes like `"V"` or `"G"` in documentation) implemented by a separate contract that
  * implements this interface.
  *
- * Digital `normalize` output: **13-tuple** ending with `auxCommitmentHash` + `auxCommitmentUri` (see `ODPPassportLib.validateAuxCommitmentFields`).
- * Physical `normalize` output: **16-tuple** — physical mint params + same aux pair (see `mintPhysicalViaExtension` NatSpec).
+ * Digital `normalize` output: **14-tuple** ending with `auxCommitmentHash` + `auxCommitmentUri` (see `ODPPassportLib.validateAuxCommitmentFields`).
+ * Physical `normalize` output: **17-tuple** — physical mint params + same aux pair (see `mintPhysicalViaExtension` NatSpec).
  */
 interface IODPExtension {
     /// Validate type-specific data. Reverts if invalid.
     function validate(bytes calldata data) external view;
-    /// @dev Return `abi.encode` of either the **digital** 13-tuple or **physical** 16-tuple documented on `mintDigitalViaExtension` / `mintPhysicalViaExtension`.
+    /// @dev Return `abi.encode` of either the **digital** 14-tuple or **physical** 17-tuple documented on `mintDigitalViaExtension` / `mintPhysicalViaExtension`.
     function normalize(bytes calldata data) external view returns (bytes memory);
 }
 
@@ -98,11 +98,13 @@ contract ObjectDigitalPassport {
 
     string constant OBJECT_PHYSICAL = "physical";
     string constant OBJECT_DIGITAL  = "digital";
+    uint8 constant CONTENT_CLASS_STATIC = 1;
+    uint8 constant CONTENT_CLASS_EXECUTABLE = 6;
 
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     // Not `public` — each public constant adds a getter (~bytecode budget, EIP-170). Use `CONTRACT_VERSION` / 16 and % 16.
     uint8 internal constant SPEC_MAJOR = 0;
-    uint8 internal constant SPEC_MINOR = 4;
+    uint8 internal constant SPEC_MINOR = 5;
 
     /// Packed byte in `Passport.contractVersion`: `SPEC_MAJOR * 16 + SPEC_MINOR` (each < 16).
     /// **v0.4** uses packed byte **4**. New bytecode uses ABI name `passportId`; some earlier v0.4 deployments used `humanId` (integrators: match ABI to bytecode).
@@ -129,6 +131,7 @@ contract ObjectDigitalPassport {
         string  creatorId;     // Profile ID (SPEC); mandatory
         uint32  year;          // uint32 supports any year from 1 to 4,294,967,295
         uint8   month;
+        uint8   contentClass;  // 1..6 taxonomy: static/time_based/spatial/textual/composite/executable
         /// v0.3 mint path: only OBJECT_PHYSICAL / OBJECT_DIGITAL. Subtypes and industry labels → SPEC + `passport.json` + `dataHash`.
         /// A new top-level on-chain `objectType` string (third branch in storage/events) requires a protocol/contract line, not an implicit upgrade.
         string  objectType;    // "physical" or "digital"
@@ -266,6 +269,7 @@ contract ObjectDigitalPassport {
         address indexed creator,
         string          creatorId,
         string          objectType,
+        uint8           contentClass,
         uint32          year,
         uint8           month,
         bytes32         dataHash,
@@ -699,6 +703,7 @@ contract ObjectDigitalPassport {
             creatorId:       creatorId,
             year:            m.year,
             month:           m.month,
+            contentClass:    m.contentClass,
             objectType:      OBJECT_DIGITAL,
             dataHash:        m.dataHash,
             imageHash:       m.imageHash,
@@ -725,7 +730,7 @@ contract ObjectDigitalPassport {
         _creatorPassports[principalWallet].push(passportId);
 
         emit PassportMinted(passportId, principalWallet, creatorId, OBJECT_DIGITAL,
-                            m.year, m.month, m.dataHash, 0, "", block.timestamp, mintAgentForPassport);
+                            m.contentClass, m.year, m.month, m.dataHash, 0, "", block.timestamp, mintAgentForPassport);
     }
 
     /// @dev After `ODPPassportLib` physical + aux validation.
@@ -748,6 +753,7 @@ contract ObjectDigitalPassport {
             creatorId:       creatorId,
             year:            m.year,
             month:           m.month,
+            contentClass:    m.contentClass,
             objectType:      OBJECT_PHYSICAL,
             dataHash:        m.dataHash,
             imageHash:       m.imageHash,
@@ -774,7 +780,7 @@ contract ObjectDigitalPassport {
         _creatorPassports[principalWallet].push(passportId);
 
         emit PassportMinted(passportId, principalWallet, creatorId, OBJECT_PHYSICAL,
-                            m.year, m.month, m.dataHash, m.sealType, m.nfcModel, block.timestamp, mintAgentForPassport);
+                            m.contentClass, m.year, m.month, m.dataHash, m.sealType, m.nfcModel, block.timestamp, mintAgentForPassport);
     }
 
     /**
@@ -783,6 +789,54 @@ contract ObjectDigitalPassport {
      * @param year          Must equal UTC calendar year of `block.timestamp` (ODP-ID `YYYY-MM` prefix).
      * @param month         Must equal UTC calendar month (1–12) of `block.timestamp`.
      */
+    function mintPhysical(
+        uint32  year,
+        uint8   month,
+        uint8   contentClass,
+        bytes32 dataHash,
+        string  calldata dataUrl,
+        bytes32 imageHash,
+        string  calldata imageUrl,
+        uint8   sealType,
+        bytes32 sealHash,
+        bytes   calldata nfcPublicKey,
+        string  calldata nfcModel,
+        bytes32 imageHash2,
+        string  calldata imageUrl2,
+        bytes32 imageHash3,
+        string  calldata imageUrl3,
+        bool dataUrlIsFolderBase,
+        bytes32 auxCommitmentHash,
+        string  calldata auxCommitmentUri,
+        string  calldata mintOnBehalfOfCreatorId
+    ) public notFrozen returns (string memory passportId) {
+        (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
+
+        PhysicalMintInputs memory m = PhysicalMintInputs({
+            year: year,
+            month: month,
+            contentClass: contentClass,
+            dataHash: dataHash,
+            dataUrl: dataUrl,
+            imageHash: imageHash,
+            imageUrl: imageUrl,
+            sealType: sealType,
+            sealHash: sealHash,
+            nfcPublicKey: nfcPublicKey,
+            nfcModel: nfcModel,
+            imageHash2: imageHash2,
+            imageUrl2: imageUrl2,
+            imageHash3: imageHash3,
+            imageUrl3: imageUrl3,
+            auxCommitmentHash: auxCommitmentHash,
+            auxCommitmentUri: auxCommitmentUri
+        });
+        ODPPassportLib.validatePhysicalMintForMint(m);
+        _requireUtcYearMonth(year, month);
+        return _mintPhysicalCommit(creatorId, m, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
+    }
+
+    /// @dev Compatibility overload: defaults `contentClass` to `static` (1).
     function mintPhysical(
         uint32  year,
         uint8   month,
@@ -802,30 +856,28 @@ contract ObjectDigitalPassport {
         bytes32 auxCommitmentHash,
         string  calldata auxCommitmentUri,
         string  calldata mintOnBehalfOfCreatorId
-    ) external notFrozen returns (string memory passportId) {
-        (string memory creatorId, address principalWallet, address mintAgentAddr) = _beginMint(mintOnBehalfOfCreatorId);
-
-        PhysicalMintInputs memory m = PhysicalMintInputs({
-            year: year,
-            month: month,
-            dataHash: dataHash,
-            dataUrl: dataUrl,
-            imageHash: imageHash,
-            imageUrl: imageUrl,
-            sealType: sealType,
-            sealHash: sealHash,
-            nfcPublicKey: nfcPublicKey,
-            nfcModel: nfcModel,
-            imageHash2: imageHash2,
-            imageUrl2: imageUrl2,
-            imageHash3: imageHash3,
-            imageUrl3: imageUrl3,
-            auxCommitmentHash: auxCommitmentHash,
-            auxCommitmentUri: auxCommitmentUri
-        });
-        ODPPassportLib.validatePhysicalMintForMint(m);
-        _requireUtcYearMonth(year, month);
-        return _mintPhysicalCommit(creatorId, m, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
+    ) public notFrozen returns (string memory passportId) {
+        return mintPhysical(
+            year,
+            month,
+            CONTENT_CLASS_STATIC,
+            dataHash,
+            dataUrl,
+            imageHash,
+            imageUrl,
+            sealType,
+            sealHash,
+            nfcPublicKey,
+            nfcModel,
+            imageHash2,
+            imageUrl2,
+            imageHash3,
+            imageUrl3,
+            dataUrlIsFolderBase,
+            auxCommitmentHash,
+            auxCommitmentUri,
+            mintOnBehalfOfCreatorId
+        );
     }
 
     // ─── Passport Registry — Digital ──────────────────────────────────────────
@@ -852,6 +904,7 @@ contract ObjectDigitalPassport {
     function mintDigital(
         uint32  year,
         uint8   month,
+        uint8   contentClass,
         bytes32 dataHash,
         string  calldata dataUrl,
         bytes32 imageHash,
@@ -870,6 +923,7 @@ contract ObjectDigitalPassport {
         DigitalMintInputs memory dm = DigitalMintInputs({
             year: year,
             month: month,
+            contentClass: contentClass,
             dataHash: dataHash,
             dataUrl: dataUrl,
             imageHash: imageHash,
@@ -887,12 +941,50 @@ contract ObjectDigitalPassport {
         return _mintDigitalCommit(creatorId, dm, dataUrlIsFolderBase, principalWallet, mintAgentAddr);
     }
 
+    /// @dev Compatibility overload: defaults `contentClass` to `static` (1).
+    function mintDigital(
+        uint32  year,
+        uint8   month,
+        bytes32 dataHash,
+        string  calldata dataUrl,
+        bytes32 imageHash,
+        string  calldata imageUrl,
+        bytes32 imageHash2,
+        string  calldata imageUrl2,
+        bytes32 imageHash3,
+        string  calldata imageUrl3,
+        bytes32 fileHash,
+        bool dataUrlIsFolderBase,
+        bytes32 auxCommitmentHash,
+        string  calldata auxCommitmentUri,
+        string  calldata mintOnBehalfOfCreatorId
+    ) external notFrozen returns (string memory passportId) {
+        return mintDigital(
+            year,
+            month,
+            CONTENT_CLASS_STATIC,
+            dataHash,
+            dataUrl,
+            imageHash,
+            imageUrl,
+            imageHash2,
+            imageUrl2,
+            imageHash3,
+            imageUrl3,
+            fileHash,
+            dataUrlIsFolderBase,
+            auxCommitmentHash,
+            auxCommitmentUri,
+            mintOnBehalfOfCreatorId
+        );
+    }
+
     /**
      * @notice DIGITAL mint where `payload` is validated/normalized by a governance-registered `IODPExtension`.
      * @param mintClass Route byte (not C/B/P/M). Must have `typeToExtension[mintClass] != address(0)`.
      * @param payload Opaque input forwarded to the extension.
-     * @dev Extension `normalize` **must** return `abi.encode` of the **13-tuple** (digital + aux):
-     *      `(year,month,dataHash,dataUrl,imageHash,imageUrl,imageHash2,imageUrl2,imageHash3,imageUrl3,fileHash,auxCommitmentHash,auxCommitmentUri)`.
+     * @dev Extension `normalize` **must** return `abi.encode` of the **14-tuple** (digital + aux):
+     *      `(year,month,contentClass,dataHash,dataUrl,imageHash,imageUrl,imageHash2,imageUrl2,imageHash3,imageUrl3,fileHash,auxCommitmentHash,auxCommitmentUri)`.
      */
     function mintDigitalViaExtension(
         bytes1 mintClass,
@@ -917,7 +1009,7 @@ contract ObjectDigitalPassport {
     /**
      * @notice PHYSICAL mint via `IODPExtension`. Same `mintClass` registry as digital; decode shape differs.
      * @dev `normalize` **must** return `abi.encode` of:
-     *      `(year,month,dataHash,dataUrl,imageHash,imageUrl,sealType,sealHash,nfcPublicKey,nfcModel,imageHash2,imageUrl2,imageHash3,imageUrl3,auxCommitmentHash,auxCommitmentUri)`.
+     *      `(year,month,contentClass,dataHash,dataUrl,imageHash,imageUrl,sealType,sealHash,nfcPublicKey,nfcModel,imageHash2,imageUrl2,imageHash3,imageUrl3,auxCommitmentHash,auxCommitmentUri)`.
      */
     function mintPhysicalViaExtension(
         bytes1 mintClass,

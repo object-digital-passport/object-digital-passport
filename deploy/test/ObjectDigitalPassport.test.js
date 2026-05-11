@@ -152,7 +152,7 @@ describe("ObjectDigitalPassport", function () {
     const c = await deployFixture();
     const packed = await c.CONTRACT_VERSION();
     const p = BigInt(packed.toString());
-    expect(Number(packed)).to.equal(4); // v0.4 reference line: SPEC_MAJOR=0, SPEC_MINOR=4
+    expect(Number(packed)).to.equal(5); // v0.5 line: SPEC_MAJOR=0, SPEC_MINOR=5
     expect(Number(p / 16n) * 16 + Number(p % 16n)).to.equal(Number(packed));
   });
 

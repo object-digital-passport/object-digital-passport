@@ -817,6 +817,19 @@ The protocol does **not** store the full passport JSON on-chain — only `dataHa
 
 These fields are part of the hashed `passport.json`; changing them changes `dataHash`.
 
+### Content class taxonomy (v0.5 direction; recommended now)
+
+To avoid binding the protocol to short-lived file format labels, implementations SHOULD include top-level `contentClass` in `passport.json` with one of:
+
+- `static` — fixed still output
+- `time_based` — fixed sequence over time
+- `spatial` — 3D structure / geometry
+- `textual` — semantic symbolic content
+- `composite` — multi-file structured bundle
+- `executable` — logic that runs and produces output
+
+For this v0.4 line, `contentClass` is off-chain metadata (included in `dataHash`) and does not change on-chain tuple fields. In the planned v0.5 contract line it is expected to become a first-class required field.
+
 ### Calendar `year` / `month` in `passport.json` (normative, reference v0.4+)
 
 Top-level `year` and `month` **must** match the **UTC** calendar values passed to the mint transaction and stored on-chain — they are part of the hashed document and tie the `ODP-YYYY-MM-…` Passport ID prefix to the **mint** month. They do **not** assert the historical year a physical object was made or a file was authored. When the UI collects a separate “object year” (e.g. form field `f_year`), implementations **should** emit `**objectYear`** (integer) when it differs from the mint `year`, so provenance can still record e.g. a 19th-century work minted in 2026.

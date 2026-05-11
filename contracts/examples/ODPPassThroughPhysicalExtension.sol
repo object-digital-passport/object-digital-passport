@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import { IODPExtension } from "../ObjectDigitalPassport.sol";
 
-/// @dev Test / reference `IODPExtension`: `payload` is already `abi.encode` of the 16-tuple expected by
+/// @dev Test / reference `IODPExtension`: `payload` is already `abi.encode` of the 17-tuple expected by
 ///      `ObjectDigitalPassport.mintPhysicalViaExtension` after `normalize` (same layout as core decode).
 contract ODPPassThroughPhysicalExtension is IODPExtension {
     error InvalidPayload();
@@ -14,6 +14,7 @@ contract ODPPassThroughPhysicalExtension is IODPExtension {
             payload,
             (
                 uint32,
+                uint8,
                 uint8,
                 bytes32,
                 string,

@@ -7,6 +7,12 @@ import {DigitalMintInputs, PhysicalMintInputs} from "./ODPPassportTypes.sol";
 /// @dev Linked library: validation + decode + URL resolution for ObjectDigitalPassport (EIP-170 size).
 library ODPPassportLib {
     bytes32 private constant NFC_NTAG424DNA_TT_HASH = keccak256("NTAG424DNA_TT");
+    uint8 private constant CONTENT_CLASS_STATIC = 1;
+    uint8 private constant CONTENT_CLASS_EXECUTABLE = 6;
+
+    function validateContentClass(uint8 contentClass) public pure {
+        if (!(contentClass >= CONTENT_CLASS_STATIC && contentClass <= CONTENT_CLASS_EXECUTABLE)) revert EC(84);
+    }
 
     function validateOptionalImageSlots(
         bytes32 imageHash2,
@@ -38,6 +44,7 @@ library ODPPassportLib {
     function validatePhysicalUnpacked(
         uint32 year,
         uint8 month,
+        uint8 contentClass,
         bytes32 dataHash,
         string memory dataUrl,
         bytes32 imageHash,
@@ -53,6 +60,7 @@ library ODPPassportLib {
     ) public pure {
         if (!(year > 0)) revert EC(9);
         if (!(month >= 1 && month <= 12)) revert EC(8);
+        validateContentClass(contentClass);
         if (!(dataHash != bytes32(0))) revert EC(30);
         if (!(bytes(dataUrl).length <= 512)) revert EC(24);
         if (!(bytes(imageUrl).length <= 512)) revert EC(23);
@@ -83,6 +91,7 @@ library ODPPassportLib {
         validatePhysicalUnpacked(
             m.year,
             m.month,
+            m.contentClass,
             m.dataHash,
             m.dataUrl,
             m.imageHash,
@@ -102,6 +111,7 @@ library ODPPassportLib {
         validateDigitalMintUnpacked(
             dm.year,
             dm.month,
+            dm.contentClass,
             dm.dataHash,
             dm.dataUrl,
             dm.imageHash,
@@ -120,6 +130,7 @@ library ODPPassportLib {
         (
             dm.year,
             dm.month,
+            dm.contentClass,
             dm.dataHash,
             dm.dataUrl,
             dm.imageHash,
@@ -133,7 +144,7 @@ library ODPPassportLib {
             dm.auxCommitmentUri
         ) = abi.decode(
             norm,
-            (uint32, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32, bytes32, string)
+            (uint32, uint8, uint8, bytes32, string, bytes32, string, bytes32, string, bytes32, string, bytes32, bytes32, string)
         );
     }
 
@@ -151,6 +162,7 @@ library ODPPassportLib {
         (
             pm.year,
             pm.month,
+            pm.contentClass,
             pm.dataHash,
             pm.dataUrl,
             pm.imageHash,
@@ -167,7 +179,7 @@ library ODPPassportLib {
             pm.auxCommitmentUri
         ) = abi.decode(
             norm,
-            (uint32, uint8, bytes32, string, bytes32, string, uint8, bytes32, bytes, string, bytes32, string, bytes32, string, bytes32, string)
+            (uint32, uint8, uint8, bytes32, string, bytes32, string, uint8, bytes32, bytes, string, bytes32, string, bytes32, string, bytes32, string)
         );
     }
 
@@ -212,6 +224,7 @@ library ODPPassportLib {
     function validateDigitalMintUnpacked(
         uint32 year,
         uint8 month,
+        uint8 contentClass,
         bytes32 dataHash,
         string memory dataUrl,
         bytes32 imageHash,
@@ -226,6 +239,7 @@ library ODPPassportLib {
     ) public pure {
         if (!(year > 0)) revert EC(9);
         if (!(month >= 1 && month <= 12)) revert EC(8);
+        validateContentClass(contentClass);
         if (!(dataHash != bytes32(0))) revert EC(30);
         if (!(bytes(dataUrl).length <= 512)) revert EC(24);
         if (!(bytes(imageUrl).length <= 512)) revert EC(23);

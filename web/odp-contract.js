@@ -35,6 +35,10 @@
     return generation >= 3;
   }
 
+  function odpSupportsContentClass(generation) {
+    return generation >= 5;
+  }
+
   /**
    * Known Polygon mainnet v0.4 deployment whose ABI still used `humanId` (before redeploy with `passportId`).
    * New registry at another address with the same packed `CONTRACT_VERSION` uses `passportId`.
@@ -152,7 +156,7 @@
   /** v0.3+: owner, extra image hashes/URLs, revocation fields. */
   function odpPassportTupleComponentsV03(generation, net) {
     var idn = odpPassportIdAbiName(generation, net);
-    return [
+    var out = [
       { name: idn, type: "string" },
       { name: "contractVersion", type: "uint8" },
       { name: "creator", type: "address" },
@@ -182,6 +186,10 @@
       { name: "auxCommitmentUri", type: "string" },
       { name: "mintAgent", type: "address" },
     ];
+    if (odpSupportsContentClass(generation)) {
+      out.splice(8, 0, { name: "contentClass", type: "uint8" });
+    }
+    return out;
   }
 
   function odpPassportTupleComponents(generation, net) {
@@ -716,6 +724,7 @@
     var pid = odpPassportIdAbiName(generation, net);
     var folder = generation >= 2;
     var mintMut = "nonpayable";
+    var hasContentClass = odpSupportsContentClass(generation);
 
     var mintPhysicalInputs = [
       { name: "year", type: "uint32" },
@@ -733,6 +742,10 @@
       { name: "year", type: "uint32" },
       { name: "month", type: "uint8" },
       { name: "dataHash", type: "bytes32" },
+    if (hasContentClass) {
+      mintPhysicalInputs.splice(2, 0, { name: "contentClass", type: "uint8" });
+      mintDigitalInputs.splice(2, 0, { name: "contentClass", type: "uint8" });
+    }
       { name: "dataUrl", type: "string" },
       { name: "imageHash", type: "bytes32" },
       { name: "imageUrl", type: "string" },
@@ -769,14 +782,22 @@
       );
     }
 
-    var passportMintedEvent =
-      odpSupportsV03(generation)
-        ? "event PassportMinted(string indexed " +
-          pid +
-          ",address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp,address mintAgent)"
-        : "event PassportMinted(string indexed " +
-          pid +
-          ",address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)";
+    var passportMintedEvent;
+    if (odpSupportsV03(generation)) {
+      passportMintedEvent =
+        "event PassportMinted(string indexed " +
+        pid +
+        (hasContentClass
+          ? ",address indexed creator,string creatorId,string objectType,uint8 contentClass,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp,address mintAgent)"
+          : ",address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp,address mintAgent)");
+    } else {
+      passportMintedEvent =
+        "event PassportMinted(string indexed " +
+        pid +
+        (hasContentClass
+          ? ",address indexed creator,string creatorId,string objectType,uint8 contentClass,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)"
+          : ",address indexed creator,string creatorId,string objectType,uint32 year,uint8 month,bytes32 dataHash,uint8 sealType,string nfcModel,uint256 timestamp)");
+    }
 
     var passportAbi = [
       {
@@ -1509,6 +1530,7 @@
   global.odpSupportsFolderBaseMint = odpSupportsFolderBaseMint;
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
   global.odpSupportsV03 = odpSupportsV03;
+  global.odpSupportsContentClass = odpSupportsContentClass;
   global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;

@@ -286,6 +286,9 @@ function odpPassportDraftFieldIds() {
   return [
     "f_title",
     "f_name",
+    "f_content_class",
+    "f_domain",
+    "f_tags",
     "f_type",
     "f_year",
     "f_edn",
@@ -1064,6 +1067,28 @@ function htmlSubtypeOptions() {
   ].map(([v, k]) => `<option value="${v}">${esc(t(k))}</option>`).join("");
 }
 
+function htmlContentClassOptions() {
+  return [
+    ["static", "passport.form.contentClassStatic"],
+    ["time_based", "passport.form.contentClassTimeBased"],
+    ["spatial", "passport.form.contentClassSpatial"],
+    ["textual", "passport.form.contentClassTextual"],
+    ["composite", "passport.form.contentClassComposite"],
+    ["executable", "passport.form.contentClassExecutable"],
+  ].map(([v, k]) => `<option value="${v}">${esc(t(k))}</option>`).join("");
+}
+
+function contentClassCodeFromValue(vv) {
+  const v = String(vv || "").trim().toLowerCase();
+  if (v === "static") return 1;
+  if (v === "time_based") return 2;
+  if (v === "spatial") return 3;
+  if (v === "textual") return 4;
+  if (v === "composite") return 5;
+  if (v === "executable") return 6;
+  return 0;
+}
+
 function scrollToPassportSection(el) {
   if (!el) return;
   try {
@@ -1703,6 +1728,14 @@ function renderForm() {
         <div class="field"><label>${esc(t("passport.form.labelYear"))}<span class="req">*</span></label>
           <input type="number" id="f_year" value="${new Date().getUTCFullYear()}" min="1000" max="2100"></div>
       </div>
+      <div class="row2">
+        <div class="field"><label>${esc(t("passport.form.labelContentClass"))}<span class="req">*</span></label>
+          <select id="f_content_class">${htmlContentClassOptions()}</select></div>
+        <div class="field"><label>${esc(t("passport.form.labelDomain"))}</label>
+          <input type="text" id="f_domain" placeholder="${esc(t("passport.form.phDomain"))}"></div>
+      </div>
+      <div class="field"><label>${esc(t("passport.form.labelTags"))}</label>
+        <input type="text" id="f_tags" placeholder="${esc(t("passport.form.phTags"))}"></div>
       <div id="physExtra">
         <div class="row2">
           <div class="field"><label>${esc(t("passport.form.labelEditionNum"))}</label><input type="number" id="f_edn" placeholder="${esc(t("passport.form.phEdition"))}" min="1"></div>
@@ -2302,7 +2335,9 @@ function buildPassport(humanId, mintAt) {
   const now = mintAt instanceof Date ? mintAt : new Date();
   const useV03 = typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration);
   const jsonSpecVersion =
-    typeof odpContractGeneration === "number" && odpContractGeneration >= 4
+    typeof odpContractGeneration === "number" && odpContractGeneration >= 5
+      ? "0.5"
+      : typeof odpContractGeneration === "number" && odpContractGeneration >= 4
       ? "0.4"
       : useV03
         ? "0.3"
@@ -2313,10 +2348,14 @@ function buildPassport(humanId, mintAt) {
   const utcY = now.getUTCFullYear();
   const utcM = now.getUTCMonth() + 1;
   const fy = parseInt(v("f_year"), 10);
+  const contentClass = v("f_content_class");
+  const domain = v("f_domain");
+  const tagsRaw = v("f_tags");
   const p = {
     version: jsonSpecVersion,
     passportId:humanId||null,
     objectType: objType,
+    contentClass: contentClass,
     type: v("f_type"),
     title: v("f_title"),
     issuerRole: issuerRole,
@@ -2326,6 +2365,14 @@ function buildPassport(humanId, mintAt) {
     registeredAt: clock.registeredAt,
     registration: clock.registration,
   };
+  if (domain) p.domain = domain;
+  if (tagsRaw) {
+    const tags = tagsRaw
+      .split(",")
+      .map((x) => String(x || "").trim())
+      .filter(Boolean);
+    if (tags.length) p.tags = tags;
+  }
   if (!Number.isNaN(fy) && fy !== utcY) p.objectYear = fy;
 
   if (objType==="physical") {
@@ -2450,6 +2497,7 @@ async function sha256obj(o) {
 function validate() {
   if (!v("f_title"))   return t("passport.form.validateTitle");
   if (!v("f_name"))    return t("passport.form.validateName");
+  if (!v("f_content_class")) return t("passport.form.validateContentClass");
   if (
     (imageHash2 !== ZERO32 || imageHash3 !== ZERO32) &&
     imageHash === ZERO32
@@ -2584,6 +2632,9 @@ async function executeMint() {
       : [];
   const year      = mintAt.getUTCFullYear();
   const month     = mintAt.getUTCMonth() + 1;
+  const contentClassCode = contentClassCodeFromValue(v("f_content_class"));
+  const contentClassEnabled =
+    typeof odpSupportsContentClass === "function" && odpSupportsContentClass(odpContractGeneration);
   const skip =
     odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
   const useFolder = document.getElementById("f_use_folder")?.checked !== false;
@@ -2636,47 +2687,96 @@ async function executeMint() {
     if (objType==="physical") {
       const nfcModelStr = (sealType===1||sealType===3) ? "NTAG424DNA_TT" : "";
       if (odpSupportsFolderBaseMint(odpContractGeneration)) {
-        tx = await contract.mintPhysical(
-          year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-          sealType,sealHash_,nfcBytes,nfcModelStr,
+        if (contentClassEnabled) {
+          tx = await contract.mintPhysical(
+            year,month,contentClassCode,dataHash_,dataUrlForMint,imgH_,imgU_,
+            sealType,sealHash_,nfcBytes,nfcModelStr,
+            ...imgEx,
+            dataUrlIsFolderBase,
+            ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+              ? [ZERO32, "", ""]
+              : []),
+            mintTxOpts()
+          );
+        } else {
+          tx = await contract.mintPhysical(
+            year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
+            sealType,sealHash_,nfcBytes,nfcModelStr,
+            ...imgEx,
+            dataUrlIsFolderBase,
+            ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+              ? [ZERO32, "", ""]
+              : []),
+            mintTxOpts()
+          );
+        }
+      } else {
+        if (contentClassEnabled) {
+          tx = await contract.mintPhysical(
+            year,month,contentClassCode,dataHash_,dataUrlForMint,imgH_,imgU_,
+            sealType,sealHash_,nfcBytes,nfcModelStr,
+            ...imgEx,
+            ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+              ? [ZERO32, "", ""]
+              : []),
+            mintTxOpts()
+          );
+        } else {
+          tx = await contract.mintPhysical(
+            year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
+            sealType,sealHash_,nfcBytes,nfcModelStr,
+            ...imgEx,
+            ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+              ? [ZERO32, "", ""]
+              : []),
+            mintTxOpts()
+          );
+        }
+      }
+    } else if (odpSupportsFolderBaseMint(odpContractGeneration)) {
+      if (contentClassEnabled) {
+        tx = await contract.mintDigital(
+          year,month,contentClassCode,dataHash_,dataUrlForMint,imgH_,imgU_,
           ...imgEx,
-          dataUrlIsFolderBase,
+          fileHashBytes32,dataUrlIsFolderBase,
           ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
             ? [ZERO32, "", ""]
             : []),
           mintTxOpts()
         );
       } else {
-        tx = await contract.mintPhysical(
+        tx = await contract.mintDigital(
           year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-          sealType,sealHash_,nfcBytes,nfcModelStr,
           ...imgEx,
+          fileHashBytes32,dataUrlIsFolderBase,
           ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
             ? [ZERO32, "", ""]
             : []),
           mintTxOpts()
         );
       }
-    } else if (odpSupportsFolderBaseMint(odpContractGeneration)) {
-      tx = await contract.mintDigital(
-        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-        ...imgEx,
-        fileHashBytes32,dataUrlIsFolderBase,
-        ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [ZERO32, "", ""]
-          : []),
-        mintTxOpts()
-      );
     } else {
-      tx = await contract.mintDigital(
-        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-        ...imgEx,
-        fileHashBytes32,
-        ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [ZERO32, "", ""]
-          : []),
-        mintTxOpts()
-      );
+      if (contentClassEnabled) {
+        tx = await contract.mintDigital(
+          year,month,contentClassCode,dataHash_,dataUrlForMint,imgH_,imgU_,
+          ...imgEx,
+          fileHashBytes32,
+          ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+            ? [ZERO32, "", ""]
+            : []),
+          mintTxOpts()
+        );
+      } else {
+        tx = await contract.mintDigital(
+          year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
+          ...imgEx,
+          fileHashBytes32,
+          ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
+            ? [ZERO32, "", ""]
+            : []),
+          mintTxOpts()
+        );
+      }
     }
 
     const exBaseMint = (NET && NET.explorer) ? String(NET.explorer).replace(/\/$/, "") : "https://polygonscan.com";
