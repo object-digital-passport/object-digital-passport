@@ -12,6 +12,7 @@
 | **[`V0.2-DRAFT.md`](V0.2-DRAFT.md)** | Historical / exploratory notes (folder-first hosting, hash boundaries). Several items have since landed in **SPEC v0.2**; read **SPEC** for what is binding. |
 | **[`V0.3.md`](V0.3.md)** | **v0.3 vs v0.2:** [`localization/ru/RELEASE_v0.3.md`](../localization/ru/RELEASE_v0.3.md); deploy / **`NET.*`:** [`../deploy/README.md`](../deploy/README.md); **SPEC**. |
 | **[`V0.4.md`](V0.4.md)** | Historical v0.4 line notes and release pointers. |
+| **[`V0.5.md`](V0.5.md)** | Current v0.5 line overview, shaped by real-world feedback and practical testing. |
 | **[`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md)** | Historical v0.4.1 patch notes (SRI, GitHub templates, Hardhat 3, typings). RU: [`../localization/ru/RELEASE_v0.4.1.md`](../localization/ru/RELEASE_v0.4.1.md). |
 | **[`SECURITY.md`](../SECURITY.md)** | Threat model & trust boundaries for the current reference line. RU: [`localization/ru/SECURITY.md`](../localization/ru/SECURITY.md). |
 | **[`DOCS_REVIEW_PLAN_v0.5.md`](DOCS_REVIEW_PLAN_v0.5.md)** | Discussion-first review plan for restructuring README/SPEC/docs after the v0.5 model lock. |

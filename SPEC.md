@@ -1,6 +1,6 @@
 # Object Digital Passport
 
-### Specification v0.4 — DRAFT
+### Specification v0.5 — DRAFT
 
 *Author: Andrei Chernikov*
 
@@ -23,7 +23,7 @@
 ## Table of Contents
 
 - [Languages and translations](#languages-and-translations)
-- [IMPORTANT: 0.x deployments, the reference v0.4 line, and alignment toward v1](#important-0x-deployments-the-reference-v04-line-and-alignment-toward-v1)
+- [IMPORTANT: 0.x deployments, the reference v0.5 line, and alignment toward v1](#important-0x-deployments-the-reference-v05-line-and-alignment-toward-v1)
 - [1. Overview](#1-overview)
 - [2. Passport ID](#2-passport-id)
 - [3. Profile ID](#3-profile-id)
@@ -1340,13 +1340,13 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**Reference v0.4 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**deploy/scripts/deploy-doc-anchor-only.js`** (see `**deploy/README.md`**). The reference Polygon deployment records both addresses in `**deployments/polygon.json`**.
+**Reference v0.5 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**deploy/scripts/deploy-doc-anchor-only.js`** (see `**deploy/README.md`**). The reference Polygon deployment records both addresses in `**deployments/polygon.json`**.
 
-Older protocol lines that exposed these functions on the monolithic main registry are **out of scope** for this document — only the **v0.4** split (main registry + `**ODPWalletDocumentAnchor`**) is specified here.
+Older protocol lines that exposed these functions on the monolithic main registry are **out of scope** for this document — only the **v0.5** split (main registry + `**ODPWalletDocumentAnchor`**) is specified here.
 
 For a **second document anchor tied to a passport**, use `**auxCommitmentHash` / `auxCommitmentUri`** (mint or `**updatePassportAuxCommitment`**) on the main registry.
 
-**On-chain (`ODPWalletDocumentAnchor`, reference v0.4):**
+**On-chain (`ODPWalletDocumentAnchor`, reference v0.5):**
 
 - `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered on the **main** registry; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)` in that anchor contract.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — returns `attested`, `creatorId`, timestamp, and `documentUri`.
@@ -1536,7 +1536,7 @@ Affiliation note (P → P, one-level)
 
 Document anchoring
 
-- `**getExternalDocumentAttestation(wallet, documentHash)`** on `**ODPWalletDocumentAnchor`** (reference **v0.4** — configure `**NET.docAnchor`**) returns metadata for a single `(wallet, hash)` attestation when present.
+- `**getExternalDocumentAttestation(wallet, documentHash)`** on `**ODPWalletDocumentAnchor`** (reference **v0.5** — configure `**NET.docAnchor`**) returns metadata for a single `(wallet, hash)` attestation when present.
 - Reference `**verify.html`**: file-hash check and wallet submit require external-doc support (generation ≥ 2) and `**NET.docAnchor`** on `**ODPWalletDocumentAnchor**` (see §Level 1C).
 
 ```
