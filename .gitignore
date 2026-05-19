@@ -34,5 +34,8 @@ __pycache__/
 # Generated
 passports/
 
+# Temporary local nested repo
+android-companion/
+
 # Local HTTPS dev certs (openssl / mkcert)
 web/.certs/

@@ -516,24 +516,32 @@ Proof от институции, чей ID нельзя найти на их о�
 Стандартный NTAG 424 DNA (без TagTamper) и стандартные NFC-теги (NTAG213 и т.п.) не поддерживаются.
 Только TagTamper навсегда фиксирует факт физического снятия seal.
 
-**Как это работает:**
+**Как это работает в текущем развёртывании ODP:**
 
 ```
 Регистрация:
-  1. Считать public key чипа и UID через NFC
-  2. Записать в passport.json под seal.nfc
+  1. Подготовить NTAG 424 по документированному mirror profile:
+     в защищённый файл записывается тот же byte string, который
+     затем публикуется on-chain как `nfcPublicKey`
+  2. Записать метаданные чипа и заметки о развёртывании в passport.json
   3. Паспорт хэшируется и регистрируется on-chain как обычно
   4. `nfcPublicKey` также сохраняется напрямую on-chain для быстрой
-     криптографической проверки без загрузки passport.json
+     проверки verifier app
 
 Верификация:
-  1. Телефон отправляет чипу случайный challenge по NFC
-  2. Чип подписывает challenge, используя свой внутренний private key
-     (private key заперт в кремнии — никогда не покидает чип)
-  3. Телефон проверяет подпись по `nfcPublicKey`, полученному из блокчейна
-  4. Совпадение → оригинальный чип подтверждён
-     Несовпадение → неверный или клонированный чип
+  1. Телефон открывает защищённую EV2-сессию с чипом, если
+     развёртывание документирует такой verifier-side путь
+  2. Телефон читает документированный защищённый mirror file через
+     authenticated ReadData
+  3. Телефон сравнивает возвращённые live bytes с `nfcPublicKey`
+     из блокчейна
+  4. Совпадение → deployment-defined привязка чипа подтверждена
+                 по документированному mirror profile
+     Несовпадение → неверный чип, неверный профиль, неверная
+                    подготовка или несовпадающее on-chain значение
 ```
+
+**Честная оговорка для этой версии SPEC:** для `NTAG 424 DNA` в текущем документированном развёртывании ODP самым сильным честным рабочим путём является authenticated mirror-profile comparison, описанный выше. Настоящий chip-native arbitrary challenge/response, напрямую проверяемый по on-chain `nfcPublicKey`, здесь **не** зафиксирован как завершённый путь по имеющимся данным. Для будущего железа или будущего ODP-профиля такой более сильный путь можно определить отдельно.
 
 **NTAG 424 DNA TagTamper (единственный поддерживаемый NFC-режим):**
 
@@ -1214,11 +1222,42 @@ ODP **НЕ ДОЛЖЕН** моделироваться так, будто каж
 
 В этой линии реестр **не** задаёт один обязательный NDPP media type. Payload **МОЖЕТ** быть JSON, CBOR, NDEF-payload byte string, ZIP или другой детерминированной последовательностью байтов, о которой договорились issuer и verifier stack. Верификаторы **обязаны хэшировать точные raw-байты**, полученные из файла / carrier / URL, и сравнивать их с `**ndppCommitmentHash`**.
 
+Если issuer использует NFC / QR **carrier**, который оборачивает эти байты (например URL-first NDEF message со второй ODP payload record), `**ndppCommitmentHash`** всё равно якорит только **raw-байты NDPP / offline payload**. Он **не** хэширует внешнее carrier-оформление, весь NDEF message целиком или байты URL record.
+
 `**ndppCommitmentUri`** — только подсказка, где можно получить эти байты. Он **не** заменяет `**dataUrl`**, а NDPP **не** заменяет верификацию канонического `**passport.json`** / `**.odpass`**, привязанного через `**dataHash`**.
 
 ODP **не требует** sustainability-полей вроде состава материалов, ремонтопригодности, recycling instructions, end-of-life disclosure или carbon-footprint reporting. Реализации **МОГУТ** публиковать такие данные внутри отдельного NDPP / public-disclosure payload, когда это уместно, но эти поля не входят в нормативное ядро ODP, если другой профиль явно не требует иного.
 
 Для NFC Forum-compatible NDEF carriers реализации **ДОЛЖНЫ** размещать стандартную URL / URI запись **первой** ради широкой совместимости со смартфонами. Дополнительно они **МОГУТ** добавлять отдельную ODP-specific запись с компактными verification metadata или иным детерминированным public payload, чьи raw-байты заякорены через `**ndppCommitmentHash`**.
+
+#### Опциональный профиль: ODP-in-NDPP
+
+Эта спецификация определяет **опциональный**, **ненормативный для ядра** профиль совместимости под названием **ODP-in-NDPP** для issuers, которым нужен smartphone-friendly NFC / QR carrier без изменения trust model ODP.
+
+Замысел профиля:
+
+- сохранить канонический ODP-поток подлинности (`**Passport ID`**, on-chain record, `**dataHash`**, канонический `**.odpass`** / `**passport.json`**),
+- оставить NDPP только **дополнительным** public-disclosure / offline-слоем,
+- сохранить совместимость с типичным поведением телефонов, открывая сначала обычную веб-ссылку.
+
+Рекомендуемый NFC NDEF layout для этого профиля:
+
+1. **Record 1 (обязателен для профиля):** стандартная URL / URI запись, открывающая страницу ODP **Verify** или другой verifier entry URL для этого паспорта.
+2. **Record 2 (необязателен, но типичен для профиля):** вторичная ODP / NDPP payload record с детерминированными байтами offline-public payload.
+
+Правило хэширования для этого профиля:
+
+- `ndppCommitmentHash = SHA-256(raw bytes secondary payload)`
+- **не** `SHA-256(full NDEF message)`
+- **не** `SHA-256(URL record + payload record)`
+
+`**ndppCommitmentUri`** **МОЖЕТ** указывать на размещённую копию этих же raw payload bytes (например публичный CBOR / NDPP payload download). Это только подсказка для обнаружения; она **не** превращает NDPP в канонический артефакт паспорта и **не** заменяет ни Verify URL, ни `**dataUrl`**.
+
+Поведение верификатора для этого профиля:
+
+- если телефон умеет только открыть первый URL record, это лишь **шаг входа через carrier**;
+- если verifier stack умеет читать и вторичную payload record, он **МОЖЕТ** захэшировать её raw payload и сравнить с `**ndppCommitmentHash`**;
+- если вторичная record не разбирается, каноническая ODP-проверка всё равно возможна; отсутствие NDPP-parsing само по себе **не** инвалидирует паспорт.
 
 ---
 
@@ -1333,20 +1372,29 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 
 Если carrier использует NFC Forum-compatible NDEF, верификаторы и issuers должны воспринимать сам NFC-носитель только как удобный транспорт. Стандартная URL / URI запись может быть phone-friendly точкой входа, а любая дополнительная ODP-specific verification record остаётся вторичной и опциональной.
 
+В опциональном профиле **ODP-in-NDPP** нужно явно различать URL-first carrier opening, chip-authentication и offline-payload validation:
+
+1. открытие первой URL / URI record лишь запускает verifier entry point;
+2. проверка вторичного payload доказывает только то, что public offline bytes совпадают с `**ndppCommitmentHash`**;
+3. проверка физического chip по-прежнему требует chip-side proof против on-chain `**nfcPublicKey`**, если ожидается NFC seal verification; для текущего NTAG 424 deployment это честно означает документированный mirror-profile path, а не автоматически native challenge-response.
+
 ### Уровень 2A — проверка NFC seal (physical, sealType 1 или 3)
 
 ```
-1. Send random challenge to chip via NFC
-2. Chip returns signed response
-3. Verify signature against nfcPublicKey from blockchain
-4. Match    → SEAL_NFC_AUTHENTIC
-   No match → SEAL_NFC_INVALID
+1. Открыть защищённую EV2-authenticated сессию с чипом, если
+   deployment документирует такой verifier path
+2. Считать документированный protected mirror file с чипа
+3. Сравнить возвращённые live bytes с `nfcPublicKey` из блокчейна
+4. Match    → SEAL_NFC_AUTHENTIC в рамках documentированного mirror profile
+   No match → SEAL_NFC_INVALID / mismatch профиля / mismatch подготовки
 
 If chip model is `NTAG424DNA_TAGTAMPER`:
 5. Read tamper status
    INTACT   → SEAL_NFC_INTACT
    TAMPERED → SEAL_NFC_TAMPERED
 ```
+
+`Read_Sig` / originality evidence и сам факт EV2-session establishment полезны как supporting signals, но сами по себе не равны passport-specific `nfcPublicKey` match. Этот уровень также **не** заявляет завершённый native arbitrary challenge/response для текущего NTAG 424 deployment, пока отдельный будущий профиль явно его не опишет.
 
 ### Уровень 2B — проверка нумерованной seal (physical, sealType 2 или 3)
 
