@@ -566,6 +566,34 @@
   /** Public GitHub Pages base (trailing slash omitted); keep in sync with README live demo links. */
   var ODP_LIVE_BASE = "https://object-digital-passport.github.io/object-digital-passport";
 
+  /** Canonical public Verify base for reference exports, QR, and NFC helper links. */
+  function odpCanonicalVerifyBase() {
+    var base = typeof ODP_LIVE_BASE === "string" ? ODP_LIVE_BASE.trim() : "";
+    return base || "";
+  }
+
+  /**
+   * Resolve the public Verify host.
+   * Explicit self-host overrides still work, but the reference flow defaults to GitHub Verify first.
+   */
+  function odpResolvePublicVerifyBase(explicitBase) {
+    var override = typeof explicitBase === "string" ? explicitBase.trim() : "";
+    return override || odpCanonicalVerifyBase();
+  }
+
+  /** Build an absolute Verify URL for a passport ID. */
+  function odpBuildVerifyUrl(passportId, explicitBase, fallbackHref) {
+    var rel = "verify.html?id=" + encodeURIComponent(String(passportId == null ? "" : passportId));
+    var base = odpResolvePublicVerifyBase(explicitBase);
+    if (base) {
+      try {
+        return new URL(rel, base.endsWith("/") ? base : base + "/").href;
+      } catch (e) {}
+    }
+    var fallback = typeof fallbackHref === "string" && fallbackHref ? fallbackHref : ((global.location && global.location.href) || odpCanonicalVerifyBase());
+    return new URL(rel, fallback).href;
+  }
+
   /** First line of EIP-191 creator proof messages (must match SPEC / verify.html). */
   var ODP_CREATOR_PROOF_PREFIX = "Object Digital Passport — creator wallet proof (EIP-191) v2";
 
@@ -2327,6 +2355,47 @@
 
   var ODP_OFFLINE_VERSION = 1;
   var ODP_OFFLINE_NDEF_TYPE = "odp:off";
+  var ODP_OFFLINE_CARRIER_LEGACY = "legacy";
+  var ODP_OFFLINE_CARRIER_NDPP = "odp-in-ndpp";
+  var ODP_OFFLINE_NDEF_URI_TYPE = "U";
+  var ODP_OFFLINE_NDEF_URI_PREFIXES = [
+    "",
+    "http://www.",
+    "https://www.",
+    "http://",
+    "https://",
+    "tel:",
+    "mailto:",
+    "ftp://anonymous:anonymous@",
+    "ftp://ftp.",
+    "ftps://",
+    "sftp://",
+    "smb://",
+    "nfs://",
+    "ftp://",
+    "dav://",
+    "news:",
+    "telnet://",
+    "imap:",
+    "rtsp://",
+    "urn:",
+    "pop:",
+    "sip:",
+    "sips:",
+    "tftp:",
+    "btspp://",
+    "btl2cap://",
+    "btgoep://",
+    "tcpobex://",
+    "irdaobex://",
+    "file://",
+    "urn:epc:id:",
+    "urn:epc:tag:",
+    "urn:epc:pat:",
+    "urn:epc:raw:",
+    "urn:epc:",
+    "urn:nfc:",
+  ];
   var ODP_OFFLINE_TARGET_BYTES = 180;
   var ODP_OFFLINE_SOFT_MAX_BYTES = 200;
   var ODP_OFFLINE_HARD_MAX_BYTES = 244;
@@ -2578,11 +2647,86 @@
     };
   }
 
-  function odpOfflineEncodeNdefMessage(payloadBytes) {
+  function odpOfflineEncodeNdefRecord(record, isFirst, isLast) {
+    var rec = record || {};
+    var payload = rec.payloadBytes instanceof Uint8Array ? rec.payloadBytes : new Uint8Array(rec.payloadBytes || []);
+    var typeBytes = rec.typeBytes instanceof Uint8Array ? rec.typeBytes : odpOfflineUtf8Bytes(String(rec.type || ""));
+    var header = Number(rec.tnf) & 0x07;
+    if (isFirst) header |= 0x80;
+    if (isLast) header |= 0x40;
+    if (payload.length <= 255) header |= 0x10;
+    var out = [new Uint8Array([header, typeBytes.length])];
+    if (payload.length <= 255) {
+      out.push(new Uint8Array([payload.length]));
+    } else {
+      out.push(new Uint8Array([
+        (payload.length >>> 24) & 255,
+        (payload.length >>> 16) & 255,
+        (payload.length >>> 8) & 255,
+        payload.length & 255,
+      ]));
+    }
+    out.push(typeBytes, payload);
+    return odpOfflineConcatBytes(out);
+  }
+
+  function odpOfflineEncodeNdefRecords(records) {
+    var src = Array.isArray(records) ? records : [];
+    if (!src.length) throw new Error("At least one NDEF record required");
+    var parts = [];
+    for (var i = 0; i < src.length; i++) {
+      parts.push(odpOfflineEncodeNdefRecord(src[i], i === 0, i === src.length - 1));
+    }
+    return odpOfflineConcatBytes(parts);
+  }
+
+  function odpOfflineEncodeUriPayload(uri) {
+    var text = String(uri == null ? "" : uri).trim();
+    if (!/^https?:\/\//i.test(text)) throw new Error("Absolute http(s) verify URL required for NDPP carrier");
+    var lower = text.toLowerCase();
+    var bestCode = 0;
+    var bestPrefix = "";
+    for (var i = 1; i < ODP_OFFLINE_NDEF_URI_PREFIXES.length; i++) {
+      var prefix = ODP_OFFLINE_NDEF_URI_PREFIXES[i];
+      if (prefix && lower.indexOf(prefix) === 0 && prefix.length > bestPrefix.length) {
+        bestCode = i;
+        bestPrefix = prefix;
+      }
+    }
+    return odpOfflineConcatBytes([
+      new Uint8Array([bestCode]),
+      odpOfflineUtf8Bytes(bestPrefix ? text.slice(bestPrefix.length) : text),
+    ]);
+  }
+
+  function odpOfflineDecodeUriPayload(payloadBytes) {
     var payload = payloadBytes instanceof Uint8Array ? payloadBytes : new Uint8Array(payloadBytes || []);
-    if (payload.length > 255) throw new Error("odpOffline payload too large for short-record NDEF");
-    var typeBytes = odpOfflineUtf8Bytes(ODP_OFFLINE_NDEF_TYPE);
-    return odpOfflineConcatBytes([new Uint8Array([0xd4, typeBytes.length, payload.length]), typeBytes, payload]);
+    if (!payload.length) return "";
+    var prefixCode = payload[0];
+    var prefix = ODP_OFFLINE_NDEF_URI_PREFIXES[prefixCode] || "";
+    return prefix + new global.TextDecoder().decode(payload.slice(1));
+  }
+
+  function odpOfflineEncodeNdefMessage(payloadBytes, opts) {
+    var payload = payloadBytes instanceof Uint8Array ? payloadBytes : new Uint8Array(payloadBytes || []);
+    var options = opts || {};
+    var carrierMode = String(options.carrierMode || ODP_OFFLINE_CARRIER_LEGACY).trim().toLowerCase() === ODP_OFFLINE_CARRIER_NDPP
+      ? ODP_OFFLINE_CARRIER_NDPP
+      : ODP_OFFLINE_CARRIER_LEGACY;
+    var records = [];
+    if (carrierMode === ODP_OFFLINE_CARRIER_NDPP) {
+      records.push({
+        tnf: 0x01,
+        type: ODP_OFFLINE_NDEF_URI_TYPE,
+        payloadBytes: odpOfflineEncodeUriPayload(options.verifyUrl || ""),
+      });
+    }
+    records.push({
+      tnf: 0x04,
+      type: ODP_OFFLINE_NDEF_TYPE,
+      payloadBytes: payload,
+    });
+    return odpOfflineEncodeNdefRecords(records);
   }
 
   function odpOfflineWrapNdefFile(messageBytes) {
@@ -2592,58 +2736,105 @@
   }
 
   function odpOfflineReadNdefMessage(bytes) {
-    var buf = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    var fileBytes = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes || []);
+    var buf = fileBytes;
     if (buf.length >= 3) {
       var nlen = (buf[0] << 8) | buf[1];
       if (nlen > 0 && nlen <= buf.length - 2) buf = buf.slice(2, 2 + nlen);
     }
     if (!buf.length) throw new Error("Empty NDEF message");
     var offset = 0;
-    var header = buf[offset++];
-    var sr = !!(header & 0x10);
-    var il = !!(header & 0x08);
-    var tnf = header & 0x07;
-    if (tnf !== 0x04) throw new Error("Not an NFC external-type record");
-    if (offset >= buf.length) throw new Error("Truncated NDEF");
-    var typeLen = buf[offset++];
-    var payloadLen;
-    if (sr) {
-      if (offset >= buf.length) throw new Error("Truncated NDEF payload length");
-      payloadLen = buf[offset++];
-    } else {
-      if (offset + 3 >= buf.length) throw new Error("Truncated NDEF payload length");
-      payloadLen = buf[offset] * 0x1000000 + ((buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3]);
-      offset += 4;
+    var records = [];
+    while (offset < buf.length) {
+      var header = buf[offset++];
+      var me = !!(header & 0x40);
+      var cf = !!(header & 0x20);
+      var sr = !!(header & 0x10);
+      var il = !!(header & 0x08);
+      var tnf = header & 0x07;
+      if (cf) throw new Error("Chunked NDEF records are not supported");
+      if (offset >= buf.length) throw new Error("Truncated NDEF");
+      var typeLen = buf[offset++];
+      var payloadLen;
+      if (sr) {
+        if (offset >= buf.length) throw new Error("Truncated NDEF payload length");
+        payloadLen = buf[offset++];
+      } else {
+        if (offset + 3 >= buf.length) throw new Error("Truncated NDEF payload length");
+        payloadLen = buf[offset] * 0x1000000 + ((buf[offset + 1] << 16) | (buf[offset + 2] << 8) | buf[offset + 3]);
+        offset += 4;
+      }
+      var idLen = 0;
+      if (il) {
+        if (offset >= buf.length) throw new Error("Truncated NDEF id length");
+        idLen = buf[offset++];
+      }
+      if (offset + typeLen + idLen + payloadLen > buf.length) throw new Error("Truncated NDEF body");
+      var typeBytes = buf.slice(offset, offset + typeLen);
+      var type = new global.TextDecoder().decode(typeBytes);
+      offset += typeLen;
+      var idBytes = idLen ? buf.slice(offset, offset + idLen) : new Uint8Array([]);
+      offset += idLen;
+      var payloadBytes = buf.slice(offset, offset + payloadLen);
+      offset += payloadLen;
+      var rec = {
+        index: records.length,
+        tnf: tnf,
+        type: type,
+        typeBytes: typeBytes,
+        idBytes: idBytes,
+        payloadBytes: payloadBytes,
+      };
+      if (tnf === 0x01 && type === ODP_OFFLINE_NDEF_URI_TYPE) {
+        rec.uri = odpOfflineDecodeUriPayload(payloadBytes);
+      }
+      records.push(rec);
+      if (me) break;
     }
-    var idLen = 0;
-    if (il) {
-      if (offset >= buf.length) throw new Error("Truncated NDEF id length");
-      idLen = buf[offset++];
+    if (!records.length) throw new Error("Empty NDEF message");
+    var payloadRecord = null;
+    for (var i = 0; i < records.length; i++) {
+      if (records[i].tnf === 0x04 && records[i].type === ODP_OFFLINE_NDEF_TYPE) {
+        payloadRecord = records[i];
+        break;
+      }
     }
-    if (offset + typeLen + idLen + payloadLen > buf.length) throw new Error("Truncated NDEF body");
-    var type = new global.TextDecoder().decode(buf.slice(offset, offset + typeLen));
-    offset += typeLen + idLen;
-    if (type !== ODP_OFFLINE_NDEF_TYPE) throw new Error("Unexpected NDEF record type: " + type);
+    if (!payloadRecord) throw new Error("NDEF carrier does not contain an odp:off payload record");
+    var first = records[0];
+    var carrierMode = records.length === 1 && payloadRecord.index === 0
+      ? ODP_OFFLINE_CARRIER_LEGACY
+      : (first && first.tnf === 0x01 && first.type === ODP_OFFLINE_NDEF_URI_TYPE
+        ? ODP_OFFLINE_CARRIER_NDPP
+        : "mixed");
     return {
-      type: type,
-      payloadBytes: buf.slice(offset, offset + payloadLen),
+      type: payloadRecord.type,
+      payloadBytes: payloadRecord.payloadBytes,
       messageBytes: buf,
+      fileBytes: fileBytes,
+      records: records,
+      carrierMode: carrierMode,
+      primaryUri: first && first.uri ? first.uri : "",
     };
   }
 
-  function odpOfflineNdefFootprint(payloadBytesLength) {
+  function odpOfflineNdefFootprint(payloadBytesLength, ndefFileBytesLength) {
     var payloadLen = Number(payloadBytesLength || 0);
-    var messageBytes = 3 + odpOfflineUtf8Bytes(ODP_OFFLINE_NDEF_TYPE).length + payloadLen;
+    var fileBytes = Number(ndefFileBytesLength || 0);
+    if (!fileBytes) {
+      var messageBytesDefault = 3 + odpOfflineUtf8Bytes(ODP_OFFLINE_NDEF_TYPE).length + payloadLen;
+      fileBytes = messageBytesDefault + 2;
+    }
+    var messageBytes = Math.max(0, fileBytes - 2);
     return {
       payloadBytes: payloadLen,
       messageBytes: messageBytes,
-      ndefFileBytes: messageBytes + 2,
+      ndefFileBytes: fileBytes,
       targetBytes: ODP_OFFLINE_TARGET_BYTES,
       softMaxBytes: ODP_OFFLINE_SOFT_MAX_BYTES,
       hardMaxBytes: ODP_OFFLINE_HARD_MAX_BYTES,
-      withinTarget: payloadLen <= ODP_OFFLINE_TARGET_BYTES,
-      withinSoftMax: payloadLen <= ODP_OFFLINE_SOFT_MAX_BYTES,
-      withinHardMax: payloadLen <= ODP_OFFLINE_HARD_MAX_BYTES,
+      withinTarget: fileBytes <= ODP_OFFLINE_TARGET_BYTES,
+      withinSoftMax: fileBytes <= ODP_OFFLINE_SOFT_MAX_BYTES,
+      withinHardMax: fileBytes <= ODP_OFFLINE_HARD_MAX_BYTES,
     };
   }
 
@@ -2703,13 +2894,16 @@
   }
 
   function odpOfflineDecodeBytes(bytesLike) {
-    var raw = bytesLike instanceof Uint8Array ? bytesLike : new Uint8Array(bytesLike || []);
+    var input = bytesLike instanceof Uint8Array ? bytesLike : new Uint8Array(bytesLike || []);
+    var raw = input;
     var parsed = null;
     var format = "cbor";
+    var carrierMode = "";
     try {
       parsed = odpOfflineReadNdefMessage(raw);
       raw = parsed.payloadBytes;
-      format = "ndef";
+      carrierMode = String(parsed.carrierMode || "");
+      format = carrierMode === ODP_OFFLINE_CARRIER_NDPP ? "ndef-url-first" : "ndef";
     } catch (_) {}
     var decoded = odpOfflineDecodeCborValue(raw, 0);
     if (decoded.offset !== raw.length) throw new Error("Unexpected trailing bytes in odpOffline payload");
@@ -2717,29 +2911,37 @@
       format: format,
       payloadBytes: raw,
       ndef: parsed,
+      carrierMode: carrierMode,
+      primaryUri: parsed && parsed.primaryUri ? parsed.primaryUri : "",
       decoded: decoded.value,
       semantic: odpOfflineToSemantic(decoded.value),
-      footprint: odpOfflineNdefFootprint(raw.length),
+      footprint: odpOfflineNdefFootprint(raw.length, parsed ? parsed.fileBytes.length : 0),
     };
   }
 
   function odpOfflineEncode(passport, opts) {
     var built = odpOfflineBuildMap(passport, opts);
     var payloadBytes = odpOfflineEncodeCborValue(built.map);
-    var ndefMessageBytes = odpOfflineEncodeNdefMessage(payloadBytes);
+    var options = opts || {};
+    var carrierMode = String(options.carrierMode || ODP_OFFLINE_CARRIER_LEGACY).trim().toLowerCase() === ODP_OFFLINE_CARRIER_NDPP
+      ? ODP_OFFLINE_CARRIER_NDPP
+      : ODP_OFFLINE_CARRIER_LEGACY;
+    var ndefMessageBytes = odpOfflineEncodeNdefMessage(payloadBytes, options);
     var ndefFileBytes = odpOfflineWrapNdefFile(ndefMessageBytes);
     return {
       version: ODP_OFFLINE_VERSION,
       payloadBytes: payloadBytes,
       ndefMessageBytes: ndefMessageBytes,
       ndefFileBytes: ndefFileBytes,
+      carrierMode: carrierMode,
+      verifyUrl: carrierMode === ODP_OFFLINE_CARRIER_NDPP ? String(options.verifyUrl || "") : "",
       payloadHex: odpOfflineBytesToHex(payloadBytes),
       payloadBase64: odpOfflineBytesToBase64(payloadBytes),
       decoded: built.map,
       semantic: odpOfflineToSemantic(built.map),
       titleBytes: built.titleBytes,
       titleTruncated: built.titleTruncated,
-      footprint: odpOfflineNdefFootprint(payloadBytes.length),
+      footprint: odpOfflineNdefFootprint(payloadBytes.length, ndefFileBytes.length),
     };
   }
 
@@ -2753,9 +2955,14 @@
   global.ODP_SITE_VERSION = ODP_SITE_VERSION;
   global.ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG = ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG;
   global.ODP_LIVE_BASE = ODP_LIVE_BASE;
+  global.odpCanonicalVerifyBase = odpCanonicalVerifyBase;
+  global.odpResolvePublicVerifyBase = odpResolvePublicVerifyBase;
+  global.odpBuildVerifyUrl = odpBuildVerifyUrl;
   global.ODP_LATEST_STABLE_MAJOR = ODP_LATEST_STABLE_MAJOR;
   global.ODP_OFFLINE_VERSION = ODP_OFFLINE_VERSION;
   global.ODP_OFFLINE_NDEF_TYPE = ODP_OFFLINE_NDEF_TYPE;
+  global.ODP_OFFLINE_CARRIER_LEGACY = ODP_OFFLINE_CARRIER_LEGACY;
+  global.ODP_OFFLINE_CARRIER_NDPP = ODP_OFFLINE_CARRIER_NDPP;
   global.ODP_OFFLINE_TARGET_BYTES = ODP_OFFLINE_TARGET_BYTES;
   global.ODP_OFFLINE_SOFT_MAX_BYTES = ODP_OFFLINE_SOFT_MAX_BYTES;
   global.ODP_OFFLINE_HARD_MAX_BYTES = ODP_OFFLINE_HARD_MAX_BYTES;

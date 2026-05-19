@@ -31,6 +31,7 @@
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-Htz1SE4Sl5aitpvFgr2j0sfsGUIuSXI6t8hEyrlQ93zflEF3a29bH2AvkUROUw7J" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.5.0"></script>
+<script src="odp-android-companion.js?v=1"></script>
 <script src="odp-date-format.js?v=1"></script>
 <script src="odp-i18n.js?v=15"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-9Q0jWoineiIq95JeIyBsNV90KKLfDsbkj29k/YFxf76a2JwkHDYkMuSbNGN6XJfV" crossorigin="anonymous"></script>
@@ -290,6 +291,11 @@ const NET = {
   ],
 };
 
+/** Reference helper links default to the GitHub-hosted Verify page. Set this only when you intentionally want a different public Verify host. */
+const PUBLIC_VERIFY_BASE = typeof odpResolvePublicVerifyBase === "function"
+  ? odpResolvePublicVerifyBase("")
+  : "";
+
 /** Filled in `connect()` after RPC probe sets `odpContractGeneration` (tuple layout differs v0.2 vs v0.3). */
 let verifyReadAbi = null;
 function currentVerifyReadAbi() {
@@ -388,6 +394,10 @@ let verifyContractError = null;
 
 const ZERO32 = "0x" + "0".repeat(64);
 
+function safeDomId(v) {
+  return String(v == null ? "" : v).replace(/[^a-z0-9_-]+/gi, "-");
+}
+
 function odpBytes32HexLower(x) {
   if (x == null || x === undefined) return "";
   try {
@@ -402,6 +412,142 @@ function odpBytes32HexLower(x) {
 function odpNonZeroBytes32(h) {
   const x = odpBytes32HexLower(h);
   return Boolean(x && x !== ZERO32.toLowerCase());
+}
+
+function odpVerifyAbsoluteUrl(humanId) {
+  if (typeof odpBuildVerifyUrl === "function") {
+    return odpBuildVerifyUrl(humanId, PUBLIC_VERIFY_BASE, window.location.href);
+  }
+  const rel = `verify.html?id=${encodeURIComponent(String(humanId || ""))}`;
+  return new URL(rel, window.location.href).href;
+}
+
+async function verifyCopyGuideValue(value, statusId, okMessage) {
+  const statusEl = statusId ? document.getElementById(statusId) : null;
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+    if (statusEl) statusEl.textContent = t("verify.detail.nfcClipboardUnavailable");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(String(value || ""));
+    if (statusEl) statusEl.textContent = String(okMessage || "");
+  } catch (_) {
+    if (statusEl) statusEl.textContent = t("verify.detail.nfcCopyFailed");
+  }
+}
+
+function buildVerifyAndroidHandoff(humanId, verifyUrl, ndppCommitmentHash, chipKey, dataHash, nfcModel, nfcUid) {
+  if (!humanId || typeof odpBuildAndroidCompanionHandoff !== "function") return null;
+  const chipBindingProfileId = String(chipKey || "").trim() &&
+    typeof odpAndroidCompanionPilotChipBindingProfileIdForNfcModel === "function"
+      ? odpAndroidCompanionPilotChipBindingProfileIdForNfcModel(nfcModel, chipKey)
+      : "";
+  return {
+    source: "verify",
+    passportId: String(humanId || "").trim(),
+    verifyUrl: String(verifyUrl || "").trim(),
+    ndppCommitmentHash: String(ndppCommitmentHash || "").trim(),
+    nfcPublicKey: String(chipKey || "").trim(),
+    nfcUid: String(nfcUid || "").trim(),
+    nfcModel: String(nfcModel || "").trim(),
+    dataHash: String(dataHash || "").trim(),
+    chipBindingProfileId: chipBindingProfileId,
+    initialStep: "ready-to-scan",
+  };
+}
+
+async function verifyUseAndroidHandoff(humanId, verifyUrl, ndppCommitmentHash, chipKey, dataHash, nfcModel, nfcUid, statusId, mode) {
+  const statusEl = statusId ? document.getElementById(statusId) : null;
+  const fields = buildVerifyAndroidHandoff(humanId, verifyUrl, ndppCommitmentHash, chipKey, dataHash, nfcModel, nfcUid);
+  if (!fields || typeof odpAndroidCompanionHandoffJson !== "function") {
+    if (statusEl) statusEl.textContent = t("verify.detail.nfcCopyFailed");
+    return;
+  }
+  const json = odpAndroidCompanionHandoffJson(fields);
+  if (mode === "open") {
+    window.location.href = odpAndroidCompanionHandoffDeepLink(fields);
+    return;
+  }
+  try {
+    if (mode === "share" && navigator.share) {
+      await navigator.share({
+        title: `ODP Android handoff ${fields.passportId || ""}`.trim(),
+        text: json,
+      });
+      if (statusEl) statusEl.textContent = t("verify.detail.nfcCopiedHandoff");
+      return;
+    }
+    if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+      if (statusEl) statusEl.textContent = t("verify.detail.nfcClipboardUnavailable");
+      return;
+    }
+    await navigator.clipboard.writeText(json);
+    if (statusEl) statusEl.textContent = t("verify.detail.nfcCopiedHandoff");
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    if (statusEl) statusEl.textContent = t("verify.detail.nfcCopyFailed");
+  }
+}
+
+function renderVerifyAndroidNfcGuide(humanId, rec, passport) {
+  const verifyUrl = odpVerifyAbsoluteUrl(humanId);
+  const chipKey = bytesToHex(rec && rec.nfcPublicKey ? rec.nfcPublicKey : "");
+  const ndppCommitmentHash = odpBytes32HexLower(rec && rec.ndppCommitmentHash);
+  const dataHash = odpBytes32HexLower(rec && rec.dataHash);
+  const nfcModel = rec && rec.nfcModel ? String(rec.nfcModel).trim() : "";
+  const sealFromPassport = typeof odpAndroidCompanionPassportNfcSeal === "function"
+    ? odpAndroidCompanionPassportNfcSeal(passport)
+    : { uid: "", model: "" };
+  const nfcUid = sealFromPassport.uid || "";
+  const chipBindingProfileId = chipKey &&
+    typeof odpAndroidCompanionPilotChipBindingProfileIdForNfcModel === "function"
+      ? odpAndroidCompanionPilotChipBindingProfileIdForNfcModel(nfcModel, chipKey)
+      : "";
+  const ndppUrl = rec && rec.ndppCommitmentUri ? String(rec.ndppCommitmentUri).trim() : "";
+  const statusId = `nfcGuideStatus-${safeDomId(humanId)}`;
+  return `
+    <div class="section-title">${esc(t("verify.detail.nfcSectionTitle"))}</div>
+    <div class="vrow">
+      <span class="vbadge warn">${esc(t("verify.detail.nfcManualBadge"))}</span>
+      <div class="vinfo">
+        <div class="vinfo-label">${esc(t("verify.detail.nfcAppTitle"))}</div>
+        <div class="vinfo-val">${esc(t("verify.detail.nfcAppBody"))}</div>
+      </div>
+    </div>
+    <div class="vrow">
+      <span class="vbadge na">${esc(t("verify.detail.nfcTagWriterBadge"))}</span>
+      <div class="vinfo">
+        <div class="vinfo-label">${esc(t("verify.detail.nfcTagWriterTitle"))}</div>
+        <div class="vinfo-val">${esc(t("verify.detail.nfcTagWriterBody"))}</div>
+      </div>
+    </div>
+    <div class="vrow">
+      <span class="vbadge ok">${esc(t("verify.detail.nfcTrustLinkBadge"))}</span>
+      <div class="vinfo">
+        <div class="vinfo-label">${esc(t("verify.detail.nfcTrustLinkTitle"))}</div>
+        <div class="vinfo-val">${esc(t("verify.detail.nfcTrustLinkBody"))}</div>
+      </div>
+    </div>
+    ${chipKey ? `
+    <div class="vrow">
+      <span class="vbadge ok">${esc(t("verify.detail.nfcBindingBadge"))}</span>
+      <div class="vinfo">
+        <div class="vinfo-label">${esc(t("verify.detail.nfcBindingTitle"))}</div>
+        <div class="vinfo-val">${esc(t("verify.detail.nfcBindingBody"))}</div>
+      </div>
+    </div>` : ""}
+    <div class="btn-row" style="margin-top:10px;flex-wrap:wrap">
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedPassportId"))})'>${esc(t("verify.detail.nfcCopyPassportId"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(verifyUrl)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedVerifyLink"))})'>${esc(t("verify.detail.nfcCopyVerifyLink"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(chipKey)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedChipKey"))})'>${esc(t("verify.detail.nfcCopyChipKey"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "copy")'>${esc(t("verify.detail.nfcCopyHandoff"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "share")'>${esc(t("verify.detail.nfcShareHandoff"))}</button>
+      <button type="button" class="btn btn-ghost" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "open")'>${esc(t("verify.detail.nfcOpenCompanion"))}</button>
+      <button type="button" class="btn btn-ghost" onclick='window.open(${JSON.stringify(verifyUrl)}, "_blank", "noopener")'>${esc(t("verify.detail.nfcOpenVerifyLink"))}</button>
+      ${ndppUrl ? `<a class="btn btn-ghost" href="${esc(ndppUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("verify.detail.nfcOpenNdppLink"))}</a>` : ""}
+    </div>
+    <div id="${esc(statusId)}" class="fhint" style="margin-top:8px;min-height:1.25em"></div>
+  `;
 }
 
 /** @returns {{ fileHash: string, imageHash: string, imageHash2: string, imageHash3: string }} */
@@ -2385,15 +2531,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
         <div id="imgResult3"></div>` : ""}
 
         <!-- NFC hint -->
-        ${hasNFC ? `
-        <div class="section-title">NFC Verification</div>
-        <div class="vrow">
-          <span class="vbadge warn">Manual</span>
-          <div class="vinfo">
-            <div class="vinfo-label">NTAG 424 DNA</div>
-            <div class="vinfo-val">Use a ODP-compatible app to perform NFC challenge-response verification.</div>
-          </div>
-        </div>` : ""}
+        ${hasNFC ? renderVerifyAndroidNfcGuide(humanId, rec, passport) : ""}
 
         <!-- Seal number hint -->
         ${!isDigital && (rec.sealType === 2 || rec.sealType === 3) && passport?.seal?.numbered ? `
@@ -3290,6 +3428,11 @@ async function verifyOfflinePayload() {
     const contractMatches = !!actualContract && actualContract === expectedContract;
     const ndppAnchored = expectedHash && expectedHash !== ZERO32.toLowerCase();
     const hashMatches = ndppAnchored && payloadHash.toLowerCase() === expectedHash;
+    const formatLabel = parsed.format === "ndef-url-first"
+      ? t("verify.offlineTool.formatNdefUrlFirst")
+      : parsed.format === "ndef"
+        ? t("verify.offlineTool.formatNdefLegacy")
+        : t("verify.offlineTool.formatCbor");
     let statusClass = "neutral";
     let statusLabel = t("verify.offlineTool.statusNoAnchorTitle");
     let statusDesc = t("verify.offlineTool.statusNoAnchorDesc");
@@ -3310,6 +3453,8 @@ async function verifyOfflinePayload() {
     if (!dataHashMatches) warnings.push(t("verify.offlineTool.warnDataHash"));
     if (!chainMatches) warnings.push(t("verify.offlineTool.warnChain"));
     if (!contractMatches) warnings.push(t("verify.offlineTool.warnContract"));
+    const notes = [];
+    if (parsed.primaryUri) notes.push(t("verify.offlineTool.urlFirstCarrierNote"));
     const state = parsed.semantic.state;
     const stateAsOf = state && state.asOf
       ? odpFormatDateTimeLocalDDMMYYYY(new Date(Number(state.asOf) * 1000))
@@ -3334,12 +3479,20 @@ async function verifyOfflinePayload() {
           </div>
           <div class="field">
             <div class="fl">${esc(t("verify.offlineTool.formatLabel"))}</div>
-            <div class="fv">${esc(String(parsed.format || "cbor").toUpperCase())}</div>
+            <div class="fv">${esc(formatLabel)}</div>
           </div>
           <div class="field">
             <div class="fl">${esc(t("verify.offlineTool.payloadSizeLabel"))}</div>
             <div class="fv">${esc(String((parsed.footprint && parsed.footprint.payloadBytes) || 0))} B</div>
           </div>
+          ${
+            parsed.primaryUri
+              ? `<div class="field full">
+            <div class="fl">${esc(t("verify.offlineTool.primaryUrlLabel"))}</div>
+            <div class="fv mono">${esc(parsed.primaryUri)}</div>
+          </div>`
+              : ""
+          }
           <div class="field full">
             <div class="fl">${esc(t("verify.offlineTool.identityTitle"))}</div>
             <div class="fv">
@@ -3368,6 +3521,11 @@ async function verifyOfflinePayload() {
               ].filter(Boolean).join(", ") || t("verify.offlineTool.flagNone"))}</div>
             </div>
           </div>`
+              : ""
+          }
+          ${
+            notes.length
+              ? `<div class="info neutral" style="margin-top:10px;line-height:1.55">${notes.map((n) => esc(n)).join("<br>")}</div>`
               : ""
           }
           ${
