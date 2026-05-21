@@ -173,6 +173,7 @@ Use this when you want anyone to open [Verify](https://object-digital-passport.g
 
 - Open [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
 - Enter a Passport ID, paste an `odp://...` link, or drop a `**.odpass`** file.
+- For the current reference carrier/export flow, the first tap target is the GitHub-hosted Verify page above. `odp://...` remains the normative URI layer in `SPEC.md` and the intended stable-v1 first-link target once resolver/app context is ready.
 
 ## Live Demo
 
@@ -185,6 +186,12 @@ Pages:
 - Verify (no wallet): [verify.html](https://object-digital-passport.github.io/object-digital-passport/verify.html)
 - Profile (wallet + network fees): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
 - Passport (wallet + network fees): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
+
+## Android companion app
+
+The Android verifier MVP currently lives at `android-companion/` as a **separate temporary local Git repository inside this workspace**. It is **not** part of this main repository's tracked deliverable and is intended to become its own GitHub project once the companion app repo is published remotely.
+
+The current aligned carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap target. `odp://...` remains the normative URI layer in [SPEC.md](SPEC.md) and the intended stable-v1 first-link target once resolver/app context is ready. Main-repo integration notes for the app live in [docs/ANDROID_COMPANION_APP.md](docs/ANDROID_COMPANION_APP.md) and [docs/ANDROID_VERIFIER_MVP.md](docs/ANDROID_VERIFIER_MVP.md).
 
 ## Reference stack v0.5 (quick facts)
 

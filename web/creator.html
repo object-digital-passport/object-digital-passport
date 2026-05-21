@@ -100,23 +100,20 @@ const NET = {
   counterfeitConcern: "0xd5727f16dB061226E19F82287A81FC9f69E1aDE2",
 };
 
-/** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
-const PUBLIC_VERIFY_BASE = "";
+/** Reference exports default to the GitHub-hosted Verify page. Set this only when you intentionally want a different public Verify host. */
+const PUBLIC_VERIFY_BASE = typeof odpResolvePublicVerifyBase === "function"
+  ? odpResolvePublicVerifyBase("")
+  : "";
 
 function getVerifyRelativePath(id) {
   return `verify.html?id=${encodeURIComponent(id)}`;
 }
 
 function getVerifyAbsoluteUrl(id) {
-  const rel = getVerifyRelativePath(id);
-  const b = typeof PUBLIC_VERIFY_BASE === "string" && PUBLIC_VERIFY_BASE.trim();
-  if (b) {
-    try {
-      return new URL(rel, b.endsWith("/") ? b : `${b}/`).href;
-    } catch {
-      /* fall through */
-    }
+  if (typeof odpBuildVerifyUrl === "function") {
+    return odpBuildVerifyUrl(id, PUBLIC_VERIFY_BASE, window.location.href);
   }
+  const rel = getVerifyRelativePath(id);
   return new URL(rel, window.location.href).href;
 }
 

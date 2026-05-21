@@ -538,24 +538,34 @@ Recommended for high-value objects, artwork, and collectibles.
 
 **Required on-chain / JSON model:** `**NTAG424DNA`** or `**NTAG424DNA_TAGTAMPER`**. Generic Type 2 tags (e.g. NTAG 213) are **not** accepted by the reference contract’s `nfcModel` allowlist.
 
-**How it works:**
+**How it works in the current ODP v0.5 deployment (NTAG 424 DNA):**
 
 ```
-Registration:
-  1. Read chip public key and UID via NFC
-  2. Record in passport.json under seal.nfc
-  3. Passport is hashed and registered on-chain as usual
-  4. nfcPublicKey is also stored directly on-chain for fast
-     cryptographic verification without fetching passport.json
+Registration (required order for issuers):
+  1. Provision the tag so the EV2 application key you will publish
+     on-chain is loaded into the chip (typically 16-byte AES key 0x00)
+  2. Scan the live tag with the ODP Android companion (issuer-chip-setup)
+     and import odp-chip-issuer-setup JSON into passport.html — confirms
+     UID, EV2 key, and TagTamper INTACT before mint
+  3. Record chip UID, model, and deployment notes in passport.json
+  4. Publish the same 16-byte value on-chain as nfcPublicKey
+  5. Passport is hashed and registered on-chain as usual
+  6. Write the NFC carrier (Verify URL) after the passport ID exists
 
-Verification:
-  1. Phone sends a random challenge to the chip via NFC
-  2. Chip signs the challenge using its internal private key
-     (private key is locked in silicon — never leaves the chip)
-  3. Phone verifies signature against nfcPublicKey from blockchain
-  4. Match    → original chip confirmed
-     No match → wrong or cloned chip
+Verification (primary profile: odp-ntag424-ev2-symmetric-cr-v1):
+  1. Verifier loads nfcPublicKey from blockchain
+  2. Phone runs AuthenticateEV2First using that 16-byte value as the
+     EV2 AES application key
+  3. Chip and phone complete mutual challenge-response (RndA/RndB)
+  4. Match    → SEAL_NFC_AUTHENTIC under EV2 symmetric challenge-response
+     No match → wrong chip, wrong key, or wrong provisioning
+
+Optional secondary profile (odp-ntag424-nfc-public-key-file-v1):
+  use only when on-chain nfcPublicKey stores mirror bytes in protected
+  file 0x03 instead of the EV2 application key itself.
 ```
+
+**Honest trust note for this spec version:** NTAG 424 DNA does **not** expose a passport-specific ECC private key that signs an arbitrary verifier challenge verifiable with a public key on-chain. Its native challenge-response is **symmetric EV2 mutual authentication**. In ODP v0.5, publishing the 16-byte EV2 application key as `nfcPublicKey` is the primary public verification model. `Read_Sig` remains adjacent manufacturer evidence only.
 
 **TagTamper behavior:**
 
@@ -565,6 +575,18 @@ Adds a tamper-detection antenna loop. Physical removal permanently registers as 
 Seal intact   → chip reports: INTACT
 Seal removed  → chip reports: TAMPERED (permanent, cannot be reset)
 ```
+
+**High-assurance TagTamper profile (companion verifier):**
+
+For `NTAG424DNA_TAGTAMPER`, the reference Android companion treats a scan as **high assurance** only when all of the following hold:
+
+1. **EV2 symmetric challenge-response** against on-chain `nfcPublicKey` (16-byte EV2 application key) → `chipKeyMatch = PASS`
+2. **Authenticated TagTamper** after EV2 → `tamperState = INTACT`
+3. **Chip UID match** when `passport.json` / handoff supplies `physical.seal.nfc.uid` → authenticated live UID equals expected UID
+
+The companion exposes this as `highAssuranceSeal`. It is **not** checked for plain `NTAG424DNA` passports.
+
+**Honest limits:** No verifier can be perfectly uncheatable. A thief with the original tag and key, a dishonest provisioning step, or a leaked EV2 key still defeats trust. This profile **does** block common cheats: URL-only fake tags, wrong chips with another key, and physically opened TagTamper seals (visible as `TAMPERED`).
 
 **Physical installation:**
 The chip must be embedded or encapsulated so that removal causes
@@ -576,7 +598,7 @@ visible destruction. Installation method is described in `seal.nfc.notes`.
 | Field         | Required | Description                                           |
 | ------------- | -------- | ----------------------------------------------------- |
 | `uid`         | yes      | 7-byte chip UID, lowercase hex                        |
-| `publicKey`   | yes      | ECC public key, hex string                            |
+| `publicKey`   | yes      | For NTAG 424 DNA: 16-byte EV2 AES application key (hex). For other future NFC ICs: deployment-specific public verification material |
 | `model`       | yes      | `NTAG424DNA` or `NTAG424DNA_TAGTAMPER` — must match on-chain `nfcModel` |
 | `installedAt` | yes      | ISO 8601 installation date (e.g. `2026-03-15`)        |
 | `notes`       | no       | Installation method, location, encapsulation material |
@@ -622,7 +644,7 @@ This method provides physical reference, not cryptographic proof.
 | -------------- | --------- | ----------------------------------------------- |
 | `sealType`     | `uint8`   | `1` = NFC only, `2` = numbered only, `3` = both |
 | `sealHash`     | `bytes32` | SHA-256 of the `seal` object in passport.json   |
-| `nfcPublicKey` | `bytes`   | NFC chip public key. Empty if no NFC seal       |
+| `nfcPublicKey` | `bytes`   | NFC verification anchor. For NTAG 424 DNA v0.5: typically the 16-byte EV2 AES application key |
 
 
 ### Informative — other NFC / tag technologies
@@ -1262,11 +1284,42 @@ Likewise, DPP / sustainability disclosure is **not** equivalent to authenticity.
 
 The registry does **not** define one canonical NDPP media type in this line. The payload MAY be JSON, CBOR, an NDEF payload byte string, ZIP, or another deterministic byte sequence agreed by the issuer and verifier stack. Verifiers **must hash the exact raw bytes they received** from the file / carrier / URL and compare them to `**ndppCommitmentHash`**.
 
+When an issuer uses an NFC / QR **carrier** that wraps those bytes (for example a URL-first NDEF message with a secondary ODP payload record), `**ndppCommitmentHash`** still anchors the **raw NDPP / offline payload bytes only**. It does **not** hash the outer carrier framing, the full NDEF message, or the URL record bytes.
+
 `**ndppCommitmentUri`** is only a hint to where those bytes may be fetched. It does **not** replace `**dataUrl`**, and NDPP does **not** replace verification of the canonical `**passport.json`** / `**.odpass`** anchored by `**dataHash`**.
 
 ODP does **not** require sustainability-specific fields such as material composition, repairability, recycling instructions, end-of-life disclosure, or carbon-footprint reporting. Implementations MAY publish such data inside a separate NDPP / public-disclosure payload when relevant, but those fields are outside the normative ODP core unless another profile explicitly requires them.
 
 For NFC Forum-compatible NDEF carriers, implementations SHOULD place a standard URL / URI record **first** for broad smartphone compatibility. They MAY additionally include a separate ODP-specific record carrying compact verification metadata or another deterministic public payload whose raw bytes are anchored by `**ndppCommitmentHash`**.
+
+#### Optional profile: ODP-in-NDPP
+
+This specification defines an **optional**, **non-core** compatibility profile called **ODP-in-NDPP** for issuers that want a smartphone-friendly NFC / QR carrier without changing ODP's trust model.
+
+Profile intent:
+
+- preserve the canonical ODP authenticity flow (`**Passport ID`**, on-chain record, `**dataHash`**, canonical `**.odpass`** / `**passport.json`**),
+- keep NDPP as an **additional** public-disclosure / offline layer,
+- remain compatible with broad phone behavior by opening a normal web link first.
+
+Recommended NFC NDEF layout for this profile:
+
+1. **Record 1 (required for this profile):** standard URL / URI record that opens the ODP **Verify** page or another verifier entry URL for the passport.
+2. **Record 2 (optional but profile-typical):** secondary ODP / NDPP payload record containing the deterministic offline-public payload bytes.
+
+Hashing rule for this profile:
+
+- `ndppCommitmentHash = SHA-256(raw secondary payload bytes)`
+- **not** `SHA-256(full NDEF message)`
+- **not** `SHA-256(URL record + payload record)`
+
+`**ndppCommitmentUri`** MAY point to a hosted copy of those same raw payload bytes (for example a public CBOR / NDPP payload download). It is a discovery hint only; it does **not** turn NDPP into the canonical passport artifact and does **not** replace the Verify URL or `**dataUrl`**.
+
+Verifier behavior for this profile:
+
+- If the phone only opens the first URL record, that is merely the **carrier entry step**.
+- If the verifier stack can also read the secondary payload record, it MAY hash that raw payload and compare it with `**ndppCommitmentHash`**.
+- A verifier that cannot inspect the secondary record can still perform the canonical ODP checks; lack of NDPP parsing alone does **not** invalidate the passport.
 
 ---
 
@@ -1381,20 +1434,35 @@ This level is **optional**. A passport remains valid without NFC, without NDPP, 
 
 If the carrier is NFC Forum-compatible NDEF, verifiers and issuers should treat the NFC medium as a transport convenience only. A standard URL / URI record may be used as the phone-friendly entry point, while any additional ODP-specific verification record remains secondary and optional.
 
+In the optional **ODP-in-NDPP** profile, the URL-first carrier opening step, the chip-authentication step, and the offline-payload step remain distinct:
+
+1. opening the first URL / URI record only launches the verifier entry point,
+2. validating the secondary payload only proves that the public offline bytes match `**ndppCommitmentHash`**,
+3. validating the physical chip still requires chip-side cryptography against on-chain `**nfcPublicKey`** when NFC seal verification is expected.
+
 ### Level 2A — NFC seal verification (physical, sealType 1 or 3)
 
+**Primary path for NTAG 424 DNA (`odp-ntag424-ev2-symmetric-cr-v1`):**
+
 ```
-1. Send random challenge to chip via NFC
-2. Chip returns signed response
-3. Verify signature against nfcPublicKey from blockchain
+1. Load nfcPublicKey from blockchain (16-byte EV2 AES application key)
+2. Run AuthenticateEV2First on the tag using that key
+3. Mutual challenge-response (RndA/RndB) completes
 4. Match    → SEAL_NFC_AUTHENTIC
    No match → SEAL_NFC_INVALID
+```
+
+**Optional mirror path (`odp-ntag424-nfc-public-key-file-v1`):** only when on-chain `nfcPublicKey` stores protected-file mirror bytes instead of the EV2 key itself.
 
 If chip model is `NTAG424DNA_TAGTAMPER` on-chain:
-5. Read tamper status
+
+```
+5. Read tamper status after EV2 auth
    INTACT   → SEAL_NFC_INTACT
    TAMPERED → SEAL_NFC_TAMPERED
 ```
+
+`Read_Sig` proves NXP originality, not passport binding. EV2 session auth alone is necessary but, under the primary profile, `chipKeyMatch` means the mutual challenge-response succeeded with the on-chain key bytes.
 
 ### Level 2B — Numbered seal verification (physical, sealType 2 or 3)
 

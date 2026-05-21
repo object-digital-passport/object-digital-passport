@@ -16,6 +16,7 @@
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-Htz1SE4Sl5aitpvFgr2j0sfsGUIuSXI6t8hEyrlQ93zflEF3a29bH2AvkUROUw7J" crossorigin="anonymous"></script>
 <script src="odp-contract.js?v=0.5.0"></script>
+<script src="odp-android-companion.js?v=1"></script>
 <script src="odp-date-format.js?v=1"></script>
 <script src="odp-i18n.js?v=15"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
@@ -92,8 +93,10 @@ const NET = {
   counterfeitConcern: "0xd5727f16dB061226E19F82287A81FC9f69E1aDE2",
 };
 
-/** When you deploy this site to a real domain, set this to that root (e.g. https://example.com/) so “Share via device” sends a full https://… link. Leave empty to use whatever host the page is opened on. */
-const PUBLIC_VERIFY_BASE = "";
+/** Reference exports default to the GitHub-hosted Verify page. Set this only when you intentionally want a different public Verify host. */
+const PUBLIC_VERIFY_BASE = typeof odpResolvePublicVerifyBase === "function"
+  ? odpResolvePublicVerifyBase("")
+  : "";
 
 function getVerifyRelativePath(id) {
   return `verify.html?id=${encodeURIComponent(id)}`;
@@ -101,15 +104,10 @@ function getVerifyRelativePath(id) {
 
 /** Absolute URL for Web Share / APIs; uses PUBLIC_VERIFY_BASE when set, else current page origin. */
 function getVerifyAbsoluteUrl(id) {
-  const rel = getVerifyRelativePath(id);
-  const b = typeof PUBLIC_VERIFY_BASE === "string" && PUBLIC_VERIFY_BASE.trim();
-  if (b) {
-    try {
-      return new URL(rel, b.endsWith("/") ? b : `${b}/`).href;
-    } catch {
-      /* fall through */
-    }
+  if (typeof odpBuildVerifyUrl === "function") {
+    return odpBuildVerifyUrl(id, PUBLIC_VERIFY_BASE, window.location.href);
   }
+  const rel = getVerifyRelativePath(id);
   return new URL(rel, window.location.href).href;
 }
 
@@ -125,7 +123,9 @@ const ZERO32 = "0x"+"0".repeat(64);
 /** User chose Disconnect — skip eth_accounts auto-reconnect until explicit Connect (same tab). */
 const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
 let provider=null, signer=null, contract=null, wallet=null, creatorId=null;
-let objType="physical", sealType=2;
+let objType="physical", sealType=1;
+/** NFC issuer flow: chip scanned and EV2-verified in companion before mint. */
+let passportChipSetup = { confirmed: false, scannedAt: "", source: "" };
 /** Raw file SHA-256 as bytes32 (0x + 64 hex) — required for mintDigital; matches mint.py to_bytes32 */
 let fileHashBytes32=ZERO32, imageHash=ZERO32, imageUrl="", fileSize=0;
 let imageHash2=ZERO32, imageHash3=ZERO32, imageUrl2="", imageUrl3="";
@@ -150,6 +150,7 @@ let passportManageState = {
   canEditAux: false,
   canEditNdpp: false,
   canRevoke: false,
+  offlineCarrierMode: "",
 };
 /** While mint success screen is visible — confirm before top nav or tab close. */
 let odpMintSuccessLeavingGuard = false;
@@ -242,6 +243,13 @@ async function triggerBrowserFileDownload(blob, filename, mime) {
   } catch (_e3) {
     cleanup();
   }
+}
+
+async function writeTextToClipboardSafe(text) {
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+    throw new Error("clipboard_unavailable");
+  }
+  await navigator.clipboard.writeText(String(text || ""));
 }
 
 function clearPreviewImage(slot) {
@@ -395,6 +403,7 @@ function buildPassportFormDraftState() {
       i3: selectedImageFile3 && selectedImageFile3.name ? selectedImageFile3.name : "",
     },
     extraMeta: collectExtraMetaDraft(),
+    chipSetup: passportChipSetup,
   };
 }
 
@@ -521,6 +530,15 @@ function applyPassportFormDraftState(d) {
       var i3 = document.getElementById("imgInfo3");
       if (i3) i3.innerHTML = '<div class="finfo">✓ ' + esc(names.i3) + "<br>" + imageHash3.slice(0, 20) + "…</div>";
     }
+
+    if (d.chipSetup && d.chipSetup.confirmed) {
+      passportChipSetup = {
+        confirmed: true,
+        scannedAt: d.chipSetup.scannedAt || "",
+        source: d.chipSetup.source || "",
+      };
+    }
+    refreshPassportChipSetupUi();
 
     return true;
   } catch (e) {
@@ -1077,6 +1095,7 @@ function closePassportManageModal() {
     canEditAux: false,
     canEditNdpp: false,
     canRevoke: false,
+    offlineCarrierMode: "",
   };
 }
 
@@ -1107,8 +1126,177 @@ function passportManageBytes32Hex(v) {
   return ZERO32;
 }
 
+function passportManageBytesHex(v) {
+  const direct = String(v == null ? "" : v).trim();
+  if (/^0x[0-9a-f]+$/i.test(direct)) return direct;
+  try {
+    if (typeof ethers !== "undefined" && ethers.utils && typeof ethers.utils.hexlify === "function") {
+      return String(ethers.utils.hexlify(v) || "");
+    }
+  } catch {}
+  return "";
+}
+
 function passportManageIsZeroBytes32(v) {
   return passportManageBytes32Hex(v) === ZERO32;
+}
+
+function passportManageAndroidVerifyUrl() {
+  if (!passportManageState || !passportManageState.hid) return "";
+  return getVerifyAbsoluteUrl(passportManageState.hid);
+}
+
+function buildPassportManageAndroidHandoff() {
+  if (!passportManageState || !passportManageState.hid || !passportManageState.record) return null;
+  const record = passportManageState.record || {};
+  const draft = passportManageState.offlineDraft || null;
+  const nfcModel = String(record.nfcModel || "").trim();
+  const nfcPublicKeyHex = passportManageBytesHex(record.nfcPublicKey);
+  const chipBindingProfileId = nfcPublicKeyHex &&
+    typeof odpAndroidCompanionPilotChipBindingProfileIdForNfcModel === "function"
+      ? odpAndroidCompanionPilotChipBindingProfileIdForNfcModel(nfcModel, nfcPublicKeyHex)
+      : "";
+  return {
+    source: "passport-manage",
+    passportId: passportManageState.hid,
+    verifyUrl: passportManageAndroidVerifyUrl(),
+    ndppCommitmentHash: passportManageBytes32Hex(record.ndppCommitmentHash),
+    nfcPublicKey: passportManageBytesHex(record.nfcPublicKey),
+    nfcModel: nfcModel,
+    dataHash: passportManageBytes32Hex(record.dataHash),
+    chipBindingProfileId,
+    initialStep: draft && draft.payloadBase64 ? "advanced-operator" : "ready-to-scan",
+    operatorFlowSuggested: !!(draft && draft.payloadBase64),
+    offlinePayloadBase64: draft && draft.payloadBase64 ? draft.payloadBase64 : "",
+    lockCarrierAfterWrite: !!(draft && draft.payloadBase64),
+  };
+}
+
+async function passportManageUseAndroidHandoff(mode) {
+  const statusEl = document.getElementById("passportManageOfflineStatus");
+  const fields = buildPassportManageAndroidHandoff();
+  if (!fields || typeof odpAndroidCompanionHandoffJson !== "function") {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.manage.androidCopyFailed"))}</div>`;
+    return;
+  }
+  const json = odpAndroidCompanionHandoffJson(fields);
+  if (mode === "open") {
+    window.location.href = odpAndroidCompanionHandoffDeepLink(fields);
+    return;
+  }
+  try {
+    if (mode === "share" && navigator.share) {
+      await navigator.share({
+        title: `ODP Android handoff ${fields.passportId || ""}`.trim(),
+        text: json,
+      });
+      if (statusEl) statusEl.innerHTML = `<div class="info n">${esc(t("passport.manage.androidCopiedHandoff"))}</div>`;
+      return;
+    }
+    await writeTextToClipboardSafe(json);
+    if (statusEl) statusEl.innerHTML = `<div class="info n">${esc(t("passport.manage.androidCopiedHandoff"))}</div>`;
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    const msg = e && e.message === "clipboard_unavailable"
+      ? t("passport.manage.androidClipboardUnavailable")
+      : t("passport.manage.androidCopyFailed");
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(msg)}</div>`;
+  }
+}
+
+async function passportManageCopyAndroidValue(kind) {
+  const statusEl = document.getElementById("passportManageOfflineStatus");
+  const record = passportManageState && passportManageState.record ? passportManageState.record : {};
+  let value = "";
+  let okText = "";
+  if (kind === "passportId") {
+    value = String((passportManageState && passportManageState.hid) || "");
+    okText = t("passport.manage.androidCopiedPassportId");
+  } else if (kind === "verifyUrl") {
+    value = passportManageAndroidVerifyUrl();
+    okText = t("passport.manage.androidCopiedVerifyUrl");
+  } else if (kind === "chipKey") {
+    value = passportManageBytesHex(record.nfcPublicKey);
+    okText = t("passport.manage.androidCopiedChipKey");
+  }
+  if (!value) {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.manage.androidCopyFailed"))}</div>`;
+    return;
+  }
+  try {
+    await writeTextToClipboardSafe(value);
+    if (statusEl) statusEl.innerHTML = `<div class="info n">${esc(okText)}</div>`;
+  } catch (e) {
+    const msg = e && e.message === "clipboard_unavailable"
+      ? t("passport.manage.androidClipboardUnavailable")
+      : t("passport.manage.androidCopyFailed");
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(msg)}</div>`;
+  }
+}
+
+function openPassportManageAndroidVerifyUrl() {
+  const url = passportManageAndroidVerifyUrl();
+  if (!url) return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function renderPassportManageAndroidGuide() {
+  if (!passportManageState || !passportManageState.hid) return "";
+  const record = passportManageState.record || {};
+  const hasNfc = record.sealType === 1 || record.sealType === 3;
+  if (!hasNfc) return "";
+  const verifyUrl = passportManageAndroidVerifyUrl();
+  const chipKey = hasNfc ? passportManageBytesHex(record.nfcPublicKey) : "";
+  const chipKeyShort = chipKey ? (chipKey.length > 42 ? chipKey.slice(0, 42) + "…" : chipKey) : "";
+  const nfcModel = hasNfc ? String(record.nfcModel || "") : "";
+  const chipBindingProfileId = chipKey &&
+    typeof odpAndroidCompanionPilotChipBindingProfileIdForNfcModel === "function"
+      ? odpAndroidCompanionPilotChipBindingProfileIdForNfcModel(nfcModel, chipKey)
+      : "";
+  const draft = passportManageState.offlineDraft || null;
+  const hasPayloadDraft = !!(draft && draft.payloadBase64);
+  return `
+    <div class="section-label" style="margin-top:14px">${esc(t("passport.manage.androidSection"))}</div>
+    <p class="fhint" style="margin:0 0 10px;line-height:1.55">${esc(t("passport.manage.androidLead"))}</p>
+    <div class="info neutral" style="display:block;padding:12px 14px;border-radius:8px;text-align:left;font-size:12px;line-height:1.6">
+      <div><strong>TagWriter:</strong> ${esc(t("passport.manage.androidTagWriterLead"))}</div>
+      <div style="margin-top:6px"><strong>Tag TrustLink:</strong> ${esc(t("passport.manage.androidTrustLinkLead"))}</div>
+      ${nfcModel ? `<div style="margin-top:6px"><strong>${esc(t("passport.manage.androidNfcModelLabel"))}:</strong> ${esc(nfcModel)}</div>` : ""}
+      ${chipKeyShort ? `<div style="margin-top:6px"><strong>${esc(t("passport.manage.androidNfcKeyLabel"))}:</strong> <span class="mono">${esc(chipKeyShort)}</span></div>` : ""}
+      <div style="margin-top:6px"><strong>Verify URL:</strong> <span class="mono">${esc(verifyUrl)}</span></div>
+      <div style="margin-top:6px"><strong>Android companion:</strong> guided handoff with Passport ID, Verify URL, NDPP hash, chip key, data hash${chipBindingProfileId ? ", the current pilot mirror-profile proof mode" : ""}${hasPayloadDraft ? ", and the current odp:off payload draft in the operator route" : ""}.</div>
+      <div class="btn-row" style="margin-top:10px;flex-wrap:wrap">
+        <button type="button" class="btn btn-sec" onclick="void passportManageCopyAndroidValue('passportId')">${esc(t("passport.manage.androidCopyPassportId"))}</button>
+        <button type="button" class="btn btn-sec" onclick="void passportManageCopyAndroidValue('verifyUrl')">${esc(t("passport.manage.androidCopyVerifyUrl"))}</button>
+        ${chipKey ? `<button type="button" class="btn btn-sec" onclick="void passportManageCopyAndroidValue('chipKey')">${esc(t("passport.manage.androidCopyChipKey"))}</button>` : ""}
+        <button type="button" class="btn btn-sec" onclick="void passportManageUseAndroidHandoff('copy')">${esc(t("passport.manage.androidCopyHandoff"))}</button>
+        <button type="button" class="btn btn-sec" onclick="void passportManageUseAndroidHandoff('share')">${esc(t("passport.manage.androidShareHandoff"))}</button>
+        <button type="button" class="btn btn-ghost" onclick="void passportManageUseAndroidHandoff('open')">${esc(t("passport.manage.androidOpenCompanion"))}</button>
+        <button type="button" class="btn btn-ghost" onclick="openPassportManageAndroidVerifyUrl()">${esc(t("passport.manage.androidOpenVerifyUrl"))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function refreshPassportManageAndroidGuide() {
+  const el = document.getElementById("passportManageAndroidGuide");
+  if (!el) return;
+  el.innerHTML = renderPassportManageAndroidGuide();
+}
+
+function passportManageSelectedOfflineCarrierMode() {
+  const box = document.getElementById("passportManageOfflineNdppMode");
+  const mode = box && box.checked
+    ? (window.ODP_OFFLINE_CARRIER_NDPP || "odp-in-ndpp")
+    : (window.ODP_OFFLINE_CARRIER_LEGACY || "legacy");
+  if (passportManageState) passportManageState.offlineCarrierMode = mode;
+  return mode;
+}
+
+function passportManageOfflineCarrierLabel(mode) {
+  return String(mode || "") === String(window.ODP_OFFLINE_CARRIER_NDPP || "odp-in-ndpp")
+    ? t("passport.manage.offlineCarrierNdpp")
+    : t("passport.manage.offlineCarrierLegacy");
 }
 
 function passportManageParseOptionalBytes32(raw) {
@@ -1218,6 +1406,9 @@ async function openPassportManageEditor(humanId) {
   passportManageSetSectionVisible("passportManageOfflineSection", false);
   passportManageSetSectionVisible("passportManageRevokeSection", false);
   modal.classList.add("open");
+  const priorOfflineCarrierMode = passportManageState && passportManageState.hid === humanId
+    ? String(passportManageState.offlineCarrierMode || "")
+    : "";
   try {
     const p = await odpGetPassportRecord(contract, humanId);
     let governanceAddr = "";
@@ -1255,6 +1446,7 @@ async function openPassportManageEditor(humanId) {
       canEditAux,
       canEditNdpp,
       canRevoke,
+      offlineCarrierMode: priorOfflineCarrierMode || (window.ODP_OFFLINE_CARRIER_LEGACY || "legacy"),
     };
     summaryEl.innerHTML = passportManageSummaryHtml(humanId, p, governanceAddr);
     document.getElementById("passportManageStatusSelect").value = lifecycleStatusValueFromCode(p.lifecycleStatus) || "concept";
@@ -1269,9 +1461,14 @@ async function openPassportManageEditor(humanId) {
     document.getElementById("passportManageAuxHash").value = passportManageIsZeroBytes32(p.auxCommitmentHash)
       ? ""
       : passportManageBytes32Hex(p.auxCommitmentHash);
-    document.getElementById("passportManageNdppUrl").value = passportManageNormalizeText(p.ndppCommitmentUri);
+    const ndppUri = passportManageNormalizeText(p.ndppCommitmentUri);
+    document.getElementById("passportManageNdppUrl").value = ndppUri;
     const offlineState = document.getElementById("passportManageOfflineIncludeState");
     if (offlineState) offlineState.checked = false;
+    const offlineNdppMode = document.getElementById("passportManageOfflineNdppMode");
+    if (offlineNdppMode) {
+      offlineNdppMode.checked = String(passportManageState.offlineCarrierMode || "") === String(window.ODP_OFFLINE_CARRIER_NDPP || "odp-in-ndpp");
+    }
     document.getElementById("passportManageTransferTo").value = "";
     document.getElementById("passportManageRevokeReason").value = "";
     const revokeAck = document.getElementById("passportManageRevokeAck");
@@ -1446,17 +1643,22 @@ async function refreshPassportManageOffline() {
   const dlNdef = document.getElementById("passportManageOfflineDownloadNdef");
   const anchorBtn = document.getElementById("passportManageOfflineAnchor");
   if (!out || !passportManageState || !passportManageState.record || typeof odpOfflineEncode !== "function") return;
+  refreshPassportManageAndroidGuide();
   if (statusEl) statusEl.innerHTML = "";
   if (dlCbor) dlCbor.disabled = true;
   if (dlNdef) dlNdef.disabled = true;
   if (anchorBtn) anchorBtn.disabled = true;
   try {
     const includeState = !!(document.getElementById("passportManageOfflineIncludeState") || {}).checked;
+    const carrierMode = passportManageSelectedOfflineCarrierMode();
+    const verifyUrl = passportManageAndroidVerifyUrl();
     const built = odpOfflineEncode(passportManageState.record, {
       includeState,
       passportId: passportManageState.hid,
       contractAddress: NET.contract,
       chainId: NET.chainId,
+      carrierMode,
+      verifyUrl,
     });
     const payloadHash = await odpOfflineSha256Hex(built.payloadBytes);
     passportManageState.offlineDraft = built;
@@ -1471,10 +1673,20 @@ async function refreshPassportManageOffline() {
           ? t("passport.manage.offlineSizeTarget")
           : t("passport.manage.offlineSizeOk");
     const anchored = passportManageBytes32Hex(passportManageState.record.ndppCommitmentHash);
-    const anchorMatch = anchored && anchored === payloadHash.toLowerCase();
+    const hasAnchor = anchored && anchored !== ZERO32.toLowerCase();
+    const anchorMatch = hasAnchor && anchored === payloadHash.toLowerCase();
+    const anchorState = !hasAnchor
+      ? t("passport.manage.offlineAnchoredNone")
+      : anchorMatch
+        ? t("passport.manage.offlineAnchoredMatch")
+        : t("passport.manage.offlineAnchoredDifferent");
+    const hostedPayloadUrl = passportManageNormalizeText((uriEl || {}).value);
+    const usingNdppCarrier = String(built.carrierMode || "") === String(window.ODP_OFFLINE_CARRIER_NDPP || "odp-in-ndpp");
     out.innerHTML = `
       <div><strong>${esc(t("passport.manage.offlineFingerprintLabel"))}:</strong> <span class="mono">${esc(payloadHash)}</span></div>
+      <div><strong>${esc(t("passport.manage.offlineAnchoredBytesLabel"))}:</strong> ${esc(t("passport.manage.offlineAnchoredBytesValue"))}</div>
       <div><strong>${esc(t("passport.manage.offlinePayloadBytesLabel"))}:</strong> ${esc(String(fp.payloadBytes || 0))} B</div>
+      <div><strong>${esc(t("passport.manage.offlineCarrierModeLabel"))}:</strong> ${esc(passportManageOfflineCarrierLabel(built.carrierMode))}</div>
       <div><strong>${esc(t("passport.manage.offlineNdefBytesLabel"))}:</strong> ${esc(String(fp.ndefFileBytes || 0))} / 256 B</div>
       <div><strong>${esc(t("passport.manage.offlineSizeLabel"))}:</strong> <span class="info ${statusTone}" style="display:inline-block;padding:2px 8px;margin:0">${esc(sizeLabel)}</span></div>
       ${
@@ -1483,7 +1695,19 @@ async function refreshPassportManageOffline() {
           : ""
       }
       <div style="margin-top:6px"><strong>${esc(t("passport.manage.offlineAnchoredLabel"))}:</strong> ${
-        anchorMatch ? esc(t("passport.manage.offlineAnchoredMatch")) : esc(t("passport.manage.offlineAnchoredDifferent"))
+        esc(anchorState)
+      }</div>
+      <div style="margin-top:6px"><strong>${esc(t("passport.manage.offlineExportPreviewLabel"))}:</strong> ${
+        esc(usingNdppCarrier ? t("passport.manage.offlineExportPreviewNdpp") : t("passport.manage.offlineExportPreviewLegacy"))
+      }</div>
+      ${
+        usingNdppCarrier
+          ? `<div style="margin-top:6px"><strong>${esc(t("passport.manage.offlineVerifyUrlLabel"))}:</strong> <span class="mono">${esc(verifyUrl)}</span></div>
+             <div style="margin-top:6px"><strong>${esc(t("passport.manage.offlineSecondaryRecordLabel"))}:</strong> ${esc(t("passport.manage.offlineSecondaryRecordValue"))}</div>`
+          : ""
+      }
+      <div style="margin-top:6px"><strong>${esc(t("passport.manage.ndppUrlLabel"))}:</strong> ${
+        hostedPayloadUrl ? `<span class="mono">${esc(hostedPayloadUrl)}</span>` : esc(t("passport.manage.offlineHostedPayloadUnset"))
       }</div>
       <div style="margin-top:6px"><strong>${esc(t("passport.manage.offlineBase64Label"))}:</strong></div>
       <textarea readonly rows="5" style="width:100%;margin-top:6px;font-family:ui-monospace,monospace;font-size:11px">${esc(built.payloadBase64)}</textarea>
@@ -1504,6 +1728,7 @@ async function refreshPassportManageOffline() {
     passportManageState.offlineDraft = null;
     passportManageState.offlineHash = "";
     out.innerHTML = "";
+    refreshPassportManageAndroidGuide();
     if (statusEl) statusEl.innerHTML = `<div class="info e">${esc(e && e.message ? e.message : String(e))}</div>`;
   }
 }
@@ -1517,8 +1742,11 @@ async function downloadPassportManageOffline(kind) {
   const payload = kind === "ndef" ? draft.ndefFileBytes : draft.payloadBytes;
   const mime = kind === "ndef" ? "application/octet-stream" : "application/cbor";
   const ext = kind === "ndef" ? "ndef" : "cbor";
+  const modeSuffix = kind === "ndef" && String(draft.carrierMode || "") === String(window.ODP_OFFLINE_CARRIER_NDPP || "odp-in-ndpp")
+    ? "-url-first"
+    : "";
   const blob = new Blob([payload], { type: mime });
-  await triggerBrowserFileDownload(blob, `${safeFilePart(passportManageState.hid || "passport")}-odp-offline-v1.${ext}`, mime);
+  await triggerBrowserFileDownload(blob, `${safeFilePart(passportManageState.hid || "passport")}-odp-offline-v1${modeSuffix}.${ext}`, mime);
 }
 
 async function submitPassportManageNdpp() {
@@ -2361,6 +2589,143 @@ function resetV03MintOptionals() {
   selectedImageFile2 = selectedImageFile3 = null;
 }
 
+function htmlFieldHint(i18nKey) {
+  if (!i18nKey) return "";
+  return '<p class="field-hint">' + esc(t(i18nKey)) + '</p>';
+}
+
+function htmlFormGroup(titleKey, leadKey, bodyHtml) {
+  return '<div class="form-group-box">' +
+    '<div class="form-group-title">' + esc(t(titleKey)) + '</div>' +
+    '<p class="form-group-lead">' + esc(t(leadKey)) + '</p>' +
+    bodyHtml +
+    '</div>';
+}
+
+function mintFormRequiredSectionHtml() {
+  const identityBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelTitle")) + '<span class="req">*</span></label>' +
+    '<input type="text" id="f_title" placeholder="' + esc(t("passport.form.phTitle")) + '">' +
+    htmlFieldHint("passport.form.hintTitle") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelYourName")) + '<span class="req">*</span></label>' +
+    '<input type="text" id="f_name" placeholder="' + esc(t("passport.form.phName")) + '">' +
+    htmlFieldHint("passport.form.hintYourName") + '</div>' +
+    '<div class="row2">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelCategory")) + '<span class="req">*</span></label>' +
+    '<select id="f_type">' + htmlCategoryOptionsPhysical() + '</select>' +
+    htmlFieldHint("passport.form.hintCategory") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelYear")) + '<span class="req">*</span></label>' +
+    '<input type="number" id="f_year" value="' + new Date().getUTCFullYear() + '" min="1000" max="2100">' +
+    htmlFieldHint("passport.form.hintYear") + '</div></div>';
+  const taxonomyBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelContentClass")) + '<span class="req">*</span></label>' +
+    '<select id="f_content_class">' + htmlContentClassOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintContentClass") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelStatus")) + '<span class="req">*</span></label>' +
+    '<select id="f_status">' + htmlLifecycleStatusOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintStatus") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelAiStatus")) + '<span class="req">*</span></label>' +
+    '<select id="f_ai_status">' + htmlAiStatusOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintAiStatus") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelVerificationMethod")) + '<span class="req">*</span></label>' +
+    '<select id="f_verification_method">' + htmlVerificationMethodOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintVerificationMethod") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelEditionModel")) + '<span class="req">*</span></label>' +
+    '<select id="f_edition_model">' + htmlEditionModelOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintEditionModel") + '</div>';
+  return '<div class="section" id="mintRequiredSection">' +
+    '<div class="section-label">' + esc(t("passport.form.requiredSectionTitle")) + '</div>' +
+    '<p class="fhint form-section-lead">' + esc(t("passport.form.requiredSectionLead")) + '</p>' +
+    htmlFormGroup("passport.form.groupIdentityTitle", "passport.form.groupIdentityLead", identityBody) +
+    htmlFormGroup("passport.form.groupTaxonomyTitle", "passport.form.groupTaxonomyLead", taxonomyBody) +
+    '</div>';
+}
+
+function mintFormAdditionalSectionHtml() {
+  const v03Display = typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none";
+  const peopleBody =
+    '<div class="row2">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelCoAuthors")) + '</label>' +
+    '<input type="text" id="f_coauthors" placeholder="' + esc(t("passport.form.phCoAuthors")) + '">' +
+    htmlFieldHint("passport.form.hintCoAuthors") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelTeam")) + '</label>' +
+    '<input type="text" id="f_team" placeholder="' + esc(t("passport.form.phTeam")) + '">' +
+    htmlFieldHint("passport.form.hintTeam") + '</div></div>';
+  const discoveryBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelDescription")) + '</label>' +
+    '<textarea id="f_desc" placeholder="' + esc(t("passport.form.phDescription")) + '"></textarea>' +
+    htmlFieldHint("passport.form.hintDescription") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelDomain")) + '</label>' +
+    '<input type="text" id="f_domain" placeholder="' + esc(t("passport.form.phDomain")) + '">' +
+    htmlFieldHint("passport.form.hintDomain") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelTags")) + '</label>' +
+    '<input type="text" id="f_tags" placeholder="' + esc(t("passport.form.phTags")) + '">' +
+    htmlFieldHint("passport.form.hintTags") + '</div>';
+  const physicalBody =
+    '<div class="row2">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelEditionNum")) + '</label><input type="number" id="f_edn" placeholder="' + esc(t("passport.form.phEdition")) + '" min="1"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelEditionTotal")) + '</label><input type="number" id="f_edt" placeholder="' + esc(t("passport.form.phEditionTotal")) + '" min="1"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMedium")) + '</label><input type="text" id="f_medium" placeholder="' + esc(t("passport.form.phMedium")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMaterials")) + '</label><input type="text" id="f_mat" placeholder="' + esc(t("passport.form.phMaterials")) + '"></div>' +
+    '<div class="row3">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelLocation")) + '</label><input type="text" id="f_location" placeholder="' + esc(t("passport.form.phLocation")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelRightsNote")) + '</label><input type="text" id="f_rights_note" placeholder="' + esc(t("passport.form.phRightsNote")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelConditionNote")) + '</label><input type="text" id="f_condition_note" placeholder="' + esc(t("passport.form.phConditionNote")) + '"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMarks")) + '</label><textarea id="f_marks" placeholder="' + esc(t("passport.form.phMarks")) + '"></textarea></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelNfcNotes")) + '</label><input type="text" id="f_nnotes" placeholder="' + esc(t("passport.form.phNfcNotes")) + '"></div>';
+  const digitalOptBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelFormat")) + '</label><input type="text" id="f_fmt" placeholder="' + esc(t("passport.form.phFormat")) + '"></div>' +
+    '<p class="fhint" style="margin:0 0 10px">' + esc(t("passport.form.c2paHint")) + '</p>' +
+    '<div class="row2"><div class="field"><label>' + esc(t("passport.form.c2paHashLabel")) + '</label>' +
+    '<input type="text" id="f_c2pa_manifest_hash" placeholder="' + esc(t("passport.form.c2paPlaceholder")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.c2paLabelShort")) + '</label>' +
+    '<input type="text" id="f_c2pa_manifest_label" placeholder="' + esc(t("passport.form.phOptionalShort")) + '"></div></div>';
+  const previewBody =
+    '<div class="fdrop" id="imgDrop" onclick="document.getElementById(\'imgIn\').click()">' +
+    '<input type="file" id="imgIn" accept="image/*" onchange="hashImg(event)">' +
+    '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImgLine1")) +
+    '<br><span style="font-size:11px;opacity:0.6">' + esc(t("passport.form.fdropImgLine2")) + '</span></div></div>' +
+    '<div id="imgInfo"></div>' +
+    '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(1)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
+    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImageUrl")) + '</label>' +
+    '<input type="url" id="f_imgUrl" placeholder="' + esc(t("passport.form.phImageUrl")) + '"></div>';
+  return '<div class="section"><div class="acc" id="mintAdditionalAcc">' +
+    '<div class="acc-head" onclick="tog(\'mintAdditionalAcc\')">' + esc(t("passport.form.additionalAccordionTitle")) + '<span class="acc-arr">▶</span></div>' +
+    '<div class="acc-body"><p class="fhint" style="margin:0 0 16px;line-height:1.55">' + esc(t("passport.form.additionalAccordionLead")) + '</p>' +
+    htmlFormGroup("passport.form.groupPeopleOptionalTitle", "passport.form.groupPeopleOptionalLead", peopleBody) +
+    htmlFormGroup("passport.form.groupDiscoveryOptionalTitle", "passport.form.groupDiscoveryOptionalLead", discoveryBody) +
+    '<div id="physExtra" style="display:none">' + htmlFormGroup("passport.form.groupPhysicalOptionalTitle", "passport.form.groupPhysicalOptionalLead", physicalBody) + '</div>' +
+    '<div id="digitalExtraOptional" style="display:none">' + htmlFormGroup("passport.form.groupDigitalOptionalTitle", "passport.form.groupDigitalOptionalLead", digitalOptBody) + '</div>' +
+    htmlFormGroup("passport.form.groupPreviewOptionalTitle", "passport.form.groupPreviewOptionalLead", previewBody) +
+    '<div id="passportAdditionalV03" style="' + v03Display + '">' +
+    '<div class="form-group-box" style="margin-top:4px"><div class="form-group-title">' + esc(t("passport.form.groupExtraImagesTitle")) + '</div>' +
+    '<p class="form-group-lead">' + esc(t("passport.form.extraImagesHint")) + '</p>' +
+    '<div class="fdrop" id="imgDrop2" onclick="document.getElementById(\'imgIn2\').click()"><input type="file" id="imgIn2" accept="image/*" onchange="hashImg2(event)">' +
+    '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImg2")) + '</div></div><div id="imgInfo2"></div>' +
+    '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(2)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
+    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImage2Url")) + '</label><input type="url" id="f_imgUrl2" placeholder="' + esc(t("passport.form.phHttpsShort")) + '"></div>' +
+    '<div class="fdrop" id="imgDrop3" style="margin-top:14px" onclick="document.getElementById(\'imgIn3\').click()"><input type="file" id="imgIn3" accept="image/*" onchange="hashImg3(event)">' +
+    '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImg3")) + '</div></div><div id="imgInfo3"></div>' +
+    '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(3)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
+    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImage3Url")) + '</label><input type="url" id="f_imgUrl3" placeholder="' + esc(t("passport.form.phHttpsShort")) + '"></div></div>' +
+    '<div class="form-group-box"><div class="form-group-title">' + esc(t("passport.form.extraMetaSection")) + '</div>' +
+    '<p class="form-group-lead">' + esc(t("passport.form.extraMetaHint")) + '</p><div id="extraMetaRows"></div>' +
+    '<button type="button" class="btn btn-sec" style="margin-top:10px" onclick="addExtraMetaRow()">' + esc(t("passport.form.extraMetaAdd")) + '</button>' +
+    '<div class="form-group-title" style="margin-top:18px">' + esc(t("passport.form.v03MetaSubheading")) + '</div>' +
+    '<p class="form-group-lead">' + esc(t("passport.form.v03MetaHint")) + '</p>' +
+    '<div class="row2" style="margin-top:10px"><div class="field"><label>' + esc(t("passport.form.labelWidth")) + '</label><input type="number" id="f_dim_w" placeholder="' + esc(t("passport.form.phDimExample")) + '" min="0" step="any"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelHeight")) + '</label><input type="number" id="f_dim_h" placeholder="' + esc(t("passport.form.phDimExample")) + '" min="0" step="any"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelDimUnit")) + '</label><input type="text" id="f_dim_unit" placeholder="' + esc(t("passport.form.phUnitCm")) + '"></div>' +
+    '<div class="row2"><div class="field"><label>' + esc(t("passport.form.labelWeight")) + '</label><input type="number" id="f_weight" placeholder="' + esc(t("passport.form.phOptionalShort")) + '" min="0" step="any"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelWeightUnit")) + '</label><input type="text" id="f_weight_unit" placeholder="' + esc(t("passport.form.phUnitKg")) + '"></div></div>' +
+    '<div class="row2"><div class="field"><label>' + esc(t("passport.form.labelDepth")) + '</label><input type="number" id="f_depth" placeholder="' + esc(t("passport.form.phOptionalShort")) + '" min="0" step="any"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelDepthUnit")) + '</label><input type="text" id="f_depth_unit" placeholder="' + esc(t("passport.form.phUnitCm")) + '"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelCreationDate")) + '</label><input type="text" id="f_creation_date" placeholder="' + esc(t("passport.form.phCreationDate")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelListingPrice")) + '</label><input type="text" id="f_listing_price" placeholder="' + esc(t("passport.form.phListingPrice")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelInternalTag")) + '</label><input type="text" id="f_internal_tag" placeholder="' + esc(t("passport.form.phInternalTag")) + '"></div></div></div>' +
+    '</div></div></div>';
+}
+
 function renderForm() {
   setMintSuccessLeavingGuard(false);
   resetV03MintOptionals();
@@ -2409,6 +2774,7 @@ function renderForm() {
     <!-- Object type -->
     <div class="section">
       <div class="section-label">${esc(t("passport.form.objectType"))}<span class="req">*</span></div>
+      <p class="fhint form-section-lead">${esc(t("passport.form.groupObjectTypeLead"))}</p>
       <div class="type-toggle">
         <div class="tt-opt sel" id="tt-physical" onclick="setType('physical')">
           <div class="tt-icon">🎨</div>
@@ -2428,120 +2794,12 @@ function renderForm() {
       </div>
     </div>
 
-    <!-- Basic info -->
-    <div class="section">
-      <div class="section-label">${esc(t("passport.form.basicInfo"))}</div>
-      <div class="field"><label>${esc(t("passport.form.labelTitle"))}<span class="req">*</span></label>
-        <input type="text" id="f_title" placeholder="${esc(t("passport.form.phTitle"))}"></div>
-      <div class="field"><label>${esc(t("passport.form.labelYourName"))}<span class="req">*</span></label>
-        <input type="text" id="f_name" placeholder="${esc(t("passport.form.phName"))}"></div>
-      <div class="row2">
-        <div class="field"><label>${esc(t("passport.form.labelCoAuthors"))}</label>
-          <input type="text" id="f_coauthors" placeholder="${esc(t("passport.form.phCoAuthors"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelTeam"))}</label>
-          <input type="text" id="f_team" placeholder="${esc(t("passport.form.phTeam"))}"></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label>${esc(t("passport.form.labelCategory"))}<span class="req">*</span></label>
-          <select id="f_type">${htmlCategoryOptionsPhysical()}</select></div>
-        <!-- f_year: object-era year for JSON/provenance; ODP-ID YYYY-MM comes from UTC mint instant (see SPEC). -->
-        <div class="field"><label>${esc(t("passport.form.labelYear"))}<span class="req">*</span></label>
-          <input type="number" id="f_year" value="${new Date().getUTCFullYear()}" min="1000" max="2100"></div>
-      </div>
-      <div class="row3">
-        <div class="field"><label>${esc(t("passport.form.labelContentClass"))}<span class="req">*</span></label>
-          <select id="f_content_class">${htmlContentClassOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelStatus"))}<span class="req">*</span></label>
-          <select id="f_status">${htmlLifecycleStatusOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelDomain"))}</label>
-          <input type="text" id="f_domain" placeholder="${esc(t("passport.form.phDomain"))}"></div>
-      </div>
-      <div class="row3">
-        <div class="field"><label>${esc(t("passport.form.labelAiStatus"))}<span class="req">*</span></label>
-          <select id="f_ai_status">${htmlAiStatusOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelVerificationMethod"))}<span class="req">*</span></label>
-          <select id="f_verification_method">${htmlVerificationMethodOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelEditionModel"))}<span class="req">*</span></label>
-          <select id="f_edition_model">${htmlEditionModelOptions()}</select></div>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelTags"))}</label>
-        <input type="text" id="f_tags" placeholder="${esc(t("passport.form.phTags"))}"></div>
-      <div class="row3">
-        <div class="field"><label>${esc(t("passport.form.labelLocation"))}</label>
-          <input type="text" id="f_location" placeholder="${esc(t("passport.form.phLocation"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelRightsNote"))}</label>
-          <input type="text" id="f_rights_note" placeholder="${esc(t("passport.form.phRightsNote"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelConditionNote"))}</label>
-          <input type="text" id="f_condition_note" placeholder="${esc(t("passport.form.phConditionNote"))}"></div>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelMarks"))}</label>
-        <textarea id="f_marks" placeholder="${esc(t("passport.form.phMarks"))}"></textarea></div>
-      <div id="physExtra">
-        <div class="row2">
-          <div class="field"><label>${esc(t("passport.form.labelEditionNum"))}</label><input type="number" id="f_edn" placeholder="${esc(t("passport.form.phEdition"))}" min="1"></div>
-          <div class="field"><label>${esc(t("passport.form.labelEditionTotal"))}</label><input type="number" id="f_edt" placeholder="${esc(t("passport.form.phEditionTotal"))}" min="1"></div>
-        </div>
-        <div class="field"><label>${esc(t("passport.form.labelMedium"))}</label><input type="text" id="f_medium" placeholder="${esc(t("passport.form.phMedium"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelMaterials"))}</label>
-          <input type="text" id="f_mat" placeholder="${esc(t("passport.form.phMaterials"))}">
-        </div>
-      </div>
-      <div id="digitalExtra" style="display:none">
-        <div class="row2">
-          <div class="field"><label>${esc(t("passport.form.labelSubtype"))}<span class="req">*</span></label>
-            <select id="f_sub">${htmlSubtypeOptions()}</select></div>
-          <div class="field"><label>${esc(t("passport.form.labelFormat"))}</label><input type="text" id="f_fmt" placeholder="${esc(t("passport.form.phFormat"))}"></div>
-        </div>
-        <div class="section-label" style="margin-top:12px">${esc(t("passport.form.c2paSection"))}</div>
-        <div class="row2">
-          <div class="field">
-            <label>${esc(t("passport.form.c2paHashLabel"))}</label>
-            <input type="text" id="f_c2pa_manifest_hash" placeholder="${esc(t("passport.form.c2paPlaceholder"))}">
-          </div>
-          <div class="field">
-            <label>${esc(t("passport.form.c2paLabelShort"))}</label>
-            <input type="text" id="f_c2pa_manifest_label" placeholder="${esc(t("passport.form.phOptionalShort"))}">
-          </div>
-        </div>
-        <p class="fhint">${esc(t("passport.form.c2paHint"))}</p>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
-        <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
-
-      <div id="passportAdditionalV03" style="margin-top:14px;${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-        <div class="acc" id="additionalAcc">
-          <div class="acc-head" onclick="tog('additionalAcc')">${esc(t("passport.form.additionalAccordionTitle"))}<span class="acc-arr">▶</span></div>
-          <div class="acc-body">
-            <p class="fhint" style="margin:0 0 14px;line-height:1.55">${esc(t("passport.form.additionalAccordionLead"))}</p>
-            <div class="section-label" style="margin-top:4px;font-size:12px;opacity:0.95">${esc(t("passport.form.extraMetaSection"))}</div>
-            <p class="fhint" style="margin:4px 0 10px;line-height:1.5">${esc(t("passport.form.extraMetaHint"))}</p>
-            <div id="extraMetaRows"></div>
-            <button type="button" class="btn btn-sec" style="margin-top:10px" onclick="addExtraMetaRow()">${esc(t("passport.form.extraMetaAdd"))}</button>
-            <div class="section-label" style="margin-top:20px;font-size:12px;opacity:0.95">${esc(t("passport.form.v03MetaSubheading"))}</div>
-            <div class="row2" style="margin-top:10px">
-              <div class="field"><label>${esc(t("passport.form.labelWidth"))}</label><input type="number" id="f_dim_w" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
-              <div class="field"><label>${esc(t("passport.form.labelHeight"))}</label><input type="number" id="f_dim_h" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
-            </div>
-            <div class="field"><label>${esc(t("passport.form.labelDimUnit"))}</label><input type="text" id="f_dim_unit" placeholder="${esc(t("passport.form.phUnitCm"))}"></div>
-            <div class="row2">
-              <div class="field"><label>${esc(t("passport.form.labelWeight"))}</label><input type="number" id="f_weight" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
-              <div class="field"><label>${esc(t("passport.form.labelWeightUnit"))}</label><input type="text" id="f_weight_unit" placeholder="${esc(t("passport.form.phUnitKg"))}"></div>
-            </div>
-            <div class="row2">
-              <div class="field"><label>${esc(t("passport.form.labelDepth"))}</label><input type="number" id="f_depth" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
-              <div class="field"><label>${esc(t("passport.form.labelDepthUnit"))}</label><input type="text" id="f_depth_unit" placeholder="${esc(t("passport.form.phUnitCm"))}"></div>
-            </div>
-            <div class="field"><label>${esc(t("passport.form.labelCreationDate"))}</label><input type="text" id="f_creation_date" placeholder="${esc(t("passport.form.phCreationDate"))}"></div>
-            <div class="field"><label>${esc(t("passport.form.labelListingPrice"))}</label><input type="text" id="f_listing_price" placeholder="${esc(t("passport.form.phListingPrice"))}"></div>
-            <div class="field"><label>${esc(t("passport.form.labelInternalTag"))}</label><input type="text" id="f_internal_tag" placeholder="${esc(t("passport.form.phInternalTag"))}"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    ${mintFormRequiredSectionHtml()}
 
     <!-- Passport URL -->
     <div class="section">
-      <div class="section-label">${esc(t("passport.form.hosting"))}</div>
+      <div class="section-label">${esc(t("passport.form.hosting"))}<span class="req">*</span></div>
+      <p class="fhint form-section-lead">${esc(t("passport.form.groupHostingLead"))}</p>
       <div id="skipPublicUrlRow" class="field" style="margin-bottom:12px;${odpSupportsOptionalDataUrl(odpContractGeneration) ? "" : "display:none"}">
         <label class="fhint" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
           <input type="checkbox" id="f_skip_public_url" onchange="syncHostingInputs()">
@@ -2576,6 +2834,14 @@ function renderForm() {
     <div id="digitalFile" style="display:none">
       <div class="section">
         <div class="section-label">${esc(t("passport.form.digitalFile"))}<span class="req">*</span></div>
+        <p class="fhint form-section-lead">${esc(t("passport.form.groupDigitalFileLead"))}</p>
+        <div class="form-group-box">
+          <div class="form-group-title">${esc(t("passport.form.groupDigitalKindTitle"))}</div>
+          <p class="form-group-lead">${esc(t("passport.form.groupDigitalKindLead"))}</p>
+          <div class="field"><label>${esc(t("passport.form.labelSubtype"))}<span class="req">*</span></label>
+            <select id="f_sub">${htmlSubtypeOptions()}</select>
+            ${htmlFieldHint("passport.form.hintSubtype")}</div>
+        </div>
         <div class="info w">${esc(t("passport.form.digitalWarn"))}</div>
         <div class="fdrop" id="fileDrop" onclick="document.getElementById('fileIn').click()">
           <input type="file" id="fileIn" onchange="hashFile(event)">
@@ -2586,60 +2852,11 @@ function renderForm() {
       </div>
     </div>
 
-    <!-- Preview image -->
-    <div class="section">
-      <div class="section-label">${esc(t("passport.form.previewImage"))}</div>
-      <div class="fdrop" id="imgDrop" onclick="document.getElementById('imgIn').click()">
-        <input type="file" id="imgIn" accept="image/*" onchange="hashImg(event)">
-        <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">${esc(t("passport.form.fdropImgLine1"))}<br><span style="font-size:11px;opacity:0.6">${esc(t("passport.form.fdropImgLine2"))}</span></div>
-      </div>
-      <div id="imgInfo"></div>
-      <div style="margin-top:8px">
-        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(1)">${esc(t("passport.form.clearImageBtn"))}</button>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label>${esc(t("passport.form.labelImageUrl"))}</label>
-        <input type="url" id="f_imgUrl" placeholder="${esc(t("passport.form.phImageUrl"))}">
-      </div>
-    </div>
-
-    <div class="section" id="extraImagesV03" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-      <div class="section-label">${esc(t("passport.form.extraImagesSection"))}</div>
-      <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.extraImagesHint"))}</p>
-      <div class="fdrop" id="imgDrop2" onclick="document.getElementById('imgIn2').click()">
-        <input type="file" id="imgIn2" accept="image/*" onchange="hashImg2(event)">
-        <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">${esc(t("passport.form.fdropImg2"))}</div>
-      </div>
-      <div id="imgInfo2"></div>
-      <div style="margin-top:8px">
-        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(2)">${esc(t("passport.form.clearImageBtn"))}</button>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label>${esc(t("passport.form.labelImage2Url"))}</label>
-        <input type="url" id="f_imgUrl2" placeholder="${esc(t("passport.form.phHttpsShort"))}">
-      </div>
-      <div class="fdrop" id="imgDrop3" style="margin-top:14px" onclick="document.getElementById('imgIn3').click()">
-        <input type="file" id="imgIn3" accept="image/*" onchange="hashImg3(event)">
-        <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">${esc(t("passport.form.fdropImg3"))}</div>
-      </div>
-      <div id="imgInfo3"></div>
-      <div style="margin-top:8px">
-        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(3)">${esc(t("passport.form.clearImageBtn"))}</button>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label>${esc(t("passport.form.labelImage3Url"))}</label>
-        <input type="url" id="f_imgUrl3" placeholder="${esc(t("passport.form.phHttpsShort"))}">
-      </div>
-    </div>
-
     <!-- Physical seal -->
     <div id="sealSection">
       <div class="section">
         <div class="section-label">${esc(t("passport.form.physicalSeal"))}<span class="req">*</span></div>
-        <p class="fhint" style="margin-bottom:12px">${esc(t("passport.form.sealLead"))}</p>
+        <p class="fhint form-section-lead">${esc(t("passport.form.groupSealLead"))}</p>
 
         <div class="seal-grid">
           <div class="seal-opt" id="s1" onclick="setSeal(1)">
@@ -2652,29 +2869,77 @@ function renderForm() {
             <span class="seal-icon">🔐</span>${esc(t("passport.form.sealBoth"))}<br><small class="seal-sub">${esc(t("passport.form.sealBothSmall"))}</small>
           </div>
         </div>
+        <ul class="fhint" style="margin:0 0 14px 18px;line-height:1.5;font-size:12px">
+          <li>${esc(t("passport.form.hintSealNfc"))}</li>
+          <li>${esc(t("passport.form.hintSealNum"))}</li>
+          <li>${esc(t("passport.form.hintSealBoth"))}</li>
+        </ul>
 
         <div id="nfcFields" style="display:none">
           <div class="acc open" id="nfcAcc">
             <div class="acc-head" onclick="tog('nfcAcc')">${esc(t("passport.form.nfcAccTitle"))}<span class="acc-arr">▶</span></div>
             <div class="acc-body">
               <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.nfcLead"))}</p>
+              <div id="nfcIssuerFlowBlock" style="display:block;margin-bottom:14px;line-height:1.55">
+                <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.nfcIssuerPixelHint"))}</p>
+
+                <div class="info neutral" style="padding:12px 14px;border-radius:8px;margin-bottom:10px">
+                  <div style="font-weight:600;margin-bottom:4px">${esc(t("passport.form.nfcIssuerStepATitle"))}</div>
+                  <p class="fhint" style="margin:0 0 10px">${esc(t("passport.form.nfcIssuerStepABody"))}</p>
+                  <div class="field" style="margin-bottom:8px">
+                    <label>${esc(t("passport.form.nfcIssuerChipKeyLabel"))}<span class="req">*</span></label>
+                    <input type="text" id="f_nkey_provision" placeholder="${esc(t("passport.form.phChipSecretKey"))}" oninput="passportOnProvisionKeyInput()" autocomplete="off">
+                    <p class="fhint" style="margin:6px 0 0">${esc(t("passport.form.nfcIssuerChipKeyHint"))}</p>
+                  </div>
+                  <div class="field" style="margin-bottom:8px">
+                    <label>${esc(t("passport.form.nfcIssuerProvisionPasteLabel"))}</label>
+                    <textarea id="f_chip_provision_import" rows="3" placeholder="${esc(t("passport.form.nfcIssuerProvisionPastePh"))}" style="width:100%;font-family:var(--mono);font-size:11px"></textarea>
+                  </div>
+                  <button type="button" class="btn btn-sec" onclick="void importChipProvisionFromTextarea()">${esc(t("passport.form.nfcIssuerProvisionImportBtn"))}</button>
+                  <div id="nfcProvisionStatus" class="fhint" style="margin-top:8px;min-height:1.1em"></div>
+                </div>
+
+                <div class="info neutral" style="padding:12px 14px;border-radius:8px;margin-bottom:10px">
+                  <div style="font-weight:600;margin-bottom:4px">${esc(t("passport.form.nfcIssuerStepBTitle"))}</div>
+                  <p class="fhint" style="margin:0 0 10px">${esc(t("passport.form.nfcIssuerStepBBody"))}</p>
+                  <div class="btn-row" style="flex-wrap:wrap;margin-bottom:8px">
+                    <button type="button" class="btn btn-sec" onclick="void openIssuerChipCompanionScan()">${esc(t("passport.form.nfcIssuerOpenCompanion"))}</button>
+                    <button type="button" class="btn btn-ghost" onclick="void copyIssuerChipCompanionHandoff()">${esc(t("passport.form.nfcIssuerCopyHandoff"))}</button>
+                  </div>
+                  <div class="field" style="margin-bottom:8px">
+                    <label>${esc(t("passport.form.nfcIssuerScanPasteLabel"))}</label>
+                    <textarea id="f_chip_setup_import" rows="4" placeholder="${esc(t("passport.form.nfcIssuerScanPastePh"))}" style="width:100%;font-family:var(--mono);font-size:11px"></textarea>
+                    <p class="fhint" style="margin:6px 0 0">${esc(t("passport.form.nfcIssuerScanPasteHint"))}</p>
+                  </div>
+                  <button type="button" class="btn btn-sec" onclick="void importIssuerChipSetupFromTextarea()">${esc(t("passport.form.nfcIssuerScanImportBtn"))}</button>
+                  <div id="nfcChipSetupStatus" class="fhint" style="margin-top:8px;min-height:1.1em"></div>
+                </div>
+
+                <div class="info neutral" style="padding:12px 14px;border-radius:8px">
+                  <div style="font-weight:600;margin-bottom:4px">${esc(t("passport.form.nfcIssuerStepCTitle"))}</div>
+                  <p class="fhint" style="margin:0">${esc(t("passport.form.nfcIssuerStepCBody"))}</p>
+                </div>
+              </div>
               <div class="field"><label>${esc(t("passport.form.labelNfcModel"))}<span class="req">*</span></label>
                 <select id="f_nmod">
-                  <option value="NTAG424DNA">${esc(t("passport.form.nfcModelPlain"))}</option>
-                  <option value="NTAG424DNA_TAGTAMPER" selected>${esc(t("passport.form.nfcModelTagTamper"))}</option>
-                </select></div>
-              <div class="field"><label>${esc(t("passport.form.labelChipUid"))}<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="${esc(t("passport.form.phChipUid"))}"></div>
-              <div class="field"><label>${esc(t("passport.form.labelPubKey"))}<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="${esc(t("passport.form.phPubKey"))}"></div>
-              <div class="row2">
-                <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label><input type="text" id="f_ndate" value="${odpFormatDateDDMMYYYY(new Date())}"></div>
-                <div class="field"><label>${esc(t("passport.form.labelNfcNotes"))}</label><input type="text" id="f_nnotes" placeholder="${esc(t("passport.form.phNfcNotes"))}"></div>
+                  <option value="NTAG424DNA">${esc(t("passport.form.nfcModelNtag424Dna"))}</option>
+                  <option value="NTAG424DNA_TAGTAMPER" selected>${esc(t("passport.form.nfcModelNtag424DnaTagtamper"))}</option>
+                </select>
+                <p class="fhint" style="margin:6px 0 0">${esc(t("passport.form.labelNfcModelHint"))}</p></div>
+              <div id="nfcAutoFilledBlock" style="display:none;margin-top:4px">
+                <p class="fhint" style="margin:0 0 8px">${esc(t("passport.form.nfcAutoFilledLead"))}</p>
+                <div class="field"><label>${esc(t("passport.form.labelChipUidPlain"))}<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="${esc(t("passport.form.phChipUid"))}" readonly></div>
+                <div class="field"><label>${esc(t("passport.form.labelPubKeyPlain"))}<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="${esc(t("passport.form.phChipSecretKey"))}" readonly></div>
               </div>
+              <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label>
+                <input type="text" id="f_ndate" value="${odpFormatDateDDMMYYYY(new Date())}">
+                ${htmlFieldHint("passport.form.hintNfcInstalled")}</div>
             </div>
           </div>
         </div>
 
         <div id="numFields">
-          <div class="acc open" id="numAcc">
+          <div class="acc" id="numAcc">
             <div class="acc-head" onclick="tog('numAcc')">${esc(t("passport.form.numAccTitle"))}<span class="acc-arr">▶</span></div>
             <div class="acc-body">
               <div class="row2">
@@ -2691,6 +2956,8 @@ function renderForm() {
         </div>
       </div>
     </div>
+
+    ${mintFormAdditionalSectionHtml()}
 
     <!-- Error -->
     <div id="formErr"></div>
@@ -2866,8 +3133,16 @@ function renderForm() {
               <input type="checkbox" id="passportManageOfflineIncludeState" onchange="void refreshPassportManageOffline()">
               <span>${esc(t("passport.manage.offlineIncludeState"))}</span>
             </label>
+            <label class="fhint" style="display:flex;gap:8px;align-items:flex-start;margin:0 0 10px;line-height:1.5">
+              <input type="checkbox" id="passportManageOfflineNdppMode" onchange="void refreshPassportManageOffline()">
+              <span>
+                <strong>${esc(t("passport.manage.offlineNdppModeLabel"))}</strong><br>
+                <span style="opacity:0.8">${esc(t("passport.manage.offlineNdppModeHint"))}</span>
+              </span>
+            </label>
             <div class="field"><label for="passportManageNdppUrl">${esc(t("passport.manage.ndppUrlLabel"))}</label>
               <input type="url" id="passportManageNdppUrl" placeholder="${esc(t("passport.form.phHttps"))}" autocomplete="off" oninput="void refreshPassportManageOffline()"></div>
+            <div class="fhint" style="margin-top:-4px;margin-bottom:10px;line-height:1.5">${esc(t("passport.manage.ndppUrlHint"))}</div>
             <div id="passportManageOfflineStatus"></div>
             <div id="passportManageOfflinePreview" class="info neutral" style="display:block;margin-top:12px;padding:12px 14px;border-radius:8px;text-align:left;font-size:12px;line-height:1.6"></div>
             <div class="btn-row" style="margin-top:10px">
@@ -2875,6 +3150,7 @@ function renderForm() {
               <button type="button" class="btn btn-sec" id="passportManageOfflineDownloadNdef" onclick="void downloadPassportManageOffline('ndef')" disabled>${esc(t("passport.manage.offlineDownloadNdef"))}</button>
               <button type="button" class="btn" id="passportManageOfflineAnchor" onclick="void submitPassportManageNdpp()" disabled>${esc(t("passport.manage.offlineAnchorBtn"))}</button>
             </div>
+            <div id="passportManageAndroidGuide"></div>
           </div>
 
           <div id="passportManageRevokeSection" style="display:none;margin-top:14px">
@@ -2935,6 +3211,8 @@ function renderForm() {
       activatePassportTool("mint", false, false);
     }
     loadPassportFormDraftFromStorage();
+    tryImportIssuerChipSetupFromUrl();
+    refreshPassportChipSetupUi();
     bindPassportFormDraftHooks();
   });
 }
@@ -3026,8 +3304,9 @@ function setType(ty) {
   document.getElementById("tt-physical").classList.toggle("sel", ty==="physical");
   document.getElementById("tt-digital").classList.toggle("sel",  ty==="digital");
   document.getElementById("tt-mixed").classList.toggle("sel", ty==="mixed");
-  document.getElementById("physExtra").style.display    = isPhysicalLikeType(ty) ? "" : "none";
-  document.getElementById("digitalExtra").style.display = isDigitalLikeType(ty)  ? "" : "none";
+  document.getElementById("physExtra").style.display = isPhysicalLikeType(ty) ? "" : "none";
+  const digOpt = document.getElementById("digitalExtraOptional");
+  if (digOpt) digOpt.style.display = isDigitalLikeType(ty) ? "" : "none";
   document.getElementById("sealSection").style.display  = isPhysicalLikeType(ty) ? "" : "none";
   document.getElementById("digitalFile").style.display  = isDigitalLikeType(ty)  ? "" : "none";
   const cat = document.getElementById("f_type");
@@ -3051,7 +3330,209 @@ function setSeal(n) {
   const num = document.getElementById("numFields");
   if (nfc) nfc.style.display = (n===1||n===3) ? "" : "none";
   if (num) num.style.display = (n===2||n===3) ? "" : "none";
+  refreshPassportChipSetupUi();
   schedulePassportDraftSave();
+}
+
+function passportChipSetupStatusEl() {
+  return document.getElementById("nfcChipSetupStatus");
+}
+
+function refreshPassportChipSetupUi() {
+  const statusEl = passportChipSetupStatusEl();
+  const needsNfc = sealType === 1 || sealType === 3;
+  const block = document.getElementById("nfcIssuerFlowBlock");
+  const autoBlock = document.getElementById("nfcAutoFilledBlock");
+  if (block) block.style.display = needsNfc ? "" : "none";
+  if (autoBlock) autoBlock.style.display = needsNfc && passportChipSetup.confirmed ? "block" : "none";
+  if (!statusEl || !needsNfc) return;
+  if (passportChipSetup.confirmed) {
+    statusEl.innerHTML = `<div class="info n">${esc(t("passport.form.nfcIssuerConfirmed").replace("{at}", esc(passportChipSetup.scannedAt || "")))}</div>`;
+  } else {
+    statusEl.textContent = t("passport.form.nfcIssuerPending");
+  }
+}
+
+function passportProvisionStatusEl() {
+  return document.getElementById("nfcProvisionStatus");
+}
+
+function applyChipProvision(parsed) {
+  if (!parsed || !parsed.ok || !parsed.chip) return false;
+  const chip = parsed.chip;
+  const provEl = document.getElementById("f_nkey_provision");
+  const keyEl = document.getElementById("f_nkey");
+  const uidEl = document.getElementById("f_nuid");
+  const modelEl = document.getElementById("f_nmod");
+  const keyHex = String(chip.publicKey || "").replace(/^0x/i, "");
+  if (provEl) provEl.value = keyHex;
+  if (keyEl && !passportChipSetup.confirmed) keyEl.value = keyHex;
+  if (uidEl && chip.uid && !passportChipSetup.confirmed) uidEl.value = String(chip.uid).replace(/^0x/i, "");
+  if (modelEl && chip.model) modelEl.value = chip.model;
+  passportOnProvisionKeyInput();
+  schedulePassportDraftSave();
+  return true;
+}
+
+function importChipProvisionFromTextarea() {
+  const statusEl = passportProvisionStatusEl();
+  const ta = document.getElementById("f_chip_provision_import");
+  const raw = ta ? String(ta.value || "") : "";
+  if (typeof odpParseChipProvisionText !== "function") {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerCompanionMissing"))}</div>`;
+    return;
+  }
+  const parsed = odpParseChipProvisionText(raw);
+  if (!parsed.ok) {
+    const errKey = {
+      empty: "nfcIssuerProvisionImportEmpty",
+      invalid_json: "nfcIssuerProvisionImportBadJson",
+      wrong_type: "nfcIssuerProvisionImportWrongType",
+      bad_key_length: "nfcIssuerProvisionImportBadKey",
+    }[parsed.error] || "nfcIssuerProvisionImportFailed";
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form." + errKey))}</div>`;
+    return;
+  }
+  if (applyChipProvision(parsed) && statusEl) {
+    statusEl.innerHTML = `<div class="info n">${esc(t("passport.form.nfcIssuerProvisionImportOk"))}</div>`;
+  }
+}
+
+function passportOnProvisionKeyInput() {
+  const prov = document.getElementById("f_nkey_provision");
+  const keyEl = document.getElementById("f_nkey");
+  if (prov && keyEl && !passportChipSetup.confirmed) {
+    keyEl.value = prov.value;
+  }
+  schedulePassportDraftSave();
+}
+
+function issuerChipCompanionFields() {
+  const modelEl = document.getElementById("f_nmod");
+  const prov = document.getElementById("f_nkey_provision");
+  const model = modelEl ? String(modelEl.value || "").trim() : "NTAG424DNA_TAGTAMPER";
+  const key = prov ? String(prov.value || "").trim() : "";
+  if (typeof odpBuildIssuerChipSetupCompanionFields === "function") {
+    return odpBuildIssuerChipSetupCompanionFields(model, key);
+  }
+  return null;
+}
+
+function decodeIssuerChipSetupParam(encoded) {
+  const trimmed = String(encoded || "").trim();
+  if (!trimmed) return "";
+  let uriDecoded = trimmed;
+  try { uriDecoded = decodeURIComponent(trimmed); } catch (e) { /* keep trimmed */ }
+  if (uriDecoded.trim().startsWith("{")) return uriDecoded.trim();
+  if (typeof odpDecodeBase64UrlUtf8 === "function") {
+    try {
+      const fromB64 = odpDecodeBase64UrlUtf8(uriDecoded);
+      if (fromB64 && fromB64.trim().startsWith("{")) return fromB64.trim();
+    } catch (e) { /* fall through */ }
+  }
+  return uriDecoded.trim();
+}
+
+function openIssuerChipCompanionScan() {
+  const statusEl = passportChipSetupStatusEl();
+  const fields = issuerChipCompanionFields();
+  if (!fields || !String(fields.nfcPublicKey || "").trim()) {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerNeedKey"))}</div>`;
+    return;
+  }
+  flushPassportDraftSave();
+  const mintUrl = typeof odpPassportIssuerMintPageUrl === "function" ? odpPassportIssuerMintPageUrl() : "";
+  if (typeof odpAndroidCompanionIssuerChipSetupDeepLink === "function") {
+    window.location.href = odpAndroidCompanionIssuerChipSetupDeepLink(fields.nfcModel, fields.nfcPublicKey, mintUrl);
+    return;
+  }
+  if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerCompanionMissing"))}</div>`;
+}
+
+async function copyIssuerChipCompanionHandoff() {
+  const statusEl = passportChipSetupStatusEl();
+  const fields = issuerChipCompanionFields();
+  if (!fields || typeof odpAndroidCompanionHandoffJson !== "function") {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerCompanionMissing"))}</div>`;
+    return;
+  }
+  if (!String(fields.nfcPublicKey || "").trim()) {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerNeedKey"))}</div>`;
+    return;
+  }
+  try {
+    await writeTextToClipboardSafe(odpAndroidCompanionHandoffJson(fields));
+    if (statusEl) statusEl.innerHTML = `<div class="info n">${esc(t("passport.form.nfcIssuerCopiedHandoff"))}</div>`;
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerCopyFailed"))}</div>`;
+  }
+}
+
+function applyPassportChipSetup(parsed) {
+  if (!parsed || !parsed.ok || !parsed.chip) return false;
+  const chip = parsed.chip;
+  const uidEl = document.getElementById("f_nuid");
+  const keyEl = document.getElementById("f_nkey");
+  const provEl = document.getElementById("f_nkey_provision");
+  const modelEl = document.getElementById("f_nmod");
+  if (uidEl) uidEl.value = chip.uid.replace(/^0x/i, "");
+  if (keyEl) keyEl.value = chip.publicKey;
+  if (provEl) provEl.value = chip.publicKey;
+  if (modelEl && chip.model) modelEl.value = chip.model;
+  passportChipSetup = {
+    confirmed: true,
+    scannedAt: chip.scannedAt || new Date().toISOString(),
+    source: "android-companion",
+  };
+  refreshPassportChipSetupUi();
+  schedulePassportDraftSave();
+  return true;
+}
+
+function importIssuerChipSetupFromTextarea() {
+  const statusEl = passportChipSetupStatusEl();
+  const ta = document.getElementById("f_chip_setup_import");
+  const raw = ta ? String(ta.value || "") : "";
+  if (typeof odpParseIssuerChipSetupText !== "function") {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerCompanionMissing"))}</div>`;
+    return;
+  }
+  const parsed = odpParseIssuerChipSetupText(raw);
+  if (!parsed.ok) {
+    const errKey = {
+      empty: "nfcIssuerImportEmpty",
+      invalid_json: "nfcIssuerImportBadJson",
+      wrong_type: "nfcIssuerImportWrongType",
+      missing_uid: "nfcIssuerImportNoUid",
+      bad_key_length: "nfcIssuerImportBadKey",
+      ev2_not_passed: "nfcIssuerImportEv2Failed",
+      tagtamper_not_intact: "nfcIssuerImportTamperOpen",
+    }[parsed.error] || "nfcIssuerImportFailed";
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form." + errKey))}</div>`;
+    return;
+  }
+  if (applyPassportChipSetup(parsed) && statusEl) {
+    statusEl.innerHTML = `<div class="info n">${esc(t("passport.form.nfcIssuerImportOk"))}</div>`;
+  }
+}
+
+function tryImportIssuerChipSetupFromUrl() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const encoded = params.get("chipSetup");
+    if (!encoded || typeof odpParseIssuerChipSetupText !== "function") return;
+    const parsed = odpParseIssuerChipSetupText(decodeIssuerChipSetupParam(encoded));
+    if (!parsed.ok) return;
+    if (!applyPassportChipSetup(parsed)) return;
+    const statusEl = passportChipSetupStatusEl();
+    if (statusEl) statusEl.innerHTML = `<div class="info n">${esc(t("passport.form.nfcIssuerImportOk"))}</div>`;
+    const u = new URL(window.location.href);
+    u.searchParams.delete("chipSetup");
+    history.replaceState({}, "", u.pathname + u.search + u.hash);
+    if (typeof activatePassportTool === "function") activatePassportTool("mint", false, false);
+    const nfcAcc = document.getElementById("nfcAcc");
+    if (nfcAcc) nfcAcc.classList.add("open");
+  } catch (e) {}
 }
 
 function tog(id) { document.getElementById(id).classList.toggle("open"); }
@@ -3404,7 +3885,16 @@ function validate() {
     if (c2 && !normalizeSha256Text(c2)) return t("passport.form.validateC2pa");
   }
   if (isPhysicalLikeType(objType)) {
-    if ((sealType===1||sealType===3) && (!v("f_nuid")||!v("f_nkey"))) return t("passport.form.validateNfc");
+    if (sealType===1||sealType===3) {
+      if (!v("f_nuid") || !v("f_nkey")) return t("passport.form.validateNfc");
+      const keyRaw = v("f_nkey").replace(/^0x/i, "");
+      if (keyRaw.length !== 32 || !/^[0-9a-f]+$/i.test(keyRaw)) {
+        return t("passport.form.validateNfcKeyLen");
+      }
+      const uidRaw = v("f_nuid").replace(/^0x/i, "");
+      if (!/^[0-9a-f]{8,16}$/i.test(uidRaw)) return t("passport.form.validateNfcUid");
+      if (!passportChipSetup.confirmed) return t("passport.form.validateNfcScanRequired");
+    }
     if ((sealType===2||sealType===3) && (!v("f_snum")||!v("f_stype"))) return t("passport.form.validateSeal");
   }
   return null;
