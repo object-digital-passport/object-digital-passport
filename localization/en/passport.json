@@ -145,7 +145,7 @@
       "damagePairRequired": "Add a damage history fingerprint when a damage history URL is set.",
       "auxPairRequired": "Add a commitment fingerprint when a commitment URL is set.",
       "offlineSection": "Offline payload / NDPP",
-      "offlineLead": "Build a compact odpOffline v0.1 public payload for QR/NFC use. The raw payload bytes are what the NDPP slot anchors on-chain; any NDEF carrier is only transport and stays separate from the canonical .odpass bundle.",
+      "offlineLead": "Build a compact odpOffline v0.1 public payload for QR/NFC use. The raw payload bytes are what the NDPP slot anchors on-chain; any NDEF carrier is only transport and stays separate from the canonical .odpass bundle. Hash match via URL/file ≠ proof from the chip; for the tag use Android companion after EV2.",
       "offlineIncludeState": "Include a dated current-state snapshot in the payload (advisory only; on-chain state still wins when online).",
       "offlineNdppModeLabel": "Export NDPP-compatible carrier",
       "offlineNdppModeHint": "Use a URL-first NDEF layout for phone taps while keeping the anchored payload in the secondary odp:off record.",

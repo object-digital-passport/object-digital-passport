@@ -145,7 +145,7 @@
       "damagePairRequired": "Если указан URL истории повреждений, добавьте и её отпечаток.",
       "auxPairRequired": "Если указан URL обязательства, добавьте и его отпечаток.",
       "offlineSection": "Offline payload / NDPP",
-      "offlineLead": "Соберите компактный публичный odpOffline v0.1 payload для QR/NFC. On-chain NDPP-слот якорит именно raw-байты payload; любой NDEF carrier — это только транспорт и он остаётся отдельно от канонического .odpass bundle.",
+      "offlineLead": "Соберите компактный odpOffline v0.1 payload для QR/NFC. On-chain NDPP-слот якорит именно raw-байты payload; любой NDEF carrier — это только транспорт и он остаётся отдельно от канонического .odpass bundle. Сверка hash по URL/файлу ≠ доказательство с чипа; для метки — Android companion после EV2.",
       "offlineIncludeState": "Включить датированный snapshot текущего состояния (только как справку; при онлайне приоритет всё равно у on-chain state).",
       "offlineNdppModeLabel": "Экспортировать NDPP-совместимый carrier",
       "offlineNdppModeHint": "Использовать URL-first NDEF layout для phone tap, сохраняя заякоренный payload во второй записи odp:off.",
