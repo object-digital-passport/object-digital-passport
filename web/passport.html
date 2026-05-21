@@ -2886,37 +2886,57 @@ function renderForm() {
             <div class="acc-head" onclick="tog('nfcAcc')">${esc(t("passport.form.nfcAccTitle"))}<span class="acc-arr">▶</span></div>
             <div class="acc-body">
               <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.nfcLead"))}</p>
-              <div id="nfcIssuerFlowBlock" class="info neutral" style="display:block;padding:12px 14px;border-radius:8px;margin-bottom:12px;line-height:1.55">
-                <div style="font-weight:600;margin-bottom:6px">${esc(t("passport.form.nfcIssuerFlowTitle"))}</div>
-                <ol style="margin:0 0 10px 18px;padding:0;font-size:13px">
-                  <li>${esc(t("passport.form.nfcIssuerStepProvision"))}</li>
-                  <li>${esc(t("passport.form.nfcIssuerStepScan"))}</li>
-                  <li>${esc(t("passport.form.nfcIssuerStepMint"))}</li>
-                </ol>
-                <p class="fhint" style="margin:0 0 10px">${esc(t("passport.form.nfcIssuerFlowHint"))}</p>
-                <p class="fhint" style="margin:0 0 10px">${esc(t("passport.form.nfcIssuerPixelHint"))}</p>
-                <div class="field" style="margin-bottom:8px">
-                  <label>${esc(t("passport.form.nfcIssuerEv2KeyLabel"))}<span class="req">*</span></label>
-                  <input type="text" id="f_nkey_provision" placeholder="${esc(t("passport.form.phEv2Key"))}" oninput="passportOnProvisionKeyInput()">
+              <div id="nfcIssuerFlowBlock" style="display:block;margin-bottom:14px;line-height:1.55">
+                <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.nfcIssuerPixelHint"))}</p>
+
+                <div class="info neutral" style="padding:12px 14px;border-radius:8px;margin-bottom:10px">
+                  <div style="font-weight:600;margin-bottom:4px">${esc(t("passport.form.nfcIssuerStepATitle"))}</div>
+                  <p class="fhint" style="margin:0 0 10px">${esc(t("passport.form.nfcIssuerStepABody"))}</p>
+                  <div class="field" style="margin-bottom:8px">
+                    <label>${esc(t("passport.form.nfcIssuerChipKeyLabel"))}<span class="req">*</span></label>
+                    <input type="text" id="f_nkey_provision" placeholder="${esc(t("passport.form.phChipSecretKey"))}" oninput="passportOnProvisionKeyInput()" autocomplete="off">
+                    <p class="fhint" style="margin:6px 0 0">${esc(t("passport.form.nfcIssuerChipKeyHint"))}</p>
+                  </div>
+                  <div class="field" style="margin-bottom:8px">
+                    <label>${esc(t("passport.form.nfcIssuerProvisionPasteLabel"))}</label>
+                    <textarea id="f_chip_provision_import" rows="3" placeholder="${esc(t("passport.form.nfcIssuerProvisionPastePh"))}" style="width:100%;font-family:var(--mono);font-size:11px"></textarea>
+                  </div>
+                  <button type="button" class="btn btn-sec" onclick="void importChipProvisionFromTextarea()">${esc(t("passport.form.nfcIssuerProvisionImportBtn"))}</button>
+                  <div id="nfcProvisionStatus" class="fhint" style="margin-top:8px;min-height:1.1em"></div>
                 </div>
-                <div class="btn-row" style="flex-wrap:wrap;margin-bottom:8px">
-                  <button type="button" class="btn btn-sec" onclick="void openIssuerChipCompanionScan()">${esc(t("passport.form.nfcIssuerOpenCompanion"))}</button>
-                  <button type="button" class="btn btn-ghost" onclick="void copyIssuerChipCompanionHandoff()">${esc(t("passport.form.nfcIssuerCopyHandoff"))}</button>
+
+                <div class="info neutral" style="padding:12px 14px;border-radius:8px;margin-bottom:10px">
+                  <div style="font-weight:600;margin-bottom:4px">${esc(t("passport.form.nfcIssuerStepBTitle"))}</div>
+                  <p class="fhint" style="margin:0 0 10px">${esc(t("passport.form.nfcIssuerStepBBody"))}</p>
+                  <div class="btn-row" style="flex-wrap:wrap;margin-bottom:8px">
+                    <button type="button" class="btn btn-sec" onclick="void openIssuerChipCompanionScan()">${esc(t("passport.form.nfcIssuerOpenCompanion"))}</button>
+                    <button type="button" class="btn btn-ghost" onclick="void copyIssuerChipCompanionHandoff()">${esc(t("passport.form.nfcIssuerCopyHandoff"))}</button>
+                  </div>
+                  <div class="field" style="margin-bottom:8px">
+                    <label>${esc(t("passport.form.nfcIssuerScanPasteLabel"))}</label>
+                    <textarea id="f_chip_setup_import" rows="4" placeholder="${esc(t("passport.form.nfcIssuerScanPastePh"))}" style="width:100%;font-family:var(--mono);font-size:11px"></textarea>
+                    <p class="fhint" style="margin:6px 0 0">${esc(t("passport.form.nfcIssuerScanPasteHint"))}</p>
+                  </div>
+                  <button type="button" class="btn btn-sec" onclick="void importIssuerChipSetupFromTextarea()">${esc(t("passport.form.nfcIssuerScanImportBtn"))}</button>
+                  <div id="nfcChipSetupStatus" class="fhint" style="margin-top:8px;min-height:1.1em"></div>
                 </div>
-                <div class="field" style="margin-bottom:8px">
-                  <label>${esc(t("passport.form.nfcIssuerPasteLabel"))}</label>
-                  <textarea id="f_chip_setup_import" rows="4" placeholder="${esc(t("passport.form.nfcIssuerPastePh"))}" style="width:100%;font-family:var(--mono);font-size:11px"></textarea>
+
+                <div class="info neutral" style="padding:12px 14px;border-radius:8px">
+                  <div style="font-weight:600;margin-bottom:4px">${esc(t("passport.form.nfcIssuerStepCTitle"))}</div>
+                  <p class="fhint" style="margin:0">${esc(t("passport.form.nfcIssuerStepCBody"))}</p>
                 </div>
-                <button type="button" class="btn btn-sec" onclick="void importIssuerChipSetupFromTextarea()">${esc(t("passport.form.nfcIssuerImportBtn"))}</button>
-                <div id="nfcChipSetupStatus" class="fhint" style="margin-top:10px;min-height:1.25em"></div>
               </div>
               <div class="field"><label>${esc(t("passport.form.labelNfcModel"))}<span class="req">*</span></label>
                 <select id="f_nmod">
-                  <option value="NTAG424DNA">${esc(t("passport.form.nfcModelPlain"))}</option>
-                  <option value="NTAG424DNA_TAGTAMPER" selected>${esc(t("passport.form.nfcModelTagTamper"))}</option>
-                </select></div>
-              <div class="field"><label>${esc(t("passport.form.labelChipUid"))}<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="${esc(t("passport.form.phChipUid"))}" readonly></div>
-              <div class="field"><label>${esc(t("passport.form.labelPubKey"))}<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="${esc(t("passport.form.phEv2Key"))}" readonly></div>
+                  <option value="NTAG424DNA">${esc(t("passport.form.nfcModelNtag424Dna"))}</option>
+                  <option value="NTAG424DNA_TAGTAMPER" selected>${esc(t("passport.form.nfcModelNtag424DnaTagtamper"))}</option>
+                </select>
+                <p class="fhint" style="margin:6px 0 0">${esc(t("passport.form.labelNfcModelHint"))}</p></div>
+              <div id="nfcAutoFilledBlock" style="display:none;margin-top:4px">
+                <p class="fhint" style="margin:0 0 8px">${esc(t("passport.form.nfcAutoFilledLead"))}</p>
+                <div class="field"><label>${esc(t("passport.form.labelChipUidPlain"))}<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="${esc(t("passport.form.phChipUid"))}" readonly></div>
+                <div class="field"><label>${esc(t("passport.form.labelPubKeyPlain"))}<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="${esc(t("passport.form.phChipSecretKey"))}" readonly></div>
+              </div>
               <div class="row2">
                 <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label><input type="text" id="f_ndate" value="${odpFormatDateDDMMYYYY(new Date())}"></div>
                 <div class="field"><label>${esc(t("passport.form.labelNfcNotes"))}</label><input type="text" id="f_nnotes" placeholder="${esc(t("passport.form.phNfcNotes"))}"></div>
@@ -3326,12 +3346,59 @@ function refreshPassportChipSetupUi() {
   const statusEl = passportChipSetupStatusEl();
   const needsNfc = sealType === 1 || sealType === 3;
   const block = document.getElementById("nfcIssuerFlowBlock");
+  const autoBlock = document.getElementById("nfcAutoFilledBlock");
   if (block) block.style.display = needsNfc ? "" : "none";
+  if (autoBlock) autoBlock.style.display = needsNfc && passportChipSetup.confirmed ? "block" : "none";
   if (!statusEl || !needsNfc) return;
   if (passportChipSetup.confirmed) {
     statusEl.innerHTML = `<div class="info n">${esc(t("passport.form.nfcIssuerConfirmed").replace("{at}", esc(passportChipSetup.scannedAt || "")))}</div>`;
   } else {
     statusEl.textContent = t("passport.form.nfcIssuerPending");
+  }
+}
+
+function passportProvisionStatusEl() {
+  return document.getElementById("nfcProvisionStatus");
+}
+
+function applyChipProvision(parsed) {
+  if (!parsed || !parsed.ok || !parsed.chip) return false;
+  const chip = parsed.chip;
+  const provEl = document.getElementById("f_nkey_provision");
+  const keyEl = document.getElementById("f_nkey");
+  const uidEl = document.getElementById("f_nuid");
+  const modelEl = document.getElementById("f_nmod");
+  const keyHex = String(chip.publicKey || "").replace(/^0x/i, "");
+  if (provEl) provEl.value = keyHex;
+  if (keyEl && !passportChipSetup.confirmed) keyEl.value = keyHex;
+  if (uidEl && chip.uid && !passportChipSetup.confirmed) uidEl.value = String(chip.uid).replace(/^0x/i, "");
+  if (modelEl && chip.model) modelEl.value = chip.model;
+  passportOnProvisionKeyInput();
+  schedulePassportDraftSave();
+  return true;
+}
+
+function importChipProvisionFromTextarea() {
+  const statusEl = passportProvisionStatusEl();
+  const ta = document.getElementById("f_chip_provision_import");
+  const raw = ta ? String(ta.value || "") : "";
+  if (typeof odpParseChipProvisionText !== "function") {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form.nfcIssuerCompanionMissing"))}</div>`;
+    return;
+  }
+  const parsed = odpParseChipProvisionText(raw);
+  if (!parsed.ok) {
+    const errKey = {
+      empty: "nfcIssuerProvisionImportEmpty",
+      invalid_json: "nfcIssuerProvisionImportBadJson",
+      wrong_type: "nfcIssuerProvisionImportWrongType",
+      bad_key_length: "nfcIssuerProvisionImportBadKey",
+    }[parsed.error] || "nfcIssuerProvisionImportFailed";
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.form." + errKey))}</div>`;
+    return;
+  }
+  if (applyChipProvision(parsed) && statusEl) {
+    statusEl.innerHTML = `<div class="info n">${esc(t("passport.form.nfcIssuerProvisionImportOk"))}</div>`;
   }
 }
 

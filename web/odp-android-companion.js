@@ -30,6 +30,7 @@
     "Not perfectly uncheatable: stolen original tag, bad provisioning, or leaked EV2 key still break trust. Blocks URL-only fakes, wrong chips, and opened seals.";
   var ISSUER_CHIP_SETUP_TYPE = "odp-chip-issuer-setup";
   var ISSUER_CHIP_SETUP_VERSION = 1;
+  var CHIP_PROVISION_TYPE = "odp-chip-provision";
   var ROUTE_INTENT_ISSUER_CHIP_SETUP = "issuer-chip-setup";
 
   function androidCompanionPassportNfcSeal(passport) {
@@ -221,6 +222,37 @@
     return base + sep + "chipSetup=" + encodeURIComponent(encoded);
   }
 
+  function parseChipProvisionText(raw) {
+    var trimmed = cleanText(raw);
+    if (!trimmed) return { ok: false, error: "empty" };
+    var jsonText = trimmed;
+    var first = trimmed.indexOf("{");
+    var last = trimmed.lastIndexOf("}");
+    if (first >= 0 && last > first) jsonText = trimmed.slice(first, last + 1);
+    var root;
+    try {
+      root = JSON.parse(jsonText);
+    } catch (e) {
+      return { ok: false, error: "invalid_json" };
+    }
+    if (!root || typeof root !== "object") return { ok: false, error: "not_object" };
+    if (cleanText(root.type) !== CHIP_PROVISION_TYPE) return { ok: false, error: "wrong_type" };
+    var chip = root.chip && typeof root.chip === "object" ? root.chip : root;
+    var uid = cleanHex(chip.uid);
+    var publicKey = cleanHex(chip.publicKey || chip.nfcPublicKey);
+    var model = cleanText(chip.model || chip.nfcModel) || "NTAG424DNA_TAGTAMPER";
+    if (normalizedHexByteLength(publicKey) !== 16) return { ok: false, error: "bad_key_length" };
+    return {
+      ok: true,
+      chip: {
+        uid: uid,
+        publicKey: publicKey,
+        model: model,
+        provisionedAt: cleanText(root.createdAt)
+      }
+    };
+  }
+
   function parseIssuerChipSetupText(raw) {
     var trimmed = cleanText(raw);
     if (!trimmed) return { ok: false, error: "empty" };
@@ -329,6 +361,7 @@
   global.odpAndroidCompanionPilotChipBindingProfileIdForNfcModel = androidCompanionPilotChipBindingProfileIdForNfcModel;
   global.odpAndroidCompanionPassportNfcSeal = androidCompanionPassportNfcSeal;
   global.odpBuildIssuerChipSetupCompanionFields = buildIssuerChipSetupCompanionFields;
+  global.odpParseChipProvisionText = parseChipProvisionText;
   global.odpParseIssuerChipSetupText = parseIssuerChipSetupText;
   global.odpPassportIssuerMintPageUrl = passportIssuerMintPageUrl;
   global.odpBuildIssuerChipSetupReturnUrl = buildIssuerChipSetupReturnUrl;
