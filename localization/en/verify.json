@@ -32,6 +32,8 @@
     },
     "result": {
       "badToken": "That doesn’t look like a Passport ID, profile ID, or a link from this site. Passport IDs start with ODP-. Profile IDs look like C-123-456-789-012 (also B-, P-, M-).",
+      "badTokenEthAddress": "This looks like an Ethereum address (0x…), not a Passport ID. Use the ID from the mint success screen, e.g. ODP-2026-05-123456789.",
+      "badTokenRegistryContract": "This is the Polygon registry contract address for this site, not a Passport ID. After minting, paste the Passport ID from the success screen (ODP-YYYY-MM-…), or open your mint transaction on Polygonscan and read passportId from the logs.",
       "loadFail": "Can’t load registration data right now. Check your internet connection and try again.",
       "checking": "Checking registration…",
       "notRegisteredLabel": "Not Registered",

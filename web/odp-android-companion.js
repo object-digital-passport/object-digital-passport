@@ -50,11 +50,18 @@
     return String(value == null ? "" : value).trim();
   }
 
+  function stripHexPrefix(value) {
+    var raw = cleanText(value).toLowerCase();
+    while (raw.indexOf("0x") === 0) {
+      raw = raw.slice(2);
+    }
+    return raw;
+  }
+
   function cleanHex(value) {
-    var raw = cleanText(value);
+    var raw = stripHexPrefix(value);
     if (!raw) return "";
-    var normalized = raw.replace(/^0x/i, "").toLowerCase();
-    return /^[0-9a-f]+$/.test(normalized) ? "0x" + normalized : raw;
+    return /^[0-9a-f]+$/.test(raw) ? "0x" + raw : cleanText(value);
   }
 
   function cleanLowerText(value) {
@@ -71,7 +78,7 @@
   }
 
   function normalizedHexByteLength(hex) {
-    var raw = cleanHex(hex).replace(/^0x/i, "");
+    var raw = stripHexPrefix(hex);
     if (!raw || raw.length % 2 !== 0) return 0;
     return raw.length / 2;
   }
