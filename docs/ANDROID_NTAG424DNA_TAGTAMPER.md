@@ -87,7 +87,7 @@ Use this as the short practical test path for the current pilot with the **guide
 
 Provision the physical tag on the phone or in NXP tooling.
 
-**ODP Android Companion (recommended on Pixel):** Welcome → **Provision new NTAG 424 tag** → tap a **factory-default** tag → copy `odp-chip-provision` JSON (EV2 key + UID) into `passport.html`.
+**ODP Android Companion (recommended on Pixel):** Issue workflow → **Prepare to provision** → confirm → tap tag → copy `odp-chip-provision` JSON. Provision keeps NDEF **writable** (EV2 key 0) until the **Write NFC carrier** step after mint, which then locks CC/NDEF read-only.
 
 **NXP TagWriter / PC:** same outcome if you already personalized the tag elsewhere.
 

@@ -433,6 +433,74 @@
     return odpSupportsV03(generation) ? odpPassportTupleComponentsV03(generation, net) : odpPassportTupleComponentsV02();
   }
 
+  function odpPassportHeaderViewComponents(generation, net) {
+    var idn = odpPassportIdAbiName(generation, net);
+    return [
+      { name: idn, type: "string" },
+      { name: "contractVersion", type: "uint8" },
+      { name: "creator", type: "address" },
+      { name: "owner", type: "address" },
+      { name: "creatorId", type: "string" },
+      { name: "year", type: "uint32" },
+      { name: "month", type: "uint8" },
+      { name: "title", type: "string" },
+      { name: "domain", type: "string" },
+      { name: "objectType", type: "string" },
+    ];
+  }
+
+  function odpPassportClassificationViewComponents() {
+    return [
+      { name: "contentClass", type: "uint8" },
+      { name: "lifecycleStatus", type: "uint8" },
+      { name: "aiStatus", type: "uint8" },
+      { name: "verificationMethod", type: "uint8" },
+      { name: "editionModel", type: "uint8" },
+      { name: "timestamp", type: "uint256" },
+      { name: "revoked", type: "bool" },
+      { name: "revokedAt", type: "uint256" },
+      { name: "revocationReasonHash", type: "bytes32" },
+      { name: "mintAgent", type: "address" },
+    ];
+  }
+
+  function odpPassportMediaViewComponents() {
+    return [
+      { name: "dataHash", type: "bytes32" },
+      { name: "dataUrl", type: "string" },
+      { name: "imageHash", type: "bytes32" },
+      { name: "imageUrl", type: "string" },
+      { name: "imageHash2", type: "bytes32" },
+      { name: "imageUrl2", type: "string" },
+      { name: "imageHash3", type: "bytes32" },
+      { name: "imageUrl3", type: "string" },
+      { name: "fileHash", type: "bytes32" },
+    ];
+  }
+
+  function odpPassportPhysicalViewComponents() {
+    return [
+      { name: "sealType", type: "uint8" },
+      { name: "sealHash", type: "bytes32" },
+      { name: "nfcPublicKey", type: "bytes" },
+      { name: "nfcModel", type: "string" },
+    ];
+  }
+
+  function odpPassportStateViewComponents() {
+    return [
+      { name: "currentLocation", type: "string" },
+      { name: "rightsNote", type: "string" },
+      { name: "conditionNote", type: "string" },
+      { name: "damageHistoryHash", type: "bytes32" },
+      { name: "damageHistoryUrl", type: "string" },
+      { name: "auxCommitmentHash", type: "bytes32" },
+      { name: "auxCommitmentUri", type: "string" },
+      { name: "ndppCommitmentHash", type: "bytes32" },
+      { name: "ndppCommitmentUri", type: "string" },
+    ];
+  }
+
   function odpRegistrySessionKey(chainId) {
     return "odp_registry_contract_" + String(chainId != null ? chainId : 137);
   }
@@ -945,14 +1013,26 @@
     });
   }
 
+  function odpClearContractGenerationCache(address) {
+    if (!address) return;
+    var low = String(address).toLowerCase();
+    try {
+      if (global.sessionStorage) {
+        global.sessionStorage.removeItem("odp_cv2_" + low);
+        global.sessionStorage.removeItem("odp_cv_" + low);
+      }
+    } catch (e0) {}
+  }
+
   async function odpProbeContractGenerationCached(address, chainId, rpcFallbacks, ethersRef) {
     var E = ethersRef || global.ethers;
     if (!address || !E) return null;
-    var key = "odp_cv_" + String(address).toLowerCase();
+    var key = "odp_cv2_" + String(address).toLowerCase();
     try {
       var cached = sessionStorage.getItem(key);
       if (cached !== null && cached !== "") {
-        return parseInt(cached, 10);
+        var parsed = parseInt(cached, 10);
+        if (isFinite(parsed)) return parsed;
       }
     } catch (e0) {}
 
@@ -2064,29 +2144,8 @@
   function odpBuildVerifyReadAbi(generation, net) {
     var gen = generation == null || generation === undefined ? 2 : generation;
     var pid = odpPassportIdAbiName(gen, net);
-    var passComps = odpPassportTupleComponents(gen, net);
     var abi = [
       CV_ABI[0],
-      {
-        name: "getPassport",
-        type: "function",
-        stateMutability: "view",
-        inputs: [{ name: pid, type: "string" }],
-        outputs: [
-          {
-            name: "",
-            type: "tuple",
-            components: passComps,
-          },
-        ],
-      },
-      {
-        name: "exists",
-        type: "function",
-        stateMutability: "view",
-        inputs: [{ name: pid, type: "string" }],
-        outputs: [{ name: "", type: "bool" }],
-      },
       {
         name: "getCreator",
         type: "function",
@@ -2177,6 +2236,62 @@
         outputs: [{ name: "", type: "string[]" }],
       },
     ];
+    if (gen >= 5) {
+      abi.push(
+        {
+          name: "getPassportHeader",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportHeaderViewComponents(gen, net) }],
+        },
+        {
+          name: "getPassportClassification",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportClassificationViewComponents() }],
+        },
+        {
+          name: "getPassportMedia",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportMediaViewComponents() }],
+        },
+        {
+          name: "getPassportPhysical",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportPhysicalViewComponents() }],
+        },
+        {
+          name: "getPassportState",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportStateViewComponents() }],
+        }
+      );
+    } else {
+      abi.push(
+        {
+          name: "getPassport",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportTupleComponents(gen, net) }],
+        },
+        {
+          name: "exists",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "bool" }],
+        }
+      );
+    }
     if (odpSupportsV03(gen)) {
       abi.push(
         {
@@ -2398,11 +2513,30 @@
   ];
   var ODP_OFFLINE_TARGET_BYTES = 180;
   var ODP_OFFLINE_SOFT_MAX_BYTES = 200;
-  var ODP_OFFLINE_HARD_MAX_BYTES = 244;
+  var ODP_OFFLINE_HARD_MAX_BYTES = 256;
 
   function odpOfflineUtf8Bytes(text) {
     return new global.TextEncoder().encode(String(text == null ? "" : text));
   }
+
+  // #region agent log
+  function odpOfflineDebugLog(location, message, data, hypothesisId) {
+    if (!global || typeof global.fetch !== "function") return;
+    global.fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+      body: JSON.stringify({
+        sessionId: "c94472",
+        runId: "pre-fix",
+        hypothesisId: hypothesisId || "A",
+        location: location,
+        message: message,
+        data: data || {},
+        timestamp: Date.now(),
+      }),
+    }).catch(function () {});
+  }
+  // #endregion
 
   function odpOfflineHexToBytes(hex, expectedLength) {
     var s = String(hex == null ? "" : hex).trim();
@@ -2714,11 +2848,13 @@
       ? ODP_OFFLINE_CARRIER_NDPP
       : ODP_OFFLINE_CARRIER_LEGACY;
     var records = [];
+    var uriPayloadBytes = null;
     if (carrierMode === ODP_OFFLINE_CARRIER_NDPP) {
+      uriPayloadBytes = odpOfflineEncodeUriPayload(options.verifyUrl || "");
       records.push({
         tnf: 0x01,
         type: ODP_OFFLINE_NDEF_URI_TYPE,
-        payloadBytes: odpOfflineEncodeUriPayload(options.verifyUrl || ""),
+        payloadBytes: uriPayloadBytes,
       });
     }
     records.push({
@@ -2726,7 +2862,21 @@
       type: ODP_OFFLINE_NDEF_TYPE,
       payloadBytes: payload,
     });
-    return odpOfflineEncodeNdefRecords(records);
+    var encoded = odpOfflineEncodeNdefRecords(records);
+    // #region agent log
+    odpOfflineDebugLog("odp-contract.js:odpOfflineEncodeNdefMessage", "ndef message size breakdown", {
+      carrierMode: carrierMode,
+      recordCount: records.length,
+      verifyUrlChars: String(options.verifyUrl || "").length,
+      uriPayloadBytes: uriPayloadBytes ? uriPayloadBytes.length : 0,
+      payloadBytes: payload.length,
+      messageBytes: encoded.length,
+      messageOverheadBytes: encoded.length - payload.length - (uriPayloadBytes ? uriPayloadBytes.length : 0),
+      targetBytes: ODP_OFFLINE_TARGET_BYTES,
+      hardMaxBytes: ODP_OFFLINE_HARD_MAX_BYTES,
+    }, carrierMode === ODP_OFFLINE_CARRIER_NDPP ? "A" : "D");
+    // #endregion
+    return encoded;
   }
 
   function odpOfflineWrapNdefFile(messageBytes) {
@@ -2920,14 +3070,78 @@
   }
 
   function odpOfflineEncode(passport, opts) {
-    var built = odpOfflineBuildMap(passport, opts);
-    var payloadBytes = odpOfflineEncodeCborValue(built.map);
     var options = opts || {};
     var carrierMode = String(options.carrierMode || ODP_OFFLINE_CARRIER_LEGACY).trim().toLowerCase() === ODP_OFFLINE_CARRIER_NDPP
       ? ODP_OFFLINE_CARRIER_NDPP
       : ODP_OFFLINE_CARRIER_LEGACY;
-    var ndefMessageBytes = odpOfflineEncodeNdefMessage(payloadBytes, options);
-    var ndefFileBytes = odpOfflineWrapNdefFile(ndefMessageBytes);
+    function encodeOnce(buildOptions) {
+      var built = odpOfflineBuildMap(passport, buildOptions);
+      var payloadBytes = odpOfflineEncodeCborValue(built.map);
+      var ndefMessageBytes = odpOfflineEncodeNdefMessage(payloadBytes, buildOptions);
+      var ndefFileBytes = odpOfflineWrapNdefFile(ndefMessageBytes);
+      return {
+        built: built,
+        payloadBytes: payloadBytes,
+        ndefMessageBytes: ndefMessageBytes,
+        ndefFileBytes: ndefFileBytes,
+      };
+    }
+    function cloneOptionsWithMaxTitle(maxTitleBytes) {
+      var out = {};
+      for (var k in options) {
+        if (Object.prototype.hasOwnProperty.call(options, k)) out[k] = options[k];
+      }
+      out.maxTitleBytes = Math.max(0, Number(maxTitleBytes || 0));
+      return out;
+    }
+    var encoded = encodeOnce(options);
+    var built = encoded.built;
+    var payloadBytes = encoded.payloadBytes;
+    var ndefMessageBytes = encoded.ndefMessageBytes;
+    var ndefFileBytes = encoded.ndefFileBytes;
+    if (carrierMode === ODP_OFFLINE_CARRIER_NDPP && ndefFileBytes.length > ODP_OFFLINE_HARD_MAX_BYTES && built.titleBytes > 0) {
+      var maxTitleBytes = options.maxTitleBytes != null
+        ? Math.min(Number(options.maxTitleBytes), built.titleBytes)
+        : built.titleBytes;
+      var guard = 0;
+      while (ndefFileBytes.length > ODP_OFFLINE_HARD_MAX_BYTES && maxTitleBytes > 0 && guard < 64) {
+        var over = Math.max(1, ndefFileBytes.length - ODP_OFFLINE_HARD_MAX_BYTES);
+        maxTitleBytes = Math.max(0, maxTitleBytes - over);
+        encoded = encodeOnce(cloneOptionsWithMaxTitle(maxTitleBytes));
+        built = encoded.built;
+        payloadBytes = encoded.payloadBytes;
+        ndefMessageBytes = encoded.ndefMessageBytes;
+        ndefFileBytes = encoded.ndefFileBytes;
+        guard++;
+      }
+      // #region agent log
+      odpOfflineDebugLog("odp-contract.js:odpOfflineEncode", "url-first carrier auto-fit", {
+        carrierMode: carrierMode,
+        finalMaxTitleBytes: maxTitleBytes,
+        titleBytes: built.titleBytes,
+        titleTruncated: built.titleTruncated,
+        ndefFileBytes: ndefFileBytes.length,
+        hardMaxBytes: ODP_OFFLINE_HARD_MAX_BYTES,
+        fit: ndefFileBytes.length <= ODP_OFFLINE_HARD_MAX_BYTES,
+      }, "B");
+      // #endregion
+    }
+    // #region agent log
+    odpOfflineDebugLog("odp-contract.js:odpOfflineEncode", "offline payload size breakdown", {
+      carrierMode: carrierMode,
+      includeState: !!options.includeState,
+      passportIdChars: String(options.passportId || passport.passportId || passport.humanId || "").length,
+      creatorIdChars: String(passport.creatorId || "").length,
+      titleBytes: built.titleBytes,
+      titleTruncated: built.titleTruncated,
+      verifyUrlChars: String(options.verifyUrl || "").length,
+      payloadBytes: payloadBytes.length,
+      ndefMessageBytes: ndefMessageBytes.length,
+      ndefFileBytes: ndefFileBytes.length,
+      overTargetBytes: ndefFileBytes.length - ODP_OFFLINE_TARGET_BYTES,
+      overHardMaxBytes: ndefFileBytes.length - ODP_OFFLINE_HARD_MAX_BYTES,
+    }, options.includeState ? "C" : "A");
+    // #endregion
     return {
       version: ODP_OFFLINE_VERSION,
       payloadBytes: payloadBytes,
@@ -2999,6 +3213,7 @@
   global.odpMaybeAutoShowSiteTrustModal = odpMaybeAutoShowSiteTrustModal;
   global.odpStackDisclosureParagraphsHtml = odpStackDisclosureParagraphsHtml;
   global.odpProbeContractGenerationCached = odpProbeContractGenerationCached;
+  global.odpClearContractGenerationCache = odpClearContractGenerationCache;
   global.odpBuildPassportAbi = odpBuildPassportAbi;
   global.odpGetPassportRecord = odpGetPassportRecord;
   global.odpOfflineBytesToHex = odpOfflineBytesToHex;

@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="odp.css?v=20260519form">
 <script src="odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-Htz1SE4Sl5aitpvFgr2j0sfsGUIuSXI6t8hEyrlQ93zflEF3a29bH2AvkUROUw7J" crossorigin="anonymous"></script>
-<script src="odp-contract.js?v=0.5.0"></script>
+<script src="odp-contract.js?v=0.5.1"></script>
 <script src="odp-android-companion.js?v=1"></script>
 <script src="odp-date-format.js?v=1"></script>
 <script>window.ODP_I18N_VERSION="20260523";</script>
@@ -286,7 +286,7 @@ const NET = {
   docAnchor: "0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee",
   /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
   counterfeitConcern: "0xd5727f16dB061226E19F82287A81FC9f69E1aDE2",
-  contractGenerationFallback: null,
+  contractGenerationFallback: 5,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
   previousContracts: [
     "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
@@ -876,6 +876,13 @@ async function disconnectVerifyWallet() {
 async function connect() {
   await odpMergeRegistryConfigAsync(NET);
   const c = NET;
+  // #region agent log
+  odpVerifyDebugLog("verify.html:connect", "registry config after merge", {
+    contract: c.contract,
+    chainId: c.chainId,
+    previousContracts: (c.previousContracts || []).length,
+  }, "B");
+  // #endregion
   verifyContractError = null;
   let lastErr = null;
   const lbl = document.getElementById("odpStackLabel");
@@ -894,6 +901,14 @@ async function connect() {
       }
       const probed = await odpProbeContractGenerationCached(c.contract, c.chainId, POLYGON_RPC_FALLBACKS, ethers);
       odpContractGeneration = odpResolveGeneration(probed, c);
+      // #region agent log
+      odpVerifyDebugLog("verify.html:connect", "primary contract probed", {
+        rpcUrl,
+        contract: c.contract,
+        probed,
+        generation: odpContractGeneration,
+      }, "B");
+      // #endregion
       if (odpContractGeneration === 0) {
         verifyContractError =
           typeof ODP_UNSUPPORTED_LEGACY_CONTRACT_MSG !== "undefined"
@@ -915,6 +930,14 @@ async function connect() {
       }
       verifyReadAbi = odpBuildVerifyReadAbi(odpContractGeneration, c);
       contract = new ethers.Contract(c.contract, verifyReadAbi, provider);
+      // #region agent log
+      odpVerifyDebugLog("verify.html:connect", "verify contract ready", {
+        contract: contract.address,
+        generation: odpContractGeneration,
+        hasGetPassport: typeof contract.getPassport === "function",
+        hasSplitHeader: typeof contract.getPassportHeader === "function",
+      }, "C");
+      // #endregion
       if (lbl) {
         lbl.innerHTML = odpFormatStackSummaryHtml(odpContractGeneration);
         lbl.style.display = "";
@@ -958,7 +981,8 @@ async function connect() {
 }
 
 /** Primary deployment first, then `NET.previousContracts` (deduped; same read ABI). */
-function verifyReadContractsOrdered() {
+function verifyReadContractsOrdered(abiOverride) {
+  const abi = abiOverride || currentVerifyReadAbi();
   const addrs = [NET.contract, ...(NET.previousContracts || [])].filter(Boolean);
   const seen = {};
   const uniq = [];
@@ -968,7 +992,35 @@ function verifyReadContractsOrdered() {
     seen[a] = true;
     uniq.push(addrs[i]);
   }
-  return uniq.map((addr) => new ethers.Contract(addr, currentVerifyReadAbi(), provider));
+  return uniq.map((addr) => new ethers.Contract(addr, abi, provider));
+}
+
+async function passportExistsOnRegistry(reader, passportId) {
+  if (!reader || !passportId) return false;
+  if (typeof reader.exists === "function") {
+    try {
+      return !!(await reader.exists(passportId));
+    } catch {
+      return false;
+    }
+  }
+  if (typeof reader.getPassportHeader === "function") {
+    try {
+      await reader.getPassportHeader(passportId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  if (typeof reader.getPassport === "function") {
+    try {
+      await reader.getPassport(passportId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 /** Collect all proof IDs using paged reads when available (avoids huge single RPC responses). */
@@ -1023,10 +1075,10 @@ function schedulePassportExistsHint() {
       return;
     }
     const c0 = verifyReadContractsOrdered()[0];
-    if (!c0 || typeof c0.exists !== "function") return;
+    if (!c0) return;
     elHint.textContent = t("verify.search.existsChecking");
     try {
-      const ex = await c0.exists(tok.id);
+      const ex = await passportExistsOnRegistry(c0, tok.id);
       elHint.textContent = ex ? t("verify.search.existsYes") : t("verify.search.existsNo");
     } catch {
       elHint.textContent = "";
@@ -1192,6 +1244,56 @@ function parseVerifyToken(raw) {
   }
   return null;
 }
+
+/** Full 0x + 40 hex, or abbreviated 0x…4B346 pasted from explorer. */
+function looksLikeEthAddressLoose(raw) {
+  const s = String(raw ?? "").trim();
+  if (/^0x[a-fA-F0-9]{40}$/i.test(s)) return true;
+  if (/^0x[a-fA-F0-9]{6,}/i.test(s) && (s.includes("…") || s.includes("..."))) return true;
+  return false;
+}
+
+function normalizeEthAddress40(raw) {
+  const s = String(raw ?? "").trim();
+  const m = s.match(/^0x([a-fA-F0-9]{40})$/i);
+  return m ? ("0x" + m[1].toLowerCase()) : null;
+}
+
+function isRegistryContractAddress(addr40) {
+  if (!addr40 || !NET || !NET.contract) return false;
+  return addr40.toLowerCase() === String(NET.contract).trim().toLowerCase();
+}
+
+function verifyBadTokenMessage(raw) {
+  if (!looksLikeEthAddressLoose(raw)) return t("verify.result.badToken");
+  const full = normalizeEthAddress40(raw);
+  if (full && isRegistryContractAddress(full)) return t("verify.result.badTokenRegistryContract");
+  const contract = NET && NET.contract ? String(NET.contract) : "";
+  const s = String(raw ?? "").trim().toLowerCase();
+  const cLow = contract.toLowerCase();
+  if (cLow && s.startsWith("0x") && (cLow.startsWith(s.slice(0, 10)) || cLow.endsWith(s.slice(-6)))) {
+    return t("verify.result.badTokenRegistryContract");
+  }
+  return t("verify.result.badTokenEthAddress");
+}
+
+// #region agent log
+function odpVerifyDebugLog(location, message, data, hypothesisId) {
+  fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+    body: JSON.stringify({
+      sessionId: "c94472",
+      location,
+      message,
+      data: data || {},
+      timestamp: Date.now(),
+      hypothesisId,
+      runId: "pre-fix",
+    }),
+  }).catch(() => {});
+}
+// #endregion
 
 /** Multiline QR (ODP share): use first line that parses as Passport ID / profile ID / URL. */
 function pickVerifiableLine(text) {
@@ -1437,8 +1539,17 @@ async function verify() {
   const el    = document.getElementById("result");
   const token = parseVerifyToken(raw);
 
+  // #region agent log
+  odpVerifyDebugLog("verify.html:verify", "parse input", {
+    inputLen: String(raw ?? "").length,
+    looksEth: looksLikeEthAddressLoose(raw),
+    tokenKind: token ? token.kind : null,
+    registryContract: NET && NET.contract ? String(NET.contract).slice(0, 10) + "…" : "",
+  }, token ? "C" : looksLikeEthAddressLoose(raw) ? "A" : "E");
+  // #endregion
+
   if (!token) {
-    el.innerHTML = `<div class="err-box">${esc(t("verify.result.badToken"))}</div>`;
+    el.innerHTML = `<div class="err-box">${esc(verifyBadTokenMessage(raw))}</div>`;
     const hint = document.getElementById("idExistsHint");
     if (hint) hint.textContent = "";
     return;
@@ -1468,11 +1579,30 @@ async function verify() {
     let readContract = null;
     for (const c of verifyReadContractsOrdered()) {
       try {
+        // #region agent log
+        odpVerifyDebugLog("verify.html:verify", "try read contract", {
+          humanId,
+          contract: c.address,
+          generation: odpContractGeneration,
+          hasGetPassport: typeof c.getPassport === "function",
+          hasSplitHeader: typeof c.getPassportHeader === "function",
+        }, "C");
+        // #endregion
         res = await fetchResolvedPassport(c, humanId);
         readContract = c;
         break;
       } catch (e) {
         const m = String(e && (e.reason || e.message) || "");
+        // #region agent log
+        odpVerifyDebugLog("verify.html:verify", "read contract failed", {
+          humanId,
+          contract: c.address,
+          code: e && e.code ? String(e.code) : "",
+          reason: e && e.reason ? String(e.reason) : "",
+          message: m.slice(0, 180),
+          data: e && e.data ? String(e.data).slice(0, 66) : "",
+        }, "C");
+        // #endregion
         if (m.includes("Passport not found")) {
           continue;
         }
@@ -1480,9 +1610,44 @@ async function verify() {
       }
     }
     if (!res || !readContract) {
+      const staleGen = odpContractGeneration != null && odpContractGeneration < 5;
+      if (staleGen && typeof odpBuildVerifyReadAbi === "function" && NET && NET.contract && provider) {
+        if (typeof odpClearContractGenerationCache === "function") {
+          odpClearContractGenerationCache(NET.contract);
+        }
+        odpContractGeneration = 5;
+        verifyReadAbi = odpBuildVerifyReadAbi(5, NET);
+        contract = new ethers.Contract(NET.contract, verifyReadAbi, provider);
+        try {
+          const c5 = new ethers.Contract(NET.contract, verifyReadAbi, provider);
+          res = await fetchResolvedPassport(c5, humanId);
+          readContract = c5;
+        } catch (retryErr) {
+          odpVerifyDebugLog("verify.html:verify", "v5 retry after miss failed", {
+            humanId,
+            message: String(retryErr && (retryErr.reason || retryErr.message) || "").slice(0, 180),
+          }, "C");
+        }
+      }
+    }
+    if (!res || !readContract) {
+      // #region agent log
+      odpVerifyDebugLog("verify.html:verify", "registry miss", {
+        humanId,
+        generation: odpContractGeneration,
+        registryContract: NET && NET.contract ? NET.contract : "",
+        contractsTried: verifyReadContractsOrdered().map((c) => c && c.address).filter(Boolean).length,
+      }, "B");
+      // #endregion
       renderInvalid(humanId);
       return;
     }
+    // #region agent log
+    odpVerifyDebugLog("verify.html:verify", "registry hit", {
+      humanId,
+      contract: readContract.address,
+    }, "B");
+    // #endregion
     const resolvedOn = readContract.address;
     const rec = res.passport;
 
@@ -1571,6 +1736,14 @@ function setLoading(el, msg) {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 function renderInvalid(humanId) {
+  const reg = NET && NET.contract ? String(NET.contract) : "";
+  const gen =
+    odpContractGeneration != null && odpContractGeneration !== undefined
+      ? String(odpContractGeneration)
+      : "?";
+  const techHint = reg
+    ? `<p style="font-size:12px;color:var(--text3);margin-top:10px;line-height:1.5">Registry <code class="mono">${esc(shortAddr(reg))}</code> · on-chain generation ${esc(gen)}. If this passport was minted on Polygon v5, hard-refresh this page (cache may still load an old <code class="mono">odp-contract.js</code>) and confirm the ID matches mint exactly: <code class="mono">${esc(humanId)}</code>.</p>`
+    : "";
   document.getElementById("result").innerHTML = `
     <div class="card">
       <div class="status-bar invalid">
@@ -1584,6 +1757,7 @@ function renderInvalid(humanId) {
         <p style="font-size:13px;color:var(--text2)">
           ${esc(t("verify.result.notRegisteredBody"))}
         </p>
+        ${techHint}
       </div>
     </div>`;
 }

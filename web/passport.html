@@ -1151,6 +1151,10 @@ function buildPassportManageAndroidHandoff() {
   const draft = passportManageState.offlineDraft || null;
   const nfcModel = String(record.nfcModel || "").trim();
   const nfcPublicKeyHex = passportManageBytesHex(record.nfcPublicKey);
+  const hasWritePayload = !!(draft && draft.payloadBase64);
+  if (hasWritePayload && /ntag424/i.test(nfcModel) && !nfcPublicKeyHex) {
+    throw new Error("Android NFC write needs the NTAG424 EV2 key (nfcPublicKey), but this passport record does not expose it.");
+  }
   const chipBindingProfileId = nfcPublicKeyHex &&
     typeof odpAndroidCompanionPilotChipBindingProfileIdForNfcModel === "function"
       ? odpAndroidCompanionPilotChipBindingProfileIdForNfcModel(nfcModel, nfcPublicKeyHex)
@@ -1164,16 +1168,22 @@ function buildPassportManageAndroidHandoff() {
     nfcModel: nfcModel,
     dataHash: passportManageBytes32Hex(record.dataHash),
     chipBindingProfileId,
-    initialStep: draft && draft.payloadBase64 ? "advanced-operator" : "ready-to-scan",
-    operatorFlowSuggested: !!(draft && draft.payloadBase64),
-    offlinePayloadBase64: draft && draft.payloadBase64 ? draft.payloadBase64 : "",
-    lockCarrierAfterWrite: !!(draft && draft.payloadBase64),
+    initialStep: hasWritePayload ? "advanced-operator" : "ready-to-scan",
+    operatorFlowSuggested: hasWritePayload,
+    offlinePayloadBase64: hasWritePayload ? draft.payloadBase64 : "",
+    lockCarrierAfterWrite: hasWritePayload,
   };
 }
 
 async function passportManageUseAndroidHandoff(mode) {
   const statusEl = document.getElementById("passportManageOfflineStatus");
-  const fields = buildPassportManageAndroidHandoff();
+  let fields = null;
+  try {
+    fields = buildPassportManageAndroidHandoff();
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(e && e.message ? e.message : t("passport.manage.androidCopyFailed"))}</div>`;
+    return;
+  }
   if (!fields || typeof odpAndroidCompanionHandoffJson !== "function") {
     if (statusEl) statusEl.innerHTML = `<div class="info warn">${esc(t("passport.manage.androidCopyFailed"))}</div>`;
     return;
@@ -1659,6 +1669,30 @@ async function refreshPassportManageOffline() {
       carrierMode,
       verifyUrl,
     });
+    // #region agent log
+    fetch("http://127.0.0.1:7870/ingest/2f5a31df-775f-46ef-a661-30ac4fb319a1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "c94472" },
+      body: JSON.stringify({
+        sessionId: "c94472",
+        runId: "pre-fix",
+        hypothesisId: "A",
+        location: "passport.html:passportManageRefreshOfflineDraft",
+        message: "manage offline draft built",
+        data: {
+          passportId: passportManageState.hid,
+          includeState,
+          carrierMode,
+          verifyUrlChars: String(verifyUrl || "").length,
+          hostedPayloadUrlChars: String((document.getElementById("passportManageOfflineUri") || {}).value || "").length,
+          payloadBytes: built.payloadBytes ? built.payloadBytes.length : 0,
+          ndefFileBytes: built.ndefFileBytes ? built.ndefFileBytes.length : 0,
+          footprint: built.footprint || null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     const payloadHash = await odpOfflineSha256Hex(built.payloadBytes);
     passportManageState.offlineDraft = built;
     passportManageState.offlineHash = payloadHash;
