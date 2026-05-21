@@ -33,7 +33,8 @@
 <script src="odp-contract.js?v=0.5.0"></script>
 <script src="odp-android-companion.js?v=1"></script>
 <script src="odp-date-format.js?v=1"></script>
-<script src="odp-i18n.js?v=16"></script>
+<script>window.ODP_I18N_VERSION="20260523";</script>
+<script src="odp-i18n.js?v=17"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" integrity="sha384-9Q0jWoineiIq95JeIyBsNV90KKLfDsbkj29k/YFxf76a2JwkHDYkMuSbNGN6XJfV" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 </head>
@@ -207,6 +208,9 @@
   <div class="section-title" data-i18n="verify.offlineTool.sectionTitle">Offline payload check</div>
   <p class="fhint verify-tool-workspace-lead" data-i18n="verify.offlineTool.lead">
     Load a compact odpOffline payload from a file or paste Base64, then compare it with the passport's current on-chain NDPP anchor.
+  </p>
+  <p class="fhint verify-tool-workspace-lead" style="margin-top:0" data-i18n="verify.offlineTool.chipVsWebNote">
+    A file from disk or the internet only checks the on-chain NDPP hash — not that the same bytes are on the tag.
   </p>
   <section class="card verify-tool-card">
     <div class="verify-tool-card-pad">
@@ -487,6 +491,33 @@ async function verifyUseAndroidHandoff(humanId, verifyUrl, ndppCommitmentHash, c
     if (e && e.name === "AbortError") return;
     if (statusEl) statusEl.textContent = t("verify.detail.nfcCopyFailed");
   }
+}
+
+function renderVerifyTrustLayersGuide(hasNFC, hasNdppAnchor) {
+  const layer = (nameKey, webKey, chipKey, first) =>
+    `<div style="margin-top:${first ? "4" : "12"}px;padding-top:${first ? "0" : "12"}px;${first ? "" : "border-top:1px solid var(--border)"}">
+      <div class="vinfo-label" style="margin-bottom:8px">${esc(t("verify.detail." + nameKey))}</div>
+      <div class="vinfo-val" style="font-size:12px;line-height:1.55;margin-bottom:6px"><strong>${esc(t("verify.detail.trustSourceWeb"))}</strong> ${esc(t("verify.detail." + webKey))}</div>
+      <div class="vinfo-val" style="font-size:12px;line-height:1.55"><strong>${esc(t("verify.detail.trustSourceChip"))}</strong> ${esc(t("verify.detail." + chipKey))}</div>
+    </div>`;
+  return `
+    <div class="info neutral" style="display:block;margin:16px 0;padding:14px 16px;border-radius:8px;line-height:1.55">
+      <div class="section-label" style="margin:0 0 8px">${esc(t("verify.detail.trustLayersTitle"))}</div>
+      <p class="fhint" style="margin:0 0 12px">${esc(t("verify.detail.trustLayersLead"))}</p>
+      ${layer("trustLayer1Name", "trustLayer1Web", "trustLayer1Chip", true)}
+      ${layer("trustLayer2Name", "trustLayer2Web", "trustLayer2Chip", false)}
+      ${layer("trustLayer3Name", "trustLayer3Web", "trustLayer3Chip", false)}
+      ${
+        hasNFC
+          ? `<p class="fhint" style="margin:12px 0 0;font-size:12px">${esc(t("verify.detail.trustLayersAndroidLead"))}</p>`
+          : ""
+      }
+      ${
+        hasNdppAnchor && hasNFC
+          ? `<p class="fhint" style="margin:8px 0 0;font-size:11px;opacity:0.9">${esc(t("verify.detail.ndppSourceChipHint"))}</p>`
+          : ""
+      }
+    </div>`;
 }
 
 function renderVerifyAndroidNfcGuide(humanId, rec, passport) {
@@ -2345,6 +2376,11 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
 
         ${passport ? renderPassportJsonExtras(passport, isDigital) : ""}
 
+        ${renderVerifyTrustLayersGuide(
+          hasNFC,
+          typeof rec.ndppCommitmentHash !== "undefined" && odpNonZeroBytes32(rec.ndppCommitmentHash)
+        )}
+
         <!-- Hashes -->
         <div class="section-title">Verification</div>
 
@@ -2355,6 +2391,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           <div class="vinfo">
             <div class="vinfo-label">Passport Data (SHA-256)</div>
             <div class="vinfo-val">${rec.dataHash}</div>
+            <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(t("verify.detail.dataHashSourceWeb"))}</p>
           </div>
         </div>
 
@@ -2371,6 +2408,9 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
                 : ""
             }
             <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(t("verify.detail.ndppExplain"))}</p>
+            <p style="font-size:11px;color:var(--text2);margin:6px 0 0;line-height:1.5">${esc(t("verify.detail.ndppSourceWeb"))}${
+              hasNFC ? " · " + esc(t("verify.detail.ndppSourceChipHint")) : ""
+            }</p>
           </div>
         </div>`
             : ""
