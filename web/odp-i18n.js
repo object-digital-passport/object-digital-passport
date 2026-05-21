@@ -228,7 +228,7 @@
       if (global && typeof global.ODP_I18N_VERSION === "string" && global.ODP_I18N_VERSION) {
         return global.ODP_I18N_VERSION;
       }
-      return "20260521";
+      return "20260522";
     }
 
     function versionedI18nUrl(url) {
