@@ -18,7 +18,7 @@
 <script src="odp-contract.js?v=0.5.0"></script>
 <script src="odp-android-companion.js?v=1"></script>
 <script src="odp-date-format.js?v=1"></script>
-<script>window.ODP_I18N_VERSION="20260521";</script>
+<script>window.ODP_I18N_VERSION="20260522";</script>
 <script src="odp-i18n.js?v=16"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
@@ -2621,6 +2621,9 @@ function htmlMintOptionalAcc(accId, titleKey, leadKey, bodyHtml, startOpen) {
   const lead = leadKey
     ? '<p class="fhint" style="margin:0 0 14px;line-height:1.55">' + esc(t(leadKey)) + "</p>"
     : "";
+  const optMark = t("passport.form.optionalMark");
+  const title =
+    esc(t(titleKey)) + (optMark && optMark !== "passport.form.optionalMark" ? " " + esc(optMark) : "");
   return (
     '<div class="acc' +
     openCls +
@@ -2630,7 +2633,7 @@ function htmlMintOptionalAcc(accId, titleKey, leadKey, bodyHtml, startOpen) {
     '<div class="acc-head" onclick="tog(\'' +
     accId +
     "')\">" +
-    esc(t(titleKey)) +
+    title +
     '<span class="acc-arr">▶</span></div>' +
     '<div class="acc-body">' +
     lead +
@@ -2683,8 +2686,8 @@ function mintFormRequiredSectionHtml() {
   return '<div class="section" id="mintRequiredSection">' +
     '<div class="section-label">' + esc(t("passport.form.requiredSectionTitle")) + '</div>' +
     '<p class="fhint form-section-lead">' + esc(t("passport.form.requiredSectionLead")) + '</p>' +
-    htmlFormGroup("passport.form.groupIdentityTitle", "passport.form.groupIdentityLead", identityBody) +
     htmlMintOptionalAcc("mintPeopleAcc", "passport.form.groupPeopleOptionalTitle", "passport.form.groupPeopleOptionalLead", peopleBody, false) +
+    htmlFormGroup("passport.form.groupIdentityTitle", "passport.form.groupIdentityLead", identityBody) +
     htmlFormGroup("passport.form.groupTaxonomyTitle", "passport.form.groupTaxonomyLead", taxonomyBody) +
     '</div>';
 }
@@ -2700,9 +2703,7 @@ function mintFormDiscoveryOptionalHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelTags")) + '</label>' +
     '<input type="text" id="f_tags" placeholder="' + esc(t("passport.form.phTags")) + '">' +
     htmlFieldHint("passport.form.hintTags") + '</div>';
-  return '<div class="section">' +
-    htmlMintOptionalAcc("mintDiscoveryAcc", "passport.form.groupDiscoveryOptionalTitle", "passport.form.groupDiscoveryOptionalLead", discoveryBody, false) +
-    '</div>';
+  return htmlMintOptionalAcc("mintDiscoveryAcc", "passport.form.groupDiscoveryOptionalTitle", "passport.form.groupDiscoveryOptionalLead", discoveryBody, false);
 }
 
 function mintFormPhysicalOptionalHtml() {
@@ -2719,7 +2720,7 @@ function mintFormPhysicalOptionalHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelMarks")) + '</label><textarea id="f_marks" placeholder="' + esc(t("passport.form.phMarks")) + '"></textarea></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelNfcNotes")) + '</label><input type="text" id="f_nnotes" placeholder="' + esc(t("passport.form.phNfcNotes")) + '"></div>';
   return (
-    '<div id="physExtra" style="display:none;margin-top:16px">' +
+    '<div id="physExtra" style="display:none;margin-bottom:16px">' +
     htmlMintOptionalAcc(
       "mintPhysicalAcc",
       "passport.form.groupPhysicalOptionalTitle",
@@ -2740,7 +2741,7 @@ function mintFormDigitalOptionalHtml() {
     '<div class="field"><label>' + esc(t("passport.form.c2paLabelShort")) + '</label>' +
     '<input type="text" id="f_c2pa_manifest_label" placeholder="' + esc(t("passport.form.phOptionalShort")) + '"></div></div>';
   return (
-    '<div id="digitalExtraOptional" style="display:none;margin-top:16px">' +
+    '<div id="digitalExtraOptional" style="display:none;margin-bottom:16px">' +
     htmlMintOptionalAcc(
       "mintDigitalAcc",
       "passport.form.groupDigitalOptionalTitle",
@@ -2762,10 +2763,9 @@ function mintFormPreviewOptionalHtml() {
     '<div id="imgInfo"></div>' +
     '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(1)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
     '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImageUrl")) + '</label>' +
-    '<input type="url" id="f_imgUrl" placeholder="' + esc(t("passport.form.phImageUrl")) + '"></div>';
-  const v03Body =
-    '<div class="form-group-box" style="margin-top:4px"><div class="form-group-title">' + esc(t("passport.form.groupExtraImagesTitle")) + '</div>' +
-    '<p class="form-group-lead">' + esc(t("passport.form.extraImagesHint")) + '</p>' +
+    '<input type="url" id="f_imgUrl" placeholder="' + esc(t("passport.form.phImageUrl")) + '"></div>' +
+    '<div id="passportAdditionalV03" style="' + v03Display + ';margin-top:18px">' +
+    '<p class="form-group-lead" style="margin:0 0 10px">' + esc(t("passport.form.extraImagesHint")) + '</p>' +
     '<div class="fdrop" id="imgDrop2" onclick="document.getElementById(\'imgIn2\').click()"><input type="file" id="imgIn2" accept="image/*" onchange="hashImg2(event)">' +
     '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImg2")) + '</div></div><div id="imgInfo2"></div>' +
     '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(2)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
@@ -2773,8 +2773,8 @@ function mintFormPreviewOptionalHtml() {
     '<div class="fdrop" id="imgDrop3" style="margin-top:14px" onclick="document.getElementById(\'imgIn3\').click()"><input type="file" id="imgIn3" accept="image/*" onchange="hashImg3(event)">' +
     '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImg3")) + '</div></div><div id="imgInfo3"></div>' +
     '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(3)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
-    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImage3Url")) + '</label><input type="url" id="f_imgUrl3" placeholder="' + esc(t("passport.form.phHttpsShort")) + '"></div></div>' +
-    '<div class="form-group-box"><div class="form-group-title">' + esc(t("passport.form.extraMetaSection")) + '</div>' +
+    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImage3Url")) + '</label><input type="url" id="f_imgUrl3" placeholder="' + esc(t("passport.form.phHttpsShort")) + '"></div>' +
+    '<div class="form-group-title" style="margin-top:18px">' + esc(t("passport.form.extraMetaSection")) + '</div>' +
     '<p class="form-group-lead">' + esc(t("passport.form.extraMetaHint")) + '</p><div id="extraMetaRows"></div>' +
     '<button type="button" class="btn btn-sec" style="margin-top:10px" onclick="addExtraMetaRow()">' + esc(t("passport.form.extraMetaAdd")) + '</button>' +
     '<div class="form-group-title" style="margin-top:18px">' + esc(t("passport.form.v03MetaSubheading")) + '</div>' +
@@ -2788,16 +2788,8 @@ function mintFormPreviewOptionalHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelDepthUnit")) + '</label><input type="text" id="f_depth_unit" placeholder="' + esc(t("passport.form.phUnitCm")) + '"></div></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelCreationDate")) + '</label><input type="text" id="f_creation_date" placeholder="' + esc(t("passport.form.phCreationDate")) + '"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelListingPrice")) + '</label><input type="text" id="f_listing_price" placeholder="' + esc(t("passport.form.phListingPrice")) + '"></div>' +
-    '<div class="field"><label>' + esc(t("passport.form.labelInternalTag")) + '</label><input type="text" id="f_internal_tag" placeholder="' + esc(t("passport.form.phInternalTag")) + '"></div>';
-  return (
-    '<div class="section">' +
-    htmlMintOptionalAcc("mintPreviewAcc", "passport.form.groupPreviewOptionalTitle", "passport.form.groupPreviewOptionalLead", previewBody, false) +
-    '<div id="passportAdditionalV03" style="' +
-    v03Display +
-    ';margin-top:12px">' +
-    htmlMintOptionalAcc("mintExtraV03Acc", "passport.form.groupExtraV03Title", "passport.form.groupExtraV03Lead", v03Body, false) +
-    "</div></div>"
-  );
+    '<div class="field"><label>' + esc(t("passport.form.labelInternalTag")) + '</label><input type="text" id="f_internal_tag" placeholder="' + esc(t("passport.form.phInternalTag")) + '"></div></div>';
+  return htmlMintOptionalAcc("mintPreviewAcc", "passport.form.groupPreviewOptionalTitle", "passport.form.groupPreviewOptionalLead", previewBody, false);
 }
 
 function renderForm() {
@@ -2868,13 +2860,14 @@ function renderForm() {
       </div>
     </div>
 
-    ${mintFormRequiredSectionHtml()}
+    <div class="section">${mintFormPreviewOptionalHtml()}</div>
 
-    ${mintFormDiscoveryOptionalHtml()}
+    ${mintFormRequiredSectionHtml()}
 
     <!-- Passport URL -->
     <div class="section">
       <div class="section-label">${esc(t("passport.form.hosting"))}<span class="req">*</span></div>
+      ${mintFormDiscoveryOptionalHtml()}
       <p class="fhint form-section-lead">${esc(t("passport.form.groupHostingLead"))}</p>
       <div id="skipPublicUrlRow" class="field" style="margin-bottom:12px;${odpSupportsOptionalDataUrl(odpContractGeneration) ? "" : "display:none"}">
         <label class="fhint" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
@@ -2910,6 +2903,7 @@ function renderForm() {
     <div id="digitalFile" style="display:none">
       <div class="section">
         <div class="section-label">${esc(t("passport.form.digitalFile"))}<span class="req">*</span></div>
+        ${mintFormDigitalOptionalHtml()}
         <p class="fhint form-section-lead">${esc(t("passport.form.groupDigitalFileLead"))}</p>
         <div class="form-group-box">
           <div class="form-group-title">${esc(t("passport.form.groupDigitalKindTitle"))}</div>
@@ -2925,7 +2919,6 @@ function renderForm() {
           <div class="fdrop-text">${esc(t("passport.form.fdropFileLine1"))}<br><span style="font-size:11px;opacity:0.6">${esc(t("passport.form.fdropFileLine2"))}</span></div>
         </div>
         <div id="fileInfo"></div>
-        ${mintFormDigitalOptionalHtml()}
       </div>
     </div>
 
@@ -2933,6 +2926,7 @@ function renderForm() {
     <div id="sealSection">
       <div class="section">
         <div class="section-label">${esc(t("passport.form.physicalSeal"))}<span class="req">*</span></div>
+        ${mintFormPhysicalOptionalHtml()}
         <p class="fhint form-section-lead">${esc(t("passport.form.groupSealLead"))}</p>
 
         <div class="seal-grid">
@@ -3031,11 +3025,8 @@ function renderForm() {
             </div>
           </div>
         </div>
-        ${mintFormPhysicalOptionalHtml()}
       </div>
     </div>
-
-    ${mintFormPreviewOptionalHtml()}
 
     <!-- Error -->
     <div id="formErr"></div>
