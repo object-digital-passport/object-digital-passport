@@ -1,4 +1,4 @@
-# Object Digital Passport · v0.5
+# Object Digital Passport · v0.5 Alpha
 
 ![Object Digital Passport cover](docs/images/odp-cover-en.png)
 
