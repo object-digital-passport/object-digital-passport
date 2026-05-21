@@ -856,6 +856,38 @@ button.wbar-dis {
 .section .section-label {
   border-bottom-color: var(--page-section-label-border);
 }
+.form-section-lead {
+  margin: 0 0 16px;
+  line-height: 1.55;
+  max-width: 52rem;
+}
+.form-group-box {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--bg2);
+}
+.form-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--text);
+}
+.form-group-lead {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text2);
+  margin: 0 0 14px;
+}
+.field-hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text3);
+  margin: 6px 0 0;
+}
 .card .section .section-label {
   border-bottom-color: var(--border);
 }

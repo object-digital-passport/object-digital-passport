@@ -2589,6 +2589,143 @@ function resetV03MintOptionals() {
   selectedImageFile2 = selectedImageFile3 = null;
 }
 
+function htmlFieldHint(i18nKey) {
+  if (!i18nKey) return "";
+  return '<p class="field-hint">' + esc(t(i18nKey)) + '</p>';
+}
+
+function htmlFormGroup(titleKey, leadKey, bodyHtml) {
+  return '<div class="form-group-box">' +
+    '<div class="form-group-title">' + esc(t(titleKey)) + '</div>' +
+    '<p class="form-group-lead">' + esc(t(leadKey)) + '</p>' +
+    bodyHtml +
+    '</div>';
+}
+
+function mintFormRequiredSectionHtml() {
+  const identityBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelTitle")) + '<span class="req">*</span></label>' +
+    '<input type="text" id="f_title" placeholder="' + esc(t("passport.form.phTitle")) + '">' +
+    htmlFieldHint("passport.form.hintTitle") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelYourName")) + '<span class="req">*</span></label>' +
+    '<input type="text" id="f_name" placeholder="' + esc(t("passport.form.phName")) + '">' +
+    htmlFieldHint("passport.form.hintYourName") + '</div>' +
+    '<div class="row2">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelCategory")) + '<span class="req">*</span></label>' +
+    '<select id="f_type">' + htmlCategoryOptionsPhysical() + '</select>' +
+    htmlFieldHint("passport.form.hintCategory") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelYear")) + '<span class="req">*</span></label>' +
+    '<input type="number" id="f_year" value="' + new Date().getUTCFullYear() + '" min="1000" max="2100">' +
+    htmlFieldHint("passport.form.hintYear") + '</div></div>';
+  const taxonomyBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelContentClass")) + '<span class="req">*</span></label>' +
+    '<select id="f_content_class">' + htmlContentClassOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintContentClass") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelStatus")) + '<span class="req">*</span></label>' +
+    '<select id="f_status">' + htmlLifecycleStatusOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintStatus") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelAiStatus")) + '<span class="req">*</span></label>' +
+    '<select id="f_ai_status">' + htmlAiStatusOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintAiStatus") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelVerificationMethod")) + '<span class="req">*</span></label>' +
+    '<select id="f_verification_method">' + htmlVerificationMethodOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintVerificationMethod") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelEditionModel")) + '<span class="req">*</span></label>' +
+    '<select id="f_edition_model">' + htmlEditionModelOptions() + '</select>' +
+    htmlFieldHint("passport.form.hintEditionModel") + '</div>';
+  return '<div class="section" id="mintRequiredSection">' +
+    '<div class="section-label">' + esc(t("passport.form.requiredSectionTitle")) + '</div>' +
+    '<p class="fhint form-section-lead">' + esc(t("passport.form.requiredSectionLead")) + '</p>' +
+    htmlFormGroup("passport.form.groupIdentityTitle", "passport.form.groupIdentityLead", identityBody) +
+    htmlFormGroup("passport.form.groupTaxonomyTitle", "passport.form.groupTaxonomyLead", taxonomyBody) +
+    '</div>';
+}
+
+function mintFormAdditionalSectionHtml() {
+  const v03Display = typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none";
+  const peopleBody =
+    '<div class="row2">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelCoAuthors")) + '</label>' +
+    '<input type="text" id="f_coauthors" placeholder="' + esc(t("passport.form.phCoAuthors")) + '">' +
+    htmlFieldHint("passport.form.hintCoAuthors") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelTeam")) + '</label>' +
+    '<input type="text" id="f_team" placeholder="' + esc(t("passport.form.phTeam")) + '">' +
+    htmlFieldHint("passport.form.hintTeam") + '</div></div>';
+  const discoveryBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelDescription")) + '</label>' +
+    '<textarea id="f_desc" placeholder="' + esc(t("passport.form.phDescription")) + '"></textarea>' +
+    htmlFieldHint("passport.form.hintDescription") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelDomain")) + '</label>' +
+    '<input type="text" id="f_domain" placeholder="' + esc(t("passport.form.phDomain")) + '">' +
+    htmlFieldHint("passport.form.hintDomain") + '</div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelTags")) + '</label>' +
+    '<input type="text" id="f_tags" placeholder="' + esc(t("passport.form.phTags")) + '">' +
+    htmlFieldHint("passport.form.hintTags") + '</div>';
+  const physicalBody =
+    '<div class="row2">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelEditionNum")) + '</label><input type="number" id="f_edn" placeholder="' + esc(t("passport.form.phEdition")) + '" min="1"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelEditionTotal")) + '</label><input type="number" id="f_edt" placeholder="' + esc(t("passport.form.phEditionTotal")) + '" min="1"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMedium")) + '</label><input type="text" id="f_medium" placeholder="' + esc(t("passport.form.phMedium")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMaterials")) + '</label><input type="text" id="f_mat" placeholder="' + esc(t("passport.form.phMaterials")) + '"></div>' +
+    '<div class="row3">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelLocation")) + '</label><input type="text" id="f_location" placeholder="' + esc(t("passport.form.phLocation")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelRightsNote")) + '</label><input type="text" id="f_rights_note" placeholder="' + esc(t("passport.form.phRightsNote")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelConditionNote")) + '</label><input type="text" id="f_condition_note" placeholder="' + esc(t("passport.form.phConditionNote")) + '"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMarks")) + '</label><textarea id="f_marks" placeholder="' + esc(t("passport.form.phMarks")) + '"></textarea></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelNfcNotes")) + '</label><input type="text" id="f_nnotes" placeholder="' + esc(t("passport.form.phNfcNotes")) + '"></div>';
+  const digitalOptBody =
+    '<div class="field"><label>' + esc(t("passport.form.labelFormat")) + '</label><input type="text" id="f_fmt" placeholder="' + esc(t("passport.form.phFormat")) + '"></div>' +
+    '<p class="fhint" style="margin:0 0 10px">' + esc(t("passport.form.c2paHint")) + '</p>' +
+    '<div class="row2"><div class="field"><label>' + esc(t("passport.form.c2paHashLabel")) + '</label>' +
+    '<input type="text" id="f_c2pa_manifest_hash" placeholder="' + esc(t("passport.form.c2paPlaceholder")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.c2paLabelShort")) + '</label>' +
+    '<input type="text" id="f_c2pa_manifest_label" placeholder="' + esc(t("passport.form.phOptionalShort")) + '"></div></div>';
+  const previewBody =
+    '<div class="fdrop" id="imgDrop" onclick="document.getElementById(\'imgIn\').click()">' +
+    '<input type="file" id="imgIn" accept="image/*" onchange="hashImg(event)">' +
+    '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImgLine1")) +
+    '<br><span style="font-size:11px;opacity:0.6">' + esc(t("passport.form.fdropImgLine2")) + '</span></div></div>' +
+    '<div id="imgInfo"></div>' +
+    '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(1)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
+    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImageUrl")) + '</label>' +
+    '<input type="url" id="f_imgUrl" placeholder="' + esc(t("passport.form.phImageUrl")) + '"></div>';
+  return '<div class="section"><div class="acc" id="mintAdditionalAcc">' +
+    '<div class="acc-head" onclick="tog(\'mintAdditionalAcc\')">' + esc(t("passport.form.additionalAccordionTitle")) + '<span class="acc-arr">▶</span></div>' +
+    '<div class="acc-body"><p class="fhint" style="margin:0 0 16px;line-height:1.55">' + esc(t("passport.form.additionalAccordionLead")) + '</p>' +
+    htmlFormGroup("passport.form.groupPeopleOptionalTitle", "passport.form.groupPeopleOptionalLead", peopleBody) +
+    htmlFormGroup("passport.form.groupDiscoveryOptionalTitle", "passport.form.groupDiscoveryOptionalLead", discoveryBody) +
+    '<div id="physExtra" style="display:none">' + htmlFormGroup("passport.form.groupPhysicalOptionalTitle", "passport.form.groupPhysicalOptionalLead", physicalBody) + '</div>' +
+    '<div id="digitalExtraOptional" style="display:none">' + htmlFormGroup("passport.form.groupDigitalOptionalTitle", "passport.form.groupDigitalOptionalLead", digitalOptBody) + '</div>' +
+    htmlFormGroup("passport.form.groupPreviewOptionalTitle", "passport.form.groupPreviewOptionalLead", previewBody) +
+    '<div id="passportAdditionalV03" style="' + v03Display + '">' +
+    '<div class="form-group-box" style="margin-top:4px"><div class="form-group-title">' + esc(t("passport.form.groupExtraImagesTitle")) + '</div>' +
+    '<p class="form-group-lead">' + esc(t("passport.form.extraImagesHint")) + '</p>' +
+    '<div class="fdrop" id="imgDrop2" onclick="document.getElementById(\'imgIn2\').click()"><input type="file" id="imgIn2" accept="image/*" onchange="hashImg2(event)">' +
+    '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImg2")) + '</div></div><div id="imgInfo2"></div>' +
+    '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(2)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
+    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImage2Url")) + '</label><input type="url" id="f_imgUrl2" placeholder="' + esc(t("passport.form.phHttpsShort")) + '"></div>' +
+    '<div class="fdrop" id="imgDrop3" style="margin-top:14px" onclick="document.getElementById(\'imgIn3\').click()"><input type="file" id="imgIn3" accept="image/*" onchange="hashImg3(event)">' +
+    '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImg3")) + '</div></div><div id="imgInfo3"></div>' +
+    '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(3)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
+    '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImage3Url")) + '</label><input type="url" id="f_imgUrl3" placeholder="' + esc(t("passport.form.phHttpsShort")) + '"></div></div>' +
+    '<div class="form-group-box"><div class="form-group-title">' + esc(t("passport.form.extraMetaSection")) + '</div>' +
+    '<p class="form-group-lead">' + esc(t("passport.form.extraMetaHint")) + '</p><div id="extraMetaRows"></div>' +
+    '<button type="button" class="btn btn-sec" style="margin-top:10px" onclick="addExtraMetaRow()">' + esc(t("passport.form.extraMetaAdd")) + '</button>' +
+    '<div class="form-group-title" style="margin-top:18px">' + esc(t("passport.form.v03MetaSubheading")) + '</div>' +
+    '<p class="form-group-lead">' + esc(t("passport.form.v03MetaHint")) + '</p>' +
+    '<div class="row2" style="margin-top:10px"><div class="field"><label>' + esc(t("passport.form.labelWidth")) + '</label><input type="number" id="f_dim_w" placeholder="' + esc(t("passport.form.phDimExample")) + '" min="0" step="any"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelHeight")) + '</label><input type="number" id="f_dim_h" placeholder="' + esc(t("passport.form.phDimExample")) + '" min="0" step="any"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelDimUnit")) + '</label><input type="text" id="f_dim_unit" placeholder="' + esc(t("passport.form.phUnitCm")) + '"></div>' +
+    '<div class="row2"><div class="field"><label>' + esc(t("passport.form.labelWeight")) + '</label><input type="number" id="f_weight" placeholder="' + esc(t("passport.form.phOptionalShort")) + '" min="0" step="any"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelWeightUnit")) + '</label><input type="text" id="f_weight_unit" placeholder="' + esc(t("passport.form.phUnitKg")) + '"></div></div>' +
+    '<div class="row2"><div class="field"><label>' + esc(t("passport.form.labelDepth")) + '</label><input type="number" id="f_depth" placeholder="' + esc(t("passport.form.phOptionalShort")) + '" min="0" step="any"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelDepthUnit")) + '</label><input type="text" id="f_depth_unit" placeholder="' + esc(t("passport.form.phUnitCm")) + '"></div></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelCreationDate")) + '</label><input type="text" id="f_creation_date" placeholder="' + esc(t("passport.form.phCreationDate")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelListingPrice")) + '</label><input type="text" id="f_listing_price" placeholder="' + esc(t("passport.form.phListingPrice")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelInternalTag")) + '</label><input type="text" id="f_internal_tag" placeholder="' + esc(t("passport.form.phInternalTag")) + '"></div></div></div>' +
+    '</div></div></div>';
+}
+
 function renderForm() {
   setMintSuccessLeavingGuard(false);
   resetV03MintOptionals();
@@ -2637,6 +2774,7 @@ function renderForm() {
     <!-- Object type -->
     <div class="section">
       <div class="section-label">${esc(t("passport.form.objectType"))}<span class="req">*</span></div>
+      <p class="fhint form-section-lead">${esc(t("passport.form.groupObjectTypeLead"))}</p>
       <div class="type-toggle">
         <div class="tt-opt sel" id="tt-physical" onclick="setType('physical')">
           <div class="tt-icon">🎨</div>
@@ -2656,120 +2794,12 @@ function renderForm() {
       </div>
     </div>
 
-    <!-- Basic info -->
-    <div class="section">
-      <div class="section-label">${esc(t("passport.form.basicInfo"))}</div>
-      <div class="field"><label>${esc(t("passport.form.labelTitle"))}<span class="req">*</span></label>
-        <input type="text" id="f_title" placeholder="${esc(t("passport.form.phTitle"))}"></div>
-      <div class="field"><label>${esc(t("passport.form.labelYourName"))}<span class="req">*</span></label>
-        <input type="text" id="f_name" placeholder="${esc(t("passport.form.phName"))}"></div>
-      <div class="row2">
-        <div class="field"><label>${esc(t("passport.form.labelCoAuthors"))}</label>
-          <input type="text" id="f_coauthors" placeholder="${esc(t("passport.form.phCoAuthors"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelTeam"))}</label>
-          <input type="text" id="f_team" placeholder="${esc(t("passport.form.phTeam"))}"></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label>${esc(t("passport.form.labelCategory"))}<span class="req">*</span></label>
-          <select id="f_type">${htmlCategoryOptionsPhysical()}</select></div>
-        <!-- f_year: object-era year for JSON/provenance; ODP-ID YYYY-MM comes from UTC mint instant (see SPEC). -->
-        <div class="field"><label>${esc(t("passport.form.labelYear"))}<span class="req">*</span></label>
-          <input type="number" id="f_year" value="${new Date().getUTCFullYear()}" min="1000" max="2100"></div>
-      </div>
-      <div class="row3">
-        <div class="field"><label>${esc(t("passport.form.labelContentClass"))}<span class="req">*</span></label>
-          <select id="f_content_class">${htmlContentClassOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelStatus"))}<span class="req">*</span></label>
-          <select id="f_status">${htmlLifecycleStatusOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelDomain"))}</label>
-          <input type="text" id="f_domain" placeholder="${esc(t("passport.form.phDomain"))}"></div>
-      </div>
-      <div class="row3">
-        <div class="field"><label>${esc(t("passport.form.labelAiStatus"))}<span class="req">*</span></label>
-          <select id="f_ai_status">${htmlAiStatusOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelVerificationMethod"))}<span class="req">*</span></label>
-          <select id="f_verification_method">${htmlVerificationMethodOptions()}</select></div>
-        <div class="field"><label>${esc(t("passport.form.labelEditionModel"))}<span class="req">*</span></label>
-          <select id="f_edition_model">${htmlEditionModelOptions()}</select></div>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelTags"))}</label>
-        <input type="text" id="f_tags" placeholder="${esc(t("passport.form.phTags"))}"></div>
-      <div class="row3">
-        <div class="field"><label>${esc(t("passport.form.labelLocation"))}</label>
-          <input type="text" id="f_location" placeholder="${esc(t("passport.form.phLocation"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelRightsNote"))}</label>
-          <input type="text" id="f_rights_note" placeholder="${esc(t("passport.form.phRightsNote"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelConditionNote"))}</label>
-          <input type="text" id="f_condition_note" placeholder="${esc(t("passport.form.phConditionNote"))}"></div>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelMarks"))}</label>
-        <textarea id="f_marks" placeholder="${esc(t("passport.form.phMarks"))}"></textarea></div>
-      <div id="physExtra">
-        <div class="row2">
-          <div class="field"><label>${esc(t("passport.form.labelEditionNum"))}</label><input type="number" id="f_edn" placeholder="${esc(t("passport.form.phEdition"))}" min="1"></div>
-          <div class="field"><label>${esc(t("passport.form.labelEditionTotal"))}</label><input type="number" id="f_edt" placeholder="${esc(t("passport.form.phEditionTotal"))}" min="1"></div>
-        </div>
-        <div class="field"><label>${esc(t("passport.form.labelMedium"))}</label><input type="text" id="f_medium" placeholder="${esc(t("passport.form.phMedium"))}"></div>
-        <div class="field"><label>${esc(t("passport.form.labelMaterials"))}</label>
-          <input type="text" id="f_mat" placeholder="${esc(t("passport.form.phMaterials"))}">
-        </div>
-      </div>
-      <div id="digitalExtra" style="display:none">
-        <div class="row2">
-          <div class="field"><label>${esc(t("passport.form.labelSubtype"))}<span class="req">*</span></label>
-            <select id="f_sub">${htmlSubtypeOptions()}</select></div>
-          <div class="field"><label>${esc(t("passport.form.labelFormat"))}</label><input type="text" id="f_fmt" placeholder="${esc(t("passport.form.phFormat"))}"></div>
-        </div>
-        <div class="section-label" style="margin-top:12px">${esc(t("passport.form.c2paSection"))}</div>
-        <div class="row2">
-          <div class="field">
-            <label>${esc(t("passport.form.c2paHashLabel"))}</label>
-            <input type="text" id="f_c2pa_manifest_hash" placeholder="${esc(t("passport.form.c2paPlaceholder"))}">
-          </div>
-          <div class="field">
-            <label>${esc(t("passport.form.c2paLabelShort"))}</label>
-            <input type="text" id="f_c2pa_manifest_label" placeholder="${esc(t("passport.form.phOptionalShort"))}">
-          </div>
-        </div>
-        <p class="fhint">${esc(t("passport.form.c2paHint"))}</p>
-      </div>
-      <div class="field"><label>${esc(t("passport.form.labelDescription"))}</label>
-        <textarea id="f_desc" placeholder="${esc(t("passport.form.phDescription"))}"></textarea></div>
-
-      <div id="passportAdditionalV03" style="margin-top:14px;${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-        <div class="acc" id="additionalAcc">
-          <div class="acc-head" onclick="tog('additionalAcc')">${esc(t("passport.form.additionalAccordionTitle"))}<span class="acc-arr">▶</span></div>
-          <div class="acc-body">
-            <p class="fhint" style="margin:0 0 14px;line-height:1.55">${esc(t("passport.form.additionalAccordionLead"))}</p>
-            <div class="section-label" style="margin-top:4px;font-size:12px;opacity:0.95">${esc(t("passport.form.extraMetaSection"))}</div>
-            <p class="fhint" style="margin:4px 0 10px;line-height:1.5">${esc(t("passport.form.extraMetaHint"))}</p>
-            <div id="extraMetaRows"></div>
-            <button type="button" class="btn btn-sec" style="margin-top:10px" onclick="addExtraMetaRow()">${esc(t("passport.form.extraMetaAdd"))}</button>
-            <div class="section-label" style="margin-top:20px;font-size:12px;opacity:0.95">${esc(t("passport.form.v03MetaSubheading"))}</div>
-            <div class="row2" style="margin-top:10px">
-              <div class="field"><label>${esc(t("passport.form.labelWidth"))}</label><input type="number" id="f_dim_w" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
-              <div class="field"><label>${esc(t("passport.form.labelHeight"))}</label><input type="number" id="f_dim_h" placeholder="${esc(t("passport.form.phDimExample"))}" min="0" step="any"></div>
-            </div>
-            <div class="field"><label>${esc(t("passport.form.labelDimUnit"))}</label><input type="text" id="f_dim_unit" placeholder="${esc(t("passport.form.phUnitCm"))}"></div>
-            <div class="row2">
-              <div class="field"><label>${esc(t("passport.form.labelWeight"))}</label><input type="number" id="f_weight" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
-              <div class="field"><label>${esc(t("passport.form.labelWeightUnit"))}</label><input type="text" id="f_weight_unit" placeholder="${esc(t("passport.form.phUnitKg"))}"></div>
-            </div>
-            <div class="row2">
-              <div class="field"><label>${esc(t("passport.form.labelDepth"))}</label><input type="number" id="f_depth" placeholder="${esc(t("passport.form.phOptionalShort"))}" min="0" step="any"></div>
-              <div class="field"><label>${esc(t("passport.form.labelDepthUnit"))}</label><input type="text" id="f_depth_unit" placeholder="${esc(t("passport.form.phUnitCm"))}"></div>
-            </div>
-            <div class="field"><label>${esc(t("passport.form.labelCreationDate"))}</label><input type="text" id="f_creation_date" placeholder="${esc(t("passport.form.phCreationDate"))}"></div>
-            <div class="field"><label>${esc(t("passport.form.labelListingPrice"))}</label><input type="text" id="f_listing_price" placeholder="${esc(t("passport.form.phListingPrice"))}"></div>
-            <div class="field"><label>${esc(t("passport.form.labelInternalTag"))}</label><input type="text" id="f_internal_tag" placeholder="${esc(t("passport.form.phInternalTag"))}"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    ${mintFormRequiredSectionHtml()}
 
     <!-- Passport URL -->
     <div class="section">
-      <div class="section-label">${esc(t("passport.form.hosting"))}</div>
+      <div class="section-label">${esc(t("passport.form.hosting"))}<span class="req">*</span></div>
+      <p class="fhint form-section-lead">${esc(t("passport.form.groupHostingLead"))}</p>
       <div id="skipPublicUrlRow" class="field" style="margin-bottom:12px;${odpSupportsOptionalDataUrl(odpContractGeneration) ? "" : "display:none"}">
         <label class="fhint" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
           <input type="checkbox" id="f_skip_public_url" onchange="syncHostingInputs()">
@@ -2804,6 +2834,14 @@ function renderForm() {
     <div id="digitalFile" style="display:none">
       <div class="section">
         <div class="section-label">${esc(t("passport.form.digitalFile"))}<span class="req">*</span></div>
+        <p class="fhint form-section-lead">${esc(t("passport.form.groupDigitalFileLead"))}</p>
+        <div class="form-group-box">
+          <div class="form-group-title">${esc(t("passport.form.groupDigitalKindTitle"))}</div>
+          <p class="form-group-lead">${esc(t("passport.form.groupDigitalKindLead"))}</p>
+          <div class="field"><label>${esc(t("passport.form.labelSubtype"))}<span class="req">*</span></label>
+            <select id="f_sub">${htmlSubtypeOptions()}</select>
+            ${htmlFieldHint("passport.form.hintSubtype")}</div>
+        </div>
         <div class="info w">${esc(t("passport.form.digitalWarn"))}</div>
         <div class="fdrop" id="fileDrop" onclick="document.getElementById('fileIn').click()">
           <input type="file" id="fileIn" onchange="hashFile(event)">
@@ -2814,60 +2852,11 @@ function renderForm() {
       </div>
     </div>
 
-    <!-- Preview image -->
-    <div class="section">
-      <div class="section-label">${esc(t("passport.form.previewImage"))}</div>
-      <div class="fdrop" id="imgDrop" onclick="document.getElementById('imgIn').click()">
-        <input type="file" id="imgIn" accept="image/*" onchange="hashImg(event)">
-        <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">${esc(t("passport.form.fdropImgLine1"))}<br><span style="font-size:11px;opacity:0.6">${esc(t("passport.form.fdropImgLine2"))}</span></div>
-      </div>
-      <div id="imgInfo"></div>
-      <div style="margin-top:8px">
-        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(1)">${esc(t("passport.form.clearImageBtn"))}</button>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label>${esc(t("passport.form.labelImageUrl"))}</label>
-        <input type="url" id="f_imgUrl" placeholder="${esc(t("passport.form.phImageUrl"))}">
-      </div>
-    </div>
-
-    <div class="section" id="extraImagesV03" style="${typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none"}">
-      <div class="section-label">${esc(t("passport.form.extraImagesSection"))}</div>
-      <p class="fhint" style="margin:0 0 12px">${esc(t("passport.form.extraImagesHint"))}</p>
-      <div class="fdrop" id="imgDrop2" onclick="document.getElementById('imgIn2').click()">
-        <input type="file" id="imgIn2" accept="image/*" onchange="hashImg2(event)">
-        <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">${esc(t("passport.form.fdropImg2"))}</div>
-      </div>
-      <div id="imgInfo2"></div>
-      <div style="margin-top:8px">
-        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(2)">${esc(t("passport.form.clearImageBtn"))}</button>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label>${esc(t("passport.form.labelImage2Url"))}</label>
-        <input type="url" id="f_imgUrl2" placeholder="${esc(t("passport.form.phHttpsShort"))}">
-      </div>
-      <div class="fdrop" id="imgDrop3" style="margin-top:14px" onclick="document.getElementById('imgIn3').click()">
-        <input type="file" id="imgIn3" accept="image/*" onchange="hashImg3(event)">
-        <div class="fdrop-icon">🖼</div>
-        <div class="fdrop-text">${esc(t("passport.form.fdropImg3"))}</div>
-      </div>
-      <div id="imgInfo3"></div>
-      <div style="margin-top:8px">
-        <button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(3)">${esc(t("passport.form.clearImageBtn"))}</button>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label>${esc(t("passport.form.labelImage3Url"))}</label>
-        <input type="url" id="f_imgUrl3" placeholder="${esc(t("passport.form.phHttpsShort"))}">
-      </div>
-    </div>
-
     <!-- Physical seal -->
     <div id="sealSection">
       <div class="section">
         <div class="section-label">${esc(t("passport.form.physicalSeal"))}<span class="req">*</span></div>
-        <p class="fhint" style="margin-bottom:12px">${esc(t("passport.form.sealLead"))}</p>
+        <p class="fhint form-section-lead">${esc(t("passport.form.groupSealLead"))}</p>
 
         <div class="seal-grid">
           <div class="seal-opt" id="s1" onclick="setSeal(1)">
@@ -2880,6 +2869,11 @@ function renderForm() {
             <span class="seal-icon">🔐</span>${esc(t("passport.form.sealBoth"))}<br><small class="seal-sub">${esc(t("passport.form.sealBothSmall"))}</small>
           </div>
         </div>
+        <ul class="fhint" style="margin:0 0 14px 18px;line-height:1.5;font-size:12px">
+          <li>${esc(t("passport.form.hintSealNfc"))}</li>
+          <li>${esc(t("passport.form.hintSealNum"))}</li>
+          <li>${esc(t("passport.form.hintSealBoth"))}</li>
+        </ul>
 
         <div id="nfcFields" style="display:none">
           <div class="acc open" id="nfcAcc">
@@ -2937,16 +2931,15 @@ function renderForm() {
                 <div class="field"><label>${esc(t("passport.form.labelChipUidPlain"))}<span class="req">*</span></label><input type="text" id="f_nuid" placeholder="${esc(t("passport.form.phChipUid"))}" readonly></div>
                 <div class="field"><label>${esc(t("passport.form.labelPubKeyPlain"))}<span class="req">*</span></label><input type="text" id="f_nkey" placeholder="${esc(t("passport.form.phChipSecretKey"))}" readonly></div>
               </div>
-              <div class="row2">
-                <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label><input type="text" id="f_ndate" value="${odpFormatDateDDMMYYYY(new Date())}"></div>
-                <div class="field"><label>${esc(t("passport.form.labelNfcNotes"))}</label><input type="text" id="f_nnotes" placeholder="${esc(t("passport.form.phNfcNotes"))}"></div>
-              </div>
+              <div class="field"><label>${esc(t("passport.form.labelInstalled"))}<span class="req">*</span></label>
+                <input type="text" id="f_ndate" value="${odpFormatDateDDMMYYYY(new Date())}">
+                ${htmlFieldHint("passport.form.hintNfcInstalled")}</div>
             </div>
           </div>
         </div>
 
         <div id="numFields">
-          <div class="acc open" id="numAcc">
+          <div class="acc" id="numAcc">
             <div class="acc-head" onclick="tog('numAcc')">${esc(t("passport.form.numAccTitle"))}<span class="acc-arr">▶</span></div>
             <div class="acc-body">
               <div class="row2">
@@ -2963,6 +2956,8 @@ function renderForm() {
         </div>
       </div>
     </div>
+
+    ${mintFormAdditionalSectionHtml()}
 
     <!-- Error -->
     <div id="formErr"></div>
@@ -3309,8 +3304,9 @@ function setType(ty) {
   document.getElementById("tt-physical").classList.toggle("sel", ty==="physical");
   document.getElementById("tt-digital").classList.toggle("sel",  ty==="digital");
   document.getElementById("tt-mixed").classList.toggle("sel", ty==="mixed");
-  document.getElementById("physExtra").style.display    = isPhysicalLikeType(ty) ? "" : "none";
-  document.getElementById("digitalExtra").style.display = isDigitalLikeType(ty)  ? "" : "none";
+  document.getElementById("physExtra").style.display = isPhysicalLikeType(ty) ? "" : "none";
+  const digOpt = document.getElementById("digitalExtraOptional");
+  if (digOpt) digOpt.style.display = isDigitalLikeType(ty) ? "" : "none";
   document.getElementById("sealSection").style.display  = isPhysicalLikeType(ty) ? "" : "none";
   document.getElementById("digitalFile").style.display  = isDigitalLikeType(ty)  ? "" : "none";
   const cat = document.getElementById("f_type");
