@@ -521,7 +521,8 @@ function renderVerifyTrustLayersGuide(hasNFC, hasNdppAnchor) {
 }
 
 function renderVerifyAndroidNfcGuide(humanId, rec, passport) {
-  const verifyUrl = odpVerifyAbsoluteUrl(humanId);
+  const safeHumanId = String(passport && passport.id ? passport.id : (humanId || ""));
+  const verifyUrl = odpVerifyAbsoluteUrl(safeHumanId);
   const chipKey = bytesToHex(rec && rec.nfcPublicKey ? rec.nfcPublicKey : "");
   const ndppCommitmentHash = odpBytes32HexLower(rec && rec.ndppCommitmentHash);
   const dataHash = odpBytes32HexLower(rec && rec.dataHash);
@@ -568,12 +569,12 @@ function renderVerifyAndroidNfcGuide(humanId, rec, passport) {
       </div>
     </div>` : ""}
     <div class="btn-row" style="margin-top:10px;flex-wrap:wrap">
-      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedPassportId"))})'>${esc(t("verify.detail.nfcCopyPassportId"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(safeHumanId)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedPassportId"))})'>${esc(t("verify.detail.nfcCopyPassportId"))}</button>
       <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(verifyUrl)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedVerifyLink"))})'>${esc(t("verify.detail.nfcCopyVerifyLink"))}</button>
       <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(chipKey)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedChipKey"))})'>${esc(t("verify.detail.nfcCopyChipKey"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "copy")'>${esc(t("verify.detail.nfcCopyHandoff"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "share")'>${esc(t("verify.detail.nfcShareHandoff"))}</button>
-      <button type="button" class="btn btn-ghost" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "open")'>${esc(t("verify.detail.nfcOpenCompanion"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(safeHumanId)}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "copy")'>${esc(t("verify.detail.nfcCopyHandoff"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(safeHumanId)}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "share")'>${esc(t("verify.detail.nfcShareHandoff"))}</button>
+      <button type="button" class="btn btn-ghost" onclick='void verifyUseAndroidHandoff(${JSON.stringify(safeHumanId)}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "open")'>${esc(t("verify.detail.nfcOpenCompanion"))}</button>
       <button type="button" class="btn btn-ghost" onclick='window.open(${JSON.stringify(verifyUrl)}, "_blank", "noopener")'>${esc(t("verify.detail.nfcOpenVerifyLink"))}</button>
       ${ndppUrl ? `<a class="btn btn-ghost" href="${esc(ndppUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("verify.detail.nfcOpenNdppLink"))}</a>` : ""}
     </div>
