@@ -4,6 +4,7 @@
 
 | Document | Purpose |
 |----------|---------|
+| **[`GUIDE.md`](GUIDE.md)** | **Long-form project overview (English):** what ODP is, quick start, live demo, costs, deployment table, glossary — formerly the root `README.md`. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass` bundle**. |
 | **[`PROTOCOL_TRACKS.md`](PROTOCOL_TRACKS.md)** | **Non-normative:** Track A (audit backlog) vs Track B (mint agent shipped), EIP-170 pointer. |
 | **[`EIP170_STRATEGY.md`](EIP170_STRATEGY.md)** | Bytecode size limit: options before mainnet deploy. |
@@ -33,4 +34,4 @@
 
 Android companion note: `../android-companion/` is currently a **separate temporary local Git repo inside the same workspace**, intended to become its own GitHub project later. This `docs/` folder keeps the ODP-side integration and scope notes only.
 
-*For user-facing setup and hosting, start from the root [`README.md`](../README.md). Russian docs index: [`localization/ru/docs/README.md`](../localization/ru/docs/README.md).*
+*For user-facing setup and hosting, start from the root [`README.md`](../README.md) (short) or [`GUIDE.md`](GUIDE.md) (detailed). Russian docs index: [`localization/ru/docs/README.md`](../localization/ru/docs/README.md).*
