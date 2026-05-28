@@ -16,16 +16,15 @@
 
 ## Repository layout
 
-| Path | Contents |
-|------|----------|
-| **[SPEC.md](SPEC.md)** | Normative protocol (English) |
-| **[docs/](docs/)** | Guides, release notes, contributing, security, images |
-| **[web/](web/)** | Static UI (GitHub Pages), i18n, e2e smoke tests |
-| **[chain/](chain/)** | Solidity, Hardhat, deploy scripts, `mint.py`, contract types |
+| Folder / file | Contents |
+|---------------|----------|
+| **[SPEC.md](SPEC.md)** | Normative protocol |
+| **[docs/](docs/)** | Documentation and community files |
+| **[web/](web/)** | Reference web UI (GitHub Pages) |
+| **[chain/](chain/)** | Smart contracts, deploy, Hardhat |
+| **`.github/`** | GitHub Actions and templates ([why at root?](docs/REPOSITORY_LAYOUT.md#why-github-and-gitignore-appear-at-the-root)) |
+| **`.gitignore`** | Git ignore rules (required at repository root) |
 
-```bash
-npm install && npm run compile   # from repo root (delegates to chain/)
-cd chain && npm test
-```
+Contract tooling: `cd chain && npm install && npm run compile`
 
-Details: [docs/REPOSITORY_LAYOUT.md](docs/REPOSITORY_LAYOUT.md).
+Details: [docs/REPOSITORY_LAYOUT.md](docs/REPOSITORY_LAYOUT.md)
