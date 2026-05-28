@@ -14,17 +14,14 @@
 | **Русский** | [web/localization/ru/README.md](web/localization/ru/README.md) |
 | **License** | [MIT](LICENSE) |
 
-## Repository layout
+## Repository
 
-| Folder / file | Contents |
-|---------------|----------|
-| **[SPEC.md](SPEC.md)** | Normative protocol |
-| **[docs/](docs/)** | Documentation and community files |
-| **[web/](web/)** | Reference web UI (GitHub Pages) |
-| **[chain/](chain/)** | Smart contracts, deploy, Hardhat |
-| **`.github/`** | GitHub Actions and templates ([why at root?](docs/REPOSITORY_LAYOUT.md#why-github-and-gitignore-appear-at-the-root)) |
-| **`.gitignore`** | Git ignore rules (required at repository root) |
+| | |
+| --- | --- |
+| **[docs/](docs/)** | Guides, contributing, security, release notes |
+| **[web/](web/)** | Reference UI (GitHub Pages) |
+| **[chain/](chain/)** | Contracts, Hardhat, deploy |
 
-Contract tooling: `cd chain && npm install && npm run compile`
-
-Details: [docs/REPOSITORY_LAYOUT.md](docs/REPOSITORY_LAYOUT.md)
+```bash
+cd chain && npm install && npm run compile
+```
