@@ -13,10 +13,10 @@
 |                            |                                                          |
 | -------------------------- | -------------------------------------------------------- |
 | 🇬🇧 **English**           | You are reading the normative specification (`SPEC.md`). |
-| 🇷🇺 **Russian / Русский** | [localization/ru/SPEC.md](localization/ru/SPEC.md)       |
+| 🇷🇺 **Russian / Русский** | [web/localization/ru/SPEC.md](web/localization/ru/SPEC.md)       |
 
 
-**We welcome specification translations in any language.** Add files under `localization/<language-code>/` (see the [localization/ru/](localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)**. **Community discussion on GitHub (issues and PRs) is in English** so all participants can follow the same threads.
+**We welcome specification translations in any language.** Add files under `web/localization/<language-code>/` (see the [web/localization/ru/](web/localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](docs/CONTRIBUTING.md)**. **Community discussion on GitHub (issues and PRs) is in English** so all participants can follow the same threads.
 
 **Normative source:** English `SPEC.md` (this file) is the only normative specification in this repository. Translations are provided for convenience and can contain mistakes; treat them as **informational only**.
 
@@ -89,7 +89,7 @@ The following describes the **reference stack in this repository (v0.4)**. At mi
 - **P-affiliation audit**: `**getPAffiliationAudit`**, `**detachPAffiliation`** (parent P); timestamps for join / detach
 - **Compact reverts**: failures use `**error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference `**ObjectDigitalPassport`** is deployed **with a linked library** `**ODPPassportLib`** (shared `**error EC`**) so the registry creation bytecode stays within the 24 KiB (EIP-170) limit; deploy library first, then the registry (see repository deploy scripts). Local Hardhat tests may use `**allowUnlimitedContractSize`**; verify `**[ODP] EIP-170:`** output after compile before mainnet deploy.
 
-**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`localization/ru/RELEASE_v0.4.md`](localization/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
+**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`web/localization/ru/RELEASE_v0.4.md`](web/localization/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
 
 > **Deployable v0.5 split-line note:** the deployable reference line in this repository keeps the **main registry** focused on creator records, core passport state, minting, transfer, revocation, and mutable passport fields. To stay within `EIP-170`, several optional surfaces are served by **paired satellites** instead of the main registry ABI:
 > - `**ODPRegistryRelations`** — P-affiliation, mint-agent delegation, creator publishing delegation
@@ -544,7 +544,7 @@ Recommended for high-value objects, artwork, and collectibles.
 Registration (required order for issuers):
   1. Provision the tag so the EV2 application key you will publish
      on-chain is loaded into the chip (typically 16-byte AES key 0x00)
-  2. Scan the live tag with the ODP Android companion (issuer-chip-setup)
+  2. Scan the live tag with the ODP Android companion ([odp-android-companion](https://github.com/object-digital-passport/odp-android-companion); issuer-chip-setup)
      and import odp-chip-issuer-setup JSON into passport.html — confirms
      UID, EV2 key, and TagTamper INTACT before mint
   3. Record chip UID, model, and deployment notes in passport.json
@@ -578,7 +578,7 @@ Seal removed  → chip reports: TAMPERED (permanent, cannot be reset)
 
 **High-assurance TagTamper profile (companion verifier):**
 
-For `NTAG424DNA_TAGTAMPER`, the reference Android companion treats a scan as **high assurance** only when all of the following hold:
+For `NTAG424DNA_TAGTAMPER`, the reference Android companion ([odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)) treats a scan as **high assurance** only when all of the following hold:
 
 1. **EV2 symmetric challenge-response** against on-chain `nfcPublicKey` (16-byte EV2 application key) → `chipKeyMatch = PASS`
 2. **Authenticated TagTamper** after EV2 → `tamperState = INTACT`
@@ -664,7 +664,7 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Network                          | Polygon PoS (mainnet)                                                                                         |
 | Chain ID                         | 137                                                                                                           |
-| Reference deployment (this repo) | Source in-repo; packed `**CONTRACT_VERSION` 4** at mint; main registry + optional satellites (§4, `deploy/`). |
+| Reference deployment (this repo) | Source in-repo; packed `**CONTRACT_VERSION` 4** at mint; main registry + optional satellites (§4, `chain/deploy/`). |
 | Other Polygon addresses          | Separate registries — **bytecode / ABI** may differ; always pair **address + ABI + `CONTRACT_VERSION`**.      |
 | Testnet                          | Polygon Amoy (chain ID 80002)                                                                                 |
 | Gas token                        | POL (ex-POL)                                                                                                  |
@@ -771,7 +771,7 @@ The reference bytecode uses `**error EC(uint16 code)`** only (no string messages
 
 ### Planned protocol extensions (semantics not enforced today)
 
-The following items are **forward-looking protocol ideas** — they are **not** implemented as described in the current reference `[ObjectDigitalPassport.sol](contracts/ObjectDigitalPassport.sol)` **semantics**. *(The EIP-170 split — linked `**ODPPassportLib`** and satellite `**ODPWalletDocumentAnchor`** — is **already shipped** in the **v0.4** reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
+The following items are **forward-looking protocol ideas** — they are **not** implemented as described in the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics**. *(The EIP-170 split — linked `**ODPPassportLib`** and satellite `**ODPWalletDocumentAnchor`** — is **already shipped** in the **v0.4** reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
 
 #### A) Global uniqueness of passport `dataHash` (planned)
 
@@ -945,7 +945,7 @@ Top-level `year` and `month` **must** match the **UTC** calendar values passed t
 Implementations MUST use the **same** UTC instant for `registeredAt`, `registration.utcIso8601`, and `registration.localIso8601`.
 If local device time is shown to users, implementations MUST normalize that instant to **UTC (GMT+0)** before writing `passport.json`.
 
-Implementations MUST **not** record the user’s **device-local IANA time zone** (e.g. `Europe/Berlin`), MUST **not** emit **non-`+00:00`** numeric offsets in `registration.localIso8601`, and MUST **not** derive `registration.*` from the device’s **local calendar wall clock**. The field name `localIso8601` is **legacy naming** only: the value must still encode the **same UTC instant** with offset `+00:00` only (see reference `tools/mint.py` and web mint).
+Implementations MUST **not** record the user’s **device-local IANA time zone** (e.g. `Europe/Berlin`), MUST **not** emit **non-`+00:00`** numeric offsets in `registration.localIso8601`, and MUST **not** derive `registration.*` from the device’s **local calendar wall clock**. The field name `localIso8601` is **legacy naming** only: the value must still encode the **same UTC instant** with offset `+00:00` only (see reference `chain/tools/mint.py` and web mint).
 
 ### Canonical v0.5 example — physical object
 
@@ -1393,7 +1393,7 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**Reference v0.5 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**deploy/scripts/deploy-doc-anchor-only.js`** (see `**deploy/README.md`**). The reference Polygon deployment records both addresses in `**deployments/polygon.json`**.
+**Reference v0.5 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**chain/deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**chain/deploy/scripts/deploy-doc-anchor-only.js`** (see `**chain/deploy/README.md`**). The reference Polygon deployment records both addresses in `**deployments/polygon.json`**.
 
 Older protocol lines that exposed these functions on the monolithic main registry are **out of scope** for this document — only the **v0.5** split (main registry + `**ODPWalletDocumentAnchor`**) is specified here.
 
@@ -1704,7 +1704,7 @@ Expected ZIP entries:
 
 #### 15.1.1 Reference `manifest.json` shape (implementations)
 
-Reference tooling in this repository (`web/passport.html`, `tools/mint.py`) writes `manifest.json` as UTF-8 JSON with at least:
+Reference tooling in this repository (`web/passport.html`, `chain/tools/mint.py`) writes `manifest.json` as UTF-8 JSON with at least:
 
 - `format`: `"odpass-bundle"` (legacy bundles MAY use `"odp-bundle"`)
 - `bundleVersion`: string for the bundle layout exported by reference tooling (older manifest layout strings may still read)

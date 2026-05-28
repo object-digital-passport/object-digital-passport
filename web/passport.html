@@ -3727,7 +3727,7 @@ function joinPassportBundleUrl(baseNormalized, humanId) {
 
 /**
  * Registration clock for `passport.json`: one instant in UTC only (SPEC reference / privacy mode).
- * Does not record device IANA zone, local wall clock, or non-UTC offsets — matches `tools/mint.py`.
+ * Does not record device IANA zone, local wall clock, or non-UTC offsets — matches `chain/tools/mint.py`.
  */
 function buildRegistrationClock(now) {
   const registeredAt = Math.floor(now.getTime() / 1000);
@@ -5166,7 +5166,7 @@ async function blobDownloadOdp(humanId, blob) {
   await triggerBrowserFileDownload(blob, `${safeFilePart(humanId)}.odpass`, "application/zip");
 }
 
-/** SPEC §15 + §15.1.1 — `.odpass` ZIP: `originals/<role>__<file>` + `manifest.originals` paths; aligned with `tools/mint.py`. */
+/** SPEC §15 + §15.1.1 — `.odpass` ZIP: `originals/<role>__<file>` + `manifest.originals` paths; aligned with `chain/tools/mint.py`. */
 async function createPassportOdpBlob(humanId, json, bundleMeta) {
   if (typeof JSZip === "undefined") throw new Error("JSZip not loaded");
   const zip = new JSZip();

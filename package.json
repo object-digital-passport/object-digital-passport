@@ -2,27 +2,11 @@
   "name": "object-digital-passport",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "engines": {
-    "node": ">=22.10.0"
-  },
-  "description": "Object Digital Passport — contracts + Hardhat (run npm install && npm run compile from repo root)",
+  "description": "Object Digital Passport — run contract tooling from chain/",
   "scripts": {
-    "compile": "hardhat compile && node deploy/scripts/eip170-report.mjs",
-    "test": "hardhat test",
-    "deploy:testnet": "hardhat run deploy/scripts/deploy.js --network amoy",
-    "deploy:mainnet": "hardhat run deploy/scripts/deploy.js --network polygon"
-  },
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.3",
-    "hardhat": "^3.3.0"
-  },
-  "dependencies": {
-    "dotenv": "^17.4.2"
-  },
-  "overrides": {
-    "diff": "^8.0.2",
-    "lodash-es": "4.18.1",
-    "serialize-javascript": "7.0.5"
+    "compile": "npm run compile --prefix chain",
+    "test": "npm run test --prefix chain",
+    "deploy:testnet": "npm run deploy:testnet --prefix chain",
+    "deploy:mainnet": "npm run deploy:mainnet --prefix chain"
   }
 }
