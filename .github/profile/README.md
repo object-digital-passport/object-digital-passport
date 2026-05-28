@@ -1,8 +1,8 @@
 # Object Digital Passport
 
-**An open standard for authenticating physical and digital objects via blockchain** — human-readable IDs, cryptographic hashes, and verifiable seals. No platform lock-in: anyone can implement it, anyone can verify.
+**Open standard for verifiable object authenticity** — human-readable IDs, cryptographic hashes, public registry. No platform lock-in.
 
-**Live demo (GitHub Pages):** [**object-digital-passport.github.io/object-digital-passport**](https://object-digital-passport.github.io/object-digital-passport/) — *example UI* wired to the official v0.2 contract · [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) (no wallet) · [Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html) · [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)
+**Live demo (v0.5):** [**object-digital-passport.github.io/object-digital-passport**](https://object-digital-passport.github.io/object-digital-passport/) · [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) (no wallet) · [Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html) · [Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
 ---
 
@@ -10,27 +10,32 @@
 
 | | |
 |:--|:--|
-| **[object-digital-passport](https://github.com/object-digital-passport/object-digital-passport)** | Reference stack: [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md), Solidity contract, static web UI, deploy & tooling · **v0.4** |
+| **[object-digital-passport](https://github.com/object-digital-passport/object-digital-passport)** | SPEC, Solidity, reference web UI, deploy tooling — **v0.5** (on-chain generation **5**) |
+| **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** | NFC verifier companion (Android): handoff from web, NTAG 424 / TagTamper scans |
 
-Pin the main repository on this organization page so visitors see it first.
+Pin **object-digital-passport** on this organization page so visitors see it first.
 
 ---
 
 ### Start here
 
-- **Specification (normative):** [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md)
-- **Security & threat model:** [`SECURITY.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SECURITY.md) · [RU](https://github.com/object-digital-passport/object-digital-passport/blob/main/localization/ru/SECURITY.md)
-- **Contributing:** [`CONTRIBUTING.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/CONTRIBUTING.md)
-- **Versioning & releases:** [`docs/VERSIONING_AND_RELEASES.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/VERSIONING_AND_RELEASES.md)
+- **Specification:** [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md)
+- **Repo layout:** [`docs/REPOSITORY_LAYOUT.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/REPOSITORY_LAYOUT.md)
+- **Detailed guide:** [`docs/GUIDE.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md)
+- **Android integration:** [`docs/ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/ANDROID.md)
+- **Security:** [`SECURITY.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/SECURITY.md)
+- **Contributing:** [`CONTRIBUTING.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/CONTRIBUTING.md)
 
 ---
 
-### Network · reference deployment (v0.2)
+### Network · reference deployment (v0.5)
 
 | | |
 |:--|:--|
 | **Chain** | Polygon PoS (137) |
-| **Contract** | [`0x6c83c8…FfFBb`](https://polygonscan.com/address/0x6c83c8C2e18c183a2776431a23187832b42FfFBb) |
+| **Main registry** | [`0x413aEeBB2ac437483Bc68791EaAab492C2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) |
+
+Full satellite addresses: [`docs/GUIDE.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md#current-release) · [`docs/V0.5.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/V0.5.md)
 
 ---
 

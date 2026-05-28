@@ -98,7 +98,7 @@ You need at least:
 - a successful **issuer-chip-setup** scan in Android companion **before** mint (see [ISSUER_NFC_FLOW.md](./ISSUER_NFC_FLOW.md))
 - the tamper-aware physical installation on the object
 
-Library: provisioning uses vendored code from [AndroidCrypto/Ntag424SdmFeature](https://github.com/AndroidCrypto/Ntag424SdmFeature) (`net.bplearning.ntag424`, MIT). See `android-companion/ntag424-dna/NOTICE.md`.
+Library: provisioning uses vendored code from [AndroidCrypto/Ntag424SdmFeature](https://github.com/AndroidCrypto/Ntag424SdmFeature) (`net.bplearning.ntag424`, MIT). See [odp-android-companion/ntag424-dna/NOTICE.md](https://github.com/object-digital-passport/odp-android-companion/blob/main/ntag424-dna/NOTICE.md).
 
 ### 2. Mint the ODP passport
 

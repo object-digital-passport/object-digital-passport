@@ -1,7 +1,7 @@
 /**
- * ODP UI i18n — loads JSON from localization/<lang>/*.json (canonical copy in repo root: /localization).
+ * ODP UI i18n — loads JSON from web/localization/<lang>/*.json (deployed as /localization/ on GitHub Pages).
  * When the page is served from /web/*.html, resolves ../localization/ so one copy on the server is enough.
- * localStorage odp_locale: "en" | "ru". Add languages under localization/<code>/.
+ * localStorage odp_locale: "en" | "ru". Add languages under web/localization/<code>/.
  */
 (function (global) {
   "use strict";
@@ -156,7 +156,7 @@
   function odpReadmeUrlForLocale(locale) {
     var loc = locale === "ru" ? "ru" : "en";
     if (loc === "ru") {
-      return "https://github.com/object-digital-passport/object-digital-passport/blob/main/localization/ru/README.md";
+      return "https://github.com/object-digital-passport/object-digital-passport/blob/main/web/localization/ru/README.md";
     }
     return "https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md";
   }
@@ -210,7 +210,7 @@
       return Promise.resolve();
     }
 
-    var i18nPath = "localization/";
+    var i18nPath = "web/localization/";
     var pathForLog = "";
     try {
       pathForLog = global.location && global.location.pathname ? String(global.location.pathname) : "";

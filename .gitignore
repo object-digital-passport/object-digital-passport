@@ -3,28 +3,35 @@ rulesets/
 
 # Cursor / IDE
 .cursor/
+.claire/
+.claude/
 
 # macOS
 .DS_Store
 
 # Never commit private keys
 .env
-deploy/.env
-deploy/user-setup/private.local.env
+chain/deploy/.env
+chain/deploy/user-setup/private.local.env
 
 # Node
 node_modules/
-deploy/node_modules/
+chain/node_modules/
+chain/deploy/node_modules/
 
-# Hardhat
-deploy/artifacts/
-deploy/cache/
-deploy/deployments/
-artifacts/
-cache/
+# Hardhat (chain/)
+chain/deploy/artifacts/
+chain/deploy/cache/
+chain/deploy/deployments/
+chain/artifacts/
+chain/cache/
 typechain-types/
 coverage/
 coverage.json
+
+# Legacy root artifacts (if Hardhat was run before chain/ move)
+artifacts/
+cache/
 
 # Python
 __pycache__/
@@ -34,8 +41,13 @@ __pycache__/
 # Generated
 passports/
 
-# Temporary local nested repo
+# Temporary local nested repo (published: odp-android-companion)
 android-companion/
+
+# Local scratch / probes
+.tmp-*/
+tmp-*/
+*.tgz
 
 # Local HTTPS dev certs (openssl / mkcert)
 web/.certs/

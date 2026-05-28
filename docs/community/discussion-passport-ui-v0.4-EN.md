@@ -12,7 +12,7 @@ This repository ships a **reference static HTML** implementation (`web/`, includ
 
 Your answers will help us decide what to publish in **v0.4** as **recommended presentation guidance** alongside `SPEC.md`, versus what stays only in the reference implementation.
 
-**Pointers:** [SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) — normative data model; [localization/ru/SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/localization/ru/SPEC.md) — Russian draft; [web/](https://github.com/object-digital-passport/object-digital-passport/tree/main/web) — reference UI pages.
+**Pointers:** [SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) — normative data model; [web/localization/ru/SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/web/localization/ru/SPEC.md) — Russian draft; [web/](https://github.com/object-digital-passport/object-digital-passport/tree/main/web) — reference UI pages.
 
 ---
 

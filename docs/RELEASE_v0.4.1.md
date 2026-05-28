@@ -19,7 +19,7 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 ## Community & GitHub
 
 - New issue template **Standard gap** — propose what is missing or unclear in `**SPEC.md`**.
-- `**[CONTRIBUTING.md](../CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[localization/](../localization/)**` copies are informational.
+- `**[CONTRIBUTING.md](../CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[web/localization/](../localization/)**` copies are informational.
 - Pull request template: reminder to use **English** for title and description.
 - Optional **rulesets** guidance: `**[.github/BRANCH_PROTECTION.md](../.github/BRANCH_PROTECTION.md)`** (local `rulesets/` path is gitignored — templates for import only).
 
@@ -28,13 +28,13 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 ## Tooling & dependencies
 
 - Root `**package.json`:** **Hardhat 3.x**, `**@nomicfoundation/hardhat-toolbox-mocha-ethers`**, **dotenv** 17.x, **npm overrides** for known transitive advisories (e.g. `serialize-javascript`, `lodash-es`, `diff`) where applicable.
-- `**types/ethers-contracts/`:** generated **TypeScript** typings and factories for the Solidity contracts (for editors and future TS tooling).
+- `**types/ethers-chain/contracts/`:** generated **TypeScript** typings and factories for the Solidity contracts (for editors and future TS tooling).
 
 ---
 
 ## Quality & localization
 
-- `**localization/ru/SPEC.md`:** markdown link formatting clean-up (no functional spec change).
+- `**web/localization/ru/SPEC.md`:** markdown link formatting clean-up (no functional spec change).
 - `**web/verify.html`:** minor brace formatting in `**init()`**.
 
 ---

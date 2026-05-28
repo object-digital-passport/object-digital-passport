@@ -518,7 +518,7 @@
     try {
       var loc = window.localStorage && window.localStorage.getItem("odp_locale");
       if (loc === "ru") {
-        readmeUrl = "https://github.com/object-digital-passport/object-digital-passport/blob/main/localization/ru/README.md";
+        readmeUrl = "https://github.com/object-digital-passport/object-digital-passport/blob/main/web/localization/ru/README.md";
       }
     } catch (eLoc) {}
     if (isLocal) {
