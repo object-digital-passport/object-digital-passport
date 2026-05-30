@@ -1,6 +1,14 @@
 # Object Digital Passport · v0.5 Alpha
 
-# Object Digital Passport (ODP)
+> 🌐 **Language / Язык**
+>
+> | | Language | |
+> |---|---|---|
+> | 🇬🇧 | English | **You are here** |
+> | 🇷🇺 | Русский | [README.ru.md](README.ru.md) |
+>
+> Want to add your language? Start a thread in [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions) — any localization is welcome.
+
 
 Hi there! I'm **Andrei Chernikov** — a contemporary artist, entrepreneur, and archivist working on my family genealogy.
 
@@ -12,15 +20,8 @@ Working across three completely different fields opened up a unique paradigm for
 
 It runs on a blockchain, with minimal payment only for processing the record. This is the only approach that guarantees independence from any brand or manufacturer, while ensuring decentralization of information and maximum reliability. It also means anyone can verify information 50, 100, or 250 years from now.
 
-> ⚠️ **ODP is currently in Alpha:** changes to the contract are possible, which may affect the availability of your passports and account in the future. Please wait for the stable version for long-term use. Ambitious target: launch in **January 2027**. More details at the bottom of the page.
+⚠️ **ODP is currently in Alpha:** changes to the contract are possible, which may affect the availability of your passports and account in the future. Please wait for the stable version for long-term use. Ambitious target: launch in **January 2027**. More details at the bottom of the page.
 
----
-
-> 🌐 **Language / Язык**
->
-> You are reading the **[English version](README.md)** · [Русский](README.ru.md)
->
-> Want to add your language? Start a thread in [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions) — any localization is welcome.
 
 ---
 
@@ -32,7 +33,8 @@ It runs on a blockchain, with minimal payment only for processing the record. Th
 
 ---
 
-## How it works
+
+# How it works
 
 **The entire foundation of ODP is maximum transparency among all participants.**
 
@@ -59,7 +61,7 @@ Each account type has its own limits and capabilities. **Clear type labeling is 
 
 ---
 
-## FAQ
+# FAQ
 
 **So why should I bother?**
 If you want to protect your works from potential counterfeits or create an "indestructible" catalogue of your work.
@@ -82,7 +84,7 @@ One ODP record on the POL protocol costs **~$0.01–0.03**. Only the minimum tec
 
 ---
 
-> ### 📄 Documentation
+> # 📄 Documentation
 >
 > | File | Description |
 > |---|---|
@@ -98,7 +100,7 @@ There are still many details and nuances to cover. Object Digital Passport was d
 
 ---
 
-> ### 💬 Join the Discussion
+> # 💬 Join the Discussion
 > Head to **Discussions** and respond in **"We need your help!"** — we'll find a task where you can contribute most.
 >
 > Thanks for visiting and taking the time to learn about Object Digital Passport. If you want to help or know someone who might be interested — **we're waiting for you!**
