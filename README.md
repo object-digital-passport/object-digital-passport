@@ -14,7 +14,7 @@ Hi there! I'm **Andrei Chernikov** — a contemporary artist, entrepreneur, and 
 
 Working across three completely different fields opened up a unique paradigm for me — and that's how I arrived at this project.
 
-
+---
 
 **Object Digital Passport (ODP)** is an open-source standard for creating digital passports for objects — whether that's art, limited-edition brand products, or archival documents.
 
