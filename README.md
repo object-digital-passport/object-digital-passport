@@ -65,24 +65,28 @@ Each account type has its own limits and capabilities. **Clear type labeling is 
 
 ## FAQ
 
-**So why should I bother?**
+### **So why should I bother?**
 If you want to protect your works from potential counterfeits or create an "indestructible" catalogue of your work.
 
-**What information can be stored in ODP?**
+### **What information can be stored in ODP?**
 There's no definitive answer yet — we're experimenting with different options across versions. Please check the page (either by downloading the relevant release from Github and opening it locally in the `web` folder, or viewing the current version online).
 
-**Is adding a record all I need to do?**
+### **Is adding a record all I need to do?**
 No. There is a companion file **`.odpass`** that conveniently stores all additional information that physically cannot go on-chain due to size limits (photo of the work, additional attributes, etc.). A hash of that information is stored, making tampering impossible.
 
 **You must keep this file** — otherwise only minimal information will be stored on-chain.
 
 The `.odpass` file can either be kept privately and shared on request, or uploaded to your own site with a link provided to the system — if the hash matches, it will display the file's information. Changes possible after community discussion.
 
-**Can I change an ODP after uploading it?**
+### **Can I change an ODP after uploading it?**
 Core fields — **no**. Only supplementary fields that don't affect authenticity can be changed: the link to the companion file, the current passport owner, etc. Please review the web page or specification for more detail.
 
-**What does it actually cost?**
+### **What does it actually cost?**
 One ODP record on the POL protocol costs **~$0.01–0.03**. Only the minimum technically necessary amount — the standard itself takes no commission.
+
+---
+
+There are still many details and nuances to cover. Object Digital Passport was designed with large institutions in mind, as well as future-proof considerations. Please **read the specification** — it answers all remaining questions. Or post in the discussions!
 
 ---
 
@@ -96,9 +100,6 @@ One ODP record on the POL protocol costs **~$0.01–0.03**. Only the minimum tec
 > | [RELEASE\_v0.2.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/RELEASE_v0.2.md) | Current release v0.2 |
 > | [Live demo →](https://object-digital-passport.github.io/object-digital-passport/) | Try it online |
 
----
-
-There are still many details and nuances to cover. Object Digital Passport was designed with large institutions in mind, as well as future-proof considerations. Please **read the specification** — it answers all remaining questions. Or post in the discussions!
 
 ---
 
