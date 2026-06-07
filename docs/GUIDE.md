@@ -27,10 +27,10 @@
 |                            |                                                        |
 | -------------------------- | ------------------------------------------------------ |
 | 🇬🇧 **English**           | See the [root README](../README.md) for a short entry point; this page is the detailed guide.                       |
-| 🇷🇺 **Russian / Русский** | [web/localization/ru/README.md](../localization/ru/README.md) |
+| 🇷🇺 **Russian / Русский** | [web/frontend/localization/ru/README.md](../localization/ru/README.md) |
 
 
-**We welcome README and UI translations in any language.** Add files under `web/localization/<language-code>/` (see the [web/localization/ru/](../localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](../CONTRIBUTING.md)** (editing, localization, and how to propose changes). **Issues and PRs on GitHub are in English** so the whole community can participate in the same threads.
+**We welcome README and UI translations in any language.** Add files under `web/frontend/localization/<language-code>/` (see the [web/frontend/localization/ru/](../localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](../CONTRIBUTING.md)** (editing, localization, and how to propose changes). **Issues and PRs on GitHub are in English** so the whole community can participate in the same threads.
 
 **Help us:** translate, share the **[project link](https://github.com/object-digital-passport/object-digital-passport)**, or tell communities who might care about open provenance for objects.
 
@@ -123,7 +123,7 @@ If you are new, follow this order:
 1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments—not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to “connect”, pause: that is normal for these pages, but scammers use the same trick—read **your** wallet’s help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee**—see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings—see `[web/odp-wc-config.js](../web/odp-wc-config.js)` and [docs/V0.5.md](V0.5.md).
 2. **This guide.** Read it through for a practical “how to use” picture—no code required.
 3. **Rules in full.** The normative protocol text is [SPEC.md](../SPEC.md).
-4. **Going deeper.** What is new in this line: [docs/V0.5.md](V0.5.md). Historical v0.4 notes remain in [docs/V0.4.md](V0.4.md), and earlier changes vs older lines are in [web/localization/ru/RELEASE_v0.3.md](../localization/ru/RELEASE_v0.3.md). To **deploy your own** registry (for developers): [chain/deploy/README.md](../deploy/README.md).
+4. **Going deeper.** What is new in this line: [docs/V0.5.md](V0.5.md). Historical v0.4 notes remain in [docs/V0.4.md](V0.4.md), and earlier changes vs older lines are in [web/frontend/localization/ru/RELEASE_v0.3.md](../localization/ru/RELEASE_v0.3.md). To **deploy your own** registry (for developers): [chain/deploy/README.md](../deploy/README.md).
 
 **Still early days.** ODP is in **development, testing, and gathering feedback**—rules and deployments can still change. We aim for a **stable 1.x release around January 2027** as the long-term baseline. If you need a **record meant to last many years** with minimal rule churn, **consider waiting for that stable release**. Each contract address is its **own** registry; records do **not** move between deployments by themselves. More on versioning: [docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md).
 
@@ -195,7 +195,7 @@ Pages:
 
 ## Android companion app
 
-Reference NFC verifier: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (separate repository). Integration in this repo: [docs/ANDROID.md](ANDROID.md), handoff in [web/odp-android-companion.js](../web/odp-android-companion.js). Chip workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
+Reference NFC verifier: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (separate repository). Integration in this repo: [docs/ANDROID.md](ANDROID.md), handoff in [web/frontend/js/odp-android-companion.js](../web/frontend/js/odp-android-companion.js). Chip workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
 
 The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap target. `odp://...` remains normative in [SPEC.md](../SPEC.md) for stable v1 once resolver context exists.
 
@@ -231,7 +231,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 | Extension mint router `ODPExtensionMintRouter`                 | `[0x039F415949bD661360b5D8A066525529631880B2](https://polygonscan.com/address/0x039F415949bD661360b5D8A066525529631880B2)`   |
 
 
-**Release notes:** `[docs/V0.5.md](V0.5.md)` · historical `[docs/V0.4.md](V0.4.md)` / `[docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md)` · **Earlier line (v0.3 vs v0.2):** `[web/localization/ru/RELEASE_v0.3.md](../localization/ru/RELEASE_v0.3.md)`.
+**Release notes:** `[docs/V0.5.md](V0.5.md)` · historical `[docs/V0.4.md](V0.4.md)` / `[docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md)` · **Earlier line (v0.3 vs v0.2):** `[web/frontend/localization/ru/RELEASE_v0.3.md](../localization/ru/RELEASE_v0.3.md)`.
 
 ## Terms You Need
 
@@ -251,7 +251,7 @@ Reference deployment (**Polygon mainnet**, `chainId` 137) for this repo’s stat
 
 For threat model and trust boundaries:
 
-- `[SECURITY.md](../SECURITY.md)` · Russian: `[web/localization/ru/SECURITY.md](../localization/ru/SECURITY.md)`
+- `[SECURITY.md](../SECURITY.md)` · Russian: `[web/frontend/localization/ru/SECURITY.md](../localization/ru/SECURITY.md)`
 
 Verification basics:
 
@@ -291,14 +291,14 @@ Pointers:
 
 - `[docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)`
 - `[V0.3.md](V0.3.md)`
-- `[docs/V0.5.md](V0.5.md)` · historical `[docs/V0.4.md](V0.4.md)` / `[docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md)` · `[web/localization/ru/RELEASE_v0.4.md](../localization/ru/RELEASE_v0.4.md)` / `[web/localization/ru/RELEASE_v0.4.1.md](../localization/ru/RELEASE_v0.4.1.md)` (default Polygon addresses match `[chain/deploy/deployments/polygon.json](../deploy/deployments/polygon.json)`)
+- `[docs/V0.5.md](V0.5.md)` · historical `[docs/V0.4.md](V0.4.md)` / `[docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md)` · `[web/frontend/localization/ru/RELEASE_v0.4.md](../localization/ru/RELEASE_v0.4.md)` / `[web/frontend/localization/ru/RELEASE_v0.4.1.md](../localization/ru/RELEASE_v0.4.1.md)` (default Polygon addresses match `[chain/deploy/deployments/polygon.json](../deploy/deployments/polygon.json)`)
 
 ## Contributing
 
 - Guide: `[CONTRIBUTING.md](../CONTRIBUTING.md)`
 - Code of Conduct: `[CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)`
 - Docs index: `[docs/README.md](README.md)`
-- Russian: `[web/localization/ru/CONTRIBUTING.md](../localization/ru/CONTRIBUTING.md)`, `[web/localization/ru/CODE_OF_CONDUCT.md](../localization/ru/CODE_OF_CONDUCT.md)`, `[web/localization/ru/docs/README.md](../localization/ru/docs/README.md)`
+- Russian: `[web/frontend/localization/ru/CONTRIBUTING.md](../localization/ru/CONTRIBUTING.md)`, `[web/frontend/localization/ru/CODE_OF_CONDUCT.md](../localization/ru/CODE_OF_CONDUCT.md)`, `[web/frontend/localization/ru/docs/README.md](../localization/ru/docs/README.md)`
 
 Contributions are welcome **across the whole project**: protocol and spec review, smart-contract and tooling work, UX and visual design, **editing and translation**, accessibility, and documentation. The goal is broad participation — not only code — so ODP can converge on a trustworthy, understandable standard by the **January 2027** stability milestone.
 

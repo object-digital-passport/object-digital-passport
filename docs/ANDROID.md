@@ -13,8 +13,8 @@ This repo keeps protocol rules, the web UI, and the handoff bridge only.
 | Layer | Where |
 |-------|--------|
 | Registry, hashes, SPEC | This repo — [SPEC.md](../SPEC.md) |
-| Verify / Passport web UI | [web/verify.html](../web/verify.html), [web/passport.html](../web/passport.html) |
-| Web → Android handoff | [web/odp-android-companion.js](../web/odp-android-companion.js) |
+| Verify / Passport web UI | [web/frontend/verify.html](../web/frontend/verify.html), [web/frontend/passport.html](../web/frontend/passport.html) |
+| Web → Android handoff | [web/frontend/js/odp-android-companion.js](../web/frontend/js/odp-android-companion.js) |
 | NFC runtime on device | [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion) |
 
 The companion does **not** replace on-chain verification in the browser. It adds NFC carrier read/write, EV2/TagTamper evidence, and honest separate result rows.
@@ -31,7 +31,7 @@ Delivery:
 - **Deep link:** `odpcompanion://import?handoff=<url-encoded-json>`
 - **Share / copy** — same JSON as plain text
 
-Implementation: [`web/odp-android-companion.js`](../web/odp-android-companion.js) (`buildAndroidCompanionHandoff`, `openAndroidCompanionImport`).
+Implementation: [`web/frontend/js/odp-android-companion.js`](../web/frontend/js/odp-android-companion.js) (`buildAndroidCompanionHandoff`, `openAndroidCompanionImport`).
 
 ## Carrier shape (reference)
 

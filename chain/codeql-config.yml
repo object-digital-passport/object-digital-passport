@@ -2,4 +2,4 @@
 # If you add .github/workflows/codeql.yml with init config-file: ./codeql-config.yml, disable Default setup under Settings → Code security → Code scanning.
 # CodeQL: skip generated WalletConnect bundle (esbuild output from npm deps; not maintained as source).
 paths-ignore:
-  - web/odp-wallet-wc.bundle.js
+  - web/backend/js/odp-wallet-wc.bundle.js

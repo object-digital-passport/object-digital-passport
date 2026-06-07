@@ -1,5 +1,5 @@
-# Deploys the static UI from /web to GitHub Pages.
-# Requires: Repo Settings → Pages → Build and deployment → Source: GitHub Actions (not “Deploy from a branch”).
+# Deploys web/frontend + web/backend to GitHub Pages.
+# Requires: Repo Settings → Pages → Source: GitHub Actions.
 name: Deploy GitHub Pages
 
 on:
@@ -25,30 +25,23 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/configure-pages@v6
-      # Flatten web/ to artifact root so /verify.html works.
-      # Also mirror under /web/ so /web/verify.html works (same relative assets; avoids 404 for repo-style URLs).
       - name: Stage site
         env:
-          # Repository secret (preferred) or repo/org Variable — public address is fine in Variables.
           ODP_CONTRACT_ADDRESS: ${{ secrets.ODP_CONTRACT_ADDRESS || vars.ODP_CONTRACT_ADDRESS }}
         run: |
-          mkdir -p _site
-          cp -r web/. _site/
-          mkdir -p _site/web
-          cp -r web/. _site/web/
-          # UI i18n + translated docs live under web/localization/ in the repo.
-          if [ -d web/localization ]; then
-            rm -rf _site/localization
-            cp -r web/localization _site/localization
-          fi
+          mkdir -p _site _site/web
+          cp -r web/frontend/. _site/
+          cp -r web/backend _site/backend
+          cp -r web/frontend/. _site/web/
+          cp -r web/backend _site/web/backend
           if [ -n "$ODP_CONTRACT_ADDRESS" ]; then
-            echo "Injecting ODP_CONTRACT_ADDRESS into NET.contract (6 HTML files) + registry-config.json"
+            echo "Injecting ODP_CONTRACT_ADDRESS into NET.contract + registry-config.json"
             for f in _site/creator.html _site/passport.html _site/verify.html _site/web/creator.html _site/web/passport.html _site/web/verify.html; do
               test -f "$f" || continue
               sed -i "s|contract: \"[^\"]*\",|contract: \"${ODP_CONTRACT_ADDRESS}\",|" "$f"
             done
-            printf '{"contract":"%s"}\n' "$ODP_CONTRACT_ADDRESS" > _site/registry-config.json
-            cp _site/registry-config.json _site/web/registry-config.json
+            printf '{"contract":"%s"}\n' "$ODP_CONTRACT_ADDRESS" > _site/backend/config/registry-config.json
+            cp _site/backend/config/registry-config.json _site/web/backend/config/registry-config.json
           else
             echo "ODP_CONTRACT_ADDRESS empty — set Actions secret or repo Variable ODP_CONTRACT_ADDRESS, then redeploy"
           fi

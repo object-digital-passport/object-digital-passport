@@ -2,7 +2,7 @@
 
 ODP is an open protocol: beyond the on-chain registry and `passport.json`, it matters how a **passport is presented** to people — and how that lines up with the **specification**.
 
-This repository ships a **reference static HTML** implementation (`web/`, including passport and verification screens). It is **not** meant to be the one true visual standard; it is a **working example** of which blocks appear, in what order, and how spec fields surface in the UI.
+This repository ships a **reference static HTML** implementation (`web/frontend/`, including passport and verification screens). It is **not** meant to be the one true visual standard; it is a **working example** of which blocks appear, in what order, and how spec fields surface in the UI.
 
 **We would like your input:**
 
@@ -12,7 +12,7 @@ This repository ships a **reference static HTML** implementation (`web/`, includ
 
 Your answers will help us decide what to publish in **v0.4** as **recommended presentation guidance** alongside `SPEC.md`, versus what stays only in the reference implementation.
 
-**Pointers:** [SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) — normative data model; [web/localization/ru/SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/web/localization/ru/SPEC.md) — Russian draft; [web/](https://github.com/object-digital-passport/object-digital-passport/tree/main/web) — reference UI pages.
+**Pointers:** [SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) — normative data model; [web/frontend/localization/ru/SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/web/frontend/localization/ru/SPEC.md) — Russian draft; [web/](https://github.com/object-digital-passport/object-digital-passport/tree/main/web) — reference UI pages.
 
 ---
 

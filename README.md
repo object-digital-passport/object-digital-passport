@@ -11,7 +11,7 @@
 | **Full overview (EN)** | [docs/GUIDE.md](docs/GUIDE.md) |
 | **Android companion** | [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion) · [docs/ANDROID.md](docs/ANDROID.md) |
 | **Docs** | [docs/README.md](docs/README.md) · [Contributing](docs/CONTRIBUTING.md) · [Security](docs/SECURITY.md) |
-| **Русский** | [web/localization/ru/README.md](web/localization/ru/README.md) |
+| **Русский** | [web/frontend/localization/ru/README.md](web/frontend/localization/ru/README.md) |
 | **License** | [MIT](LICENSE) |
 
 ## Repository
@@ -19,7 +19,7 @@
 | | |
 | --- | --- |
 | **[docs/](docs/)** | Guides, contributing, security, release notes |
-| **[web/](web/)** | Reference UI (GitHub Pages) |
+| **[web/](web/)** | Reference UI — [`frontend/`](web/frontend/) + [`backend/`](web/backend/) |
 | **[chain/](chain/)** | Contracts, Hardhat, deploy |
 
 ```bash

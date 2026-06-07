@@ -518,7 +518,7 @@
     try {
       var loc = window.localStorage && window.localStorage.getItem("odp_locale");
       if (loc === "ru") {
-        readmeUrl = "https://github.com/object-digital-passport/object-digital-passport/blob/main/web/localization/ru/README.md";
+        readmeUrl = "https://github.com/object-digital-passport/object-digital-passport/blob/main/web/frontend/localization/ru/README.md";
       }
     } catch (eLoc) {}
     if (isLocal) {
@@ -592,7 +592,7 @@
     }
 
     function fetchAndMerge(cacheMode) {
-      var url = new URL("registry-config.json", global.location.href);
+      var url = new URL("backend/config/registry-config.json", global.location.href);
       url.searchParams.set("_", String(Date.now()) + "_" + Math.random().toString(16).slice(2));
       return global
         .fetch(url.toString(), {
