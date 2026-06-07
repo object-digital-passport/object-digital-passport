@@ -69,7 +69,7 @@ Each account type has its own limits and capabilities. **Clear type labeling is 
 If you want to protect your works from potential counterfeits or create an "indestructible" catalogue of your work.
 
 ### **What information can be stored in ODP?**
-There's no definitive answer yet — we're experimenting with different options across versions. Please check the page (either by downloading the relevant release from Github and opening it locally in the `web` folder, or viewing the current version online).
+There's no definitive answer yet — we're experimenting with different options across versions. Please check the page (either by downloading the relevant release from Github and opening it locally in the `web/frontend` folder, or viewing the current version online).
 
 ### **Is adding a record all I need to do?**
 No. There is a companion file **`.odpass`** that conveniently stores all additional information that physically cannot go on-chain due to size limits (photo of the work, additional attributes, etc.). A hash of that information is stored, making tampering impossible.
@@ -99,6 +99,8 @@ There are still many details and nuances to cover. Object Digital Passport was d
 > | [CONTRIBUTING.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/CONTRIBUTING.md) | How to contribute |
 > | [RELEASE\_v0.2.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/RELEASE_v0.2.md) | Current release v0.2 |
 > | [Live demo →](https://object-digital-passport.github.io/object-digital-passport/) | Try it online |
+>
+> **Repository layout:** [`docs/`](docs/) · [`web/frontend/`](web/frontend/) (UI) · [`web/backend/`](web/backend/) (on-chain client) · [`chain/`](chain/) (contracts)
 
 
 ---

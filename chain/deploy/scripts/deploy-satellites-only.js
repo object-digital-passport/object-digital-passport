@@ -91,10 +91,10 @@ async function main() {
   console.log();
   console.log("  Next steps:");
   if (walletDocumentAnchorAddress) {
-    console.log(`    NET.docAnchor: "${walletDocumentAnchorAddress}"  → web/verify.html`);
+    console.log(`    NET.docAnchor: "${walletDocumentAnchorAddress}"  → web/frontend/verify.html`);
   }
   if (counterfeitConcernAddress) {
-    console.log(`    NET.counterfeitConcern: "${counterfeitConcernAddress}"  → web/passport.html, web/verify.html`);
+    console.log(`    NET.counterfeitConcern: "${counterfeitConcernAddress}"  → web/frontend/passport.html, web/frontend/verify.html`);
   }
   console.log();
 

@@ -13,10 +13,10 @@
 |                            |                                                          |
 | -------------------------- | -------------------------------------------------------- |
 | 🇬🇧 **English**           | You are reading the normative specification (`SPEC.md`). |
-| 🇷🇺 **Russian / Русский** | [web/localization/ru/SPEC.md](web/localization/ru/SPEC.md)       |
+| 🇷🇺 **Russian / Русский** | [web/frontend/localization/ru/SPEC.md](web/frontend/localization/ru/SPEC.md)       |
 
 
-**We welcome specification translations in any language.** Add files under `web/localization/<language-code>/` (see the [web/localization/ru/](web/localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](docs/CONTRIBUTING.md)**. **Community discussion on GitHub (issues and PRs) is in English** so all participants can follow the same threads.
+**We welcome specification translations in any language.** Add files under `web/frontend/localization/<language-code>/` (see the [web/frontend/localization/ru/](web/frontend/localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](docs/CONTRIBUTING.md)**. **Community discussion on GitHub (issues and PRs) is in English** so all participants can follow the same threads.
 
 **Normative source:** English `SPEC.md` (this file) is the only normative specification in this repository. Translations are provided for convenience and can contain mistakes; treat them as **informational only**.
 
@@ -89,7 +89,7 @@ The following describes the **reference stack in this repository (v0.4)**. At mi
 - **P-affiliation audit**: `**getPAffiliationAudit`**, `**detachPAffiliation`** (parent P); timestamps for join / detach
 - **Compact reverts**: failures use `**error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference `**ObjectDigitalPassport`** is deployed **with a linked library** `**ODPPassportLib`** (shared `**error EC`**) so the registry creation bytecode stays within the 24 KiB (EIP-170) limit; deploy library first, then the registry (see repository deploy scripts). Local Hardhat tests may use `**allowUnlimitedContractSize`**; verify `**[ODP] EIP-170:`** output after compile before mainnet deploy.
 
-**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`web/localization/ru/RELEASE_v0.4.md`](web/localization/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
+**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`web/frontend/localization/ru/RELEASE_v0.4.md`](web/frontend/localization/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
 
 > **Deployable v0.5 split-line note:** the deployable reference line in this repository keeps the **main registry** focused on creator records, core passport state, minting, transfer, revocation, and mutable passport fields. To stay within `EIP-170`, several optional surfaces are served by **paired satellites** instead of the main registry ABI:
 > - `**ODPRegistryRelations`** — P-affiliation, mint-agent delegation, creator publishing delegation
@@ -1704,7 +1704,7 @@ Expected ZIP entries:
 
 #### 15.1.1 Reference `manifest.json` shape (implementations)
 
-Reference tooling in this repository (`web/passport.html`, `chain/tools/mint.py`) writes `manifest.json` as UTF-8 JSON with at least:
+Reference tooling in this repository (`web/frontend/passport.html`, `chain/tools/mint.py`) writes `manifest.json` as UTF-8 JSON with at least:
 
 - `format`: `"odpass-bundle"` (legacy bundles MAY use `"odp-bundle"`)
 - `bundleVersion`: string for the bundle layout exported by reference tooling (older manifest layout strings may still read)

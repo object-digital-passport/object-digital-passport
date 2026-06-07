@@ -5,7 +5,7 @@
   "main": "odp-contract.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:wc": "esbuild odp-wallet-wc.entry.js --bundle --format=iife --platform=browser --outfile=odp-wallet-wc.bundle.js --legal-comments=none"
+    "build:wc": "esbuild js/odp-wallet-wc.entry.js --bundle --format=iife --platform=browser --outfile=js/odp-wallet-wc.bundle.js --legal-comments=none"
   },
   "keywords": [],
   "author": "",

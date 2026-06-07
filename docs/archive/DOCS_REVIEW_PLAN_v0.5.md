@@ -28,7 +28,7 @@ This was a discussion-first plan for the documentation pass that follows the v0.
 - `docs/README.md`
 - `docs/V0.4.md`
 - future `docs/V0.5.md`
-- relevant RU mirrors under `web/localization/ru/`
+- relevant RU mirrors under `web/frontend/localization/ru/`
 
 ## Problems To Review
 

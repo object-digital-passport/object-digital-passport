@@ -19,7 +19,7 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 ## Community & GitHub
 
 - New issue template **Standard gap** — propose what is missing or unclear in `**SPEC.md`**.
-- `**[CONTRIBUTING.md](../CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[web/localization/](../localization/)**` copies are informational.
+- `**[CONTRIBUTING.md](../CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[web/frontend/localization/](../localization/)**` copies are informational.
 - Pull request template: reminder to use **English** for title and description.
 - Optional **rulesets** guidance: `**[.github/BRANCH_PROTECTION.md](../.github/BRANCH_PROTECTION.md)`** (local `rulesets/` path is gitignored — templates for import only).
 
@@ -34,8 +34,8 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 
 ## Quality & localization
 
-- `**web/localization/ru/SPEC.md`:** markdown link formatting clean-up (no functional spec change).
-- `**web/verify.html`:** minor brace formatting in `**init()`**.
+- `**web/frontend/localization/ru/SPEC.md`:** markdown link formatting clean-up (no functional spec change).
+- `**web/frontend/verify.html`:** minor brace formatting in `**init()`**.
 
 ---
 

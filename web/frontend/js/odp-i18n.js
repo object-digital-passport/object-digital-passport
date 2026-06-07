@@ -1,7 +1,6 @@
 /**
- * ODP UI i18n — loads JSON from web/localization/<lang>/*.json (deployed as /localization/ on GitHub Pages).
- * When the page is served from /web/*.html, resolves ../localization/ so one copy on the server is enough.
- * localStorage odp_locale: "en" | "ru". Add languages under web/localization/<code>/.
+ * ODP UI i18n — loads JSON from frontend/localization/<lang>/*.json (deployed as /localization/ on GitHub Pages).
+ * localStorage odp_locale: "en" | "ru". Add languages under web/frontend/localization/<code>/.
  */
 (function (global) {
   "use strict";
@@ -156,7 +155,7 @@
   function odpReadmeUrlForLocale(locale) {
     var loc = locale === "ru" ? "ru" : "en";
     if (loc === "ru") {
-      return "https://github.com/object-digital-passport/object-digital-passport/blob/main/web/localization/ru/README.md";
+      return "https://github.com/object-digital-passport/object-digital-passport/blob/main/web/frontend/localization/ru/README.md";
     }
     return "https://github.com/object-digital-passport/object-digital-passport/blob/main/README.md";
   }
@@ -210,14 +209,7 @@
       return Promise.resolve();
     }
 
-    var i18nPath = "web/localization/";
-    var pathForLog = "";
-    try {
-      pathForLog = global.location && global.location.pathname ? String(global.location.pathname) : "";
-      if (/\/web\/[^/]+\.html?$/i.test(pathForLog)) {
-        i18nPath = "../localization/";
-      }
-    } catch (ePath) {}
+    var i18nPath = "localization/";
     var base = new URL(i18nPath, global.location.href);
     var firstCommonUrl = new URL("en/common.json", base).toString();
     var i18nRevealSafety = global.setTimeout(function () {

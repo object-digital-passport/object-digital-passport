@@ -10,7 +10,7 @@ This project follows the **[Contributor Covenant](docs/CODE_OF_CONDUCT.md)**. By
 
 ## Language (GitHub and the community)
 
-**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is `**[SPEC.md](SPEC.md)`** (English). Translations under `[web/localization/](web/localization/)` are informational; discussion that changes the protocol should still be tracked in English on GitHub.
+**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is `**[SPEC.md](SPEC.md)`** (English). Translations under `[web/frontend/localization/](web/frontend/localization/)` are informational; discussion that changes the protocol should still be tracked in English on GitHub.
 
 ## Where to start
 
@@ -18,20 +18,20 @@ This project follows the **[Contributor Covenant](docs/CODE_OF_CONDUCT.md)**. By
 - **Good first issues:** look for issues labeled `**good first issue`** or `**help wanted**` (maintainers apply these when tasks are suitable for newcomers).
 - **Gaps in the standard:** if something feels **missing or underspecified** in `**SPEC.md`**, open a **Standard gap** issue (template) — short proposals welcome.
 - **Spec / protocol ideas:** open a **Specification / protocol discussion** issue (template) for questions or changes to existing rules, or discuss before large PRs.
-- **Security:** do **not** post exploitable details in public issues — follow `**[SECURITY.md](docs/SECURITY.md)`** (Russian: `[web/localization/ru/SECURITY.md](web/localization/ru/SECURITY.md)`).
+- **Security:** do **not** post exploitable details in public issues — follow `**[SECURITY.md](docs/SECURITY.md)`** (Russian: `[web/frontend/localization/ru/SECURITY.md](web/frontend/localization/ru/SECURITY.md)`).
 
 ## Fork and pull request (short)
 
 1. **Fork** this repository on GitHub (or ask for **collaborator** access on the org if you work closely with maintainers).
 2. **Branch** from `main` with a descriptive name, e.g. `fix/verify-mobile`, `docs/contributing-typos`.
-3. **Change** with focused commits; match existing style in each area (`web/`, `chain/contracts/`, `chain/tools/`, Markdown).
+3. **Change** with focused commits; match existing style in each area (`web/frontend/`, `chain/contracts/`, `chain/tools/`, Markdown).
 4. **Test** what you can locally (static pages, Hardhat, `mint.py`) — there may not be CI for every path yet.
 5. **Open a PR** into `**main`** — the PR template will prompt for summary and checklist.
 6. **Respond** to review feedback; maintainers aim to reply within a few days (small projects vary by availability).
 
 ## Beyond code
 
-Reviews of English and translated copy, UX, visual design, accessibility, and localization (`[web/localization/](web/localization/)`) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on `[SPEC.md](SPEC.md)` and the static pages helps.
+Reviews of English and translated copy, UX, visual design, accessibility, and localization (`[web/frontend/localization/](web/frontend/localization/)`) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on `[SPEC.md](SPEC.md)` and the static pages helps.
 
 ## Areas of the repo
 

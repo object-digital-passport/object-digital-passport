@@ -6,7 +6,7 @@
  *   ODP_REGISTRY_ADDRESS=0x... npx hardhat run scripts/deploy-doc-anchor-only.js --network polygon
  *   npx hardhat run scripts/deploy-doc-anchor-only.js --network amoy -- --registry 0x...
  *
- * After deploy: set NET.docAnchor in web/verify.html to the printed address (v0.3+).
+ * After deploy: set NET.docAnchor in web/frontend/verify.html to the printed address (v0.3+).
  *
  * Author: Andrei Chernikov
  */
@@ -68,7 +68,7 @@ async function main() {
   console.log(`  ✅ ODPWalletDocumentAnchor: ${anchorAddress}`);
   console.log();
   console.log("  Next steps:");
-  console.log(`    1. Set NET.docAnchor: "${anchorAddress}" in web/verify.html (and registry-config if used).`);
+  console.log(`    1. Set NET.docAnchor: "${anchorAddress}" in web/frontend/verify.html (and registry-config if used).`);
   console.log("    2. Redeploy static site or bump cache so clients load the new config.");
   console.log();
 
