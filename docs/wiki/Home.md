@@ -1,6 +1,6 @@
 # Welcome to Object Digital Passport 👋
 
-*🇷🇺 [Русская версия](Home-RU) · краткое интро — внизу страницы.*
+> 🌐 **English** · [Русский](Home-ru)
 
 **Object Digital Passport (ODP)** is an open standard for giving real things — artworks, limited-edition products, archival documents — a digital passport that anyone can verify, free, forever. No company in the middle, no subscription: just a public registry on the Polygon blockchain and open-source tools.
 
@@ -29,8 +29,3 @@ And with the Object ID-compatible profile, the same passport doubles as **theft-
 - 💬 [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions) — questions and ideas welcome
 - ⚠️ **Alpha status:** the contract may still change before v1 (target: January 2027). Don't rely on it for long-term records yet.
 
----
-
-### 🇷🇺 Коротко по-русски
-
-ODP — открытый стандарт цифровых паспортов для объектов (искусство, лимитированные вещи, архивы). Паспорт доказывает, **когда** объект зарегистрирован, **кем**, и что описание **не менялось**. Проверка — бесплатно и навсегда, без зависимости от какой-либо компании. Попробуйте [демо](https://object-digital-passport.github.io/object-digital-passport/demo/); вопросы — в [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions) (обсуждения ведём по-английски, чтобы все могли участвовать).

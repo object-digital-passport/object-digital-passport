@@ -1,6 +1,6 @@
 # FAQ
 
-*🇷🇺 [Русская версия](FAQ-RU)*
+> 🌐 **English** · [Русский](FAQ-ru)
 
 ### How much does it cost?
 

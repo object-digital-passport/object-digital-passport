@@ -1,6 +1,6 @@
 # Профиль Object ID — документирование для возврата
 
-*🇬🇧 [English version](Object-ID-Profile)*
+> 🌐 [English](Object-ID-Profile) · **Русский**
 
 [Object ID](https://icom.museum/en/resources/standards-guidelines/objectid/) — международный чек-лист (ICOM), по которому музеи, полиция, ИНТЕРПОЛ и страховые описывают культурные объекты, чтобы их можно было опознать и вернуть после кражи. Паспорт ODP может нести полный чек-лист — с криптографической меткой времени.
 

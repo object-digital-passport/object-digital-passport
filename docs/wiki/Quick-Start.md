@@ -1,6 +1,6 @@
 # Quick Start
 
-*🇷🇺 [Русская версия](Quick-Start-RU)*
+> 🌐 **English** · [Русский](Quick-Start-ru)
 
 ## Verify an object (no wallet, no cost, 2 minutes)
 

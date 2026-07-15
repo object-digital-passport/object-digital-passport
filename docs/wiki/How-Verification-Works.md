@@ -1,6 +1,6 @@
 # How Verification Works
 
-*🇷🇺 [Русская версия](How-Verification-Works-RU)*
+> 🌐 **English** · [Русский](How-Verification-Works-ru)
 
 No cryptography degree needed — here's the whole model.
 

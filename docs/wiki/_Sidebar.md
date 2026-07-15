@@ -1,4 +1,4 @@
-**🇬🇧 English**
+**Object Digital Passport**
 
 - [Home](Home)
 - [Quick Start](Quick-Start)
@@ -7,16 +7,14 @@
 - [Object ID Profile](Object-ID-Profile)
 - [FAQ](FAQ)
 
-**🇷🇺 Русский**
+---
 
-- [Главная](Home-RU)
-- [Быстрый старт](Quick-Start-RU)
-- [Как работает проверка](How-Verification-Works-RU)
-- [NFC-пломбы](NFC-Seals-RU)
-- [Профиль Object ID](Object-ID-Profile-RU)
-- [FAQ](FAQ-RU)
+**🌐 Languages**
+
+- **English** (primary)
+- [Русский](Home-ru)
 
 ---
 
-[Демо / Demo](https://object-digital-passport.github.io/object-digital-passport/demo/) ·
-[Спека / Spec](https://object-digital-passport.github.io/object-digital-passport/spec/)
+[Demo](https://object-digital-passport.github.io/object-digital-passport/demo/) ·
+[Spec](https://object-digital-passport.github.io/object-digital-passport/spec/)
