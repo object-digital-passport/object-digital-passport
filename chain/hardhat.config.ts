@@ -33,7 +33,7 @@ export default defineConfig({
   paths: {
     sources: "contracts",
     tests: {
-      mocha: "chain/deploy/test",
+      mocha: "deploy/test",
     },
   },
   solidity: {
