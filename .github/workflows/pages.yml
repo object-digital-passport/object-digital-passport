@@ -1,4 +1,8 @@
-# Deploys web/frontend + web/backend to GitHub Pages.
+# Deploys the split site to GitHub Pages:
+#   /       — landing (web/pages/index.html): choose Specification or Demo
+#   /spec/  — SPEC.md + profile docs rendered to HTML (web/pages/build-spec.mjs)
+#   /demo/  — reference web UI (web/frontend + web/backend)
+# Legacy root/*.html and /web/*.html URLs get redirect stubs to /demo/.
 # Requires: Repo Settings → Pages → Source: GitHub Actions.
 name: Deploy GitHub Pages
 
@@ -25,26 +29,48 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/configure-pages@v6
-      - name: Stage site
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build /spec/ from markdown
+        run: |
+          npm install --prefix web/pages --no-audit --no-fund
+          node web/pages/build-spec.mjs _site/spec
+      - name: Stage landing and /demo/
         env:
           ODP_CONTRACT_ADDRESS: ${{ secrets.ODP_CONTRACT_ADDRESS || vars.ODP_CONTRACT_ADDRESS }}
         run: |
-          mkdir -p _site _site/web
-          cp -r web/frontend/. _site/
-          cp -r web/backend _site/backend
-          cp -r web/frontend/. _site/web/
-          cp -r web/backend _site/web/backend
+          mkdir -p _site/demo
+          cp web/pages/index.html _site/index.html
+          cp -r web/frontend/. _site/demo/
+          cp -r web/backend _site/demo/backend
           if [ -n "$ODP_CONTRACT_ADDRESS" ]; then
             echo "Injecting ODP_CONTRACT_ADDRESS into NET.contract + registry-config.json"
-            for f in _site/creator.html _site/passport.html _site/verify.html _site/web/creator.html _site/web/passport.html _site/web/verify.html; do
+            for f in _site/demo/creator.html _site/demo/passport.html _site/demo/verify.html; do
               test -f "$f" || continue
               sed -i "s|contract: \"[^\"]*\",|contract: \"${ODP_CONTRACT_ADDRESS}\",|" "$f"
             done
-            printf '{"contract":"%s"}\n' "$ODP_CONTRACT_ADDRESS" > _site/backend/config/registry-config.json
-            cp _site/backend/config/registry-config.json _site/web/backend/config/registry-config.json
+            printf '{"contract":"%s"}\n' "$ODP_CONTRACT_ADDRESS" > _site/demo/backend/config/registry-config.json
           else
             echo "ODP_CONTRACT_ADDRESS empty — set Actions secret or repo Variable ODP_CONTRACT_ADDRESS, then redeploy"
           fi
+      - name: Legacy URL redirects to /demo/
+        run: |
+          make_stub () { # $1 = output file, $2 = relative path to demo page
+            printf '%s\n' \
+              '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">' \
+              '<title>Moved</title>' \
+              "<script>location.replace(\"$2\" + location.search + location.hash);</script>" \
+              "<meta http-equiv=\"refresh\" content=\"0; url=$2\">" \
+              "</head><body><a href=\"$2\">This page moved — continue to the demo</a></body></html>" \
+              > "$1"
+          }
+          mkdir -p _site/web
+          for p in verify creator passport; do
+            make_stub "_site/$p.html" "demo/$p.html"
+            make_stub "_site/web/$p.html" "../demo/$p.html"
+          done
+          make_stub "_site/web/index.html" "../demo/index.html"
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
