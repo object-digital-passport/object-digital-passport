@@ -2,6 +2,8 @@
 
 This guide describes the practical `ODP + NTAG 424 DNA TagTamper` stack when the browser alone is not enough.
 
+> **Assurance note:** the flow below implements **Profile A** (published EV2 key) — a presence / key-match indicator, **not** clone-resistant authentication. See the assurance matrix in **SPEC §6**; high-value objects should use **Profile B** (issuer-verified SDM).
+
 Short version:
 
 - Use `ODP web` to mint the passport, publish `nfcPublicKey`, build `.odpass`, build `odpOffline`, and anchor `ndppCommitmentHash`.

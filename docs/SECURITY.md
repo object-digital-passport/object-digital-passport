@@ -115,6 +115,26 @@ This document describes the threat model, known limitations, and recommendations
 
 Unchanged from v0.1 guidance — see **SPEC** §9–11 for JSON/NFC levels.
 
+### 9. NFC seal cloning under the published-key profile (Profile A)
+
+**Risk:** Under `odp-ntag424-ev2-symmetric-cr-v1` the EV2 AES application key is published on-chain as `nfcPublicKey`. Symmetric authentication with a public key authenticates nothing about the specific tag: an attacker provisions a blank NTAG 424 DNA with the published key and passes EV2 mutual authentication identically to the original. The UID check helps only marginally — UID-emulating clone tags exist. A cloned tag also reports its own (intact) TagTamper state.
+
+**Mitigation:**
+
+- Treat Profile A results as a **presence / key-match indicator**, never as proof of authenticity — SPEC §6 assurance matrix is normative; verifier UIs must not display “authentic” from this check alone.
+- For high-value objects, issuers should use **Profile B** (`odp-ntag424-sdm-issuer-v1`): the SDM key stays secret with the issuer, each tap emits a fresh CMAC plus a monotonic read counter, and verification goes through the issuer’s endpoint (SPEC §6, §11 Level 2A). Clone resistance holds as long as the key is not leaked; a leak cannot be rotated on deployed chips.
+- Primary trust remains the hash anchors, provenance, and institutional proofs — the seal is one layer, not the foundation.
+
+### 10. Public disclosure of object location (mutable on-chain state)
+
+**Risk:** v0.5 stores `currentLocation`, `rightsNote`, `conditionNote` as plaintext on a public chain. Precise storage locations of valuable objects, published permanently and irreversibly, materially assist theft. Update history remains readable in transaction data even after the field is changed.
+
+**Mitigation:**
+
+- SPEC §9 *Privacy of current-state fields* is normative: coarse controlled values only (`in_storage`, `on_loan`, …), no addresses, facilities, coordinates, courier details, or personal data; mint/update UIs must show a permanence warning.
+- Keep precise location and handling data in access-controlled off-chain records; do not put them in `passport.json` either unless eventual public disclosure is intended.
+- Planned v0.7 direction: hash-pointer state model (`stateHash` + access-controlled `stateUri`) so the protocol itself defaults to coarse-only public state ([`IDEAS_V1.md`](IDEAS_V1.md)).
+
 ---
 
 ## Deployer key security

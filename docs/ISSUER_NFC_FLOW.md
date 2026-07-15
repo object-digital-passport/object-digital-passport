@@ -2,6 +2,8 @@
 
 This is the **required mint order** for physical passports with an NTAG 424 DNA TagTamper seal in ODP v0.5.
 
+> **Assurance note:** this document describes the **Profile A** flow (published EV2 key). A pass under Profile A is a presence / key-match indicator, **not** clone-resistant authentication — see the assurance matrix in **SPEC §6** and consider **Profile B** (issuer-verified SDM) for high-value objects.
+
 ## Why order matters
 
 Minting before scanning the chip lets you publish the wrong `nfcPublicKey` or `uid` in `passport.json` and on-chain. A later tap cannot fix a wrong registry anchor without a new passport.

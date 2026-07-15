@@ -28,7 +28,7 @@
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
   "currentState": {
-    "location": "artist archive",
+    "location": "with_creator",
     "rightsNote": "Exhibition by request",
     "conditionNote": "Excellent"
   },
@@ -46,6 +46,7 @@
     "seal": {
       "nfc": {
         "uid": "04a3f912cc8b4e",
+        "profile": "odp-ntag424-ev2-symmetric-cr-v1",
         "publicKey": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
         "model": "NTAG424DNA_TAGTAMPER",
         "installedAt": "2026-03-15"

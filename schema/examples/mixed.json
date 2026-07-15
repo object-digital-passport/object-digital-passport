@@ -28,7 +28,7 @@
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
   "currentState": {
-    "location": "studio lab",
+    "location": "with_creator",
     "rightsNote": "Exhibition and documentation by agreement",
     "conditionNote": "Prototype electronics serviced 2026-03",
     "damageHistoryHash": "sha256:0011aa22bb33cc44dd55ee66ff778899aabbccddeeff00112233445566778899",

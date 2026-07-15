@@ -28,7 +28,7 @@
     "utcIso8601": "2026-04-15T10:00:00Z"
   },
   "currentState": {
-    "location": "in storage",
+    "location": "in_storage",
     "conditionNote": "Stable; minor craquelure upper left"
   },
   "refinementTags": ["painting", "oil", "19th_century"],

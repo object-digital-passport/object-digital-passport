@@ -126,9 +126,12 @@
     },
     "currentState": {
       "type": "object",
-      "description": "Mutable-state snapshot at mint time. On-chain current-state fields are authoritative after mint. PRIVACY: precise storage locations on a public chain are readable by anyone forever — prefer coarse category values.",
+      "description": "Mutable-state snapshot at mint time. On-chain current-state fields are authoritative after mint. PRIVACY (SPEC §9, normative): no precise addresses, facilities, coordinates, courier details, or personal data — public on-chain, forever.",
       "properties": {
-        "location": { "type": "string" },
+        "location": {
+          "type": "string",
+          "description": "Coarse only. Recommended controlled values: with_creator, private_collection, on_loan, on_display, in_storage, in_transit, unknown. MUST NOT identify a site (SPEC §9 privacy rules)."
+        },
         "rightsNote": { "type": "string" },
         "conditionNote": { "type": "string" },
         "damageHistoryHash": { "$ref": "#/$defs/sha256Prefixed" },
@@ -195,11 +198,28 @@
               "required": ["uid", "publicKey", "model", "installedAt"],
               "properties": {
                 "uid": { "type": "string", "pattern": "^[0-9a-f]{14}$" },
-                "publicKey": { "type": "string", "pattern": "^[0-9a-fA-F]+$" },
+                "profile": {
+                  "enum": ["odp-ntag424-ev2-symmetric-cr-v1", "odp-ntag424-sdm-issuer-v1"],
+                  "description": "Seal verification profile (SPEC §6 assurance matrix). Absent = legacy Profile A (published key; presence indicator only, NOT clone-resistant). Profile B = issuer-verified SUN/SDM, clone-resistant."
+                },
+                "publicKey": {
+                  "type": "string",
+                  "pattern": "^[0-9a-fA-F]+$",
+                  "description": "Profile A: 16-byte public EV2 AES key (hex). Profile B: 32-byte keccak256 commitment to the secret SDM key (hex). Must match on-chain nfcPublicKey bytes."
+                },
+                "verifyUrl": {
+                  "$ref": "#/$defs/httpsUrl",
+                  "description": "Profile B only: issuer's SDM verification endpoint."
+                },
                 "model": { "enum": ["NTAG424DNA", "NTAG424DNA_TAGTAMPER"] },
                 "installedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}(-[0-9]{2})?$" },
                 "notes": { "type": "string" }
-              }
+              },
+              "if": {
+                "properties": { "profile": { "const": "odp-ntag424-sdm-issuer-v1" } },
+                "required": ["profile"]
+              },
+              "then": { "required": ["verifyUrl"] }
             },
             "numbered": {
               "type": "object",

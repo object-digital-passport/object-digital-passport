@@ -538,7 +538,34 @@ Recommended for high-value objects, artwork, and collectibles.
 
 **Required on-chain / JSON model:** `**NTAG424DNA`** or `**NTAG424DNA_TAGTAMPER`**. Generic Type 2 tags (e.g. NTAG 213) are **not** accepted by the reference contract’s `nfcModel` allowlist.
 
-**How it works in the current ODP v0.5 deployment (NTAG 424 DNA):**
+### Seal verification profiles and assurance matrix (normative)
+
+NFC seal semantics are defined by a **verification profile**. A passport declares its profile in `physical.seal.nfc.profile` (§9); when the field is absent, verifiers MUST assume the legacy default `odp-ntag424-ev2-symmetric-cr-v1`. The profile determines what the on-chain `nfcPublicKey` bytes mean and what a successful check actually proves:
+
+| | **Profile A** `odp-ntag424-ev2-symmetric-cr-v1` (published key) | **Profile B** `odp-ntag424-sdm-issuer-v1` (issuer-verified SUN/SDM) | **Profile C** (reserved: asymmetric per-chip keys) |
+| --- | --- | --- | --- |
+| `nfcPublicKey` content | 16-byte EV2 AES application key — **public** | 32-byte `keccak256` **commitment** to the secret SDM key (key itself never published) | per-chip public key (future allowlist line) |
+| Who can verify | anyone with an NFC phone, no network needed for the chip step | anyone online, via the issuer’s verification endpoint | anyone, offline capable |
+| What PASS proves | the tag was provisioned with the **publicly known** key | this tap produced a **fresh CMAC** under a key only the issuer holds (read counter checked against replay) | the chip holds a unique private key matching the on-chain public key |
+| Clone resistance | **none** — anyone can buy a blank NTAG 424 DNA and load the published key into it | **strong**, for as long as the issuer’s key stays secret | strong |
+| Availability dependency | none | issuer endpoint must be reachable | none |
+| Appropriate use | convenience / presence check; low-value objects | high-value objects where the issuer (museum, brand, institution) can run or delegate a verification service | future spec line |
+| Verifier result on PASS | `SEAL_NFC_KEY_MATCH` | `SEAL_NFC_ISSUER_VERIFIED` | (future) |
+
+**Why Profile A cannot prove authenticity (normative honesty requirement).** Symmetric cryptography verified with a *published* key authenticates nothing about the physical tag: EV2 mutual authentication succeeds for **any** NTAG 424 DNA provisioned with that key, and the key is public by design in this profile. A counterfeiter does not need to extract anything — they read the key from the chain like everyone else. The UID check in the high-assurance flow raises the bar only slightly: UID-emulating clone tags exist. Therefore verifiers MUST present a Profile A pass as a **key-match / presence indicator**, MUST NOT label it “authentic”, and MUST NOT present it as clone-resistant. TagTamper status under Profile A describes *the tag being read* — a cloned tag reports its own (intact) state.
+
+**Profile B — issuer-verified SUN/SDM (`odp-ntag424-sdm-issuer-v1`):**
+
+1. **Provisioning:** the issuer enables **SDM/SUN** (Secure Dynamic Messaging) on the tag. The SDM AES key **K** never leaves the issuer. On-chain `nfcPublicKey` stores `keccak256(K)` — a commitment that later allows the issuer to prove (e.g. to an expert or in a dispute, by disclosing K under controlled conditions) which key the passport was anchored to, without publishing it.
+2. **Tap:** the tag emits an NDEF URL containing its UID, the monotonically increasing **read counter**, and an **AES-CMAC** over them, freshly computed by the chip on every read.
+3. **Verification:** the phone (or any client) calls the issuer’s endpoint from `physical.seal.nfc.verifyUrl`. The endpoint recomputes the CMAC with K, rejects counters at or below the last seen value (replay protection), and returns the result. The endpoint SHOULD return a machine-verifiable statement — e.g. an **EIP-191** signature (§11 Level 1B message style) by a wallet publicly bound to the issuer’s profile ID — so third-party verifier UIs can attribute the answer.
+4. **Display:** `SEAL_NFC_ISSUER_VERIFIED` (with the verifying profile ID shown), `SEAL_NFC_ISSUER_REJECTED` on CMAC/counter failure, `SEAL_NFC_ISSUER_UNREACHABLE` when the endpoint cannot be reached — the seal is then **unverified**, not failed.
+
+**Honest limits of Profile B:** seal verification for that passport depends on the issuer’s service staying online (the on-chain registry and all hash checks remain fully decentralized and unaffected); a leaked K enables clones from the leak moment onward and cannot be rotated on already-deployed chips; and the issuer’s endpoint is trusted for the seal answer — acceptable, because the issuer is already the trust anchor of the passport itself. This trade-off is deliberate: it exchanges a small availability dependency for real clone resistance, which Profile A cannot offer at all.
+
+**Choosing a profile:** issuers of high-value physical objects SHOULD use Profile B (or both: SDM for security plus the published-key layer for offline convenience — the two are not mutually exclusive on NTAG 424 DNA, which supports multiple application keys). Profile A alone is acceptable when the seal is a convenience layer and primary trust comes from hashes, provenance, and institutional proofs.
+
+**Legacy flow of Profile A (published EV2 key):**
 
 ```
 Registration (required order for issuers):
@@ -565,7 +592,7 @@ Optional secondary profile (odp-ntag424-nfc-public-key-file-v1):
   file 0x03 instead of the EV2 application key itself.
 ```
 
-**Honest trust note for this spec version:** NTAG 424 DNA does **not** expose a passport-specific ECC private key that signs an arbitrary verifier challenge verifiable with a public key on-chain. Its native challenge-response is **symmetric EV2 mutual authentication**. In ODP v0.5, publishing the 16-byte EV2 application key as `nfcPublicKey` is the primary public verification model. `Read_Sig` remains adjacent manufacturer evidence only.
+**Honest trust note for this spec version:** NTAG 424 DNA does **not** expose a passport-specific ECC private key that signs an arbitrary verifier challenge verifiable with a public key on-chain. Its native challenge-response is **symmetric EV2 mutual authentication**. Publishing the 16-byte EV2 application key as `nfcPublicKey` (Profile A) makes that key public — which is why Profile A is a **presence indicator, not clone-resistant authentication** (see the assurance matrix above). For clone resistance use Profile B (issuer-verified SDM). `Read_Sig` remains adjacent manufacturer evidence only.
 
 **TagTamper behavior:**
 
@@ -586,7 +613,7 @@ For `NTAG424DNA_TAGTAMPER`, the reference Android companion ([odp-android-compan
 
 The companion exposes this as `highAssuranceSeal`. It is **not** checked for plain `NTAG424DNA` passports.
 
-**Honest limits:** No verifier can be perfectly uncheatable. A thief with the original tag and key, a dishonest provisioning step, or a leaked EV2 key still defeats trust. This profile **does** block common cheats: URL-only fake tags, wrong chips with another key, and physically opened TagTamper seals (visible as `TAMPERED`).
+**Honest limits:** No verifier can be perfectly uncheatable. Under **Profile A** the EV2 application key is public, so `chipKeyMatch = PASS` and the UID check block only unsophisticated fakes (URL-only tags, unprovisioned chips); an attacker who provisions a blank NTAG 424 DNA with the published key — or a UID-emulating clone — passes both. `highAssuranceSeal` under Profile A is therefore an **integrity signal for the tag being read**, not proof that this tag is the original. Physically opened TagTamper seals remain visible as `TAMPERED` on the genuine tag itself. For clone-resistant assurance, use **Profile B** (issuer-verified SDM, assurance matrix above).
 
 **Physical installation:**
 The chip must be embedded or encapsulated so that removal causes
@@ -598,7 +625,9 @@ visible destruction. Installation method is described in `seal.nfc.notes`.
 | Field         | Required | Description                                           |
 | ------------- | -------- | ----------------------------------------------------- |
 | `uid`         | yes      | 7-byte chip UID, lowercase hex                        |
-| `publicKey`   | yes      | For NTAG 424 DNA: 16-byte EV2 AES application key (hex). For other future NFC ICs: deployment-specific public verification material |
+| `profile`     | no       | Verification profile (§6 assurance matrix): `odp-ntag424-ev2-symmetric-cr-v1` (default when absent) or `odp-ntag424-sdm-issuer-v1` |
+| `publicKey`   | yes      | Content depends on `profile`: Profile A — 16-byte EV2 AES application key (hex, public); Profile B — 32-byte `keccak256` commitment to the secret SDM key (hex). Must match on-chain `nfcPublicKey` bytes |
+| `verifyUrl`   | Profile B | HTTPS endpoint of the issuer’s SDM verification service (Profile B only) |
 | `model`       | yes      | `NTAG424DNA` or `NTAG424DNA_TAGTAMPER` — must match on-chain `nfcModel` |
 | `installedAt` | yes      | ISO 8601 installation date (e.g. `2026-03-15`)        |
 | `notes`       | no       | Installation method, location, encapsulation material |
@@ -644,7 +673,7 @@ This method provides physical reference, not cryptographic proof.
 | -------------- | --------- | ----------------------------------------------- |
 | `sealType`     | `uint8`   | `1` = NFC only, `2` = numbered only, `3` = both |
 | `sealHash`     | `bytes32` | SHA-256 of the `seal` object in passport.json   |
-| `nfcPublicKey` | `bytes`   | NFC verification anchor. For NTAG 424 DNA v0.5: typically the 16-byte EV2 AES application key |
+| `nfcPublicKey` | `bytes`   | NFC verification anchor; content defined by the seal profile (§6): 16-byte EV2 key (Profile A) or 32-byte key commitment (Profile B) |
 
 
 ### Informative — other NFC / tag technologies
@@ -701,7 +730,7 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 | `fileHash`             | `bytes32` | no       | Digital original SHA-256; **required non-zero** if `objectType = digital`                                                                                                                                           |
 | `sealType`             | `uint8`   | no       | Physical: `1` NFC, `2` numbered, `3` both. Digital: **0**                                                                                                                                                           |
 | `sealHash`             | `bytes32` | no       | SHA-256 of `seal` in `passport.json`; required for physical                                                                                                                                                         |
-| `nfcPublicKey`         | `bytes`   | no       | NFC public key; empty if no NFC                                                                                                                                                                                     |
+| `nfcPublicKey`         | `bytes`   | no       | NFC verification anchor; semantics per seal profile (§6): published EV2 key (Profile A) or `keccak256` key commitment (Profile B). Empty if no NFC                                                                  |
 | `nfcModel`             | `string`  | no       | `**NTAG424DNA`** or `**NTAG424DNA_TAGTAMPER`** if NFC seal; empty otherwise                                                                                                       |
 | `dataUrl`              | `string`  | no       | HTTPS URL of the **§15 `.odpass`** bundle (max **512** chars). May be `**""`** — then HTTP verifiers cannot fetch. May be folder-resolved at mint (see below). **MUST NOT** point at bare `.json` — only `.odpass`. |
 | `imageUrl`             | `string`  | no       | Primary image URL hint (max **512** chars)                                                                                                                                                                          |
@@ -917,6 +946,20 @@ The v0.5 line deliberately separates the immutable hash-bound document from sele
   if the hash-bound JSON snapshot and on-chain mutable state differ, verifiers MUST treat the **on-chain current-state fields** as authoritative for current status / location / rights / condition.
 - **Append-only history model:**
   `ProofRecord` attestations remain a separate append-only on-chain layer. Detailed provenance / ownership / damage history SHOULD be maintained as append-only off-chain records, with the current pointer or summary reflected in `currentState`.
+
+#### Privacy of current-state fields (normative)
+
+On-chain mutable state (`currentLocation`, `rightsNote`, `conditionNote`, `damageHistoryUrl` on the v0.5 registry) is **public and permanent**: anyone can read it, forever, including after later updates (history stays in transaction data and events). A record that helps locate a valuable physical object is a gift to thieves — the opposite of the secure-documentation practice this protocol should support.
+
+Rules:
+
+1. `currentState.location` (JSON) and the on-chain `currentLocation` field **MUST NOT** contain a precise address, geocoordinates, the name of a storage facility or vault provider, courier or transit details, or any other information that materially helps locate the physical object. **RECOMMENDED controlled values:** `with_creator`, `private_collection`, `on_loan`, `on_display`, `in_storage`, `in_transit`, `unknown`. Free text is allowed only at a coarseness that does not identify a site (e.g. a city-level museum name for an object *publicly exhibited* there is fine — it is already public).
+2. `rightsNote` and `conditionNote` **MUST NOT** contain personal data (names of private owners or staff, phone numbers, e-mail addresses, home addresses) or security-relevant handling details.
+3. Precise locations, schedules, insurance details, and contact data belong in **access-controlled off-chain records** only. They also do not belong in the hash-bound `passport.json` unless eventual public disclosure is intended — `.odpass` bundles are made to be shared, and `dataUrl` may be published later.
+4. Mint and state-update UIs **MUST** display a permanence warning next to these inputs (“public on-chain, forever, for anyone”), and SHOULD offer the controlled vocabulary above as the default choice instead of a free-text field.
+5. Verifiers SHOULD render the controlled values as translated labels; unknown free-text values are displayed as-is.
+
+A future line (v0.7 candidate) is planned to replace plaintext state strings with a hash-pointer model (`stateHash` + optional access-controlled `stateUri`), making coarse-only disclosure the default at the protocol level rather than a documentation rule — see [docs/IDEAS_V1.md](docs/IDEAS_V1.md).
 
 ### Content class taxonomy (normative for v0.5)
 
@@ -1445,19 +1488,36 @@ In the optional **ODP-in-NDPP** profile, the URL-first carrier opening step, the
 
 ### Level 2A — NFC seal verification (physical, sealType 1 or 3)
 
-**Primary path for NTAG 424 DNA (`odp-ntag424-ev2-symmetric-cr-v1`):**
+The flow depends on `physical.seal.nfc.profile` (§6 assurance matrix; absent = Profile A).
+
+**Profile A (`odp-ntag424-ev2-symmetric-cr-v1`, published key):**
 
 ```
-1. Load nfcPublicKey from blockchain (16-byte EV2 AES application key)
+1. Load nfcPublicKey from blockchain (16-byte EV2 AES application key — public)
 2. Run AuthenticateEV2First on the tag using that key
 3. Mutual challenge-response (RndA/RndB) completes
-4. Match    → SEAL_NFC_AUTHENTIC
+4. Match    → SEAL_NFC_KEY_MATCH   (presence indicator; NOT clone-resistant — §6)
    No match → SEAL_NFC_INVALID
+```
+
+Verifier UIs MUST label a Profile A pass as a key match / presence check and MUST NOT
+display it as “authentic” or clone-proof. `SEAL_NFC_AUTHENTIC` is a **deprecated alias**
+of `SEAL_NFC_KEY_MATCH` kept for older integrations.
+
+**Profile B (`odp-ntag424-sdm-issuer-v1`, issuer-verified SUN/SDM):**
+
+```
+1. Tap tag → NDEF URL with UID, read counter, and per-read AES-CMAC
+2. Call issuer endpoint from physical.seal.nfc.verifyUrl with those values
+3. Endpoint recomputes CMAC with the secret key, checks counter freshness
+4. Confirmed   → SEAL_NFC_ISSUER_VERIFIED  (show verifying profile ID)
+   Rejected    → SEAL_NFC_ISSUER_REJECTED
+   Unreachable → SEAL_NFC_ISSUER_UNREACHABLE  (seal unverified, not failed)
 ```
 
 **Optional mirror path (`odp-ntag424-nfc-public-key-file-v1`):** only when on-chain `nfcPublicKey` stores protected-file mirror bytes instead of the EV2 key itself.
 
-If chip model is `NTAG424DNA_TAGTAMPER` on-chain:
+If chip model is `NTAG424DNA_TAGTAMPER` on-chain (Profile A flow):
 
 ```
 5. Read tamper status after EV2 auth
@@ -1465,7 +1525,7 @@ If chip model is `NTAG424DNA_TAGTAMPER` on-chain:
    TAMPERED → SEAL_NFC_TAMPERED
 ```
 
-`Read_Sig` proves NXP originality, not passport binding. EV2 session auth alone is necessary but, under the primary profile, `chipKeyMatch` means the mutual challenge-response succeeded with the on-chain key bytes.
+`Read_Sig` proves NXP originality, not passport binding. Under Profile A, `chipKeyMatch` means only that the mutual challenge-response succeeded with the on-chain (public) key bytes — see §6 for why this is not proof against cloning.
 
 ### Level 2B — Numbered seal verification (physical, sealType 2 or 3)
 
@@ -1503,8 +1563,12 @@ If chip model is `NTAG424DNA_TAGTAMPER` on-chain:
 | `INVALID`             | passportId not found on blockchain                  |
 | `UNVERIFIABLE`        | Record exists, but dataUrl is unreachable           |
 | `TAMPERED`            | Hash mismatch — passport.json was modified          |
-| `SEAL_NFC_AUTHENTIC`  | NFC chip signature verified                         |
-| `SEAL_NFC_INVALID`    | NFC chip signature failed                           |
+| `SEAL_NFC_KEY_MATCH`  | Profile A: EV2 challenge-response succeeded with the on-chain **public** key — presence indicator, not clone-resistant (§6) |
+| `SEAL_NFC_AUTHENTIC`  | **Deprecated** alias of `SEAL_NFC_KEY_MATCH`; MUST NOT be shown as proof of physical authenticity |
+| `SEAL_NFC_INVALID`    | NFC challenge-response failed                       |
+| `SEAL_NFC_ISSUER_VERIFIED` | Profile B: issuer endpoint confirmed fresh CMAC and counter for this tap |
+| `SEAL_NFC_ISSUER_REJECTED` | Profile B: issuer endpoint rejected CMAC or counter (replay / wrong tag) |
+| `SEAL_NFC_ISSUER_UNREACHABLE` | Profile B: issuer endpoint not reachable — seal unverified, not failed |
 | `SEAL_NFC_INTACT`     | TagTamper: seal never removed                       |
 | `SEAL_NFC_TAMPERED`   | TagTamper: seal was removed at some point           |
 | `FILE_AUTHENTIC`      | File hash matches — this is the registered original |
