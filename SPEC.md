@@ -843,6 +843,8 @@ The protocol does **not** store the full passport JSON on-chain — only `dataHa
 
 ### Canonical v0.5 passport schema (normative)
 
+A machine-readable JSON Schema for this section is maintained at [`schema/passport-0.5.schema.json`](schema/passport-0.5.schema.json) (validated in CI against [`schema/examples/`](schema/examples/)); on conflict, this SPEC text is authoritative.
+
 The canonical `passport.json` for the current line is the **v0.5** shape used by the reference contract and web UI. Older top-level `type` / `digital.subtype` taxonomies are **not** the primary classifier anymore. The required classification axis is now:
 
 - `domain`
@@ -891,6 +893,7 @@ The canonical `passport.json` for the current line is the **v0.5** shape used by
 | `image` | recommended | Primary preview image hash / URL. |
 | `images` | optional | Additional preview images. |
 | `refinementTags` | optional | Free-form refinement labels; not a replacement for the controlled taxonomy. |
+| `objectId` | optional | Object ID compatibility block: `subject` + `distinguishingFeatures` for theft documentation and physical expertise; see [docs/OBJECTID_PROFILE.md](docs/OBJECTID_PROFILE.md). |
 | `additionalMetadata` | optional | Stable string-keyed metadata not modeled elsewhere. |
 
 #### Mixed object semantics
@@ -1667,7 +1670,7 @@ computeImageHash(imageBytes) → bytes32
 
 ## 14. Versioning
 
-- This specification draft line is **v0.4** in this repository branch; `passport.json` SHOULD use a `version` field consistent with your tooling (older document schemas remain valid where unchanged).
+- This specification draft line is **v0.5** in this repository branch; `passport.json` SHOULD use a `version` field consistent with your tooling (older document schemas remain valid where unchanged).
 - On-chain `**CONTRACT_VERSION`** is the packed byte (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). The reference **v0.4 branch** bytecode **omits** public `**SPEC_MAJOR()` / `SPEC_MINOR()`** and *`*MONTHLY_LIMIT_*()`** getters (EIP-170): derive **major** as `CONTRACT_VERSION >> 4`, **minor** as `CONTRACT_VERSION & 0x0f`, and use normative **C = 1000** / **B = 100_000** from `ObjectDigitalPassport.sol` (or `getRemainingMints`) when limits are not exposed.
 - Breaking changes increment the minor **document** `version` inside `passport.json`.
 - Stable release will be `1.0`

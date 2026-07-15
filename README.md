@@ -95,9 +95,10 @@ There are still many details and nuances to cover. Object Digital Passport was d
 > | File | Description |
 > |---|---|
 > | [SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) | Full protocol specification |
-> | [SECURITY.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/SECURITY.md) | Threat model and security recommendations |
-> | [CONTRIBUTING.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/CONTRIBUTING.md) | How to contribute |
-> | [RELEASE\_v0.2.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/RELEASE_v0.2.md) | Current release v0.2 |
+> | [docs/SECURITY.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/SECURITY.md) | Threat model and security recommendations |
+> | [docs/CONTRIBUTING.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/CONTRIBUTING.md) | How to contribute |
+> | [docs/V0.5.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/V0.5.md) | Current line v0.5 |
+> | [docs/OBJECTID\_PROFILE.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/OBJECTID_PROFILE.md) | Object ID compatibility profile (theft documentation + recovery) |
 > | [Live demo →](https://object-digital-passport.github.io/object-digital-passport/) | Try it online |
 >
 > **Repository layout:** [`docs/`](docs/) · [`web/frontend/`](web/frontend/) (UI) · [`web/backend/`](web/backend/) (on-chain client) · [`chain/`](chain/) (contracts)

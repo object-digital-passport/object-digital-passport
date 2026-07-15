@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: Hardhat tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: chain/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  schema:
+    name: passport.json schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate examples against schema
+        run: >
+          npx --yes ajv-cli@5 validate --spec=draft2020
+          -s schema/passport-0.5.schema.json
+          -d "schema/examples/*.json"
+
+  slither:
+    name: Slither static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crytic/slither-action@v0.4.1
+        with:
+          target: chain/
+          fail-on: high
+          slither-args: --exclude-dependencies
