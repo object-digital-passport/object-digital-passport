@@ -4,92 +4,72 @@
 import type { BaseContract, BigNumberish, BytesLike, FunctionFragment, Result, Interface, ContractRunner, ContractMethod, Listener } from "ethers"
 import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, TypedListener, TypedContractMethod } from "./common.js"
   
-    export type PassportCoreMintInputsStruct = {year: BigNumberish, month: BigNumberish, title: string, domain: string, contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: BytesLike, damageHistoryUrl: string}
+    export type PassportCoreMintInputsStruct = {year: BigNumberish, month: BigNumberish, title: string, authorName: string, shortDescription: string, domain: string, contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish}
 
-    export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string] & {year: bigint, month: bigint, title: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string }
+    export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint] & {year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint }
   
 
-    export type DigitalMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
+    export type PassportMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, fileHash: BytesLike, anchorsHash: BytesLike, anchorTypesMask: BigNumberish}
 
-    export type DigitalMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
-  
-
-    export type PhysicalMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
-
-    export type PhysicalMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
-  
-
-    export type MixedMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
-
-    export type MixedMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
+    export type PassportMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint }
   
 
   export interface ODPPassportLibInterface extends Interface {
-    getFunction(nameOrSignature: "buildCreatorId" | "decodeAndValidateDigitalExtensionNorm" | "decodeAndValidatePhysicalExtensionNorm" | "decodeDigitalExtensionNorm" | "decodePhysicalExtensionNorm" | "formatOdpPassportId" | "formatPrfId" | "monthToString" | "pad3" | "pad8" | "pad9" | "resolveMintDataUrlMemory" | "stripTrailingSlashMemory" | "utcYearMonthFromTimestamp" | "validateAiStatus" | "validateAuxCommitmentFields" | "validateCommonHashesAndUrls" | "validateContentClass" | "validateDamageHistoryFields" | "validateDigitalMintInputs" | "validateEditionModel" | "validateLifecycleStatus" | "validateMixedMintInputs" | "validateNdppCommitmentFields" | "validateNfcModel" | "validateOptionalImageSlots" | "validatePassportCore" | "validatePhysicalMintForMint" | "validateSealFields" | "validateVerificationMethod" | "yearToString"): FunctionFragment;
+    getFunction(nameOrSignature: "buildCreatorId" | "decodeAndValidateDigitalExtensionNorm" | "decodeAndValidatePhysicalExtensionNorm" | "decodeMintNorm" | "formatOdpPassportId" | "formatPrfId" | "monthToString" | "pad3" | "pad8" | "pad9" | "requireAnchorBits" | "resolveMintDataUrlMemory" | "stripTrailingSlashMemory" | "utcYearMonthFromTimestamp" | "validateAiStatus" | "validateCommonMintInputs" | "validateContentClass" | "validateDigitalMintInputs" | "validateEditionModel" | "validateLifecycleStatus" | "validateMixedMintInputs" | "validatePassportCore" | "validatePassportEventInputs" | "validatePhysicalMintInputs" | "validateVerificationMethod" | "yearToString"): FunctionFragment;
 
     
 
     encodeFunctionData(functionFragment: 'buildCreatorId', values: [BytesLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'decodeAndValidateDigitalExtensionNorm', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'decodeAndValidatePhysicalExtensionNorm', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'decodeDigitalExtensionNorm', values: [BytesLike]): string;
-encodeFunctionData(functionFragment: 'decodePhysicalExtensionNorm', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'decodeMintNorm', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'formatOdpPassportId', values: [BigNumberish, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'formatPrfId', values: [BigNumberish, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'monthToString', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'pad3', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'pad8', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'pad9', values: [BigNumberish]): string;
+encodeFunctionData(functionFragment: 'requireAnchorBits', values: [BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'resolveMintDataUrlMemory', values: [string, boolean, string]): string;
 encodeFunctionData(functionFragment: 'stripTrailingSlashMemory', values: [string]): string;
 encodeFunctionData(functionFragment: 'utcYearMonthFromTimestamp', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'validateAiStatus', values: [BigNumberish]): string;
-encodeFunctionData(functionFragment: 'validateAuxCommitmentFields', values: [BytesLike, string]): string;
-encodeFunctionData(functionFragment: 'validateCommonHashesAndUrls', values: [BytesLike, string, BytesLike, string, BytesLike, string, BytesLike, string]): string;
+encodeFunctionData(functionFragment: 'validateCommonMintInputs', values: [PassportMintInputsStruct]): string;
 encodeFunctionData(functionFragment: 'validateContentClass', values: [BigNumberish]): string;
-encodeFunctionData(functionFragment: 'validateDamageHistoryFields', values: [BytesLike, string]): string;
-encodeFunctionData(functionFragment: 'validateDigitalMintInputs', values: [DigitalMintInputsStruct]): string;
+encodeFunctionData(functionFragment: 'validateDigitalMintInputs', values: [PassportMintInputsStruct]): string;
 encodeFunctionData(functionFragment: 'validateEditionModel', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'validateLifecycleStatus', values: [BigNumberish]): string;
-encodeFunctionData(functionFragment: 'validateMixedMintInputs', values: [MixedMintInputsStruct]): string;
-encodeFunctionData(functionFragment: 'validateNdppCommitmentFields', values: [BytesLike, string]): string;
-encodeFunctionData(functionFragment: 'validateNfcModel', values: [string]): string;
-encodeFunctionData(functionFragment: 'validateOptionalImageSlots', values: [BytesLike, string, BytesLike, string]): string;
+encodeFunctionData(functionFragment: 'validateMixedMintInputs', values: [PassportMintInputsStruct]): string;
 encodeFunctionData(functionFragment: 'validatePassportCore', values: [PassportCoreMintInputsStruct]): string;
-encodeFunctionData(functionFragment: 'validatePhysicalMintForMint', values: [PhysicalMintInputsStruct]): string;
-encodeFunctionData(functionFragment: 'validateSealFields', values: [BigNumberish, BytesLike, BytesLike, string]): string;
+encodeFunctionData(functionFragment: 'validatePassportEventInputs', values: [BigNumberish, BigNumberish, string, BytesLike, string]): string;
+encodeFunctionData(functionFragment: 'validatePhysicalMintInputs', values: [PassportMintInputsStruct]): string;
 encodeFunctionData(functionFragment: 'validateVerificationMethod', values: [BigNumberish]): string;
 encodeFunctionData(functionFragment: 'yearToString', values: [BigNumberish]): string;
 
     decodeFunctionResult(functionFragment: 'buildCreatorId', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'decodeAndValidateDigitalExtensionNorm', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'decodeAndValidatePhysicalExtensionNorm', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'decodeDigitalExtensionNorm', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'decodePhysicalExtensionNorm', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'decodeMintNorm', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'formatOdpPassportId', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'formatPrfId', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'monthToString', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'pad3', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'pad8', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'pad9', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'requireAnchorBits', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'resolveMintDataUrlMemory', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'stripTrailingSlashMemory', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'utcYearMonthFromTimestamp', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validateAiStatus', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validateAuxCommitmentFields', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validateCommonHashesAndUrls', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'validateCommonMintInputs', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validateContentClass', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validateDamageHistoryFields', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validateDigitalMintInputs', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validateEditionModel', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validateLifecycleStatus', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validateMixedMintInputs', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validateNdppCommitmentFields', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validateNfcModel', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validateOptionalImageSlots', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validatePassportCore', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validatePhysicalMintForMint', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'validateSealFields', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'validatePassportEventInputs', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'validatePhysicalMintInputs', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'validateVerificationMethod', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
   }
@@ -140,7 +120,7 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
     
     decodeAndValidateDigitalExtensionNorm: TypedContractMethod<
       [norm: BytesLike, ],
-      [DigitalMintInputsStructOutput],
+      [PassportMintInputsStructOutput],
       'view'
     >
     
@@ -148,23 +128,15 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
     
     decodeAndValidatePhysicalExtensionNorm: TypedContractMethod<
       [norm: BytesLike, ],
-      [PhysicalMintInputsStructOutput],
+      [PassportMintInputsStructOutput],
       'view'
     >
     
 
     
-    decodeDigitalExtensionNorm: TypedContractMethod<
+    decodeMintNorm: TypedContractMethod<
       [norm: BytesLike, ],
-      [DigitalMintInputsStructOutput],
-      'view'
-    >
-    
-
-    
-    decodePhysicalExtensionNorm: TypedContractMethod<
-      [norm: BytesLike, ],
-      [PhysicalMintInputsStructOutput],
+      [PassportMintInputsStructOutput],
       'view'
     >
     
@@ -218,6 +190,14 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
     
 
     
+    requireAnchorBits: TypedContractMethod<
+      [mask: BigNumberish, required: BigNumberish, ],
+      [void],
+      'view'
+    >
+    
+
+    
     resolveMintDataUrlMemory: TypedContractMethod<
       [dataUrl: string, dataUrlIsFolderBase: boolean, passportId: string, ],
       [string],
@@ -250,16 +230,8 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
     
 
     
-    validateAuxCommitmentFields: TypedContractMethod<
-      [auxHash: BytesLike, auxUri: string, ],
-      [void],
-      'view'
-    >
-    
-
-    
-    validateCommonHashesAndUrls: TypedContractMethod<
-      [dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, ],
+    validateCommonMintInputs: TypedContractMethod<
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >
@@ -274,16 +246,8 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
     
 
     
-    validateDamageHistoryFields: TypedContractMethod<
-      [damageHistoryHash: BytesLike, damageHistoryUrl: string, ],
-      [void],
-      'view'
-    >
-    
-
-    
     validateDigitalMintInputs: TypedContractMethod<
-      [m: DigitalMintInputsStruct, ],
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >
@@ -307,31 +271,7 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
 
     
     validateMixedMintInputs: TypedContractMethod<
-      [m: MixedMintInputsStruct, ],
-      [void],
-      'view'
-    >
-    
-
-    
-    validateNdppCommitmentFields: TypedContractMethod<
-      [ndppHash: BytesLike, ndppUri: string, ],
-      [void],
-      'view'
-    >
-    
-
-    
-    validateNfcModel: TypedContractMethod<
-      [nfcModel: string, ],
-      [void],
-      'view'
-    >
-    
-
-    
-    validateOptionalImageSlots: TypedContractMethod<
-      [imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, ],
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >
@@ -346,16 +286,16 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
     
 
     
-    validatePhysicalMintForMint: TypedContractMethod<
-      [m: PhysicalMintInputsStruct, ],
+    validatePassportEventInputs: TypedContractMethod<
+      [kind: BigNumberish, value: BigNumberish, note: string, attachmentHash: BytesLike, attachmentUrl: string, ],
       [void],
       'view'
     >
     
 
     
-    validateSealFields: TypedContractMethod<
-      [sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, ],
+    validatePhysicalMintInputs: TypedContractMethod<
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >
@@ -387,22 +327,17 @@ decodeFunctionResult(functionFragment: 'yearToString', data: BytesLike): Result;
     >;
 getFunction(nameOrSignature: 'decodeAndValidateDigitalExtensionNorm'): TypedContractMethod<
       [norm: BytesLike, ],
-      [DigitalMintInputsStructOutput],
+      [PassportMintInputsStructOutput],
       'view'
     >;
 getFunction(nameOrSignature: 'decodeAndValidatePhysicalExtensionNorm'): TypedContractMethod<
       [norm: BytesLike, ],
-      [PhysicalMintInputsStructOutput],
+      [PassportMintInputsStructOutput],
       'view'
     >;
-getFunction(nameOrSignature: 'decodeDigitalExtensionNorm'): TypedContractMethod<
+getFunction(nameOrSignature: 'decodeMintNorm'): TypedContractMethod<
       [norm: BytesLike, ],
-      [DigitalMintInputsStructOutput],
-      'view'
-    >;
-getFunction(nameOrSignature: 'decodePhysicalExtensionNorm'): TypedContractMethod<
-      [norm: BytesLike, ],
-      [PhysicalMintInputsStructOutput],
+      [PassportMintInputsStructOutput],
       'view'
     >;
 getFunction(nameOrSignature: 'formatOdpPassportId'): TypedContractMethod<
@@ -435,6 +370,11 @@ getFunction(nameOrSignature: 'pad9'): TypedContractMethod<
       [string],
       'view'
     >;
+getFunction(nameOrSignature: 'requireAnchorBits'): TypedContractMethod<
+      [mask: BigNumberish, required: BigNumberish, ],
+      [void],
+      'view'
+    >;
 getFunction(nameOrSignature: 'resolveMintDataUrlMemory'): TypedContractMethod<
       [dataUrl: string, dataUrlIsFolderBase: boolean, passportId: string, ],
       [string],
@@ -455,13 +395,8 @@ getFunction(nameOrSignature: 'validateAiStatus'): TypedContractMethod<
       [void],
       'view'
     >;
-getFunction(nameOrSignature: 'validateAuxCommitmentFields'): TypedContractMethod<
-      [auxHash: BytesLike, auxUri: string, ],
-      [void],
-      'view'
-    >;
-getFunction(nameOrSignature: 'validateCommonHashesAndUrls'): TypedContractMethod<
-      [dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, ],
+getFunction(nameOrSignature: 'validateCommonMintInputs'): TypedContractMethod<
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >;
@@ -470,13 +405,8 @@ getFunction(nameOrSignature: 'validateContentClass'): TypedContractMethod<
       [void],
       'view'
     >;
-getFunction(nameOrSignature: 'validateDamageHistoryFields'): TypedContractMethod<
-      [damageHistoryHash: BytesLike, damageHistoryUrl: string, ],
-      [void],
-      'view'
-    >;
 getFunction(nameOrSignature: 'validateDigitalMintInputs'): TypedContractMethod<
-      [m: DigitalMintInputsStruct, ],
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >;
@@ -491,22 +421,7 @@ getFunction(nameOrSignature: 'validateLifecycleStatus'): TypedContractMethod<
       'view'
     >;
 getFunction(nameOrSignature: 'validateMixedMintInputs'): TypedContractMethod<
-      [m: MixedMintInputsStruct, ],
-      [void],
-      'view'
-    >;
-getFunction(nameOrSignature: 'validateNdppCommitmentFields'): TypedContractMethod<
-      [ndppHash: BytesLike, ndppUri: string, ],
-      [void],
-      'view'
-    >;
-getFunction(nameOrSignature: 'validateNfcModel'): TypedContractMethod<
-      [nfcModel: string, ],
-      [void],
-      'view'
-    >;
-getFunction(nameOrSignature: 'validateOptionalImageSlots'): TypedContractMethod<
-      [imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, ],
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >;
@@ -515,13 +430,13 @@ getFunction(nameOrSignature: 'validatePassportCore'): TypedContractMethod<
       [void],
       'view'
     >;
-getFunction(nameOrSignature: 'validatePhysicalMintForMint'): TypedContractMethod<
-      [m: PhysicalMintInputsStruct, ],
+getFunction(nameOrSignature: 'validatePassportEventInputs'): TypedContractMethod<
+      [kind: BigNumberish, value: BigNumberish, note: string, attachmentHash: BytesLike, attachmentUrl: string, ],
       [void],
       'view'
     >;
-getFunction(nameOrSignature: 'validateSealFields'): TypedContractMethod<
-      [sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, ],
+getFunction(nameOrSignature: 'validatePhysicalMintInputs'): TypedContractMethod<
+      [m: PassportMintInputsStruct, ],
       [void],
       'view'
     >;

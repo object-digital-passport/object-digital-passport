@@ -4,10 +4,7 @@ pragma solidity ^0.8.20;
 import "./ODPErrors.sol";
 import "./IODPExtension.sol";
 import "./ODPPassportLib.sol";
-import {
-    DigitalMintInputs,
-    PhysicalMintInputs
-} from "./ODPPassportTypes.sol";
+import { PassportMintInputs } from "./ODPPassportTypes.sol";
 
 /**
  * Satellite: extension mint routing.
@@ -17,12 +14,12 @@ import {
 interface IODPRegistryForExtensionMint {
     function governance() external view returns (address);
     function mintDigital(
-        DigitalMintInputs calldata dm,
+        PassportMintInputs calldata m,
         bool dataUrlIsFolderBase,
         string calldata mintOnBehalfOfCreatorId
     ) external returns (string memory passportId);
     function mintPhysical(
-        PhysicalMintInputs calldata pm,
+        PassportMintInputs calldata m,
         bool dataUrlIsFolderBase,
         string calldata mintOnBehalfOfCreatorId
     ) external returns (string memory passportId);
@@ -71,9 +68,9 @@ contract ODPExtensionMintRouter {
 
         IODPExtension(ext).validate(payload);
         bytes memory norm = IODPExtension(ext).normalize(payload);
-        DigitalMintInputs memory dm = ODPPassportLib.decodeAndValidateDigitalExtensionNorm(norm);
+        PassportMintInputs memory m = ODPPassportLib.decodeAndValidateDigitalExtensionNorm(norm);
 
-        passportId = odpRegistry.mintDigital(dm, dataUrlIsFolderBase, mintOnBehalfOfCreatorId);
+        passportId = odpRegistry.mintDigital(m, dataUrlIsFolderBase, mintOnBehalfOfCreatorId);
         emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_DIGITAL, passportId);
     }
 
@@ -88,9 +85,9 @@ contract ODPExtensionMintRouter {
 
         IODPExtension(ext).validate(payload);
         bytes memory norm = IODPExtension(ext).normalize(payload);
-        PhysicalMintInputs memory pm = ODPPassportLib.decodeAndValidatePhysicalExtensionNorm(norm);
+        PassportMintInputs memory m = ODPPassportLib.decodeAndValidatePhysicalExtensionNorm(norm);
 
-        passportId = odpRegistry.mintPhysical(pm, dataUrlIsFolderBase, mintOnBehalfOfCreatorId);
+        passportId = odpRegistry.mintPhysical(m, dataUrlIsFolderBase, mintOnBehalfOfCreatorId);
         emit ExtensionMintUsed(mintClass, EXT_MINT_KIND_PHYSICAL, passportId);
     }
 }

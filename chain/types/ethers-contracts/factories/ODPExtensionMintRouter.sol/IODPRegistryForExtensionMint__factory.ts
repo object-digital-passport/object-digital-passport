@@ -42,6 +42,16 @@
               },
               {
                 "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
                 "name": "domain",
                 "type": "string"
               },
@@ -69,31 +79,6 @@
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -122,52 +107,22 @@
           },
           {
             "internalType": "bytes32",
-            "name": "imageHash2",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
             "name": "fileHash",
             "type": "bytes32"
           },
           {
             "internalType": "bytes32",
-            "name": "auxCommitmentHash",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct DigitalMintInputs",
-        "name": "dm",
+        "internalType": "struct PassportMintInputs",
+        "name": "m",
         "type": "tuple"
       },
       {
@@ -215,6 +170,16 @@
               },
               {
                 "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
                 "name": "domain",
                 "type": "string"
               },
@@ -242,31 +207,6 @@
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -294,68 +234,23 @@
             "type": "string"
           },
           {
-            "internalType": "uint8",
-            "name": "sealType",
-            "type": "uint8"
-          },
-          {
             "internalType": "bytes32",
-            "name": "sealHash",
+            "name": "fileHash",
             "type": "bytes32"
           },
           {
-            "internalType": "bytes",
-            "name": "nfcPublicKey",
-            "type": "bytes"
-          },
-          {
-            "internalType": "string",
-            "name": "nfcModel",
-            "type": "string"
-          },
-          {
             "internalType": "bytes32",
-            "name": "imageHash2",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "auxCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct PhysicalMintInputs",
-        "name": "pm",
+        "internalType": "struct PassportMintInputs",
+        "name": "m",
         "type": "tuple"
       },
       {

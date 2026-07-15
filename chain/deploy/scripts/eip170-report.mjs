@@ -17,7 +17,7 @@ function bytesFromArtifact(rel) {
 }
 
 const mainBytes = bytesFromArtifact(
-  "chain/contracts/ObjectDigitalPassport.sol/ObjectDigitalPassport.json",
+  "contracts/ObjectDigitalPassport.sol/ObjectDigitalPassport.json",
 );
 if (mainBytes == null) {
   process.exit(0);
@@ -25,7 +25,7 @@ if (mainBytes == null) {
 
 let libBytes = 0;
 try {
-  const b = bytesFromArtifact("chain/contracts/ODPPassportLib.sol/ODPPassportLib.json");
+  const b = bytesFromArtifact("contracts/ODPPassportLib.sol/ODPPassportLib.json");
   libBytes = b ?? 0;
 } catch {
   libBytes = 0;
