@@ -1,5 +1,7 @@
 # Quick Start
 
+*🇷🇺 [Русская версия](Quick-Start-RU)*
+
 ## Verify an object (no wallet, no cost, 2 minutes)
 
 1. Open the [Verify page](https://object-digital-passport.github.io/object-digital-passport/demo/verify.html).

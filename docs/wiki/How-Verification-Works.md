@@ -1,5 +1,7 @@
 # How Verification Works
 
+*🇷🇺 [Русская версия](How-Verification-Works-RU)*
+
 No cryptography degree needed — here's the whole model.
 
 ## The fingerprint idea

@@ -1,12 +1,6 @@
 # Wiki source pages
 
-These markdown files are the source for the GitHub wiki. The wiki git repo (`<repo>.wiki.git`) is created by GitHub **only after the first page is made in the web UI**, so:
-
-**One-time setup (maintainer):**
-
-1. Open the repo → **Wiki** tab → **Create the first page**.
-2. Title it `Home`, paste anything (it will be overwritten), save.
-3. Then publish these pages:
+These markdown files are the source for the [GitHub wiki](https://github.com/object-digital-passport/object-digital-passport/wiki) (published, bilingual EN + RU, `_Sidebar.md` included). To publish updates:
 
 ```bash
 git clone https://github.com/object-digital-passport/object-digital-passport.wiki.git /tmp/odp-wiki

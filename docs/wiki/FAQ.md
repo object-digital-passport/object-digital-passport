@@ -1,5 +1,7 @@
 # FAQ
 
+*🇷🇺 [Русская версия](FAQ-RU)*
+
 ### How much does it cost?
 
 Registering a profile: ~$0.01. Minting a passport: ~$0.01–0.03. Verifying: **always free**. These are Polygon network fees — the ODP protocol itself charges nothing, ever.
