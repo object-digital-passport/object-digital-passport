@@ -11,11 +11,11 @@
 <script src="js/odp-i18n-boot.js?v=2"></script>
 <script src="backend/config/odp-wc-config.js?v=1"></script>
 <script src="backend/js/odp-wallet-wc-loader.js?v=1"></script>
-<title>ODP v0.5.0 — Create Passport</title>
+<title>ODP v0.6.0 — Create Passport</title>
 <link rel="stylesheet" href="css/odp.css?v=20260519form">
 <script src="js/odp-theme.js?v=0.3.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-Htz1SE4Sl5aitpvFgr2j0sfsGUIuSXI6t8hEyrlQ93zflEF3a29bH2AvkUROUw7J" crossorigin="anonymous"></script>
-<script src="backend/js/odp-contract.js?v=0.5.0"></script>
+<script src="backend/js/odp-contract.js?v=0.6.0"></script>
 <script src="js/odp-android-companion.js?v=1"></script>
 <script src="js/odp-date-format.js?v=1"></script>
 <script>window.ODP_I18N_VERSION="20260522";</script>
@@ -32,7 +32,7 @@
 <header class="header-row">
   <div class="header-left">
     <h1 data-i18n="passport.meta.h1">Create Passport</h1>
-    <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.5.0</p>
+    <p class="sub" data-i18n="passport.meta.sub">Object Digital Passport · Specification v0.6.0</p>
     <div id="odpStackLabel" class="fhint odp-stack-wrap" style="display:none;margin-top:6px;line-height:1.5" hidden aria-hidden="true"></div>
   </div>
   <div class="header-toolbar">
@@ -3770,7 +3770,9 @@ function buildRegistrationClock(now) {
 function buildPassport(humanId, mintAt) {
   const now = mintAt instanceof Date ? mintAt : new Date();
   const jsonSpecVersion =
-    typeof odpContractGeneration === "number" && odpContractGeneration >= 5
+    typeof odpContractGeneration === "number" && odpContractGeneration >= 6
+      ? "0.6"
+      : typeof odpContractGeneration === "number" && odpContractGeneration >= 5
       ? "0.5"
       : typeof odpContractGeneration === "number" && odpContractGeneration >= 4
       ? "0.4"

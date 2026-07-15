@@ -1,10 +1,10 @@
-# ODP Security Model · v0.4 reference line
+# ODP Security Model · v0.6 reference line
 
 *Author: Andrei Chernikov*
 
 Object Digital Passport is a **registry of claims**, not a guarantee of physical authenticity.
 
-This document describes the threat model, known limitations, and recommendations for the **reference line on `main`**: **`ObjectDigitalPassport`** with packed **`CONTRACT_VERSION` = 4** (same **v0.3-shaped** `Passport` tuple as earlier generation **3** deploys), optional **`ODPCounterfeitConcern`** satellite, and the static web pages wired via **`NET.*`**. Older **v0.3**-era deployments used packed byte **3** at the same tuple layout; they are **different registries** (address + ABI). Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
+This document describes the threat model, known limitations, and recommendations for the **reference line on `main`**: **`ObjectDigitalPassport`** with packed **`CONTRACT_VERSION` = 6** (v0.5-shaped `Passport` tuple plus spec-level v0.6 additions), optional satellites (**`ODPCounterfeitConcern`**, **`ODPWalletDocumentAnchor`**, **`ODPRegistryRelations`**, **`ODPPassportProofRegistry`**), and the static web pages wired via **`NET.*`**. Older **v0.3**-era deployments used packed byte **3** at the same tuple layout; they are **different registries** (address + ABI). Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
 
 ---
 
@@ -17,9 +17,9 @@ This document describes the threat model, known limitations, and recommendations
 - **Contract version:** deployments expose `CONTRACT_VERSION` / generation; verifiers should confirm they read the intended registry (address + chain).
 - **UTC-aligned prefixes (v0.4 reference bytecode):** `mintDigital` / `mintPhysical` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp` (see **[`docs/V0.4.md`](docs/V0.4.md)** and **[`web/frontend/localization/ru/RELEASE_v0.4.md`](web/frontend/localization/ru/RELEASE_v0.4.md)**). This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
 
-## Registry versions: v0.4 vs older 0.x and future v1
+## Registry versions: v0.6 vs older 0.x and future v1
 
-- **No backward compatibility** between reference **v0.4**, **v0.3**, **v0.2**, and **v0.1**: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
+- **No backward compatibility** between reference **v0.6**, **v0.5**, **v0.4**, **v0.3**, **v0.2**, and **v0.1**: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
 - **Forward alignment:** the specification is written so a future **stable v1** can define migration or dual-verification paths using stable identifiers and `contractVersion` on records — see **[`SPEC.md`](SPEC.md)** (*IMPORTANT: registry versions…*). Until v1 is published, treat this as **design intent**, not a guarantee of upgrade for any live registry.
 
 ## What the protocol does NOT guarantee

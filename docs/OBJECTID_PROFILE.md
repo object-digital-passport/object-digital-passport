@@ -1,4 +1,4 @@
-# ODP Object ID Compatibility Profile · v0.5 draft
+# ODP Object ID Compatibility Profile · v0.6 draft
 
 *Optional profile. Normative core rules remain in [`SPEC.md`](../SPEC.md).*
 
@@ -31,7 +31,7 @@ documentation standard for cultural goods: **nine information categories** plus 
 
 ## Category mapping
 
-| Object ID category | passport.json v0.5 field | Profile requirement |
+| Object ID category | passport.json v0.6 field | Profile requirement |
 | --- | --- | --- |
 | 1. Type of object | `domain`, `physical.category` | required |
 | 2. Materials & techniques | `physical.medium`, `physical.materials` | required |
@@ -65,7 +65,7 @@ documentation standard for cultural goods: **nine information categories** plus 
 
 Both fields are part of the canonical document and are covered by `dataHash`:
 after mint they cannot be edited without the change being detectable (SPEC §10).
-Machine-readable validation: [`schema/passport-0.5.schema.json`](../schema/passport-0.5.schema.json)
+Machine-readable validation: [`schema/passport-0.6.schema.json`](../schema/passport-0.6.schema.json)
 (the `objectId` block and its conditional requirements are enforced there).
 
 ## Profile conformance rules
@@ -93,9 +93,9 @@ to investigators. ODP supports this natively:
   on a public chain is readable by anyone, forever. Use coarse values ("in storage", "on loan")
   or keep location off-chain entirely.
 
-## Lost / stolen signaling (roadmap, not in v0.5 bytecode)
+## Lost / stolen signaling (roadmap, not in v0.6 bytecode)
 
-The v0.5 reference line has no on-chain lost/stolen flag. Interim practice and planned direction:
+The v0.6 reference line has no on-chain lost/stolen flag. Interim practice and planned direction:
 
 - **Interim:** the owner updates off-chain channels and, where an institution is involved,
   a `P`/`M` profile may record a concern via the existing `ODPCounterfeitConcern` satellite.

@@ -4,11 +4,11 @@
 
 ---
 
-# Object Digital Passport · v0.5 Alpha
+# Object Digital Passport · v0.6 Alpha
 
 ![Object Digital Passport cover](images/odp-cover-en.png)
 
-*Reference implementation snapshot · protocol line **v0.5** (on-chain generation **5**). Release notes: `[docs/V0.5.md](V0.5.md)`. Historical v0.4.1 patch notes remain available at `[docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md)`.*
+*Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**). Release notes: `[docs/V0.6.md](V0.6.md)`. Historical v0.5 notes: `[docs/V0.5.md](V0.5.md)`. Historical v0.4.1 patch notes remain available at `[docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md)`.*
 
 [License: MIT](../LICENSE)
 [GitHub Repo stars](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -123,7 +123,7 @@ If you are new, follow this order:
 1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments—not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to “connect”, pause: that is normal for these pages, but scammers use the same trick—read **your** wallet’s help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee**—see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings—see `[web/odp-wc-config.js](../web/odp-wc-config.js)` and [docs/V0.5.md](V0.5.md).
 2. **This guide.** Read it through for a practical “how to use” picture—no code required.
 3. **Rules in full.** The normative protocol text is [SPEC.md](../SPEC.md).
-4. **Going deeper.** What is new in this line: [docs/V0.5.md](V0.5.md). Historical v0.4 notes remain in [docs/V0.4.md](V0.4.md), and earlier changes vs older lines are in [web/frontend/localization/ru/RELEASE_v0.3.md](../localization/ru/RELEASE_v0.3.md). To **deploy your own** registry (for developers): [chain/deploy/README.md](../deploy/README.md).
+4. **Going deeper.** What is new in this line: [docs/V0.6.md](V0.6.md). Historical v0.4 notes remain in [docs/V0.4.md](V0.4.md), and earlier changes vs older lines are in [web/frontend/localization/ru/RELEASE_v0.3.md](../localization/ru/RELEASE_v0.3.md). To **deploy your own** registry (for developers): [chain/deploy/README.md](../deploy/README.md).
 
 **Still early days.** ODP is in **development, testing, and gathering feedback**—rules and deployments can still change. We aim for a **stable 1.x release around January 2027** as the long-term baseline. If you need a **record meant to last many years** with minimal rule churn, **consider waiting for that stable release**. Each contract address is its **own** registry; records do **not** move between deployments by themselves. More on versioning: [docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md).
 

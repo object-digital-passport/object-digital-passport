@@ -1,5 +1,5 @@
 {
-  "version": "0.5",
+  "version": "0.6",
   "passportId": "ODP-2026-03-000193847",
   "title": "Untitled #7",
   "description": "Single-edition digital work with optional C2PA manifest.",
@@ -10,7 +10,9 @@
   "contentClass": "static",
   "aiStatus": "generated",
   "verificationMethod": "c2pa",
-  "edition": { "model": "unique" },
+  "edition": {
+    "model": "unique"
+  },
   "authorship": {
     "author": {
       "name": "Example holder",
@@ -29,7 +31,10 @@
   "currentState": {
     "rightsNote": "Collector receives display rights only"
   },
-  "refinementTags": ["image", "generative"],
+  "refinementTags": [
+    "image",
+    "generative"
+  ],
   "image": {
     "url": "https://artist.example/works/007-preview.jpg",
     "hash": "sha256:b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3"

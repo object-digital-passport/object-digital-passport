@@ -22,7 +22,7 @@ const PAGES = [
   {
     src: "SPEC.md",
     out: "index.html",
-    title: "ODP Specification v0.5",
+    title: "ODP Specification v0.6",
   },
   {
     src: "docs/OBJECTID_PROFILE.md",
@@ -40,7 +40,7 @@ const NAV = [
   ["index.html", "Specification"],
   ["objectid-profile.html", "Object ID Profile"],
   ["security.html", "Security Model"],
-  ["schema/passport-0.5.schema.json", "JSON Schema"],
+  ["schema/passport-0.6.schema.json", "JSON Schema"],
   ["../demo/", "Live demo →"],
 ];
 
@@ -127,8 +127,8 @@ const LOCAL_TARGETS = new Map([
   ["OBJECTID_PROFILE.md", "objectid-profile.html"],
   ["SECURITY.md", "security.html"],
   ["docs/SECURITY.md", "security.html"],
-  ["../schema/passport-0.5.schema.json", "schema/passport-0.5.schema.json"],
-  ["schema/passport-0.5.schema.json", "schema/passport-0.5.schema.json"],
+  ["../schema/passport-0.6.schema.json", "schema/passport-0.6.schema.json"],
+  ["schema/passport-0.6.schema.json", "schema/passport-0.6.schema.json"],
 ]);
 
 function rewriteHref(href, srcDir) {
@@ -144,8 +144,8 @@ function rewriteHref(href, srcDir) {
 fs.mkdirSync(outDir, { recursive: true });
 fs.mkdirSync(path.join(outDir, "schema"), { recursive: true });
 fs.copyFileSync(
-  path.join(repoRoot, "schema", "passport-0.5.schema.json"),
-  path.join(outDir, "schema", "passport-0.5.schema.json"),
+  path.join(repoRoot, "schema", "passport-0.6.schema.json"),
+  path.join(outDir, "schema", "passport-0.6.schema.json"),
 );
 
 for (const page of PAGES) {

@@ -769,7 +769,7 @@ def cmd_mint(args):
         "nfc" if (is_physical and seal_type in (1, 3)) else ("c2pa" if not is_physical else "self_asserted"),
     )
     passport = {
-        "version":    "0.5",
+        "version":    "0.6",
         "passportId": None,  # filled after mint
         "title":      title,
         "domain":     domain,

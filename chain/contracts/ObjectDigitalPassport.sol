@@ -13,7 +13,7 @@ import "./ODPPassportLib.sol";
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
- * Specification v0.5 (reference branch)
+ * Specification v0.6 (reference branch)
  * License: MIT
  *
  * Deployed on: Polygon PoS (chain ID 137)
@@ -38,7 +38,7 @@ import "./ODPPassportLib.sol";
  *   (different address, bytecode, ABI). Integrators must not treat them as drop-in replacements.
  *   The v0.3 line is documented in SPEC as aligned toward a future stable v1 (migration to be
  *   defined in v1); this is design intent, not an in-place upgrade guarantee.
- *   v0.5 reference: classification fields (`title`, `domain`, `objectType`, `contentClass`,
+ *   v0.6 line: same Passport tuple as v0.5 (classification fields `title`, `domain`, `objectType`, `contentClass`,
  *   lifecycle / AI / verification / edition), `mixed` objects, mutable current-state fields
  *   (`status`, location, rights, condition / damage history), and an optional NDPP/offline-public
  *   commitment pointer promoted on-chain.
@@ -96,10 +96,10 @@ contract ObjectDigitalPassport {
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     // Not `public` — each public constant adds a getter (~bytecode budget, EIP-170). Use `CONTRACT_VERSION` / 16 and % 16.
     uint8 internal constant SPEC_MAJOR = 0;
-    uint8 internal constant SPEC_MINOR = 5;
+    uint8 internal constant SPEC_MINOR = 6;
 
     /// Packed byte in `Passport.contractVersion`: `SPEC_MAJOR * 16 + SPEC_MINOR` (each < 16).
-    /// **v0.5** uses packed byte **5**. ABI name for the passport identifier is `passportId`.
+    /// **v0.6** uses packed byte **6**. ABI name for the passport identifier is `passportId`.
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows profile ID prefix (C/B/P/M).

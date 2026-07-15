@@ -266,7 +266,7 @@ describe("ObjectDigitalPassport", function () {
     const c = await deployFixture();
     const packed = await c.CONTRACT_VERSION();
     const p = BigInt(packed.toString());
-    expect(Number(packed)).to.equal(5); // v0.5 line: SPEC_MAJOR=0, SPEC_MINOR=5
+    expect(Number(packed)).to.equal(6); // v0.6 line: SPEC_MAJOR=0, SPEC_MINOR=6
     expect(Number(p / 16n) * 16 + Number(p % 16n)).to.equal(Number(packed));
   });
 

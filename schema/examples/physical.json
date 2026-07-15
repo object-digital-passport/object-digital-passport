@@ -1,5 +1,5 @@
 {
-  "version": "0.5",
+  "version": "0.6",
   "passportId": "ODP-2026-03-004829301",
   "title": "Object Community #1",
   "description": "Signed mixed-media object with NFC-backed seal.",
@@ -10,7 +10,11 @@
   "contentClass": "static",
   "aiStatus": "assisted",
   "verificationMethod": "nfc",
-  "edition": { "model": "limited", "number": 1, "total": 3 },
+  "edition": {
+    "model": "limited",
+    "number": 1,
+    "total": 3
+  },
   "authorship": {
     "author": {
       "name": "Example holder",
@@ -32,7 +36,11 @@
     "rightsNote": "Exhibition by request",
     "conditionNote": "Excellent"
   },
-  "refinementTags": ["artwork", "mixed_media", "signed"],
+  "refinementTags": [
+    "artwork",
+    "mixed_media",
+    "signed"
+  ],
   "image": {
     "url": "https://artist.example/objects/001-main.jpg",
     "hash": "sha256:a3f1c2d4e5b6978810aabbccddeeff00112233445566778899aabbccddeeff00"
@@ -40,9 +48,25 @@
   "physical": {
     "category": "artwork",
     "medium": "mixed media",
-    "materials": [{ "name": "canvas" }, { "name": "oil paint" }],
-    "dimensions": { "width": 60, "height": 40, "unit": "cm" },
-    "marks": [{ "type": "signature", "description": "Signed on reverse" }],
+    "materials": [
+      {
+        "name": "canvas"
+      },
+      {
+        "name": "oil paint"
+      }
+    ],
+    "dimensions": {
+      "width": 60,
+      "height": 40,
+      "unit": "cm"
+    },
+    "marks": [
+      {
+        "type": "signature",
+        "description": "Signed on reverse"
+      }
+    ],
     "seal": {
       "nfc": {
         "uid": "04a3f912cc8b4e",

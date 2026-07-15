@@ -1,4 +1,4 @@
-# Object Digital Passport · v0.5 Alpha
+# Object Digital Passport · v0.6 Alpha
 
 > 🌐 **Language / Язык**
 >
@@ -97,7 +97,7 @@ There are still many details and nuances to cover. Object Digital Passport was d
 > | [SPEC.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) | Full protocol specification |
 > | [docs/SECURITY.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/SECURITY.md) | Threat model and security recommendations |
 > | [docs/CONTRIBUTING.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/CONTRIBUTING.md) | How to contribute |
-> | [docs/V0.5.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/V0.5.md) | Current line v0.5 |
+> | [docs/V0.6.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/V0.6.md) | Current line v0.6 |
 > | [docs/OBJECTID\_PROFILE.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/OBJECTID_PROFILE.md) | Object ID compatibility profile (theft documentation + recovery) |
 > | [Specification (rendered) →](https://object-digital-passport.github.io/object-digital-passport/spec/) | Read the spec as a web page |
 > | [Live demo →](https://object-digital-passport.github.io/object-digital-passport/demo/) | Try the functionality online |

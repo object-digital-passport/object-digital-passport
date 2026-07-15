@@ -9,10 +9,10 @@
 | **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `docs/`, `web/frontend/`, and `chain/` live in the repo. |
 | **[`GUIDE.md`](GUIDE.md)** | Long-form overview: quick start, live demo, costs, deployment table, glossary. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |
-| **[`V0.5.md`](V0.5.md)** | Current v0.5 line (on-chain generation **5**). |
+| **[`V0.6.md`](V0.6.md)** | Current v0.6 line (on-chain generation **6**). |
 | **[`chain/deploy/README.md`](../chain/deploy/README.md)** | Hardhat deploy (`.env`, compile, Polygon mainnet). |
 | **[`OBJECTID_PROFILE.md`](OBJECTID_PROFILE.md)** | Object ID compatibility profile: theft documentation, recovery, publish-on-incident privacy. |
-| **[`schema/passport-0.5.schema.json`](../schema/passport-0.5.schema.json)** | Machine-readable JSON Schema for `passport.json` v0.5 (validated in CI). |
+| **[`schema/passport-0.6.schema.json`](../schema/passport-0.6.schema.json)** | Machine-readable JSON Schema for `passport.json` v0.6 (validated in CI). |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix vs feature branches. |
 | **[`SECURITY.md`](SECURITY.md)** | Threat model & trust boundaries. RU: [`web/frontend/localization/ru/SECURITY.md`](../web/frontend/localization/ru/SECURITY.md). |
 | **[`ANDROID.md`](ANDROID.md)** | Web handoff + trust boundaries; app code in [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion). |
@@ -27,6 +27,7 @@
 | [`V0.2-DRAFT.md`](V0.2-DRAFT.md) | Exploratory notes; binding text is in **SPEC**. |
 | [`V0.3.md`](V0.3.md) | v0.3 vs v0.2; RU release: [`web/frontend/localization/ru/RELEASE_v0.3.md`](../localization/ru/RELEASE_v0.3.md). |
 | [`V0.4.md`](V0.4.md) | Historical v0.4 line notes. |
+| [`V0.5.md`](V0.5.md) | Historical v0.5 line notes. |
 | [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md) | v0.4.1 patch notes. RU: [`web/frontend/localization/ru/RELEASE_v0.4.1.md`](../localization/ru/RELEASE_v0.4.1.md). |
 | [`archive/DOCS_REVIEW_PLAN_v0.5.md`](archive/DOCS_REVIEW_PLAN_v0.5.md) | Completed planning note (README/SPEC/docs pass). |
 | [`ANDROID_VERIFIER_MVP.md`](ANDROID_VERIFIER_MVP.md) | Short MVP scope; [`ANDROID_COMPANION_APP.md`](ANDROID_COMPANION_APP.md) redirects to companion repo. |

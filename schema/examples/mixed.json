@@ -1,5 +1,5 @@
 {
-  "version": "0.5",
+  "version": "0.6",
   "passportId": "ODP-2026-03-000555120",
   "title": "Executable Sculpture #2",
   "description": "Physical sculpture paired with executable realtime software.",
@@ -10,14 +10,20 @@
   "contentClass": "composite",
   "aiStatus": "assisted",
   "verificationMethod": "hybrid",
-  "edition": { "model": "dynamic" },
+  "edition": {
+    "model": "dynamic"
+  },
   "authorship": {
     "author": {
       "name": "Example holder",
       "wallet": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
       "creatorId": "C-482-930-174-005"
     },
-    "coAuthors": [{ "name": "Collaborator A" }]
+    "coAuthors": [
+      {
+        "name": "Collaborator A"
+      }
+    ]
   },
   "year": 2026,
   "month": 3,
@@ -34,15 +40,31 @@
     "damageHistoryHash": "sha256:0011aa22bb33cc44dd55ee66ff778899aabbccddeeff00112233445566778899",
     "damageHistoryUrl": "https://artist.example/objects/executable-sculpture-2-condition-log.json"
   },
-  "refinementTags": ["installation", "software", "sensor_based"],
+  "refinementTags": [
+    "installation",
+    "software",
+    "sensor_based"
+  ],
   "image": {
     "url": "https://artist.example/works/executable-sculpture-2-main.jpg",
     "hash": "sha256:1122bb33cc44dd55ee66ff778899aabbccddeeff001122334455667788990011"
   },
   "physical": {
     "category": "object",
-    "materials": [{ "name": "aluminium" }, { "name": "custom electronics" }],
-    "marks": [{ "type": "label", "description": "Internal serial ES-2" }],
+    "materials": [
+      {
+        "name": "aluminium"
+      },
+      {
+        "name": "custom electronics"
+      }
+    ],
+    "marks": [
+      {
+        "type": "label",
+        "description": "Internal serial ES-2"
+      }
+    ],
     "seal": {
       "numbered": {
         "number": "SL-00429831",

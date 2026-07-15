@@ -15,6 +15,14 @@ body {
 }
 h1 { font-size: 2em; margin: 0 0 4px; text-align: center; }
 p.sub { margin: 0 0 36px; color: #6a6f80; text-align: center; }
+.what {
+  max-width: 720px; margin: 0 auto 36px; padding: 18px 22px;
+  border: 1px solid #d8dbe4; border-radius: 14px; background: #f6f7fa;
+  font-size: .97em;
+}
+.what p { margin: 0 0 10px; }
+.what ol { margin: 0; padding-left: 22px; }
+.what li { margin: 4px 0; }
 .cards { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; max-width: 820px; }
 a.card {
   flex: 1 1 320px; max-width: 380px; padding: 26px 24px;
@@ -30,6 +38,7 @@ footer a { color: #2b4c9b; text-decoration: none; }
 @media (prefers-color-scheme: dark) {
   body { background: #14161d; color: #d7dae3; }
   p.sub, a.card p, footer { color: #8b90a0; }
+  .what { background: #191d28; border-color: #2c3040; }
   a.card { border-color: #2c3040; }
   a.card:hover { border-color: #8ab0ff; }
   a.card h2, footer a { color: #8ab0ff; }
@@ -39,10 +48,22 @@ footer a { color: #2b4c9b; text-decoration: none; }
 <body>
   <h1>Object Digital Passport</h1>
   <p class="sub">Open standard for object authentication — blockchain-anchored, no central platform</p>
+  <div class="what">
+    <p><strong>What is this?</strong> A digital passport for a physical or digital object — an artwork,
+    a limited-edition product, an archival document. The passport proves <em>when</em> it was registered,
+    <em>by whom</em>, and that its description <em>has not been altered</em> since. It also doubles as
+    theft-recovery documentation (Object&nbsp;ID-compatible checklist).</p>
+    <p><strong>How it works, in three steps:</strong></p>
+    <ol>
+      <li>The creator fills in the passport and mints it — only cryptographic fingerprints (hashes) go on-chain (~$0.01, Polygon).</li>
+      <li>The object gets its ID: printed, as a QR code, or on a secure NFC seal.</li>
+      <li>Anyone, forever, can verify for free: scan → compare fingerprints → see who issued it and whether institutions vouch for it.</li>
+    </ol>
+  </div>
   <div class="cards">
     <a class="card" href="spec/">
       <h2>📄 Specification</h2>
-      <p>Protocol spec v0.5, Object ID compatibility profile, security model, and the machine-readable JSON Schema for <code>passport.json</code>.</p>
+      <p>Protocol spec v0.6, Object ID compatibility profile, security model, and the machine-readable JSON Schema for <code>passport.json</code>.</p>
       <span class="hint">Read only — rendered from the repository markdown</span>
     </a>
     <a class="card" href="demo/">
