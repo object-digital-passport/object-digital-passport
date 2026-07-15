@@ -151,6 +151,8 @@ contract ODPPassportProofRegistry {
         uint256 baseNonce = _proofNonce;
         bytes32 passportIdHash = keccak256(bytes(passportId));
         for (uint256 i = 0; i < 25; i++) {
+            // Human-readable PRF ID entropy, not security randomness (mirrors main registry triage).
+            // slither-disable-next-line weak-prng
             uint32 n = uint32(uint256(keccak256(abi.encodePacked(
                 block.timestamp,
                 block.prevrandao,

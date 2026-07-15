@@ -40,12 +40,29 @@ jobs:
           -d "schema/examples/*.json"
 
   slither:
+    # crytic-compile cannot parse Hardhat 3 build-info (split output files),
+    # so we compile straight through solc per entry contract instead.
     name: Slither static analysis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crytic/slither-action@v0.4.1
+      - uses: actions/setup-python@v5
         with:
-          target: chain/
-          fail-on: high
-          slither-args: --exclude-dependencies
+          python-version: "3.12"
+      - name: Install slither + solc 0.8.20
+        run: |
+          pip install slither-analyzer solc-select
+          solc-select install 0.8.20
+          solc-select use 0.8.20
+      - name: Run slither (fail on high)
+        working-directory: chain/contracts
+        run: |
+          status=0
+          for f in ObjectDigitalPassport.sol ODPPassportProofRegistry.sol \
+                   ODPRegistryRelations.sol ODPCounterfeitConcern.sol \
+                   ODPWalletDocumentAnchor.sol ODPExtensionMintRouter.sol; do
+            echo "::group::$f"
+            slither "$f" --fail-high --solc-args "--via-ir --optimize" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
