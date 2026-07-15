@@ -1,6 +1,6 @@
 # Welcome to Object Digital Passport 👋
 
-> 🌐 **English** · [Русский](Home-ru)
+> 🇬🇧 **English** · [🇷🇺 Русский](Home-ru)
 
 **Object Digital Passport (ODP)** is an open standard for giving real things — artworks, limited-edition products, archival documents — a digital passport that anyone can verify, free, forever. No company in the middle, no subscription: just a public registry on the Polygon blockchain and open-source tools.
 

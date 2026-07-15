@@ -1,6 +1,6 @@
 # Object ID Profile — documenting for recovery
 
-> 🌐 **English** · [Русский](Object-ID-Profile-ru)
+> 🇬🇧 **English** · [🇷🇺 Русский](Object-ID-Profile-ru)
 
 [Object ID](https://icom.museum/en/resources/standards-guidelines/objectid/) is the international checklist (ICOM) that museums, police, INTERPOL, and insurers use to describe cultural objects so they can be identified and recovered after theft. ODP passports can carry the full checklist — cryptographically timestamped.
 

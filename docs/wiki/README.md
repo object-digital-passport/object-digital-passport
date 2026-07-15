@@ -16,11 +16,11 @@ cd /tmp/odp-wiki && git add -A && git commit -m "wiki: sync from docs/wiki" && g
 - **Language bar:** every page starts with one standard line right after the title:
 
   ```markdown
-  > 🌐 [English](Home) · **Русский**
+  > [🇬🇧 English](Home) · 🇷🇺 **Русский**
   ```
 
-  The current language is bold, others are links to the same page in that language. When adding a language, extend this bar on the pages you translate (only list languages that page actually exists in).
+  The current language is bold (with its flag), others are links to the same page in that language. Flag emoji per language: 🇬🇧 en · 🇷🇺 ru · 🇩🇪 de · 🇫🇷 fr · 🇪🇸 es · 🇮🇹 it · 🇵🇹 pt · 🇨🇳 zh · 🇯🇵 ja · 🇰🇷 ko (pick the most recognizable flag for the language; it's a navigation aid, not a statement about countries). When adding a language, extend this bar on the pages you translate (only list languages that page actually exists in).
 - **Sidebar stays small:** `_Sidebar.md` lists the English pages plus a *Languages* section linking only to each language's `Home-<code>`. Never list every page × language there — navigation within a language happens from its own Home page.
 - **Internal links inside a translation** point to same-language pages (`[FAQ](FAQ-ru)`), falling back to English when a page isn't translated yet.
-- **Adding a language, step by step:** copy the English pages to `<Page>-<code>.md`, translate, add the language to each translated page's language bar and to the *Languages* section of `_Sidebar.md`, publish. Partial translations are fine — start with `Home-<code>`.
+- **Adding a language, step by step:** copy the English pages to `<Page>-<code>.md`, translate, add the language (with its flag) to each translated page's language bar and to the *Languages* section of `_Sidebar.md`, publish. Partial translations are fine — start with `Home-<code>`.
 - **English pages are the source of truth.** When an English page changes meaningfully, translations should follow; out-of-date translations are better than none, but flag big drifts in Discussions.

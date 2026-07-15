@@ -1,6 +1,6 @@
 # Как работает проверка
 
-> 🌐 [English](How-Verification-Works) · **Русский**
+> [🇬🇧 English](How-Verification-Works) · 🇷🇺 **Русский**
 
 Диплом криптографа не нужен — вот вся модель.
 

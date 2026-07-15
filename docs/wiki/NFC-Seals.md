@@ -1,6 +1,6 @@
 # NFC Seals
 
-> 🌐 **English** · [Русский](NFC-Seals-ru)
+> 🇬🇧 **English** · [🇷🇺 Русский](NFC-Seals-ru)
 
 A physical seal ties the passport to the physical object. ODP supports numbered tamper-evident seals (checked by eye) and **NFC crypto chips** — currently NXP **NTAG 424 DNA** and its **TagTamper** variant (detects if the seal was ever peeled off).
 

@@ -11,8 +11,8 @@
 
 **🌐 Languages**
 
-- **English** (primary)
-- [Русский](Home-ru)
+- 🇬🇧 **English** (primary)
+- 🇷🇺 [Русский](Home-ru)
 
 ---
 
