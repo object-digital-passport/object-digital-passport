@@ -24,7 +24,7 @@
 
 ## Главные ссылки
 
-- 🌐 [Живое демо](https://object-digital-passport.github.io/object-digital-passport/demo/) — попробовать всё в браузере
-- 📄 [Спецификация](https://object-digital-passport.github.io/object-digital-passport/spec/) — полный протокол (на английском)
+- 🌐 [Живое демо](https://object-digital-passport.github.io/object-digital-passport/) — попробовать всё в браузере
+- 📄 [Спецификация](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) — полный протокол (на английском)
 - 💬 [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions) — вопросы и идеи (обсуждения ведём по-английски, чтобы участвовать могли все)
 - ⚠️ **Статус Alpha:** контракт может меняться до v1 (цель — январь 2027). Пока не полагайтесь на него для долгосрочных записей.

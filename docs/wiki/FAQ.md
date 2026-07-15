@@ -28,7 +28,7 @@ Core content — no (that's the point: the fingerprint is permanent). Operationa
 
 ### Is my data private?
 
-Everything you put **on-chain is public forever** — including update history. Keep precise locations, personal data, and prices out of on-chain fields ([rules](https://object-digital-passport.github.io/object-digital-passport/spec/#privacy-of-current-state-fields-normative)). The `.odpass` bundle can stay fully private: mint with an empty link and share the file only with people you choose.
+Everything you put **on-chain is public forever** — including update history. Keep precise locations, personal data, and prices out of on-chain fields ([rules](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md#privacy-of-current-state-fields-normative)). The `.odpass` bundle can stay fully private: mint with an empty link and share the file only with people you choose.
 
 ### Why blockchain at all?
 
@@ -40,4 +40,4 @@ Polygon PoS (cheap, established). The protocol is versioned; each 0.x line is a 
 
 ### Can I build my own app / site on ODP?
 
-Yes — MIT license, open spec, [JSON Schema](https://github.com/object-digital-passport/object-digital-passport/blob/main/schema/passport-0.6.schema.json), reference web UI and contracts in the repo. Read the [spec](https://object-digital-passport.github.io/object-digital-passport/spec/) and join [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions).
+Yes — MIT license, open spec, [JSON Schema](https://github.com/object-digital-passport/object-digital-passport/blob/main/schema/passport-0.6.schema.json), reference web UI and contracts in the repo. Read the [spec](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) and join [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions).

@@ -24,8 +24,8 @@ And with the Object ID-compatible profile, the same passport doubles as **theft-
 
 ## Key links
 
-- 🌐 [Live demo](https://object-digital-passport.github.io/object-digital-passport/demo/) — try everything in the browser
-- 📄 [Specification](https://object-digital-passport.github.io/object-digital-passport/spec/) — the full protocol, rendered
+- 🌐 [Live demo](https://object-digital-passport.github.io/object-digital-passport/) — try everything in the browser
+- 📄 [Specification](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) — the full protocol, rendered
 - 💬 [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions) — questions and ideas welcome
 - ⚠️ **Alpha status:** the contract may still change before v1 (target: January 2027). Don't rely on it for long-term records yet.
 

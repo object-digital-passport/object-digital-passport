@@ -34,6 +34,6 @@
 2. Если объект украден — передайте `.odpass` полиции и реестрам (или опубликуйте).
 3. Любой сможет сверить документацию с **докражными** on-chain отпечатками и меткой времени: описание доказуемо не придумано задним числом.
 
-И никогда не пишите адрес хранения объекта в публичные поля паспорта — см. [правила приватности](https://object-digital-passport.github.io/object-digital-passport/spec/#privacy-of-current-state-fields-normative).
+И никогда не пишите адрес хранения объекта в публичные поля паспорта — см. [правила приватности](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md#privacy-of-current-state-fields-normative).
 
-Полный текст профиля: [OBJECTID_PROFILE.md](https://object-digital-passport.github.io/object-digital-passport/spec/objectid-profile.html).
+Полный текст профиля: [OBJECTID_PROFILE.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/OBJECTID_PROFILE.md).

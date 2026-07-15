@@ -34,6 +34,6 @@ Object ID practice says: store documentation securely, release it when something
 2. If the object is stolen, hand the `.odpass` to police / registries (or publish it).
 3. Anyone can verify the documentation against the **pre-theft** on-chain fingerprints and timestamp — proving the description wasn't invented after the fact.
 
-And never put the object's storage address in the passport's public fields — see the [privacy rules](https://object-digital-passport.github.io/object-digital-passport/spec/#privacy-of-current-state-fields-normative).
+And never put the object's storage address in the passport's public fields — see the [privacy rules](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md#privacy-of-current-state-fields-normative).
 
-Full profile text: [OBJECTID_PROFILE.md](https://object-digital-passport.github.io/object-digital-passport/spec/objectid-profile.html).
+Full profile text: [OBJECTID_PROFILE.md](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/OBJECTID_PROFILE.md).

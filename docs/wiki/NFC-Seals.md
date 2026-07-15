@@ -17,7 +17,7 @@ Since v0.6 the spec defines two verification profiles with very different guaran
 
 Rule of thumb: for expensive objects, ask the issuer to use **Profile B**. Profile A is a convenience layer, never proof of authenticity — a verifier that shows "authentic" from a Profile A check alone is lying to you.
 
-Details: [assurance matrix in the spec](https://object-digital-passport.github.io/object-digital-passport/spec/#seal-verification-profiles-and-assurance-matrix-normative).
+Details: [assurance matrix in the spec](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md#seal-verification-profiles-and-assurance-matrix-normative).
 
 ## Phone support
 

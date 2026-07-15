@@ -17,7 +17,7 @@
 
 Правило: для дорогих объектов просите издателя использовать **Профиль B**. Профиль A — удобство, а не доказательство подлинности; верификатор, показывающий «подлинно» только по Профилю A, вас обманывает.
 
-Подробности: [матрица гарантий в спецификации](https://object-digital-passport.github.io/object-digital-passport/spec/#seal-verification-profiles-and-assurance-matrix-normative).
+Подробности: [матрица гарантий в спецификации](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md#seal-verification-profiles-and-assurance-matrix-normative).
 
 ## Поддержка телефонов
 

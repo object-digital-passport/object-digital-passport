@@ -16,5 +16,5 @@
 
 ---
 
-[Demo](https://object-digital-passport.github.io/object-digital-passport/demo/) ·
-[Spec](https://object-digital-passport.github.io/object-digital-passport/spec/)
+[Demo](https://object-digital-passport.github.io/object-digital-passport/) ·
+[Spec](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md)

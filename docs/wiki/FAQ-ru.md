@@ -28,7 +28,7 @@
 
 ### Насколько это приватно?
 
-Всё, что попадает **в блокчейн, публично навсегда** — включая историю изменений. Не указывайте в on-chain полях точные адреса, персональные данные и цены ([правила](https://object-digital-passport.github.io/object-digital-passport/spec/#privacy-of-current-state-fields-normative)). Файл `.odpass` может оставаться полностью приватным: минтите с пустой ссылкой и делитесь только с теми, с кем хотите.
+Всё, что попадает **в блокчейн, публично навсегда** — включая историю изменений. Не указывайте в on-chain полях точные адреса, персональные данные и цены ([правила](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md#privacy-of-current-state-fields-normative)). Файл `.odpass` может оставаться полностью приватным: минтите с пустой ссылкой и делитесь только с теми, с кем хотите.
 
 ### Зачем вообще блокчейн?
 
@@ -40,4 +40,4 @@ Polygon PoS (дёшево, устоялся). Протокол версиони�
 
 ### Могу ли я сделать своё приложение или сайт на ODP?
 
-Да — лицензия MIT, открытая спецификация, [JSON Schema](https://github.com/object-digital-passport/object-digital-passport/blob/main/schema/passport-0.6.schema.json), референсный веб-интерфейс и контракты в репозитории. Читайте [спецификацию](https://object-digital-passport.github.io/object-digital-passport/spec/) и приходите в [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions).
+Да — лицензия MIT, открытая спецификация, [JSON Schema](https://github.com/object-digital-passport/object-digital-passport/blob/main/schema/passport-0.6.schema.json), референсный веб-интерфейс и контракты в репозитории. Читайте [спецификацию](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) и приходите в [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions).
