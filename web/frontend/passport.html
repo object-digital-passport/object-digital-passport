@@ -125,6 +125,37 @@ const ZERO32 = "0x"+"0".repeat(64);
 const ODP_SKIP_WALLET_AUTOCONNECT = "odp_skip_wallet_autoconnect";
 let provider=null, signer=null, contract=null, wallet=null, creatorId=null;
 let objType="physical", sealType=1;
+
+/** Anchor type bits — must match ODPAnchorBits in chain/contracts/ODPPassportTypes.sol (SPEC §9). */
+const ODP_ANCHOR_BITS = {
+  photo: 1,
+  dimensions: 2,
+  materials: 4,
+  distinguishing_features: 8,
+  marks: 16,
+  file_hash: 32,
+  perceptual_hash: 64,
+  c2pa: 128,
+  nfc: 256,
+  numbered_seal: 512,
+  fingerprint: 1024,
+  dna: 2048,
+};
+
+/** v2 (spec 0.6) registry: on-chain card + anchors[] instead of seal/currentState fields. */
+function odpIsV2MintMode() {
+  return (
+    typeof odpSupportsV2 === "function" &&
+    typeof odpContractGeneration === "number" &&
+    odpSupportsV2(odpContractGeneration)
+  );
+}
+
+/** t() with an English fallback until dedicated i18n keys land. */
+function t2(key, fb) {
+  const s = t(key);
+  return s === key ? fb : s;
+}
 /** NFC issuer flow: chip scanned and EV2-verified in companion before mint. */
 let passportChipSetup = { confirmed: false, scannedAt: "", source: "" };
 /** Raw file SHA-256 as bytes32 (0x + 64 hex) — required for mintDigital; matches mint.py to_bytes32 */
@@ -2692,6 +2723,11 @@ function mintFormRequiredSectionHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelYourName")) + '<span class="req">*</span></label>' +
     '<input type="text" id="f_name" placeholder="' + esc(t("passport.form.phName")) + '">' +
     htmlFieldHint("passport.form.hintYourName") + '</div>' +
+    '<div class="field"><label>' + esc(t2("passport.form.labelShortDescription", "Short description")) +
+    (odpIsV2MintMode() ? '<span class="req">*</span>' : '') + '</label>' +
+    '<input type="text" id="f_short_desc" maxlength="256" placeholder="' +
+    esc(t2("passport.form.phShortDescription", "Object kind, technique, creation year — stored on-chain, immutable")) + '">' +
+    '</div>' +
     '<div class="row2">' +
     '<div class="field"><label>' + esc(t("passport.form.labelCategory")) + '<span class="req">*</span></label>' +
     '<select id="f_type">' + htmlCategoryOptionsPhysical() + '</select>' +
@@ -2746,8 +2782,10 @@ function mintFormPhysicalOptionalHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelEditionNum")) + '</label><input type="number" id="f_edn" placeholder="' + esc(t("passport.form.phEdition")) + '" min="1"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelEditionTotal")) + '</label><input type="number" id="f_edt" placeholder="' + esc(t("passport.form.phEditionTotal")) + '" min="1"></div></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelMedium")) + '</label><input type="text" id="f_medium" placeholder="' + esc(t("passport.form.phMedium")) + '"></div>' +
-    '<div class="field"><label>' + esc(t("passport.form.labelMaterials")) + '</label><input type="text" id="f_mat" placeholder="' + esc(t("passport.form.phMaterials")) + '"></div>' +
-    '<div class="row3">' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMaterials")) + (odpIsV2MintMode() ? '<span class="req">*</span>' : '') + '</label><input type="text" id="f_mat" placeholder="' + esc(t("passport.form.phMaterials")) + '"></div>' +
+    '<div class="field"><label>' + esc(t2("passport.form.labelFeatures", "Distinguishing features")) + (odpIsV2MintMode() ? '<span class="req">*</span>' : '') + '</label>' +
+    '<textarea id="f_features" placeholder="' + esc(t2("passport.form.phFeatures", "Defects, craquelure, repairs — what a copy would not reproduce")) + '"></textarea></div>' +
+    '<div class="row3"' + (odpIsV2MintMode() ? ' style="display:none"' : '') + '>' +
     '<div class="field"><label>' + esc(t("passport.form.labelLocation")) + '</label><input type="text" id="f_location" placeholder="' + esc(t("passport.form.phLocation")) + '"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelRightsNote")) + '</label><input type="text" id="f_rights_note" placeholder="' + esc(t("passport.form.phRightsNote")) + '"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelConditionNote")) + '</label><input type="text" id="f_condition_note" placeholder="' + esc(t("passport.form.phConditionNote")) + '"></div></div>' +
@@ -2959,11 +2997,12 @@ function renderForm() {
     <!-- Physical seal -->
     <div id="sealSection">
       <div class="section">
-        <div class="section-label">${esc(t("passport.form.physicalSeal"))}<span class="req">*</span></div>
+        <div class="section-label">${esc(t("passport.form.physicalSeal"))}${odpIsV2MintMode() ? "" : '<span class="req">*</span>'}</div>
         ${mintFormPhysicalOptionalHtml()}
         <p class="fhint form-section-lead">${esc(t("passport.form.groupSealLead"))}</p>
 
         <div class="seal-grid">
+          ${odpIsV2MintMode() ? '<div class="seal-opt" id="s0" onclick="setSeal(0)"><span class="seal-icon">∅</span>' + esc(t2("passport.form.sealNone", "No seal")) + '<br><small class="seal-sub">' + esc(t2("passport.form.sealNoneSmall", "identification anchors only")) + '</small></div>' : ""}
           <div class="seal-opt" id="s1" onclick="setSeal(1)">
             <span class="seal-icon">📡</span>${esc(t("passport.form.sealNfc"))}<br><small class="seal-sub">${esc(t("passport.form.sealNfcSmall"))}</small>
           </div>
@@ -3428,7 +3467,7 @@ function setType(ty) {
 
 function setSeal(n) {
   sealType = n;
-  [1,2,3].forEach(i => { const el=document.getElementById(`s${i}`); if(el) el.classList.toggle("sel",i===n); });
+  [0,1,2,3].forEach(i => { const el=document.getElementById(`s${i}`); if(el) el.classList.toggle("sel",i===n); });
   const nfc = document.getElementById("nfcFields");
   const num = document.getElementById("numFields");
   if (nfc) nfc.style.display = (n===1||n===3) ? "" : "none";
@@ -3769,8 +3808,10 @@ function buildRegistrationClock(now) {
 /** @param {Date} [mintAt] wall-clock instant for mint; UTC calendar year/month in JSON must match on-chain mint args. */
 function buildPassport(humanId, mintAt) {
   const now = mintAt instanceof Date ? mintAt : new Date();
-  const jsonSpecVersion =
-    typeof odpContractGeneration === "number" && odpContractGeneration >= 5
+  const isV2 = odpIsV2MintMode();
+  const jsonSpecVersion = isV2
+    ? "0.6"
+    : typeof odpContractGeneration === "number" && odpContractGeneration >= 5
       ? "0.5"
       : typeof odpContractGeneration === "number" && odpContractGeneration >= 4
       ? "0.4"
@@ -3821,14 +3862,23 @@ function buildPassport(humanId, mintAt) {
   if (creationDate) p.creationDate = creationDate;
   if (!Number.isNaN(fy) && fy !== utcY) p.objectYear = fy;
 
-  const currentState = {};
-  const currentLocation = v("f_location");
-  const rightsNote = v("f_rights_note");
-  const conditionNote = v("f_condition_note");
-  if (currentLocation) currentState.location = currentLocation;
-  if (rightsNote) currentState.rightsNote = rightsNote;
-  if (conditionNote) currentState.conditionNote = conditionNote;
-  if (Object.keys(currentState).length) p.currentState = currentState;
+  if (isV2) {
+    // v2 on-chain card fields — MUST equal the on-chain values byte-for-byte (SPEC §9)
+    p.authorName = v("f_name");
+    p.shortDescription = v("f_short_desc");
+  }
+
+  if (!isV2) {
+    // v0.5 mutable-state snapshot; in v2 current state lives only in on-chain events
+    const currentState = {};
+    const currentLocation = v("f_location");
+    const rightsNote = v("f_rights_note");
+    const conditionNote = v("f_condition_note");
+    if (currentLocation) currentState.location = currentLocation;
+    if (rightsNote) currentState.rightsNote = rightsNote;
+    if (conditionNote) currentState.conditionNote = conditionNote;
+    if (Object.keys(currentState).length) p.currentState = currentState;
+  }
 
   if (editionModel) {
     p.edition = { model: editionModel };
@@ -3844,26 +3894,29 @@ function buildPassport(humanId, mintAt) {
     const physical = {};
     if (categoryTag) physical.category = categoryTag;
     if (med) physical.medium = med;
-    if (mat) physical.materials = mat.split(",").map((m) => ({ name: m.trim() })).filter((m) => m.name);
-    const seal = {};
-    if (sealType===1||sealType===3) {
-      seal.nfc = { uid:v("f_nuid"), publicKey:v("f_nkey"), model:v("f_nmod"), installedAt:v("f_ndate") };
-      const nn=v("f_nnotes"); if(nn) seal.nfc.notes=nn;
-    }
-    if (sealType===2||sealType===3) {
-      seal.numbered = { number:v("f_snum"), type:v("f_stype") };
-      const sc=v("f_scol"),ss=v("f_ssz"),sn=v("f_snotes");
-      if(sc) seal.numbered.color=sc; if(ss) seal.numbered.size=ss; if(sn) seal.numbered.notes=sn;
-    }
-    if (Object.keys(seal).length) physical.seal = seal;
-    if (marksRaw) physical.marks = [{ type: "note", description: marksRaw }];
-    const dw = v("f_dim_w"), dh = v("f_dim_h"), dpt = v("f_depth");
-    if (dw || dh || dpt) {
-      physical.dimensions = {};
-      if (dw) physical.dimensions.width = Number(dw);
-      if (dh) physical.dimensions.height = Number(dh);
-      if (dpt) physical.dimensions.depth = Number(dpt);
-      physical.dimensions.unit = v("f_dim_unit") || "cm";
+    if (!isV2) {
+      // v0.5 layout; in v2 these facts are identification anchors (built below)
+      if (mat) physical.materials = mat.split(",").map((m) => ({ name: m.trim() })).filter((m) => m.name);
+      const seal = {};
+      if (sealType===1||sealType===3) {
+        seal.nfc = { uid:v("f_nuid"), publicKey:v("f_nkey"), model:v("f_nmod"), installedAt:v("f_ndate") };
+        const nn=v("f_nnotes"); if(nn) seal.nfc.notes=nn;
+      }
+      if (sealType===2||sealType===3) {
+        seal.numbered = { number:v("f_snum"), type:v("f_stype") };
+        const sc=v("f_scol"),ss=v("f_ssz"),sn=v("f_snotes");
+        if(sc) seal.numbered.color=sc; if(ss) seal.numbered.size=ss; if(sn) seal.numbered.notes=sn;
+      }
+      if (Object.keys(seal).length) physical.seal = seal;
+      if (marksRaw) physical.marks = [{ type: "note", description: marksRaw }];
+      const dw = v("f_dim_w"), dh = v("f_dim_h"), dpt = v("f_depth");
+      if (dw || dh || dpt) {
+        physical.dimensions = {};
+        if (dw) physical.dimensions.width = Number(dw);
+        if (dh) physical.dimensions.height = Number(dh);
+        if (dpt) physical.dimensions.depth = Number(dpt);
+        physical.dimensions.unit = v("f_dim_unit") || "cm";
+      }
     }
     const wv = v("f_weight");
     if (wv) physical.weight = { value: Number(wv), unit: v("f_weight_unit") || "kg" };
@@ -3888,12 +3941,57 @@ function buildPassport(humanId, mintAt) {
   }
 
   imageUrl = v("f_imgUrl");
-  // JSON field matches mint.py: f"sha256:{hex}"; on-chain still uses 0x bytes32 (imageHash)
-  if (imageHash!==ZERO32) p.image = { url:imageUrl, hash: "sha256:"+imageHash.slice(2) };
-  const extras = [];
-  if (imageHash2 !== ZERO32) extras.push({ url: v("f_imgUrl2"), hash: "sha256:" + imageHash2.slice(2) });
-  if (imageHash3 !== ZERO32) extras.push({ url: v("f_imgUrl3"), hash: "sha256:" + imageHash3.slice(2) });
-  if (extras.length) p.images = extras;
+  if (isV2) {
+    // v2 identification anchors (SPEC §9); anchorsHash + anchorTypesMask bind them on-chain
+    const anchors = [];
+    if (imageHash !== ZERO32) anchors.push({ type: "photo", data: { role: "primary" }, hash: "sha256:" + imageHash.slice(2) });
+    if (imageHash2 !== ZERO32) anchors.push({ type: "photo", data: { role: "additional" }, hash: "sha256:" + imageHash2.slice(2) });
+    if (imageHash3 !== ZERO32) anchors.push({ type: "photo", data: { role: "additional" }, hash: "sha256:" + imageHash3.slice(2) });
+    if (isPhysicalLikeType(objType)) {
+      const dims = {};
+      const dw = v("f_dim_w"), dh = v("f_dim_h"), dpt = v("f_depth");
+      if (dw) dims.width = Number(dw);
+      if (dh) dims.height = Number(dh);
+      if (dpt) dims.depth = Number(dpt);
+      if (Object.keys(dims).length) {
+        dims.unit = v("f_dim_unit") || "cm";
+        anchors.push({ type: "dimensions", data: dims });
+      }
+      const matList = v("f_mat").split(",").map((s) => s.trim()).filter(Boolean);
+      if (matList.length) anchors.push({ type: "materials", data: { list: matList } });
+      if (v("f_features")) anchors.push({ type: "distinguishing_features", data: { text: v("f_features") } });
+      if (marksRaw) anchors.push({ type: "marks", data: { text: marksRaw } });
+      if (sealType===1||sealType===3) {
+        const nfcData = { uid: v("f_nuid"), publicKey: v("f_nkey").replace(/^0x/i, ""), model: v("f_nmod"), installedAt: v("f_ndate") };
+        const nn = v("f_nnotes"); if (nn) nfcData.notes = nn;
+        anchors.push({ type: "nfc", data: nfcData });
+      }
+      if (sealType===2||sealType===3) {
+        const sData = { number: v("f_snum"), type: v("f_stype") };
+        const sc=v("f_scol"), ss=v("f_ssz"), sn=v("f_snotes");
+        if (sc) sData.color = sc; if (ss) sData.size = ss; if (sn) sData.notes = sn;
+        anchors.push({ type: "numbered_seal", data: sData });
+      }
+    }
+    if (isDigitalLikeType(objType)) {
+      if (fileHashBytes32 !== ZERO32) anchors.push({ type: "file_hash", hash: "sha256:" + fileHashBytes32.slice(2) });
+      const c2paNorm = normalizeSha256Text(v("f_c2pa_manifest_hash"));
+      if (c2paNorm) {
+        const c2paAnchor = { type: "c2pa", hash: c2paNorm };
+        const lbl = v("f_c2pa_manifest_label");
+        if (lbl) c2paAnchor.data = { activeManifest: lbl };
+        anchors.push(c2paAnchor);
+      }
+    }
+    p.anchors = anchors;
+  } else {
+    // JSON field matches mint.py: f"sha256:{hex}"; on-chain still uses 0x bytes32 (imageHash)
+    if (imageHash!==ZERO32) p.image = { url:imageUrl, hash: "sha256:"+imageHash.slice(2) };
+    const extras = [];
+    if (imageHash2 !== ZERO32) extras.push({ url: v("f_imgUrl2"), hash: "sha256:" + imageHash2.slice(2) });
+    if (imageHash3 !== ZERO32) extras.push({ url: v("f_imgUrl3"), hash: "sha256:" + imageHash3.slice(2) });
+    if (extras.length) p.images = extras;
+  }
   const additionalMetadata = {};
   const metaRoot = document.getElementById("extraMetaRows");
   if (metaRoot) {
@@ -3961,6 +4059,18 @@ function validate() {
   if (!v("f_name"))    return t("passport.form.validateName");
   if (!v("f_content_class")) return t("passport.form.validateContentClass");
   if (!v("f_status")) return t("passport.form.validateStatus");
+  if (odpIsV2MintMode()) {
+    // v2 hard identification minimum (SPEC §9) — the contract enforces it via anchorTypesMask
+    if (!v("f_short_desc")) return t2("passport.form.validateShortDesc", "Short description is required — it goes on-chain as part of the card.");
+    if (v("f_title").length > 128) return t2("passport.form.validateTitleLen", "Title must be at most 128 characters for the on-chain card.");
+    if (v("f_name").length > 128) return t2("passport.form.validateNameLen", "Author name must be at most 128 characters for the on-chain card.");
+    if (isPhysicalLikeType(objType)) {
+      if (imageHash === ZERO32) return t2("passport.form.validateV2Photo", "A primary photo is required for physical objects (identification anchor).");
+      if (!v("f_dim_w") && !v("f_dim_h") && !v("f_depth")) return t2("passport.form.validateV2Dims", "Dimensions are required for physical objects (identification anchor).");
+      if (!v("f_mat")) return t2("passport.form.validateV2Materials", "Materials are required for physical objects (identification anchor).");
+      if (!v("f_features")) return t2("passport.form.validateV2Features", "Distinguishing features are required for physical objects (identification anchor).");
+    }
+  }
   if (
     (imageHash2 !== ZERO32 || imageHash3 !== ZERO32) &&
     imageHash === ZERO32
@@ -4091,6 +4201,16 @@ async function executeMint() {
   const mintAt = new Date();
   const passportForHash = buildPassport(null, mintAt);
   const dataHash_ = await sha256obj(passportForHash);
+  // v2: anchors array is additionally hashed standalone (same canonicalization) → on-chain anchorsHash
+  const isV2Mint = odpIsV2MintMode();
+  const anchorsHash_ = isV2Mint ? await sha256obj(passportForHash.anchors || []) : ZERO32;
+  let anchorTypesMask_ = 0;
+  if (isV2Mint) {
+    for (const a of passportForHash.anchors || []) {
+      anchorTypesMask_ |= ODP_ANCHOR_BITS[a.type] || (1 << 31);
+    }
+    anchorTypesMask_ = anchorTypesMask_ >>> 0;
+  }
   const imgH_     = imageHash;
   const imgU_     = imageUrl;
   const imgEx =
@@ -4159,18 +4279,34 @@ async function executeMint() {
     }
 
     let tx;
-    if (
-      typeof odpContractGeneration === "number" &&
-      typeof odpSupportsV2 === "function" &&
-      odpSupportsV2(odpContractGeneration)
-    ) {
-      // v2 (spec 0.6) registries take the unified PassportMintInputs tuple with the
-      // on-chain card and anchors[] — this form still collects the v0.5 field set.
-      throw new Error(
-        "This registry runs the ODP v2 (0.6) line. The web mint form for v2 (on-chain card + identification anchors) is not implemented yet — use chain/tools/mint.py to mint against this registry."
-      );
-    }
-    if (typeof odpContractGeneration === "number" && odpContractGeneration >= 5) {
+    if (isV2Mint) {
+      // v2 (spec 0.6): unified PassportMintInputs tuple — card + hashes + anchors
+      const v2Inputs = {
+        core: {
+          year,
+          month,
+          title: passportForHash.title || "",
+          authorName: passportForHash.authorName || "",
+          shortDescription: passportForHash.shortDescription || "",
+          domain: passportForHash.domain || "",
+          contentClass: contentClassCode,
+          lifecycleStatus: lifecycleStatusCode,
+          aiStatus: aiStatusCode,
+          verificationMethod: verificationMethodCode,
+          editionModel: editionModelCode,
+        },
+        dataHash: dataHash_,
+        dataUrl: dataUrlForMint,
+        imageHash: imgH_,
+        imageUrl: imgU_,
+        fileHash: objType === "physical" ? ZERO32 : fileHashBytes32,
+        anchorsHash: anchorsHash_,
+        anchorTypesMask: anchorTypesMask_,
+      };
+      const mintFn =
+        objType === "physical" ? contract.mintPhysical : objType === "mixed" ? contract.mintMixed : contract.mintDigital;
+      tx = await mintFn(v2Inputs, dataUrlIsFolderBase, "", mintTxOpts());
+    } else if (typeof odpContractGeneration === "number" && odpContractGeneration >= 5) {
       const v05Core = {
         year,
         month,
@@ -4381,6 +4517,8 @@ async function executeMint() {
     showSuccess(humanId, tx.hash, finalJson, passportForHash.title, registeredDataUrl, {
       txHash: tx.hash,
       dataHash: dataHash_,
+      anchorsHash: isV2Mint ? anchorsHash_ : undefined,
+      anchorTypesMask: isV2Mint ? anchorTypesMask_ : undefined,
       imageHash: imgH_,
       imageHash2: imageHash2,
       imageHash3: imageHash3,
@@ -5194,6 +5332,9 @@ async function createPassportOdpBlob(humanId, json, bundleMeta) {
       imageHash2: String((bundleMeta && bundleMeta.imageHash2) || ZERO32),
       imageHash3: String((bundleMeta && bundleMeta.imageHash3) || ZERO32),
       fileHash: String((bundleMeta && bundleMeta.fileHash) || ZERO32),
+      ...(bundleMeta && bundleMeta.anchorsHash
+        ? { anchorsHash: String(bundleMeta.anchorsHash), anchorTypesMask: Number(bundleMeta.anchorTypesMask || 0) }
+        : {}),
       txHash: String((bundleMeta && bundleMeta.txHash) || ""),
       chainId: Number(NET.chainId),
       contract: String(NET.contract || ""),

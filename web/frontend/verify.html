@@ -1697,6 +1697,36 @@ async function verify() {
       } catch {}
     }
 
+    // v2 (spec 0.6): card MUST match on-chain byte-for-byte, anchors array MUST match
+    // anchorsHash — any mismatch is TAMPERED, not a warning (SPEC §11 steps 7–8).
+    if (
+      passport &&
+      typeof odpSupportsV2 === "function" &&
+      odpSupportsV2(odpContractGeneration) &&
+      typeof rec.anchorsHash !== "undefined"
+    ) {
+      const nfcs = (x) => String(x == null ? "" : x).normalize("NFC");
+      const cardOk =
+        nfcs(passport.title) === nfcs(rec.title) &&
+        nfcs(passport.authorName) === nfcs(rec.authorName) &&
+        nfcs(passport.shortDescription) === nfcs(rec.shortDescription) &&
+        nfcs(passport.domain) === nfcs(rec.domain) &&
+        nfcs(passport.objectType) === nfcs(rec.objectType);
+      let anchorsOk = false;
+      try {
+        const anchorsCanon = JSON.stringify(
+          sortKeysDeep(normalizeNFC(Array.isArray(passport.anchors) ? passport.anchors : []))
+        );
+        anchorsOk = (await sha256text(anchorsCanon)).toLowerCase() === odpBytes32HexLower(rec.anchorsHash);
+      } catch {}
+      verifyRenderOpts.v2 = {
+        cardOk,
+        anchorsOk,
+        anchorTypes: Array.isArray(passport.anchors) ? passport.anchors.map((a) => String(a && a.type || "?")) : [],
+      };
+      if (dataStatus === "authentic" && (!cardOk || !anchorsOk)) dataStatus = "tampered";
+    }
+
     await verifyMergeCounterfeitConcern(readContract, humanId, verifyRenderOpts);
 
     Object.assign(verifyRenderOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
@@ -2569,6 +2599,34 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>
 
+        ${renderOpts && renderOpts.v2 ? `
+        <div class="vrow" style="margin-top:10px">
+          <span class="vbadge ${renderOpts.v2.cardOk ? "ok" : "bad"}">${renderOpts.v2.cardOk ? "Verified" : "Mismatch"}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">On-chain card (byte-for-byte vs passport.json)</div>
+            <div class="vinfo-val">${esc(String(rec.title || ""))}${rec.authorName ? " — " + esc(String(rec.authorName)) : ""}</div>
+            ${rec.shortDescription ? `<p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(String(rec.shortDescription))}</p>` : ""}
+          </div>
+        </div>
+        <div class="vrow" style="margin-top:10px">
+          <span class="vbadge ${renderOpts.v2.anchorsOk ? "ok" : "bad"}">${renderOpts.v2.anchorsOk ? "Verified" : "Mismatch"}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Identification anchors (SHA-256 of anchors[])</div>
+            <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(odpBytes32HexLower(rec.anchorsHash))}</div>
+            ${renderOpts.v2.anchorTypes.length ? `<p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(renderOpts.v2.anchorTypes.join(", "))}</p>` : ""}
+          </div>
+        </div>` : ""}
+
+        ${typeof rec.eventCount !== "undefined" ? `
+        <div class="vrow" style="margin-top:10px">
+          <span class="vbadge na">${Number(rec.eventCount || 0)}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Append-only passport events</div>
+            <div class="vinfo-val" style="font-size:12px">${Number(rec.eventCount || 0) === 0 ? "No events recorded since mint" : "Last event kind " + Number(rec.lastEventKind || 0) + " · " + (Number(rec.lastEventAt || 0) ? new Date(Number(rec.lastEventAt) * 1000).toISOString().slice(0, 19) + "Z" : "")}</div>
+            <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">Ownership, status, condition, damage, and restoration history is append-only on-chain; full history lives in the PassportEventRecorded log.</p>
+          </div>
+        </div>` : ""}
+
         ${
           typeof rec.ndppCommitmentHash !== "undefined" && odpNonZeroBytes32(rec.ndppCommitmentHash)
             ? `<div class="vrow" style="margin-top:10px">
@@ -2642,7 +2700,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>` : ""}
 
-        ${!isDigital ? `
+        ${!isDigital && typeof rec.sealType !== "undefined" ? `
         <div class="vrow">
           <span class="vbadge na">${rec.sealType === 0 ? esc(t("verify.detail.sealTypeNone")) : rec.sealType === 1 ? esc(t("verify.detail.sealTypeNfc")) : rec.sealType === 2 ? esc(t("verify.detail.sealTypeNum")) : esc(t("verify.detail.sealTypeBoth"))}</span>
           <div class="vinfo">
