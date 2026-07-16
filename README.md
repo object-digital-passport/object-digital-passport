@@ -1,4 +1,4 @@
-# Object Digital Passport · v0.5 Alpha
+# Object Digital Passport · v0.6 Alpha
 
 > 🌐 **Language / Язык**
 >
@@ -23,6 +23,8 @@ Working across three completely different fields opened up a unique paradigm for
 It runs on a blockchain, with minimal payment only for processing the record. This is the only approach that guarantees independence from any brand or manufacturer, while ensuring decentralization of information and maximum reliability. It also means anyone can verify information 50, 100, or 250 years from now.
 
 ⚠️ **ODP is currently in Alpha:** changes to the contract are possible, which may affect the availability of your passports and account in the future. Please wait for the stable version for long-term use. Ambitious target: launch in **January 2027**. More details at the bottom of the page.
+
+> **🆕 What's new in v0.6 (the "v2" model):** a small readable **card** (title, author, short description) now lives on-chain, so an object is legible even without its file; all the identification facts (photos, dimensions, materials, distinguishing features, marks, seals) move into one extensible **`anchors[]`** block committed on-chain by a second hash, with a hard minimum enforced at mint; and passport history becomes **append-only** — status, condition, damage, and restoration are events, never overwrites. See [`docs/V0.6.md`](docs/V0.6.md) and [`docs/REQUIREMENTS_FIELDS_V2.md`](docs/REQUIREMENTS_FIELDS_V2.md).
 
 
 ---
@@ -69,7 +71,7 @@ Each account type has its own limits and capabilities. **Clear type labeling is 
 If you want to protect your works from potential counterfeits or create an "indestructible" catalogue of your work.
 
 ### **What information can be stored in ODP?**
-There's no definitive answer yet — we're experimenting with different options across versions. Please check the page (either by downloading the relevant release from Github and opening it locally in the `web/frontend` folder, or viewing the current version online).
+As of v0.6, a small **card** (title, author, short description) is stored directly on-chain so the object is legible on its own, and the object's identifying facts — photos, dimensions, materials, distinguishing features, marks, and any seal — live in the `.odpass` file as **identification anchors**, committed on-chain by their hash. The model keeps evolving across versions; the exact fields are in `SPEC.md` and [`docs/REQUIREMENTS_FIELDS_V2.md`](docs/REQUIREMENTS_FIELDS_V2.md). You can also just open the page (download a release and open `web/frontend` locally, or view the current version online).
 
 ### **Is adding a record all I need to do?**
 No. There is a companion file **`.odpass`** that conveniently stores all additional information that physically cannot go on-chain due to size limits (photo of the work, additional attributes, etc.). A hash of that information is stored, making tampering impossible.
