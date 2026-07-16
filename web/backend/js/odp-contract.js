@@ -39,8 +39,8 @@
     return generation >= 5;
   }
 
-  /** v2 storage model (spec 0.6): on-chain card, anchors, append-only events. */
-  function odpSupportsV2(generation) {
+  /** Spec 0.6 storage model (nicknamed "v2"): on-chain card, anchors, append-only events. */
+  function odpSupportsV06(generation) {
     return generation >= 6;
   }
 
@@ -440,7 +440,7 @@
 
   function odpPassportHeaderViewComponents(generation, net) {
     var idn = odpPassportIdAbiName(generation, net);
-    if (odpSupportsV2(generation)) {
+    if (odpSupportsV06(generation)) {
       return [
         { name: idn, type: "string" },
         { name: "contractVersion", type: "uint8" },
@@ -486,7 +486,7 @@
   }
 
   function odpPassportMediaViewComponents(generation) {
-    if (odpSupportsV2(generation)) {
+    if (odpSupportsV06(generation)) {
       return [
         { name: "dataHash", type: "bytes32" },
         { name: "dataUrl", type: "string" },
@@ -510,7 +510,7 @@
     ];
   }
 
-  /** v2 (gen >= 6): append-only event summary view. */
+  /** Spec 0.6 (gen >= 6): append-only event summary view. */
   function odpPassportEventsViewComponents() {
     return [
       { name: "eventCount", type: "uint32" },
@@ -1111,9 +1111,9 @@
     var pid = odpPassportIdAbiName(generation, net);
     var folder = generation >= 2;
     var mintMut = "nonpayable";
-    if (odpSupportsV2(generation)) {
-      // v2 (spec 0.6): unified PassportMintInputs, on-chain card, anchors, append-only events.
-      var v2Core = [
+    if (odpSupportsV06(generation)) {
+      // spec 0.6: unified PassportMintInputs, on-chain card, anchors, append-only events.
+      var v06Core = [
         { name: "year", type: "uint32" },
         { name: "month", type: "uint8" },
         { name: "title", type: "string" },
@@ -1126,11 +1126,11 @@
         { name: "verificationMethod", type: "uint8" },
         { name: "editionModel", type: "uint8" },
       ];
-      var v2MintTuple = {
+      var v06MintTuple = {
         name: "m",
         type: "tuple",
         components: [
-          { name: "core", type: "tuple", components: v2Core },
+          { name: "core", type: "tuple", components: v06Core },
           { name: "dataHash", type: "bytes32" },
           { name: "dataUrl", type: "string" },
           { name: "imageHash", type: "bytes32" },
@@ -1140,11 +1140,11 @@
           { name: "anchorTypesMask", type: "uint32" },
         ],
       };
-      var v2Suffix = [
+      var v06Suffix = [
         { name: "dataUrlIsFolderBase", type: "bool" },
         { name: "mintOnBehalfOfCreatorId", type: "string" },
       ];
-      var v2MintedEvent =
+      var v06MintedEvent =
         "event PassportMinted(string indexed " +
         pid +
         ",address indexed creator,string creatorId,string title,string authorName,string domain,string objectType,uint8 contentClass,uint32 year,uint8 month,bytes32 dataHash,bytes32 anchorsHash,uint32 anchorTypesMask,uint256 timestamp,address mintAgent)";
@@ -1199,13 +1199,13 @@
           inputs: [{ name: pid, type: "string" }],
           outputs: [{ name: "", type: "tuple", components: odpPassportEventsViewComponents() }],
         },
-        v2MintedEvent,
+        v06MintedEvent,
         "event PassportEventRecorded(string indexed " +
           pid +
           ",uint8 indexed kind,uint8 value,string note,bytes32 attachmentHash,string attachmentUrl,address recordedBy,uint256 timestamp)",
-        { name: "mintPhysical", type: "function", stateMutability: mintMut, inputs: [v2MintTuple].concat(v2Suffix), outputs: [{ name: pid, type: "string" }] },
-        { name: "mintDigital", type: "function", stateMutability: mintMut, inputs: [v2MintTuple].concat(v2Suffix), outputs: [{ name: pid, type: "string" }] },
-        { name: "mintMixed", type: "function", stateMutability: mintMut, inputs: [v2MintTuple].concat(v2Suffix), outputs: [{ name: pid, type: "string" }] },
+        { name: "mintPhysical", type: "function", stateMutability: mintMut, inputs: [v06MintTuple].concat(v06Suffix), outputs: [{ name: pid, type: "string" }] },
+        { name: "mintDigital", type: "function", stateMutability: mintMut, inputs: [v06MintTuple].concat(v06Suffix), outputs: [{ name: pid, type: "string" }] },
+        { name: "mintMixed", type: "function", stateMutability: mintMut, inputs: [v06MintTuple].concat(v06Suffix), outputs: [{ name: pid, type: "string" }] },
         {
           name: "updatePassportUrls",
           type: "function",
@@ -2602,7 +2602,7 @@
           outputs: [{ name: "", type: "tuple", components: odpPassportMediaViewComponents(gen) }],
         }
       );
-      if (odpSupportsV2(gen)) {
+      if (odpSupportsV06(gen)) {
         abi.push({
           name: "getPassportEvents",
           type: "function",
@@ -3544,7 +3544,7 @@
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
   global.odpSupportsV03 = odpSupportsV03;
   global.odpSupportsContentClass = odpSupportsContentClass;
-  global.odpSupportsV2 = odpSupportsV2;
+  global.odpSupportsV06 = odpSupportsV06;
   global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;

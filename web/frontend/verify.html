@@ -1697,12 +1697,12 @@ async function verify() {
       } catch {}
     }
 
-    // v2 (spec 0.6): card MUST match on-chain byte-for-byte, anchors array MUST match
+    // spec 0.6: card MUST match on-chain byte-for-byte, anchors array MUST match
     // anchorsHash — any mismatch is TAMPERED, not a warning (SPEC §11 steps 7–8).
     if (
       passport &&
-      typeof odpSupportsV2 === "function" &&
-      odpSupportsV2(odpContractGeneration) &&
+      typeof odpSupportsV06 === "function" &&
+      odpSupportsV06(odpContractGeneration) &&
       typeof rec.anchorsHash !== "undefined"
     ) {
       const nfcs = (x) => String(x == null ? "" : x).normalize("NFC");
@@ -1719,7 +1719,7 @@ async function verify() {
         );
         anchorsOk = (await sha256text(anchorsCanon)).toLowerCase() === odpBytes32HexLower(rec.anchorsHash);
       } catch {}
-      verifyRenderOpts.v2 = {
+      verifyRenderOpts.v06 = {
         cardOk,
         anchorsOk,
         anchorTypes: Array.isArray(passport.anchors) ? passport.anchors.map((a) => String(a && a.type || "?")) : [],
@@ -2599,9 +2599,9 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>
 
-        ${renderOpts && renderOpts.v2 ? `
+        ${renderOpts && renderOpts.v06 ? `
         <div class="vrow" style="margin-top:10px">
-          <span class="vbadge ${renderOpts.v2.cardOk ? "ok" : "bad"}">${renderOpts.v2.cardOk ? "Verified" : "Mismatch"}</span>
+          <span class="vbadge ${renderOpts.v06.cardOk ? "ok" : "bad"}">${renderOpts.v06.cardOk ? "Verified" : "Mismatch"}</span>
           <div class="vinfo">
             <div class="vinfo-label">On-chain card (byte-for-byte vs passport.json)</div>
             <div class="vinfo-val">${esc(String(rec.title || ""))}${rec.authorName ? " — " + esc(String(rec.authorName)) : ""}</div>
@@ -2609,11 +2609,11 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>
         <div class="vrow" style="margin-top:10px">
-          <span class="vbadge ${renderOpts.v2.anchorsOk ? "ok" : "bad"}">${renderOpts.v2.anchorsOk ? "Verified" : "Mismatch"}</span>
+          <span class="vbadge ${renderOpts.v06.anchorsOk ? "ok" : "bad"}">${renderOpts.v06.anchorsOk ? "Verified" : "Mismatch"}</span>
           <div class="vinfo">
             <div class="vinfo-label">Identification anchors (SHA-256 of anchors[])</div>
             <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(odpBytes32HexLower(rec.anchorsHash))}</div>
-            ${renderOpts.v2.anchorTypes.length ? `<p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(renderOpts.v2.anchorTypes.join(", "))}</p>` : ""}
+            ${renderOpts.v06.anchorTypes.length ? `<p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(renderOpts.v06.anchorTypes.join(", "))}</p>` : ""}
           </div>
         </div>` : ""}
 
