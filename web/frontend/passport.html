@@ -151,11 +151,17 @@ function odpIsV2MintMode() {
   );
 }
 
-/** t() with an English fallback until dedicated i18n keys land. */
-function t2(key, fb) {
-  const s = t(key);
-  return s === key ? fb : s;
-}
+/** Append-only passport event kinds — must match ODPEventKinds in chain/contracts/ODPPassportTypes.sol (SPEC §8). */
+const ODP_EVENT_KINDS = {
+  status: 1,
+  location: 2,
+  rights: 3,
+  condition: 4,
+  damage: 5,
+  restoration: 6,
+  custom: 7,
+};
+
 /** NFC issuer flow: chip scanned and EV2-verified in companion before mint. */
 let passportChipSetup = { confirmed: false, scannedAt: "", source: "" };
 /** Raw file SHA-256 as bytes32 (0x + 64 hex) — required for mintDigital; matches mint.py to_bytes32 */
@@ -1374,6 +1380,8 @@ function passportManageSummaryHtml(humanId, p, governanceAddr) {
     <div style="font-size:12px;line-height:1.65">
       <div><strong>${esc(t("passport.v03Ops.passportIdLabel"))}:</strong> <span class="mono">${esc(humanId)}</span></div>
       <div><strong>${esc(t("passport.form.labelTitle"))}:</strong> ${esc(String(p.title || "—"))}</div>
+      ${p.authorName ? `<div><strong>${esc(t("passport.form.labelYourName"))}:</strong> ${esc(String(p.authorName))}</div>` : ""}
+      ${typeof p.eventCount !== "undefined" ? `<div><strong>${esc(t("passport.manage.eventsSection"))}:</strong> ${esc(String(Number(p.eventCount || 0)))}</div>` : ""}
       <div><strong>${esc(t("passport.v03Ops.creator"))}:</strong> <span class="mono">${esc(String(p.creator || "—"))}</span></div>
       <div><strong>${esc(t("passport.v03Ops.owner"))}:</strong> <span class="mono">${esc(String(ownerAddr || "—"))}</span></div>
       <div><strong>${esc(t("passport.form.labelStatus"))}:</strong> ${esc(lifecycleStatusLabelFromCode(p.lifecycleStatus))}</div>
@@ -1440,6 +1448,7 @@ async function openPassportManageEditor(humanId) {
   summaryEl.innerHTML = "";
   passportManageSetStatus("neutral", t("passport.manage.loading"));
   passportManageSetSectionVisible("passportManageStateSection", false);
+  passportManageSetSectionVisible("passportManageEventsSection", false);
   passportManageSetSectionVisible("passportManageLinksSection", false);
   passportManageSetSectionVisible("passportManageTransferSection", false);
   passportManageSetSectionVisible("passportManageAuxSection", false);
@@ -1470,6 +1479,9 @@ async function openPassportManageEditor(humanId) {
       typeof contract.updatePassportRights === "function" &&
       typeof contract.updatePassportCondition === "function";
     const canEditState = !revoked && hasStateOps && (isCreator || isOwner || isGov);
+    // v2 (gen 6): append-only events replace the overwritable state setters
+    const canRecordEvents =
+      !revoked && contract && typeof contract.recordPassportEvent === "function" && (isCreator || isOwner || isGov);
     const canEditUrls = !revoked && contract && typeof contract.updatePassportUrls === "function" && (isCreator || isOwner);
     const canTransfer = !revoked && contract && typeof contract.transferPassport === "function" && isOwner;
     const canEditAux = !revoked && contract && typeof contract.updatePassportAuxCommitment === "function" && (isCreator || isGov);
@@ -1481,6 +1493,7 @@ async function openPassportManageEditor(humanId) {
       record: p,
       governance: governanceAddr,
       canEditState,
+      canRecordEvents,
       canEditUrls,
       canTransfer,
       canEditAux,
@@ -1515,6 +1528,8 @@ async function openPassportManageEditor(humanId) {
     if (revokeAck) revokeAck.checked = false;
     syncPassportManageRevokeAck();
     passportManageSetSectionVisible("passportManageStateSection", canEditState);
+    passportManageSetSectionVisible("passportManageEventsSection", canRecordEvents);
+    if (canRecordEvents) syncPassportManageEventKind();
     passportManageSetSectionVisible("passportManageLinksSection", canEditUrls);
     passportManageSetSectionVisible("passportManageTransferSection", canTransfer);
     passportManageSetSectionVisible("passportManageAuxSection", canEditAux);
@@ -1523,13 +1538,80 @@ async function openPassportManageEditor(humanId) {
     if (showOffline) await refreshPassportManageOffline();
     if (revoked) {
       passportManageSetStatus("warn", t("passport.manage.revokedLocked"));
-    } else if (!canEditState && !canEditUrls && !canTransfer && !canEditAux && !canEditNdpp && !canRevoke) {
+    } else if (!canEditState && !canRecordEvents && !canEditUrls && !canTransfer && !canEditAux && !canEditNdpp && !canRevoke) {
       passportManageSetStatus("warn", t("passport.manage.notAllowed"));
     } else {
       passportManageSetStatus("", "");
     }
   } catch (e) {
     passportManageSetStatus("error", e && e.message ? e.message : t("passport.manage.loadError"));
+  }
+}
+
+/** Localized <option> list for the append-only event kind select (v2). */
+function htmlPassportEventKindOptions() {
+  const kinds = ["status", "location", "rights", "condition", "damage", "restoration", "custom"];
+  return kinds
+    .map((k) => `<option value="${ODP_EVENT_KINDS[k]}">${esc(t("passport.manage.eventKind_" + k))}</option>`)
+    .join("");
+}
+
+/** Show the lifecycle-status select only when the event kind is "status". */
+function syncPassportManageEventKind() {
+  const sel = document.getElementById("passportManageEventKind");
+  const field = document.getElementById("passportManageEventStatusField");
+  if (!sel || !field) return;
+  field.style.display = Number(sel.value) === ODP_EVENT_KINDS.status ? "" : "none";
+}
+
+/** Record one append-only passport event (v2 layer B) via recordPassportEvent. */
+async function submitPassportManageEvent() {
+  const st = passportManageState;
+  if (!st || !st.hid || !st.canRecordEvents) return;
+  const btn = document.getElementById("passportManageEventSubmit");
+  const hid = st.hid;
+  const kind = Number(document.getElementById("passportManageEventKind").value);
+  const isStatus = kind === ODP_EVENT_KINDS.status;
+  const value = isStatus ? lifecycleStatusCodeFromValue(document.getElementById("passportManageEventStatus").value) : 0;
+  const note = passportManageNormalizeText(document.getElementById("passportManageEventNote").value);
+  const attUrl = passportManageNormalizeText(document.getElementById("passportManageEventAttUrl").value);
+  let attHash;
+  try {
+    attHash = passportManageParseOptionalBytes32(document.getElementById("passportManageEventAttHash").value);
+  } catch (e) {
+    passportManageSetStatus("error", e.message || String(e));
+    return;
+  }
+  if (isStatus && !value) {
+    passportManageSetStatus("warn", t("passport.form.validateStatus"));
+    return;
+  }
+  if (note.length > 256) {
+    passportManageSetStatus("warn", passportManageFieldTooLong(t("passport.manage.eventNoteLabel"), 256));
+    return;
+  }
+  // Contract rule: attachment URL only allowed alongside a non-zero attachment hash.
+  if (attHash === ZERO32 && attUrl) {
+    passportManageSetStatus("warn", t("passport.manage.eventAttachmentPairError"));
+    return;
+  }
+  if (attUrl.length > 512) {
+    passportManageSetStatus("warn", passportManageFieldTooLong(t("passport.manage.eventAttachmentUrlLabel"), 512));
+    return;
+  }
+  if (btn) btn.disabled = true;
+  try {
+    passportManageSetStatus("neutral", t("passport.manage.eventSubmitting"));
+    const tx = await contract.recordPassportEvent(hid, kind, value, note, attHash, attUrl);
+    await waitForTransactionReceiptReliable(tx, provider);
+    await openPassportManageEditor(hid);
+    passportManageSetStatus("neutral", t("passport.manage.eventSaved"));
+    await loadMyPassports(true);
+  } catch (e) {
+    passportManageSetStatus("error", e && e.message ? e.message : String(e));
+  } finally {
+    const btnNow = document.getElementById("passportManageEventSubmit");
+    if (btnNow) btnNow.disabled = false;
   }
 }
 
@@ -2723,10 +2805,10 @@ function mintFormRequiredSectionHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelYourName")) + '<span class="req">*</span></label>' +
     '<input type="text" id="f_name" placeholder="' + esc(t("passport.form.phName")) + '">' +
     htmlFieldHint("passport.form.hintYourName") + '</div>' +
-    '<div class="field"><label>' + esc(t2("passport.form.labelShortDescription", "Short description")) +
+    '<div class="field"><label>' + esc(t("passport.form.labelShortDescription")) +
     (odpIsV2MintMode() ? '<span class="req">*</span>' : '') + '</label>' +
     '<input type="text" id="f_short_desc" maxlength="256" placeholder="' +
-    esc(t2("passport.form.phShortDescription", "Object kind, technique, creation year — stored on-chain, immutable")) + '">' +
+    esc(t("passport.form.phShortDescription")) + '">' +
     '</div>' +
     '<div class="row2">' +
     '<div class="field"><label>' + esc(t("passport.form.labelCategory")) + '<span class="req">*</span></label>' +
@@ -2783,8 +2865,8 @@ function mintFormPhysicalOptionalHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelEditionTotal")) + '</label><input type="number" id="f_edt" placeholder="' + esc(t("passport.form.phEditionTotal")) + '" min="1"></div></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelMedium")) + '</label><input type="text" id="f_medium" placeholder="' + esc(t("passport.form.phMedium")) + '"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelMaterials")) + (odpIsV2MintMode() ? '<span class="req">*</span>' : '') + '</label><input type="text" id="f_mat" placeholder="' + esc(t("passport.form.phMaterials")) + '"></div>' +
-    '<div class="field"><label>' + esc(t2("passport.form.labelFeatures", "Distinguishing features")) + (odpIsV2MintMode() ? '<span class="req">*</span>' : '') + '</label>' +
-    '<textarea id="f_features" placeholder="' + esc(t2("passport.form.phFeatures", "Defects, craquelure, repairs — what a copy would not reproduce")) + '"></textarea></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelFeatures")) + (odpIsV2MintMode() ? '<span class="req">*</span>' : '') + '</label>' +
+    '<textarea id="f_features" placeholder="' + esc(t("passport.form.phFeatures")) + '"></textarea></div>' +
     '<div class="row3"' + (odpIsV2MintMode() ? ' style="display:none"' : '') + '>' +
     '<div class="field"><label>' + esc(t("passport.form.labelLocation")) + '</label><input type="text" id="f_location" placeholder="' + esc(t("passport.form.phLocation")) + '"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelRightsNote")) + '</label><input type="text" id="f_rights_note" placeholder="' + esc(t("passport.form.phRightsNote")) + '"></div>' +
@@ -3002,7 +3084,7 @@ function renderForm() {
         <p class="fhint form-section-lead">${esc(t("passport.form.groupSealLead"))}</p>
 
         <div class="seal-grid">
-          ${odpIsV2MintMode() ? '<div class="seal-opt" id="s0" onclick="setSeal(0)"><span class="seal-icon">∅</span>' + esc(t2("passport.form.sealNone", "No seal")) + '<br><small class="seal-sub">' + esc(t2("passport.form.sealNoneSmall", "identification anchors only")) + '</small></div>' : ""}
+          ${odpIsV2MintMode() ? '<div class="seal-opt" id="s0" onclick="setSeal(0)"><span class="seal-icon">∅</span>' + esc(t("passport.form.sealNone")) + '<br><small class="seal-sub">' + esc(t("passport.form.sealNoneSmall")) + '</small></div>' : ""}
           <div class="seal-opt" id="s1" onclick="setSeal(1)">
             <span class="seal-icon">📡</span>${esc(t("passport.form.sealNfc"))}<br><small class="seal-sub">${esc(t("passport.form.sealNfcSmall"))}</small>
           </div>
@@ -3235,6 +3317,25 @@ function renderForm() {
             <p class="fhint" style="margin:0 0 10px;line-height:1.55">${esc(t("passport.manage.damageHistoryHint"))}</p>
             <div class="btn-row">
               <button type="button" class="btn" id="passportManageStateSubmit" onclick="submitPassportManageState()">${esc(t("passport.manage.stateSaveBtn"))}</button>
+            </div>
+          </div>
+
+          <div id="passportManageEventsSection" style="display:none;margin-top:14px">
+            <div class="section-label">${esc(t("passport.manage.eventsSection"))}</div>
+            <p class="fhint" style="margin:0 0 10px;line-height:1.55">${esc(t("passport.manage.eventsLead"))}</p>
+            <div class="field"><label for="passportManageEventKind">${esc(t("passport.manage.eventKindLabel"))}</label>
+              <select id="passportManageEventKind" onchange="syncPassportManageEventKind()">${htmlPassportEventKindOptions()}</select></div>
+            <div class="field" id="passportManageEventStatusField"><label for="passportManageEventStatus">${esc(t("passport.form.labelStatus"))}</label>
+              <select id="passportManageEventStatus">${htmlLifecycleStatusOptions()}</select></div>
+            <div class="field"><label for="passportManageEventNote">${esc(t("passport.manage.eventNoteLabel"))}</label>
+              <textarea id="passportManageEventNote" rows="2" maxlength="256" placeholder="${esc(t("passport.manage.eventNotePlaceholder"))}"></textarea></div>
+            <div class="field"><label for="passportManageEventAttUrl">${esc(t("passport.manage.eventAttachmentUrlLabel"))}</label>
+              <input type="url" id="passportManageEventAttUrl" placeholder="${esc(t("passport.form.phHttps"))}" autocomplete="off"></div>
+            <div class="field"><label for="passportManageEventAttHash">${esc(t("passport.manage.eventAttachmentHashLabel"))}</label>
+              <input type="text" id="passportManageEventAttHash" placeholder="${esc(t("passport.manage.hashPlaceholder"))}" autocomplete="off" spellcheck="false"></div>
+            <p class="fhint" style="margin:0 0 10px;line-height:1.55">${esc(t("passport.manage.eventsHint"))}</p>
+            <div class="btn-row">
+              <button type="button" class="btn" id="passportManageEventSubmit" onclick="submitPassportManageEvent()">${esc(t("passport.manage.eventSaveBtn"))}</button>
             </div>
           </div>
 
@@ -4061,14 +4162,14 @@ function validate() {
   if (!v("f_status")) return t("passport.form.validateStatus");
   if (odpIsV2MintMode()) {
     // v2 hard identification minimum (SPEC §9) — the contract enforces it via anchorTypesMask
-    if (!v("f_short_desc")) return t2("passport.form.validateShortDesc", "Short description is required — it goes on-chain as part of the card.");
-    if (v("f_title").length > 128) return t2("passport.form.validateTitleLen", "Title must be at most 128 characters for the on-chain card.");
-    if (v("f_name").length > 128) return t2("passport.form.validateNameLen", "Author name must be at most 128 characters for the on-chain card.");
+    if (!v("f_short_desc")) return t("passport.form.validateShortDesc");
+    if (v("f_title").length > 128) return t("passport.form.validateTitleLen");
+    if (v("f_name").length > 128) return t("passport.form.validateNameLen");
     if (isPhysicalLikeType(objType)) {
-      if (imageHash === ZERO32) return t2("passport.form.validateV2Photo", "A primary photo is required for physical objects (identification anchor).");
-      if (!v("f_dim_w") && !v("f_dim_h") && !v("f_depth")) return t2("passport.form.validateV2Dims", "Dimensions are required for physical objects (identification anchor).");
-      if (!v("f_mat")) return t2("passport.form.validateV2Materials", "Materials are required for physical objects (identification anchor).");
-      if (!v("f_features")) return t2("passport.form.validateV2Features", "Distinguishing features are required for physical objects (identification anchor).");
+      if (imageHash === ZERO32) return t("passport.form.validateV2Photo");
+      if (!v("f_dim_w") && !v("f_dim_h") && !v("f_depth")) return t("passport.form.validateV2Dims");
+      if (!v("f_mat")) return t("passport.form.validateV2Materials");
+      if (!v("f_features")) return t("passport.form.validateV2Features");
     }
   }
   if (

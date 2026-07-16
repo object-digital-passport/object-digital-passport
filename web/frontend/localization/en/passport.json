@@ -3,7 +3,7 @@
     "meta": {
       "documentTitle": "ODP v0.5.0 — Create Passport",
       "h1": "Create Passport",
-      "sub": "Object Digital Passport · version\u00a00.5.0"
+      "sub": "Object Digital Passport · version 0.5.0"
     },
     "appLoading": "Connecting wallet…",
     "connect": {
@@ -218,7 +218,26 @@
       "revokeConfirmWallet": "Confirm the irreversible revocation in your wallet…",
       "revokeBtn": "Revoke passport",
       "revokeSaved": "Passport revoked.",
-      "closeBtn": "Close"
+      "closeBtn": "Close",
+      "eventsSection": "Record an event",
+      "eventsLead": "This registry keeps history append-only: each event is a new on-chain record, never an overwrite. The current status / location / condition is always the latest event of its kind.",
+      "eventKindLabel": "Event kind",
+      "eventKind_status": "Status change",
+      "eventKind_location": "Location",
+      "eventKind_rights": "Rights",
+      "eventKind_condition": "Condition",
+      "eventKind_damage": "Damage",
+      "eventKind_restoration": "Restoration",
+      "eventKind_custom": "Custom note",
+      "eventNoteLabel": "Note",
+      "eventNotePlaceholder": "Short note (max 256 characters)",
+      "eventAttachmentUrlLabel": "Attachment URL (optional)",
+      "eventAttachmentHashLabel": "Attachment SHA-256 (optional)",
+      "eventsHint": "The note lives in the event log; an optional attachment (report, photo, act) is anchored by its SHA-256. A URL is only allowed together with a non-zero hash.",
+      "eventSaveBtn": "Record event",
+      "eventSubmitting": "Recording event…",
+      "eventSaved": "Event recorded on-chain.",
+      "eventAttachmentPairError": "Attachment URL requires a non-zero attachment hash."
     },
     "pmProof": {
       "cardTitle": "Confirm an existing passport (expert / museum)",
@@ -650,7 +669,20 @@
       "urlEdit": {
         "urlTooLong": "Each URL must be at most 512 characters",
         "confirmWallet": "Confirm in wallet…"
-      }
+      },
+      "labelShortDescription": "Short description",
+      "phShortDescription": "Object kind, technique, creation year — stored on-chain, immutable",
+      "labelFeatures": "Distinguishing features",
+      "phFeatures": "Defects, craquelure, repairs — what a copy would not reproduce",
+      "sealNone": "No seal",
+      "sealNoneSmall": "identification anchors only",
+      "validateShortDesc": "Short description is required — it goes on-chain as part of the card.",
+      "validateTitleLen": "Title must be at most 128 characters for the on-chain card.",
+      "validateNameLen": "Author name must be at most 128 characters for the on-chain card.",
+      "validateV2Photo": "A primary photo is required for physical objects (identification anchor).",
+      "validateV2Dims": "Dimensions are required for physical objects (identification anchor).",
+      "validateV2Materials": "Materials are required for physical objects (identification anchor).",
+      "validateV2Features": "Distinguishing features are required for physical objects (identification anchor)."
     },
     "errors": {
       "connectInProgress": "Connection already in progress. Approve or reject the request in your wallet extension, then try again.",
