@@ -4159,6 +4159,17 @@ async function executeMint() {
     }
 
     let tx;
+    if (
+      typeof odpContractGeneration === "number" &&
+      typeof odpSupportsV2 === "function" &&
+      odpSupportsV2(odpContractGeneration)
+    ) {
+      // v2 (spec 0.6) registries take the unified PassportMintInputs tuple with the
+      // on-chain card and anchors[] — this form still collects the v0.5 field set.
+      throw new Error(
+        "This registry runs the ODP v2 (0.6) line. The web mint form for v2 (on-chain card + identification anchors) is not implemented yet — use chain/tools/mint.py to mint against this registry."
+      );
+    }
     if (typeof odpContractGeneration === "number" && odpContractGeneration >= 5) {
       const v05Core = {
         year,
