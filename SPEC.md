@@ -1514,6 +1514,25 @@ If the anchor's `data.model` is `NTAG424DNA_TAGTAMPER`:
 | `NO_IMAGE_REGISTERED` | No image hash on record                             |
 
 
+### Assurance tiers (normative)
+
+A verifier MAY summarize the strength of the evidence bound to a passport as a single **assurance tier**. Tiers are a display-layer summary of §11 checks — they exist so a non-expert can see the degree of binding at a glance.
+
+**Computation rule (normative):** a tier is **derived at view time** from current on-chain state (`anchorTypesMask`, proof records, counterfeit-concern flags, revocation, and the §11 hash checks). It MUST NOT be stored on-chain, encoded into a Passport ID or Profile ID, or printed on objects, certificates, or labels as a static claim — a printed "tier" is exactly the kind of stale assurance this protocol exists to prevent. The only value printed on an object is the Passport ID (§2, §5).
+
+| Tier | Criteria (all lower tiers included) |
+| --- | --- |
+| — (no tier) | Passport `INVALID`, `TAMPERED`, or revoked. No tier is shown; the failure state dominates. |
+| **Base** | Valid v0.6 passport: hard identification minimum present in `anchorTypesMask`, and — when the bundle is available — `dataHash`, `anchorsHash`, and the byte-for-byte card check all pass. |
+| **Sealed** | Base + a seal anchor (`nfc` = bit 256 or `numbered_seal` = bit 512) present and integrity-bound. |
+| **Attested** | Base + at least one institutional proof record (§4) from a P/M profile on the paired proof registry. A seal is not required for this tier. |
+
+**Downgrade rule (normative):** an active institutional counterfeit concern (§4) does not remove a tier but MUST be displayed at least as prominently as the tier itself. A revoked passport has no tier regardless of anchors or proofs.
+
+**Verified vs declared (normative):** when the verifier could not obtain the passport bundle (`UNVERIFIABLE` / no public URL), the tier reflects **on-chain declarations only** and MUST be visually marked as such (e.g. "declared"). When the bundle checks passed, the tier MAY be marked as verified. A web verifier MUST NOT imply that a **Sealed** tier means a live chip check happened — the EV2 challenge-response (§6, Level 2A) runs only in an NFC-capable verifier, and its result is reported separately (`SEAL_NFC_*`).
+
+**Honesty rule (normative):** the tier label MUST be presented as a measure of *binding evidence*, never as an authenticity verdict. A Base-tier passport from an honest issuer is not "worse" than a Sealed-tier passport from a fraudulent one; the human checks of §11 (issuer identity, distinguishing features) remain decisive at every tier.
+
 ---
 
 ## 12. QR Code and protocol URI schemes

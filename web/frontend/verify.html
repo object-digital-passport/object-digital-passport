@@ -2264,6 +2264,23 @@ function attachInstitutionProofVerifyHandlers() {
   });
 }
 
+/**
+ * SPEC §11 "Assurance tiers": derived at view time from current on-chain
+ * state; never stored, never encoded into IDs, never printed. Returns null
+ * when no tier may be shown (invalid / tampered / revoked / pre-0.6 record).
+ */
+function odpComputeAssuranceTier(rec, proofs, dataStatus, renderOpts) {
+  if (!rec || rec.revoked) return null;
+  if (typeof rec.anchorsHash === "undefined") return null;
+  if (dataStatus === "tampered") return null;
+  if (renderOpts && renderOpts.v06 && (!renderOpts.v06.cardOk || !renderOpts.v06.anchorsOk)) return null;
+  const mask = Number(rec.anchorTypesMask || 0);
+  const hasSeal = (mask & 256) !== 0 || (mask & 512) !== 0; // nfc | numbered_seal
+  const proofCount = Array.isArray(proofs) ? proofs.length : 0;
+  const tier = proofCount > 0 ? "attested" : hasSeal ? "sealed" : "base";
+  return { tier, verified: dataStatus === "authentic", hasSeal, proofCount };
+}
+
 function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnAddress, renderOpts) {
   renderOpts = renderOpts && typeof renderOpts === "object" ? renderOpts : null;
   const net_     = NET;
@@ -2394,6 +2411,20 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             ? `<div class="err-box" style="margin:0 0 14px;font-size:13px;line-height:1.55"><strong>Institutional authenticity concern</strong> — profile <span class="mono">${esc(String(renderOpts.counterfeitProver || ""))}</span> (P or M) raised a counterfeit-related flag. This is an institutional opinion, not a legal ruling.</div>`
             : ""
         }
+        ${(() => {
+          const at = odpComputeAssuranceTier(rec, proofs, dataStatus, renderOpts);
+          if (!at) return "";
+          const shields = at.tier === "attested" ? "🛡🛡🛡" : at.tier === "sealed" ? "🛡🛡" : "🛡";
+          const comps = t("verify.tier.components")
+            .replace("{seal}", t(at.hasSeal ? "verify.tier.yes" : "verify.tier.no"))
+            .replace("{proofs}", String(at.proofCount));
+          return `<div class="info neutral" style="font-size:12px;margin:0 0 14px;line-height:1.55;border-left:3px solid var(--accent);padding-left:10px">
+            <strong>${esc(t("verify.tier.label"))}: ${shields} ${esc(t("verify.tier." + at.tier))}</strong>
+            <span class="vbadge ${at.verified ? "ok" : "warn"}" style="margin-left:6px">${esc(t(at.verified ? "verify.tier.verified" : "verify.tier.declared"))}</span>
+            <div style="margin-top:4px">${esc(comps)}</div>
+            <div style="margin-top:4px;color:var(--ink3)">${esc(t("verify.tier.note"))}</div>
+          </div>`;
+        })()}
 
         <div class="obj-title">${esc(title)}</div>
         <div class="obj-creator">${esc(cname)}</div>

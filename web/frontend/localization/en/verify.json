@@ -413,6 +413,18 @@
       "localFromJson": "Local time (from passport.json)",
       "localFromJsonHint": "Wall-clock time and IANA zone as recorded when the passport file was built — the same instant as above.",
       "creatorRegisteredUtc": "Profile registered (UTC)"
+    },
+    "tier": {
+      "label": "Assurance tier",
+      "base": "Base",
+      "sealed": "Sealed",
+      "attested": "Attested",
+      "verified": "verified now",
+      "declared": "declared on-chain — bundle not verified",
+      "components": "Seal anchor: {seal} · Institutional proofs: {proofs}",
+      "yes": "yes",
+      "no": "no",
+      "note": "The tier measures the strength of binding evidence, not authenticity. The decision stays with you: check the issuer's published profile ID and the object's distinguishing features."
     }
   }
 }
