@@ -567,7 +567,7 @@ Verification (primary profile: odp-ntag424-ev2-symmetric-cr-v1):
      No match → wrong chip, wrong key, or wrong provisioning
 ```
 
-**Honest trust note for this spec version:** NTAG 424 DNA does **not** expose a passport-specific ECC private key that signs an arbitrary verifier challenge verifiable with a public key on-chain. Its native challenge-response is **symmetric EV2 mutual authentication**. In ODP v2, publishing the 16-byte EV2 application key inside the integrity-anchored `nfc` anchor is the primary public verification model. `Read_Sig` remains adjacent manufacturer evidence only.
+**Honest trust note for this spec version:** NTAG 424 DNA does **not** expose a passport-specific ECC private key that signs an arbitrary verifier challenge verifiable with a public key on-chain. Its native challenge-response is **symmetric EV2 mutual authentication**. In the ODP v0.6 line, publishing the 16-byte EV2 application key inside the integrity-anchored `nfc` anchor is the primary public verification model. `Read_Sig` remains adjacent manufacturer evidence only.
 
 **TagTamper behavior:**
 
@@ -952,6 +952,8 @@ The v0.6 line has **no** overwritable state at all:
   ownership (`PassportTransferred`), status / location / rights / condition / damage / restoration / custom (`PassportEventRecorded`), attestations (`ProofSubmitted` on the proof satellite), counterfeit flags, revocation. **The current value of any mutable aspect is the latest event of that kind**; history is never lost or overwritten.
 - **Consistency rule after mint:**
   if the card fields in `passport.json` differ from the on-chain card in any byte, verifiers MUST report the passport as **invalid** (TAMPERED) — not as a warning. `status` in the JSON is the state *at registration*; the current lifecycle status is the on-chain value driven by STATUS events.
+- **Privacy of event payloads (normative):**
+  event notes and attachments are public forever and cannot be deleted. LOCATION events MUST carry only coarse, deliberately chosen values (a city, an institution name, "in storage") — never a street address, storage-site address, coordinates, or personal data. Reference UIs MUST NOT prompt for precise addresses.
 
 ### Content class taxonomy (normative for v0.6)
 
