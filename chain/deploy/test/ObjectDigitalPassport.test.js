@@ -1,5 +1,5 @@
 /**
- * @file ObjectDigitalPassport v2 — behaviour checks (card, anchors, append-only events,
+ * @file ObjectDigitalPassport 0.6 — behaviour checks (card, anchors, append-only events,
  * folder URL resolution, tier mint caps, satellites).
  * Run from `chain/deploy/`: npm ci && npm test
  */
@@ -28,11 +28,11 @@ const EVENT_STATUS = 1;
 const EVENT_LOCATION = 2;
 const EVENT_DAMAGE = 5;
 
-/** v2 unified mint tuple (matches PassportMintInputs in ODPPassportTypes.sol). */
+/** Spec 0.6 unified mint tuple (matches PassportMintInputs in ODPPassportTypes.sol). */
 const MINT_INPUTS_TYPE =
   "tuple(tuple(uint32 year,uint8 month,string title,string authorName,string shortDescription,string domain,uint8 contentClass,uint8 lifecycleStatus,uint8 aiStatus,uint8 verificationMethod,uint8 editionModel) core,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 fileHash,bytes32 anchorsHash,uint32 anchorTypesMask)";
 
-/** v2: last mint arg — empty string = mint as caller’s registered profile */
+/** last mint arg — empty string = mint as caller’s registered profile */
 const MINT_SELF = "";
 
 function zeroHash() {
@@ -74,7 +74,7 @@ async function syncMintYm() {
   MINT_M = d.getUTCMonth() + 1;
 }
 
-function v2Core(year, month, overrides = {}) {
+function mintCore(year, month, overrides = {}) {
   return {
     year,
     month,
@@ -94,7 +94,7 @@ function v2Core(year, month, overrides = {}) {
 /** Valid digital mint tuple; `n` seeds the hashes. */
 function digitalInputs(n, overrides = {}) {
   return {
-    core: v2Core(MINT_Y, MINT_M, overrides.core || {}),
+    core: mintCore(MINT_Y, MINT_M, overrides.core || {}),
     dataHash: nonZeroDataHash(n),
     dataUrl: "",
     imageHash: zeroHash(),
@@ -109,7 +109,7 @@ function digitalInputs(n, overrides = {}) {
 /** Valid physical mint tuple; `n` seeds the hashes. */
 function physicalInputs(n, overrides = {}) {
   return {
-    core: v2Core(MINT_Y, MINT_M, overrides.core || {}),
+    core: mintCore(MINT_Y, MINT_M, overrides.core || {}),
     dataHash: nonZeroDataHash(n),
     dataUrl: "",
     imageHash: nonZeroImageHash(n),
@@ -234,11 +234,11 @@ describe("ObjectDigitalPassport", function () {
     const c = await deployFixture();
     const packed = await c.CONTRACT_VERSION();
     const p = BigInt(packed.toString());
-    expect(Number(packed)).to.equal(6); // v2 reference line (spec 0.6): SPEC_MAJOR=0, SPEC_MINOR=6
+    expect(Number(packed)).to.equal(6); // reference line spec 0.6: SPEC_MAJOR=0, SPEC_MINOR=6
     expect(Number(p / 16n) * 16 + Number(p % 16n)).to.equal(Number(packed));
   });
 
-  describe("v2 on-chain card", function () {
+  describe("0.6 on-chain card", function () {
     it("stores title/authorName/shortDescription/domain and anchors summary", async function () {
       const c = await deployFixture();
       const [w] = await ethers.getSigners();
@@ -311,7 +311,7 @@ describe("ObjectDigitalPassport", function () {
     });
   });
 
-  describe("v2 anchors hard minimum", function () {
+  describe("0.6 anchors hard minimum", function () {
     it("reverts EC(103) when anchorsHash is zero", async function () {
       const c = await deployFixture();
       const [w] = await ethers.getSigners();
@@ -387,7 +387,7 @@ describe("ObjectDigitalPassport", function () {
     });
   });
 
-  describe("v2 append-only passport events", function () {
+  describe("0.6 append-only passport events", function () {
     it("STATUS event updates lifecycleStatus and the summary counters", async function () {
       const c = await deployFixture();
       const [w] = await ethers.getSigners();

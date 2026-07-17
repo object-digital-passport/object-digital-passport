@@ -39,7 +39,7 @@
     return generation >= 5;
   }
 
-  /** Spec 0.6 storage model (nicknamed "v2"): on-chain card, anchors, append-only events. */
+  /** Spec 0.6 storage model: on-chain card, anchors, append-only events. */
   function odpSupportsV06(generation) {
     return generation >= 6;
   }
@@ -2741,7 +2741,7 @@
       contract.getPassportMedia(passportId),
     ];
     if (typeof contract.getPassportEvents === "function") {
-      // v2 (gen >= 6): physical/state views are replaced by the append-only event summary
+      // spec 0.6 (gen >= 6): physical/state views are replaced by the append-only event summary
       calls.push(contract.getPassportEvents(passportId));
     } else {
       calls.push(contract.getPassportPhysical(passportId), contract.getPassportState(passportId));

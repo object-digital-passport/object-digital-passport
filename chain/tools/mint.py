@@ -2,7 +2,7 @@
 """
 Object Digital Passport — Mint CLI
 Author: Andrei Chernikov
-Specification v2 draft (CLI targets the v2 / spec 0.6 contract line)
+Specification 0.6 draft (CLI targets the spec 0.6 contract line)
 
 Usage:
     python mint.py                  # interactive mint → saves passports/<Passport ID>.odpass (SPEC §15)
@@ -149,7 +149,7 @@ CONTRACT_ABI = [
             ]
         }],
     },
-    # Passport — unified v2 mint tuple (PassportMintInputs)
+    # Passport — unified 0.6 mint tuple (PassportMintInputs)
     {
         "name": "mintPhysical",
         "type": "function",
@@ -720,7 +720,7 @@ def cmd_mint(args):
         print(f"  File SHA-256: {file_hash_bytes.hex()}")
         file_size = Path(file_path).stat().st_size
 
-    # Identification anchors (docs/REQUIREMENTS_FIELDS_V2.md §5.2).
+    # Identification anchors (docs/REQUIREMENTS_FIELDS_V0.6.md §5.2).
     # Hard minimum enforced by the contract: physical = photo + dimensions +
     # materials + distinguishing features; digital = exact file hash.
     anchors = []

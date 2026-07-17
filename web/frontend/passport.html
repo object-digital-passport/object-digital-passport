@@ -142,7 +142,7 @@ const ODP_ANCHOR_BITS = {
   dna: 2048,
 };
 
-/** Spec 0.6 (the "v2" storage model) registry: on-chain card + anchors[] instead of seal/currentState fields. */
+/** Spec 0.6 registry: on-chain card + anchors[] instead of seal/currentState fields. */
 function odpIsV06MintMode() {
   return (
     typeof odpSupportsV06 === "function" &&
@@ -3970,7 +3970,7 @@ function buildPassport(humanId, mintAt) {
   }
 
   if (!isV06) {
-    // v0.5 mutable-state snapshot; in v2 current state lives only in on-chain events
+    // v0.5 mutable-state snapshot; in 0.6 current state lives only in on-chain events
     const currentState = {};
     const currentLocation = v("f_location");
     const rightsNote = v("f_rights_note");
@@ -3996,7 +3996,7 @@ function buildPassport(humanId, mintAt) {
     if (categoryTag) physical.category = categoryTag;
     if (med) physical.medium = med;
     if (!isV06) {
-      // v0.5 layout; in v2 these facts are identification anchors (built below)
+      // v0.5 layout; in 0.6 these facts are identification anchors (built below)
       if (mat) physical.materials = mat.split(",").map((m) => ({ name: m.trim() })).filter((m) => m.name);
       const seal = {};
       if (sealType===1||sealType===3) {

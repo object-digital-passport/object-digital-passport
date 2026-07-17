@@ -13,7 +13,7 @@ import "./ODPPassportLib.sol";
 /**
  * Object Digital Passport — Smart Contract
  * @author Andrei Chernikov
- * Specification v2 draft (spec line 0.6, reference branch)
+ * Specification 0.6 draft (reference branch)
  * License: MIT
  *
  * Deployed on: Polygon PoS (chain ID 137)
@@ -24,7 +24,7 @@ import "./ODPPassportLib.sol";
  *   2. Passport Registry — physical, digital, and mixed object records
  * (Proofs, counterfeit flags, relations, extension mints live in satellites.)
  *
- * v2 STORAGE MODEL (docs/REQUIREMENTS_FIELDS_V2.md):
+ * STORAGE MODEL 0.6 (docs/REQUIREMENTS_FIELDS_V0.6.md):
  *   Layer A — immutable on-chain core: a human-readable card (`title`, `authorName`,
  *   `shortDescription`, `domain`) readable without the `.odpass` bundle, classification,
  *   and content anchors (`dataHash`, `anchorsHash` + `anchorTypesMask`, `imageHash`, `fileHash`).
@@ -96,7 +96,7 @@ contract ObjectDigitalPassport {
     uint8 internal constant SPEC_MINOR = 6;
 
     /// Packed byte in `Passport.contractVersion`: `SPEC_MAJOR * 16 + SPEC_MINOR` (each < 16).
-    /// The v2 reference line (spec 0.6) uses packed byte **6**.
+    /// The reference line (spec 0.6) uses packed byte **6**.
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows profile ID prefix (C/B/P/M).

@@ -1,6 +1,6 @@
 # Object Digital Passport
 
-### Specification v0.6 — DRAFT (the "v2" storage model)
+### Specification v0.6 — DRAFT
 
 *Author: Andrei Chernikov*
 
@@ -53,7 +53,7 @@ In plain terms:
 - A **deployment** means one specific contract address (**one registry instance**).
 - Your `creatorId` and passport records belong to **that** deployment only.
 - Launching another deployment — even for a newer 0.X line — does **not** move existing records; the same wallet may receive a **different** `creatorId` in the new registry.
-- **This specification describes the reference v0.6 *branch*** in this repository ("v2" storage model — see `docs/REQUIREMENTS_FIELDS_V2.md`): on-chain packed `**CONTRACT_VERSION` = 6** (EIP-170 split: linked `**ODPPassportLib`**, optional satellites — see §14). The v2 model stores an **immutable on-chain card** (`title`, `authorName`, `shortDescription`, `domain`), anchors the identification block via `**anchorsHash`** + `**anchorTypesMask`**, and replaces all overwritable current-state fields with **append-only passport events**. Other addresses = separate registries; pair **chain + contract + ABI** + `**CONTRACT_VERSION`**.
+- **This specification describes the reference v0.6 *branch*** in this repository (storage-model redesign — see `docs/REQUIREMENTS_FIELDS_V0.6.md`): on-chain packed `**CONTRACT_VERSION` = 6** (EIP-170 split: linked `**ODPPassportLib`**, optional satellites — see §14). The 0.6 model stores an **immutable on-chain card** (`title`, `authorName`, `shortDescription`, `domain`), anchors the identification block via `**anchorsHash`** + `**anchorTypesMask`**, and replaces all overwritable current-state fields with **append-only passport events**. Other addresses = separate registries; pair **chain + contract + ABI** + `**CONTRACT_VERSION`**.
 
 If your goal is **one wallet + one long-lived `creatorId`** as canonical storage across protocol generations, wait for stable **v1**, which may define migration or dual-read explicitly.
 
@@ -526,7 +526,7 @@ what must be present, not how it must look.
 
 A physical seal binds the digital passport to the specific physical object.
 
-**v2 model:** seals are **identification anchors** — entries of type `**nfc`** or `**numbered_seal`** inside the `passport.json` `**anchors[]`** block (§9). Their bytes are integrity-anchored on-chain via `**dataHash`** and `**anchorsHash`** and flagged in `**anchorTypesMask`**; there are **no** dedicated on-chain seal fields (`sealType`, `sealHash`, `nfcPublicKey`, `nfcModel` were removed from the registry in the v0.6 line).
+**v0.6 model:** seals are **identification anchors** — entries of type `**nfc`** or `**numbered_seal`** inside the `passport.json` `**anchors[]`** block (§9). Their bytes are integrity-anchored on-chain via `**dataHash`** and `**anchorsHash`** and flagged in `**anchorTypesMask`**; there are **no** dedicated on-chain seal fields (`sealType`, `sealHash`, `nfcPublicKey`, `nfcModel` were removed from the registry in the v0.6 line).
 
 A seal is **optional**: the mandatory identification minimum for a physical object is the anchor set `photo` + `dimensions` + `materials` + `distinguishing_features` (§9). A seal anchor adds a stronger, machine-verifiable binding on top of that minimum and is recommended for high-value objects.
 
@@ -626,7 +626,7 @@ This method provides physical reference, not cryptographic proof.
 | `notes`  | no       | Additional description                                |
 
 
-### Seal rule (v2)
+### Seal rule (v0.6)
 
 
 | Condition                                                 | Valid?                     |
@@ -635,7 +635,7 @@ This method provides physical reference, not cryptographic proof.
 | Numbered seal anchor only                                 | ✅                          |
 | Both seal anchors                                         | ✅                          |
 | Standard NFC tag (NTAG213 etc.)                           | ❌ Not a conforming `nfc` anchor |
-| No seal, physical object with the anchor minimum (photo + dimensions + materials + distinguishing features) | ✅ Seal is optional in v2 |
+| No seal, physical object with the anchor minimum (photo + dimensions + materials + distinguishing features) | ✅ Seal is optional in v0.6 |
 | Physical object without the anchor minimum                | ❌ Contract rejects (`anchorTypesMask` check) |
 | No seal (digital object)                                  | ✅ File hash is the binding |
 
@@ -679,7 +679,7 @@ Multi-network support is reserved for a future version.
 
 ## 8. On-Chain Record
 
-This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 6** at mint in this line). ABI tuple order may differ from this table; field **names** are normative. See `docs/REQUIREMENTS_FIELDS_V2.md` for the design rationale (storage layers A/B/C).
+This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 6** at mint in this line). ABI tuple order may differ from this table; field **names** are normative. See `docs/REQUIREMENTS_FIELDS_V0.6.md` for the design rationale (storage layers A/B/C).
 
 
 | Field                  | Type      | Required | Description                                                                                                                                                                                                         |
@@ -714,7 +714,7 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 | `lastEventAt`          | `uint256` | yes      | Block time of the most recent passport event; **0** if none                                                                                                                                                          |
 
 
-**Removed relative to v0.5** (see the migration table in `docs/REQUIREMENTS_FIELDS_V2.md`): `sealType` / `sealHash` / `nfcPublicKey` / `nfcModel` (→ `nfc` / `numbered_seal` anchors), `imageHash2/3` + `imageUrl2/3` (→ `photo` anchors), `currentLocation` / `rightsNote` / `conditionNote` / `damageHistoryHash` / `damageHistoryUrl` (→ append-only events), `auxCommitment*` (→ attestation `documentHash` or a document anchor), `ndppCommitment*` (offline carriers verify against `dataHash` / `anchorsHash` directly).
+**Removed relative to v0.5** (see the migration table in `docs/REQUIREMENTS_FIELDS_V0.6.md`): `sealType` / `sealHash` / `nfcPublicKey` / `nfcModel` (→ `nfc` / `numbered_seal` anchors), `imageHash2/3` + `imageUrl2/3` (→ `photo` anchors), `currentLocation` / `rightsNote` / `conditionNote` / `damageHistoryHash` / `damageHistoryUrl` (→ append-only events), `auxCommitment*` (→ attestation `documentHash` or a document anchor), `ndppCommitment*` (offline carriers verify against `dataHash` / `anchorsHash` directly).
 
 **Derived:** chain time is interpreted in **UTC** for off-chain display; no separate `timestampTimeZone` field.
 
@@ -836,7 +836,7 @@ The protocol does **not** store the full passport JSON on-chain — only `dataHa
 
 ### Canonical v0.6 passport schema (normative)
 
-The canonical `passport.json` for the current line is the **v0.6 ("v2") shape** used by the reference contract and tooling. The schema is built on the **Object ID identification principle** (object type, materials & technique, measurements, inscriptions & markings, distinguishing features, title, subject, date/period, maker + photographs + short description): the identification categories are first-class fields and anchors, not an external mapping. The required classification axis is:
+The canonical `passport.json` for the current line is the **v0.6 shape** used by the reference contract and tooling. The schema is built on the **Object ID identification principle** (object type, materials & technique, measurements, inscriptions & markings, distinguishing features, title, subject, date/period, maker + photographs + short description): the identification categories are first-class fields and anchors, not an external mapping. The required classification axis is:
 
 - `domain`
 - `objectType`
@@ -1564,7 +1564,7 @@ Optional — **counterfeit / authenticity concern:** `getCounterfeitConcern(pass
 
 Optional — **proof satellite (`ODPPassportProofRegistry`):**
 
-- `submitProof(passportId, documentHash, documentUrl, year, month) -> proofId` — v2 attestation: "this passport/object was examined" as a whole; `documentHash` optionally anchors a signed expertise document
+- `submitProof(passportId, documentHash, documentUrl, year, month) -> proofId` — v0.6 attestation: "this passport/object was examined" as a whole; `documentHash` optionally anchors a signed expertise document
 - `getProofsForPassport(passportId) -> string[]` (proof IDs; verifiers SHOULD paginate **client-side** if the list may be large)
 - `getProof(proofId) -> ProofRecord`
 
@@ -1670,7 +1670,7 @@ computeImageHash(imageBytes) → bytes32
 
 ## 14. Versioning
 
-- This specification draft line is **v0.6** ("v2" storage model) in this repository branch; `passport.json` uses `version: "0.6"`.
+- This specification draft line is **v0.6** in this repository branch; `passport.json` uses `version: "0.6"`.
 - On-chain `**CONTRACT_VERSION`** is the packed byte (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**); the reference **v0.6 branch** mints byte **6**. The bytecode **omits** public `**SPEC_MAJOR()` / `SPEC_MINOR()`** and `**MONTHLY_LIMIT_*()`** getters (EIP-170): derive **major** as `CONTRACT_VERSION >> 4`, **minor** as `CONTRACT_VERSION & 0x0f`, and use normative **C = 1000** / **B = 100_000** from `ObjectDigitalPassport.sol` when limits are not exposed.
 - Breaking changes increment the minor **document** `version` inside `passport.json`.
 - Stable release will be `1.0`

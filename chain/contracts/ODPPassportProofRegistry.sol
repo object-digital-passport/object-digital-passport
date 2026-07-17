@@ -8,7 +8,7 @@ import "./ODPPassportLib.sol";
  * Satellite: passport-bound institutional attestations (P / M profiles).
  * Deploy after `ObjectDigitalPassport`; constructor takes the registry address.
  *
- * v2 attestation model (docs/REQUIREMENTS_FIELDS_V2.md §4.3): an attestation states
+ * Attestation model 0.6 (docs/REQUIREMENTS_FIELDS_V0.6.md §4.3): an attestation states
  * "this passport/object has been examined" as a whole — no per-anchor granularity.
  * `documentHash` optionally anchors a signed expertise document (PDF, report);
  * details of what exactly was examined belong in that document.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @dev v2 immutable on-chain card + classification captured at mint.
+/// @dev Spec 0.6 immutable on-chain card + classification captured at mint.
 struct PassportCoreMintInputs {
     uint32 year;
     uint8 month;
@@ -16,7 +16,7 @@ struct PassportCoreMintInputs {
     uint8 editionModel;
 }
 
-/// @dev v2 unified mint tuple for physical / digital / mixed entrypoints.
+/// @dev Spec 0.6 unified mint tuple for physical / digital / mixed entrypoints.
 ///      `fileHash` must be bytes32(0) for physical and non-zero for digital/mixed.
 struct PassportMintInputs {
     PassportCoreMintInputs core;
