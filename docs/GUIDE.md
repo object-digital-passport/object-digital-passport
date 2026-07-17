@@ -313,7 +313,7 @@ Pointers:
 
 - [docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)
 - [docs/V0.6.md](V0.6.md) · [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md)
-- Historical: [docs/V0.5.md](V0.5.md) · [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [web/frontend/localization/ru/RELEASE_v0.4.md](../web/frontend/localization/ru/RELEASE_v0.4.md) / [web/frontend/localization/ru/RELEASE_v0.4.1.md](../web/frontend/localization/ru/RELEASE_v0.4.1.md) (deployed Polygon addresses match [chain/deploy/deployments/polygon.json](../chain/deploy/deployments/polygon.json))
+- Historical: [docs/V0.5.md](V0.5.md) · [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [web/frontend/localization/ru/RELEASE_v0.4.md](../web/frontend/localization/ru/RELEASE_v0.4.md) / [web/frontend/localization/ru/RELEASE_v0.4.1.md](../web/frontend/localization/ru/RELEASE_v0.4.1.md) (deployed Polygon addresses are listed in [Current Release](#current-release))
 
 ## Contributing
 
