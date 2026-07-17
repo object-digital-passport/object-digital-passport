@@ -99,7 +99,7 @@ The following describes the **reference stack in this repository (v0.6)**. At mi
 > - `**ODPExtensionMintRouter`** — `**setMintExtension`** and `**mint*ViaExtension`**
 > - optional `**ODPWalletDocumentAnchor`** and `**ODPCounterfeitConcern`**
 >
-> Integrators MUST NOT assume those methods exist on the deployable `**ObjectDigitalPassport`** ABI itself. They SHOULD route them to the configured satellite for the same registry address (`**NET.relations`**, `**NET.proofRegistry`**, etc.). The deployable split line also omits convenience `**getRemainingMints()`** and global `**freeze()`** on the main registry.
+> Integrators MUST NOT assume those methods exist on the deployable `**ObjectDigitalPassport`** ABI itself. They SHOULD route them to the configured satellite for the same registry address (`**NET.relations`**, `**NET.proofRegistry`**, etc.). The deployable split line also omits the convenience `**getRemainingMints()`** getter on the main registry.
 
 **Type-definition governance with on-chain timelock** is not stored in the reference bytecode; operate governance (multisig / DAO) off-chain and document hashes in releases if needed.
 
@@ -752,11 +752,12 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 
 **Counterfeit concern:** on the reference stack, `**ODPCounterfeitConcern`** (satellite) — see §4 and §13.
 
-### Reference contract — deploy, governance (v0.6)
+### Reference contract — deploy, freeze, governance (v0.6)
 
+- `**deployer`**: `immutable`, set in the constructor to the deploying address; the **only** wallet allowed to `freeze()`.
 - `**governance`**: `address`; **constructor sets `governance = msg.sender`**. Use `**transferGovernance(newAddr)**` (caller must be current `governance`) to point at a multisig/DAO.
 - Governance wires satellites: `**setRelationsSatellite(addr)`**, `**setExtensionRouter(addr)`**.
-- There is **no** registry-wide `freeze()` and no separate `deployer` role in the v0.6 line (per `[docs/IDEAS_V1.md](docs/IDEAS_V1.md)`).
+- `**freeze()**`: **only `deployer`**; **irreversible**; sets `**frozen = true`** and blocks every state-changing user path on the main registry (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) with revert `**EC(58)`**; all **reads** stay available. This is a **v0.x safety hatch** and is **planned for removal in stable v1** (`[docs/IDEAS_V1.md](docs/IDEAS_V1.md)`). Freeze affects the main registry only; satellites keep their own state.
 
 ### Reverts
 
@@ -1656,6 +1657,7 @@ revokePassport(passportId, reasonHash)
 // raiseCounterfeitConcern(passportId, reasonHash)
 // clearCounterfeitConcern(passportId)
 transferGovernance(newGovernance)
+freeze()  // deployer only; irreversible; blocks writes. v0.x safety hatch — planned removal in stable v1
 
 getCreator(creatorId) → CreatorRecord
 getProofsForPassport(passportId) → ProofRecord[]

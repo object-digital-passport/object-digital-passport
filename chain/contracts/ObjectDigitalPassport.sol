@@ -222,6 +222,13 @@ contract ObjectDigitalPassport {
     /// Governance address (multisig / DAO): may revoke passports alongside creator.
     address public governance;
 
+    /// Deployer wallet, captured at construction. The only address allowed to `freeze()`.
+    address public immutable deployer;
+
+    /// v0.x safety hatch: once frozen the registry accepts no new writes (reads stay open).
+    /// Irreversible. PLANNED FOR REMOVAL IN STABLE v1 (see docs/IDEAS_V1.md).
+    bool public frozen;
+
     /// Optional satellite for P-affiliation, mint-agent delegation, and creator publishing delegation.
     address private relationsSatellite;
     /// Optional trusted router for extension mints; when calling through it, `_resolveMintPrincipal` uses `tx.origin`.
@@ -287,10 +294,31 @@ contract ObjectDigitalPassport {
         uint256         timestamp
     );
 
+    event RegistryFrozen(address indexed by, uint256 timestamp);
+
+    /// Reverts once the registry has been frozen. Applied to every state-changing user path.
+    modifier notFrozen() {
+        if (frozen) revert EC(58);
+        _;
+    }
+
     // ─── Constructor ──────────────────────────────────────────────────────────
 
     constructor() {
+        deployer = msg.sender;
         governance = msg.sender;
+    }
+
+    /**
+     * Irreversibly freeze the registry: no further mints, events, transfers,
+     * revocations, URL updates, or registrations. All reads remain available.
+     * Only the deploying wallet may call this. This is a v0.x safety hatch and
+     * is planned to be removed in stable v1 (docs/IDEAS_V1.md).
+     */
+    function freeze() external {
+        if (!(msg.sender == deployer)) revert EC(57);
+        frozen = true;
+        emit RegistryFrozen(msg.sender, block.timestamp);
     }
 
     /// Governance may be a multisig or DAO-controlled address off-chain.
@@ -324,6 +352,7 @@ contract ObjectDigitalPassport {
      */
     function registerCreator(bytes1 typePrefix)
         external
+        notFrozen
         returns (string memory creatorId)
     {
         if (!(_isValidType(typePrefix))) revert EC(54);
@@ -521,7 +550,7 @@ contract ObjectDigitalPassport {
         string  calldata newDataUrl,
         string  calldata newImageUrl,
         bytes32          confirmedDataHash
-    ) external {
+    ) external notFrozen {
         Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(11);
@@ -555,7 +584,7 @@ contract ObjectDigitalPassport {
         string  calldata note,
         bytes32          attachmentHash,
         string  calldata attachmentUrl
-    ) external {
+    ) external notFrozen {
         Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(11);
@@ -582,7 +611,7 @@ contract ObjectDigitalPassport {
     }
 
     /// Current owner (starts as creator) may transfer the passport record to a new wallet.
-    function transferPassport(string calldata passportId, address newOwner) external {
+    function transferPassport(string calldata passportId, address newOwner) external notFrozen {
         if (!(newOwner != address(0))) revert EC(22);
         Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
@@ -597,7 +626,7 @@ contract ObjectDigitalPassport {
      * reasonHash should be keccak256(utf8(reason)) for verifiers; full text may live off-chain.
      * Revocation is also the only remedy for a card typo — the card has no edit path.
      */
-    function revokePassport(string calldata passportId, bytes32 reasonHash) external {
+    function revokePassport(string calldata passportId, bytes32 reasonHash) external notFrozen {
         Passport storage p = _passports[passportId];
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(18);
@@ -730,6 +759,7 @@ contract ObjectDigitalPassport {
         internal
         returns (string memory creatorId, address principalWallet, address mintAgentAddr)
     {
+        if (frozen) revert EC(58); // covers all mint paths incl. extension router
         (creatorId, principalWallet, mintAgentAddr) = _resolveMintPrincipal(mintOnBehalfOfCreatorId);
         _checkAndIncrementMintLimit(creatorId, principalWallet);
     }

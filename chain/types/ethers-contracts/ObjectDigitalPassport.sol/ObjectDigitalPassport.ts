@@ -43,11 +43,14 @@ export declare namespace ObjectDigitalPassport {
     }
 
   export interface ObjectDigitalPassportInterface extends Interface {
-    getFunction(nameOrSignature: "CONTRACT_VERSION" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "mintDigital" | "mintMixed" | "mintPhysical" | "recordPassportEvent" | "registerCreator" | "revokePassport" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
+    getFunction(nameOrSignature: "CONTRACT_VERSION" | "deployer" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "mintDigital" | "mintMixed" | "mintPhysical" | "recordPassportEvent" | "registerCreator" | "revokePassport" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "CreatorRegistered" | "PassportEventRecorded" | "PassportMinted" | "PassportRevoked" | "PassportTransferred" | "PassportUrlsUpdated"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "CreatorRegistered" | "PassportEventRecorded" | "PassportMinted" | "PassportRevoked" | "PassportTransferred" | "PassportUrlsUpdated" | "RegistryFrozen"): EventFragment;
 
     encodeFunctionData(functionFragment: 'CONTRACT_VERSION', values?: undefined): string;
+encodeFunctionData(functionFragment: 'deployer', values?: undefined): string;
+encodeFunctionData(functionFragment: 'freeze', values?: undefined): string;
+encodeFunctionData(functionFragment: 'frozen', values?: undefined): string;
 encodeFunctionData(functionFragment: 'getCreator', values: [string]): string;
 encodeFunctionData(functionFragment: 'getCreatorByWallet', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'getPassportClassification', values: [string]): string;
@@ -69,6 +72,9 @@ encodeFunctionData(functionFragment: 'transferPassport', values: [string, Addres
 encodeFunctionData(functionFragment: 'updatePassportUrls', values: [string, string, string, BytesLike]): string;
 
     decodeFunctionResult(functionFragment: 'CONTRACT_VERSION', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'deployer', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'freeze', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'frozen', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getCreatorByWallet', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getPassportClassification', data: BytesLike): Result;
@@ -163,6 +169,18 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
 
   
 
+    export namespace RegistryFrozenEvent {
+      export type InputTuple = [by: AddressLike, timestamp: BigNumberish];
+      export type OutputTuple = [by: string, timestamp: bigint];
+      export interface OutputObject {by: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
   export interface ObjectDigitalPassport extends BaseContract {
     
     connect(runner?: ContractRunner | null): ObjectDigitalPassport;
@@ -200,6 +218,30 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     CONTRACT_VERSION: TypedContractMethod<
       [],
       [bigint],
+      'view'
+    >
+    
+
+    
+    deployer: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
+    freeze: TypedContractMethod<
+      [],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    frozen: TypedContractMethod<
+      [],
+      [boolean],
       'view'
     >
     
@@ -364,6 +406,21 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
       [bigint],
       'view'
     >;
+getFunction(nameOrSignature: 'deployer'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'freeze'): TypedContractMethod<
+      [],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'frozen'): TypedContractMethod<
+      [],
+      [boolean],
+      'view'
+    >;
 getFunction(nameOrSignature: 'getCreator'): TypedContractMethod<
       [creatorId: string, ],
       [ObjectDigitalPassport.CreatorRecordStructOutput],
@@ -466,6 +523,7 @@ getEvent(key: 'PassportMinted'): TypedContractEvent<PassportMintedEvent.InputTup
 getEvent(key: 'PassportRevoked'): TypedContractEvent<PassportRevokedEvent.InputTuple, PassportRevokedEvent.OutputTuple, PassportRevokedEvent.OutputObject>;
 getEvent(key: 'PassportTransferred'): TypedContractEvent<PassportTransferredEvent.InputTuple, PassportTransferredEvent.OutputTuple, PassportTransferredEvent.OutputObject>;
 getEvent(key: 'PassportUrlsUpdated'): TypedContractEvent<PassportUrlsUpdatedEvent.InputTuple, PassportUrlsUpdatedEvent.OutputTuple, PassportUrlsUpdatedEvent.OutputObject>;
+getEvent(key: 'RegistryFrozen'): TypedContractEvent<RegistryFrozenEvent.InputTuple, RegistryFrozenEvent.OutputTuple, RegistryFrozenEvent.OutputObject>;
 
     filters: {
       
@@ -491,6 +549,10 @@ getEvent(key: 'PassportUrlsUpdated'): TypedContractEvent<PassportUrlsUpdatedEven
 
       'PassportUrlsUpdated(string,string,string)': TypedContractEvent<PassportUrlsUpdatedEvent.InputTuple, PassportUrlsUpdatedEvent.OutputTuple, PassportUrlsUpdatedEvent.OutputObject>;
       PassportUrlsUpdated: TypedContractEvent<PassportUrlsUpdatedEvent.InputTuple, PassportUrlsUpdatedEvent.OutputTuple, PassportUrlsUpdatedEvent.OutputObject>;
+    
+
+      'RegistryFrozen(address,uint256)': TypedContractEvent<RegistryFrozenEvent.InputTuple, RegistryFrozenEvent.OutputTuple, RegistryFrozenEvent.OutputObject>;
+      RegistryFrozen: TypedContractEvent<RegistryFrozenEvent.InputTuple, RegistryFrozenEvent.OutputTuple, RegistryFrozenEvent.OutputObject>;
     
     };
   }

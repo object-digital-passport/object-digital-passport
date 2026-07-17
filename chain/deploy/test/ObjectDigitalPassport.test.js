@@ -652,6 +652,45 @@ describe("ObjectDigitalPassport", function () {
     });
   });
 
+  describe("freeze (v0.x safety hatch)", function () {
+    it("only the deployer may freeze; non-deployer reverts EC(57)", async function () {
+      const c = await deployFixture();
+      const [, wOther] = await ethers.getSigners();
+      expect(await c.deployer()).to.equal((await ethers.getSigners())[0].address);
+      expect(await c.frozen()).to.equal(false);
+      await expect(c.connect(wOther).freeze()).to.be.revertedWithCustomError(c, "EC").withArgs(57n);
+      await expect(c.freeze()).to.emit(c, "RegistryFrozen");
+      expect(await c.frozen()).to.equal(true);
+    });
+
+    it("after freeze, writes revert EC(58) but reads still work", async function () {
+      const c = await deployFixture();
+      const [wA] = await ethers.getSigners();
+      await c.connect(wA).registerCreator(TYPE_C);
+      const passportId = await mintAndId(c, wA, "mintDigital", digitalInputs(950));
+      await c.freeze();
+      // reads unaffected
+      const p = await readPassport(c, passportId);
+      expect(p.title).to.equal("Test passport");
+      // every state-changing user path is blocked
+      await expect(c.connect(wA).mintDigital(digitalInputs(951), false, MINT_SELF))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(58n);
+      await expect(c.connect(wA).recordPassportEvent(passportId, EVENT_LOCATION, 0, "x", zeroHash(), ""))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(58n);
+      await expect(c.connect(wA).transferPassport(passportId, (await ethers.getSigners())[1].address))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(58n);
+      await expect(c.connect(wA).revokePassport(passportId, ethers.keccak256(ethers.toUtf8Bytes("r"))))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(58n);
+      await expect(c.connect((await ethers.getSigners())[2]).registerCreator(TYPE_B))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(58n);
+    });
+  });
+
   describe("extension mints (IODPExtension)", function () {
     const MINT_CLASS_V = "0x56";
     const MINT_CLASS_W = "0x57";
