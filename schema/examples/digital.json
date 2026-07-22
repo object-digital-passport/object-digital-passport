@@ -1,0 +1,47 @@
+{
+  "version": "0.5",
+  "passportId": "ODP-2026-03-000193847",
+  "title": "Untitled #7",
+  "description": "Single-edition digital work with optional C2PA manifest.",
+  "creationDate": "2026-02-18",
+  "domain": "digital_art",
+  "objectType": "digital",
+  "status": "produced_object",
+  "contentClass": "static",
+  "aiStatus": "generated",
+  "verificationMethod": "c2pa",
+  "edition": { "model": "unique" },
+  "authorship": {
+    "author": {
+      "name": "Example holder",
+      "wallet": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "creatorId": "C-482-930-174-005"
+    }
+  },
+  "year": 2026,
+  "month": 3,
+  "registeredAt": 1748000000,
+  "registration": {
+    "ianaTimeZone": "UTC",
+    "localIso8601": "2026-03-22T18:30:45+00:00",
+    "utcIso8601": "2026-03-22T18:30:45Z"
+  },
+  "currentState": {
+    "rightsNote": "Collector receives display rights only"
+  },
+  "refinementTags": ["image", "generative"],
+  "image": {
+    "url": "https://artist.example/works/007-preview.jpg",
+    "hash": "sha256:b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3"
+  },
+  "digital": {
+    "subtype": "image",
+    "format": "TIFF",
+    "fileHash": "sha256:c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4",
+    "fileSize": 48392810,
+    "c2pa": {
+      "manifestHash": "sha256:d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5",
+      "activeManifest": "Adobe Content Credentials"
+    }
+  }
+}

@@ -10,9 +10,11 @@
 | **[`GUIDE.md`](GUIDE.md)** | Long-form overview: quick start, live demo, costs, deployment table, glossary. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |
 | **[`V0.5.md`](V0.5.md)** | Current v0.5 line (on-chain generation **5**). |
-| **[`chain/deploy/README.md`](../deploy/README.md)** | Hardhat deploy (`.env`, compile, Polygon mainnet). |
+| **[`chain/deploy/README.md`](../chain/deploy/README.md)** | Hardhat deploy (`.env`, compile, Polygon mainnet). |
+| **[`OBJECTID_PROFILE.md`](OBJECTID_PROFILE.md)** | Object ID compatibility profile: theft documentation, recovery, publish-on-incident privacy. |
+| **[`schema/passport-0.5.schema.json`](../schema/passport-0.5.schema.json)** | Machine-readable JSON Schema for `passport.json` v0.5 (validated in CI). |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix vs feature branches. |
-| **[`SECURITY.md`](../SECURITY.md)** | Threat model & trust boundaries. RU: [`web/frontend/localization/ru/SECURITY.md`](../localization/ru/SECURITY.md). |
+| **[`SECURITY.md`](SECURITY.md)** | Threat model & trust boundaries. RU: [`web/frontend/localization/ru/SECURITY.md`](../web/frontend/localization/ru/SECURITY.md). |
 | **[`ANDROID.md`](ANDROID.md)** | Web handoff + trust boundaries; app code in [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion). |
 | **[`ANDROID_NTAG424DNA_TAGTAMPER.md`](ANDROID_NTAG424DNA_TAGTAMPER.md)** | Practical NTAG424 TagTamper workflow (ODP web + carrier + companion). |
 | **[`PROTOCOL_TRACKS.md`](PROTOCOL_TRACKS.md)** | Track A (audit) vs Track B (mint agent); EIP-170 pointer. |

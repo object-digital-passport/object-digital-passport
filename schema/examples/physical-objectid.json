@@ -1,0 +1,63 @@
+{
+  "version": "0.5",
+  "passportId": "ODP-2026-04-007392018",
+  "title": "Winter Landscape with Windmill",
+  "description": "Oil painting on canvas, dark palette, unrestored original frame. Documented per the Object ID checklist for recovery readiness.",
+  "creationDate": "1897",
+  "objectYear": 1897,
+  "domain": "fine_art",
+  "objectType": "physical",
+  "status": "produced_object",
+  "contentClass": "static",
+  "aiStatus": "none",
+  "verificationMethod": "institutional",
+  "edition": { "model": "unique" },
+  "authorship": {
+    "author": {
+      "name": "Attributed to J. van Doren",
+      "creatorId": "M-204-839-112-441",
+      "wallet": "0xB3F924eeD1823A3c8b3fBc4a93E77e5a1823A3c8"
+    }
+  },
+  "year": 2026,
+  "month": 4,
+  "registeredAt": 1750000000,
+  "registration": {
+    "ianaTimeZone": "UTC",
+    "localIso8601": "2026-04-15T10:00:00+00:00",
+    "utcIso8601": "2026-04-15T10:00:00Z"
+  },
+  "currentState": {
+    "location": "in storage",
+    "conditionNote": "Stable; minor craquelure upper left"
+  },
+  "refinementTags": ["painting", "oil", "19th_century"],
+  "image": {
+    "url": "https://museum.example/collection/wl-windmill-main.jpg",
+    "hash": "sha256:e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6"
+  },
+  "objectId": {
+    "subject": "Winter landscape: frozen canal, windmill at right, two skaters in foreground",
+    "distinguishingFeatures": [
+      "Repaired 3 cm tear lower right quadrant, visible under raking light",
+      "Blue chalk inventory number 47-B on stretcher, upper bar",
+      "Frame corner chipped, gilding loss approx. 1 cm, top left"
+    ]
+  },
+  "physical": {
+    "category": "painting",
+    "medium": "oil on canvas",
+    "materials": [{ "name": "canvas" }, { "name": "oil paint" }, { "name": "wooden stretcher" }],
+    "dimensions": { "width": 75, "height": 55, "unit": "cm" },
+    "marks": [
+      { "type": "signature", "description": "Signed 'J.v.D.' lower left" },
+      { "type": "label", "description": "Auction house label, reverse, partially torn" }
+    ],
+    "seal": {
+      "numbered": {
+        "number": "SL-01948273",
+        "type": "tamper-evident label"
+      }
+    }
+  }
+}

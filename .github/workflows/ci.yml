@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: Hardhat tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: chain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: chain/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  schema:
+    name: passport.json schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate examples against schema
+        run: >
+          npx --yes ajv-cli@5 validate --spec=draft2020
+          -s schema/passport-0.5.schema.json
+          -d "schema/examples/*.json"
+
+  slither:
+    # crytic-compile cannot parse Hardhat 3 build-info (split output files),
+    # so we compile straight through solc per entry contract instead.
+    name: Slither static analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install slither + solc 0.8.20
+        run: |
+          pip install slither-analyzer solc-select
+          solc-select install 0.8.20
+          solc-select use 0.8.20
+      - name: Run slither (fail on high)
+        working-directory: chain/contracts
+        run: |
+          status=0
+          for f in ObjectDigitalPassport.sol ODPPassportProofRegistry.sol \
+                   ODPRegistryRelations.sol ODPCounterfeitConcern.sol \
+                   ODPWalletDocumentAnchor.sol ODPExtensionMintRouter.sol; do
+            echo "::group::$f"
+            slither "$f" --fail-high --solc-args "--via-ir --optimize" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
