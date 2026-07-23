@@ -149,54 +149,46 @@ async function main() {
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
-    console.log(`  Packed byte: ${deployedVersion} (v0.3 = 3: ownership, revocation, extra image hashes, P-affiliation detach)`);
+    console.log(`  Packed byte: ${deployedVersion} (v0.6 = 6: on-chain card, anchors[] + anchorsHash, append-only events)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering profile (type C)...");
     const regTx = await contract.registerCreator(
       ethers.hexlify(ethers.toUtf8Bytes("C")) // bytes1 "C"
     );
-    const regReceipt = await regTx.wait();
+    await regTx.wait();
     const creatorId = await contract.getCreatorByWallet(deployer.address);
     console.log(`     ✅ Profile ID: ${creatorId}`);
 
-    // 2. Mint a digital passport (no seal required)
+    // 2. Mint a digital passport (v0.6 unified inputs; the file hash is the binding).
+    //    For a digital object the anchor minimum is the exact file hash → mask bit 32.
     console.log("\n  2. Minting digital passport...");
-    const fakeDataHash  = ethers.keccak256(ethers.toUtf8Bytes("test-passport-json"));
-    const fakeFileHash  = ethers.keccak256(ethers.toUtf8Bytes("test-original-file"));
-    const fakeImageHash = ethers.keccak256(ethers.toUtf8Bytes("test-preview-image"));
+    const nz = (s) => ethers.keccak256(ethers.toUtf8Bytes(s));
+    const ANCHOR_FILE_HASH = 32; // ODPAnchorBits.file_hash
     const now = new Date();
 
-    const z = ethers.ZeroHash;
     const mintTx = await contract.mintDigital(
       {
         core: {
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
+          year: now.getUTCFullYear(),
+          month: now.getUTCMonth() + 1,
           title: "Deployment smoke test",
+          authorName: "ODP deploy",
+          shortDescription: "Digital smoke-test object",
           domain: "software",
           contentClass: 6,
           lifecycleStatus: 2,
           aiStatus: 1,
           verificationMethod: 1,
           editionModel: 1,
-          currentLocation: "",
-          rightsNote: "",
-          conditionNote: "",
-          damageHistoryHash: z,
-          damageHistoryUrl: "",
         },
-        dataHash: fakeDataHash,
+        dataHash: nz("smoke-passport-json"),
         dataUrl: "https://example.com/passport.odpass",
-        imageHash: fakeImageHash,
-        imageUrl: "https://example.com/preview.jpg",
-        imageHash2: z,
-        imageUrl2: "",
-        imageHash3: z,
-        imageUrl3: "",
-        fileHash: fakeFileHash,
-        auxCommitmentHash: z,
-        auxCommitmentUri: "",
+        imageHash: ethers.ZeroHash,
+        imageUrl: "",
+        fileHash: nz("smoke-original-file"),
+        anchorsHash: nz("smoke-anchors"),
+        anchorTypesMask: ANCHOR_FILE_HASH,
       },
       false,
       ""
@@ -208,7 +200,7 @@ async function main() {
     for (const log of mintReceipt.logs) {
       try {
         const parsed = contract.interface.parseLog(log);
-        if (parsed.name === "PassportMinted") {
+        if (parsed && parsed.name === "PassportMinted") {
           passportId = parsed.args.passportId;
           break;
         }
@@ -216,17 +208,17 @@ async function main() {
     }
     console.log(`     ✅ Passport ID: ${passportId}`);
 
-    // 3. Verify getPassport + getCreator + proofs (resolvePassport removed from bytecode in v0.3)
+    // 3. Read back header + creator + proofs (v0.6 split views)
     console.log("\n  3. Resolving passport (multi-call)...");
-    const passport = await contract.getPassportHeader(passportId);
-    const creator = await contract.getCreator(passport.creatorId);
+    const header = await contract.getPassportHeader(passportId);
+    await contract.getCreator(header.creatorId);
     const proofCount = proofRegistryAddress
       ? (await (await ethers.getContractAt("ODPPassportProofRegistry", proofRegistryAddress)).getProofsForPassport(passportId)).length
       : 0;
-    const version = await contract.CONTRACT_VERSION();
-    console.log(`     ✅ contractVersion: ${version}`);
-    console.log(`     ✅ objectType:      ${passport.objectType}`);
-    console.log(`     ✅ creatorId:       ${passport.creatorId}`);
+    console.log(`     ✅ contractVersion: ${await contract.CONTRACT_VERSION()}`);
+    console.log(`     ✅ objectType:      ${header.objectType}`);
+    console.log(`     ✅ creatorId:       ${header.creatorId}`);
+    console.log(`     ✅ title (card):    ${header.title}`);
     console.log(`     ✅ proofCount:      ${proofCount}`);
 
     console.log("\n  ✅ Smoke test passed");
