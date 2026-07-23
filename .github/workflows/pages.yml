@@ -71,7 +71,7 @@ jobs:
             make_stub "_site/web/$p.html" "../demo/$p.html"
           done
           make_stub "_site/web/index.html" "../demo/index.html"
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: _site
       - id: deployment
