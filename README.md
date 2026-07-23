@@ -67,6 +67,8 @@ When you passport an object, you describe it the way museums and police describe
 
 The full description travels in a portable **`.odpass`** file that you keep and share; the blockchain stores its fingerprints. Change one comma — the fingerprint stops matching, and every verifier sees it.
 
+When someone verifies your object, the page shows an at-a-glance **protection level** — **Base** (the identification minimum checks out), **Sealed** (＋a tamper-evident or NFC seal), **Attested** (＋an institution vouched for it). It's recomputed live from the chain on every check, never a sticker you can print — so it can't go stale or be faked.
+
 ODP is a tool in human hands, not a magic wand: it makes forgery expensive and detectable, and it gives experts, buyers, and institutions the same tamper-proof facts to reason from.
 
 ---

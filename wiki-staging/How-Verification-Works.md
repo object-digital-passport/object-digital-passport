@@ -24,6 +24,16 @@ The blockchain acts as a public, permanent notary log: *"this fingerprint was re
 
 No single layer is magic. A counterfeiter can copy a QR code — but can't fake the hashes, the timestamp, or the issuer's public identity, and physical [distinguishing features](Object-ID-Profile) are checked by human eyes.
 
+## Protection level, at a glance
+
+The verifier sums the layers up into a single **protection level** so you don't have to read the whole table:
+
+- 🛡 **Base** — a valid passport: the identification minimum is present and the hashes (and the on-chain card) match.
+- 🛡🛡 **Sealed** — Base, plus a physical seal anchor (a numbered tamper-evident seal or an NFC chip).
+- 🛡🛡🛡 **Attested** — Base, plus at least one institution (a P or M profile) has vouched for the object on-chain.
+
+It's recomputed from the chain on every check — never stored in the passport, encoded in its ID, or printed on the object — so it can't go stale or be faked. A tampered, revoked, or flagged passport shows no level; the warning takes over. And the level measures the strength of the *evidence*, not a verdict of authenticity — the human checks stay decisive.
+
 ## What the results mean
 
 - **AUTHENTIC** — record found, hosted passport data matches the on-chain fingerprint.
