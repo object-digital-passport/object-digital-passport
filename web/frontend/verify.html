@@ -568,13 +568,13 @@ function renderVerifyAndroidNfcGuide(humanId, rec, passport) {
       </div>
     </div>` : ""}
     <div class="btn-row" style="margin-top:10px;flex-wrap:wrap">
-      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedPassportId"))})'>${esc(t("verify.detail.nfcCopyPassportId"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(verifyUrl)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedVerifyLink"))})'>${esc(t("verify.detail.nfcCopyVerifyLink"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(chipKey)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedChipKey"))})'>${esc(t("verify.detail.nfcCopyChipKey"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "copy")'>${esc(t("verify.detail.nfcCopyHandoff"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "share")'>${esc(t("verify.detail.nfcShareHandoff"))}</button>
-      <button type="button" class="btn btn-ghost" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "open")'>${esc(t("verify.detail.nfcOpenCompanion"))}</button>
-      <button type="button" class="btn btn-ghost" onclick='window.open(${JSON.stringify(verifyUrl)}, "_blank", "noopener")'>${esc(t("verify.detail.nfcOpenVerifyLink"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(statusId))}, ${escAttr(JSON.stringify(t("verify.detail.nfcCopiedPassportId")))})'>${esc(t("verify.detail.nfcCopyPassportId"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(statusId))}, ${escAttr(JSON.stringify(t("verify.detail.nfcCopiedVerifyLink")))})'>${esc(t("verify.detail.nfcCopyVerifyLink"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(statusId))}, ${escAttr(JSON.stringify(t("verify.detail.nfcCopiedChipKey")))})'>${esc(t("verify.detail.nfcCopyChipKey"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(ndppCommitmentHash))}, ${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(dataHash))}, ${escAttr(JSON.stringify(nfcModel))}, ${escAttr(JSON.stringify(nfcUid))}, ${escAttr(JSON.stringify(statusId))}, "copy")'>${esc(t("verify.detail.nfcCopyHandoff"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(ndppCommitmentHash))}, ${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(dataHash))}, ${escAttr(JSON.stringify(nfcModel))}, ${escAttr(JSON.stringify(nfcUid))}, ${escAttr(JSON.stringify(statusId))}, "share")'>${esc(t("verify.detail.nfcShareHandoff"))}</button>
+      <button type="button" class="btn btn-ghost" onclick='void verifyUseAndroidHandoff(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(ndppCommitmentHash))}, ${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(dataHash))}, ${escAttr(JSON.stringify(nfcModel))}, ${escAttr(JSON.stringify(nfcUid))}, ${escAttr(JSON.stringify(statusId))}, "open")'>${esc(t("verify.detail.nfcOpenCompanion"))}</button>
+      <button type="button" class="btn btn-ghost" onclick='window.open(${escAttr(JSON.stringify(verifyUrl))}, "_blank", "noopener")'>${esc(t("verify.detail.nfcOpenVerifyLink"))}</button>
       ${ndppUrl ? `<a class="btn btn-ghost" href="${esc(ndppUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("verify.detail.nfcOpenNdppLink"))}</a>` : ""}
     </div>
     <div id="${esc(statusId)}" class="fhint" style="margin-top:8px;min-height:1.25em"></div>
@@ -3392,6 +3392,18 @@ function esc(s) {
   return String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/**
+ * HTML-attribute-safe encoding for values interpolated into an inline handler
+ * attribute (e.g. onclick='...JSON.stringify(x)...'). esc() leaves the single
+ * quote intact, which would break a single-quoted attribute; this also encodes
+ * `'`. The browser HTML-decodes the attribute value before the JS is parsed, so
+ * wrapping JSON.stringify(x) in escAttr() is behavior-preserving and prevents
+ * any character in x from breaking out of the attribute or the HTML context.
+ */
+function escAttr(s) {
+  return esc(s).replace(/'/g, "&#39;");
 }
 
 function bytesToHex(b) {
