@@ -11,7 +11,7 @@
 | **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `docs/`, `web/frontend/`, and `chain/` live in the repo. |
 | **[`GUIDE.md`](GUIDE.md)** | Long-form overview: quick start, live demo, costs, deployment table, glossary. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |
-| **[`V0.6.md`](V0.6.md)** | Current v0.6 line (on-chain generation **6**, not yet deployed): on-chain card, `anchors[]`, append-only events. RU: [`web/frontend/localization/ru/RELEASE_v0.6.md`](../web/frontend/localization/ru/RELEASE_v0.6.md). |
+| **[`V0.6.md`](V0.6.md)** | Current v0.6 line (on-chain generation **6**, deployed on Polygon mainnet): on-chain card, `anchors[]`, append-only events. RU: [`web/frontend/localization/ru/RELEASE_v0.6.md`](../web/frontend/localization/ru/RELEASE_v0.6.md). |
 | **[`REQUIREMENTS_FIELDS_V0.6.md`](REQUIREMENTS_FIELDS_V0.6.md)** | v0.6 storage-model design rationale and field tables (in Russian). |
 | **[`chain/deploy/README.md`](../chain/deploy/README.md)** | Hardhat deploy (`.env`, compile, Polygon mainnet). |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix vs feature branches. |

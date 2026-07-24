@@ -8,7 +8,7 @@
 
 ![Object Digital Passport cover](images/odp-cover-en.png)
 
-*Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**, not yet deployed — see [Current Release](#current-release) for the deployed v0.5 registry). Release notes: [docs/V0.6.md](V0.6.md); design rationale: [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md).*
+*Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**), **deployed on Polygon mainnet** — see [Current Release](#current-release) for addresses. Release notes: [docs/V0.6.md](V0.6.md); design rationale: [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md).*
 
 [License: MIT](../LICENSE)
 [GitHub Repo stars](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -208,7 +208,7 @@ Pages:
 - Profile (wallet + network fees): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
 - Passport (wallet + network fees): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
-*The live pages currently talk to the deployed **v0.5** registry (see [Current Release](#current-release)); the UI in this repository already supports the v0.6 line and switches automatically by on-chain generation once a v0.6 registry is deployed and configured.*
+*The live pages talk to the deployed **v0.6** registry (see [Current Release](#current-release)) and detect the on-chain generation automatically; the earlier v0.5 registry stays readable through `previousContracts` in Verify.*
 
 ## Android companion app
 
@@ -220,13 +220,13 @@ The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap
 
 **This repository** (`main` branch) is the reference **v0.6** line: on-chain generation **6** when you deploy Solidity from here (`CONTRACT_VERSION` packed byte **6**), the on-chain card, the `anchors[]` identification block with a hard minimum, append-only passport events, and the split satellite architecture for relations / proofs / extension mint routing — see [docs/V0.6.md](V0.6.md) and [SPEC.md](../SPEC.md).
 
-⚠️ **Deployed vs repository code:** the **currently deployed Polygon registry is still the v0.5 line** (generation **5**, addresses in [Current Release](#current-release)); the v0.6 contracts in this repository compile and pass tests but are **not yet deployed** to a public network. If you self-host, align **chain + contract address + ABI** with your deployment.
+✅ **Deployed:** the **v0.6 line is live on Polygon mainnet** (generation **6**, addresses in [Current Release](#current-release)); the reference UI points to it. The earlier v0.5 registry is superseded but still readable in Verify. If you self-host, align **chain + contract address + ABI** with your deployment.
 
 
 |                         |                                                                                                                                                                                                            |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Source**              | Branch `main` in this repository — reference **v0.6** stack (contracts + static web).                                                                                                                                     |
-| **On-chain generation** | `CONTRACT_VERSION` = **6** (deployed public registry: **5**).                                                                                                                                                                                  |
+| **On-chain generation** | `CONTRACT_VERSION` = **6** (deployed public registry: **6**).                                                                                                                                                                                  |
 | **New vs v0.5 line**    | On-chain card (`title` / `authorName` / `shortDescription`), `anchors[]` + `anchorsHash` with a hard identification minimum, append-only `recordPassportEvent` history, optional seals — see [docs/V0.6.md](V0.6.md). |
 | **Deploy order**        | `ODPPassportLib` → `ObjectDigitalPassport` → `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` / `ODPRegistryRelations` / `ODPPassportProofRegistry` / `ODPExtensionMintRouter` (+ wiring) — [chain/deploy/README.md](../chain/deploy/README.md). |
 
@@ -235,20 +235,23 @@ The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap
 
 **Code snapshot:** **v0.6** — see **[docs/V0.6.md](V0.6.md)**. Historical notes: [docs/V0.5.md](V0.5.md), [docs/V0.4.md](V0.4.md), [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md).
 
-**Deployed reference registry** (**Polygon mainnet**, `chainId` 137) — this is the **v0.5** deployment the static UI defaults currently point to; a v0.6 deployment will be announced separately:
+**Deployed reference registry** (**Polygon mainnet**, `chainId` 137) — the **v0.6** deployment the static UI defaults point to:
 
 
 | Item                                                           | Value                                                                                                                        |
 | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Protocol line (deployed)                                       | **v0.5** — on-chain generation **5** (`CONTRACT_VERSION` packed byte **5**) |
-| Main registry `ObjectDigitalPassport`                          | [0x413aEeBB2ac437483Bc68791EaAab492C2a4B346](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346)   |
-| Linked library `ODPPassportLib` (verification / bytecode link) | [0x8F856c08286BEe661e465A946726B255768AEd90](https://polygonscan.com/address/0x8F856c08286BEe661e465A946726B255768AEd90)   |
-| Wallet document anchor `ODPWalletDocumentAnchor` (satellite)   | [0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee](https://polygonscan.com/address/0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee)   |
-| Counterfeit concern `ODPCounterfeitConcern` (satellite)        | [0xd5727f16dB061226E19F82287A81FC9f69E1aDE2](https://polygonscan.com/address/0xd5727f16dB061226E19F82287A81FC9f69E1aDE2)   |
-| Relations satellite `ODPRegistryRelations`                     | [0x4aA459D68bDABc96A5838fDFb7713B5417dcae73](https://polygonscan.com/address/0x4aA459D68bDABc96A5838fDFb7713B5417dcae73)   |
-| Proof registry `ODPPassportProofRegistry`                      | [0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0](https://polygonscan.com/address/0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0)   |
-| Extension mint router `ODPExtensionMintRouter`                 | [0x039F415949bD661360b5D8A066525529631880B2](https://polygonscan.com/address/0x039F415949bD661360b5D8A066525529631880B2)   |
+| Protocol line (deployed)                                       | **v0.6** — on-chain generation **6** (`CONTRACT_VERSION` packed byte **6**) |
+| Main registry `ObjectDigitalPassport`                          | [0x012aC6393464A73EC16131D701ff2e000695b91b](https://polygonscan.com/address/0x012aC6393464A73EC16131D701ff2e000695b91b)   |
+| Linked library `ODPPassportLib` (verification / bytecode link) | [0xB7D7B8485eeb385c375ABd91035F5a6914171ccE](https://polygonscan.com/address/0xB7D7B8485eeb385c375ABd91035F5a6914171ccE)   |
+| Wallet document anchor `ODPWalletDocumentAnchor` (satellite)   | [0x35df3773919D9F10e5F8838abaa453DE120e6Cb4](https://polygonscan.com/address/0x35df3773919D9F10e5F8838abaa453DE120e6Cb4)   |
+| Counterfeit concern `ODPCounterfeitConcern` (satellite)        | [0x692935d6c1532b47cE0459bF1E9549991d0eD2C9](https://polygonscan.com/address/0x692935d6c1532b47cE0459bF1E9549991d0eD2C9)   |
+| Relations satellite `ODPRegistryRelations`                     | [0x2ea6f05a050973afa14E61b1Ea19De92621e3661](https://polygonscan.com/address/0x2ea6f05a050973afa14E61b1Ea19De92621e3661)   |
+| Proof registry `ODPPassportProofRegistry`                      | [0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49](https://polygonscan.com/address/0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49)   |
+| Extension mint router `ODPExtensionMintRouter`                 | [0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822](https://polygonscan.com/address/0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822)   |
 
+Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAEDef23D5242587`).
+
+**Previous line — v0.5 (superseded).** The earlier registry [`0x413aEeBB…2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) (generation **5**) is no longer the target of the reference UI. It stays **readable** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) still resolves v0.5 passports via `previousContracts` — but is not where new passports are issued. It is **not frozen**: `freeze()` was introduced in v0.6, so pre-v0.6 registries have no on-chain way to stop writes; retirement here is by convention and by the UI pointing forward. From v0.6 on, a registry can be frozen by its deployer at cutover.
 
 **Release notes:** [docs/V0.6.md](V0.6.md) · historical [docs/V0.5.md](V0.5.md) / [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · **Earlier line (v0.3 vs v0.2):** [web/frontend/localization/ru/RELEASE_v0.3.md](../web/frontend/localization/ru/RELEASE_v0.3.md).
 

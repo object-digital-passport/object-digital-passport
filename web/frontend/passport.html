@@ -83,15 +83,15 @@ const NET = {
   rpcUrls: POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
   /** Paste deployed address (v0.2+ — generation is read via CONTRACT_VERSION()). */
-  contract: "0x413aEeBB2ac437483Bc68791EaAab492C2a4B346",
+  contract: "0x012aC6393464A73EC16131D701ff2e000695b91b",
   /** If CONTRACT_VERSION cannot be probed, assume this packed generation (default 2 = v0.2-shaped). */
-  contractGenerationFallback: null,
+  contractGenerationFallback: 6,
   /** Optional relations satellite for affiliation, mint-agent, and publishing delegation. */
-  relations: "0x4aA459D68bDABc96A5838fDFb7713B5417dcae73",
+  relations: "0x2ea6f05a050973afa14E61b1Ea19De92621e3661",
   /** Optional proof satellite for institutional attestations. */
-  proofRegistry: "0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0",
+  proofRegistry: "0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49",
   /** Optional `ODPCounterfeitConcern` satellite (paired with `contract`); set after v0.4 deploy. */
-  counterfeitConcern: "0xd5727f16dB061226E19F82287A81FC9f69E1aDE2",
+  counterfeitConcern: "0x692935d6c1532b47cE0459bF1E9549991d0eD2C9",
 };
 
 /** Reference exports default to the GitHub-hosted Verify page. Set this only when you intentionally want a different public Verify host. */

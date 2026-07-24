@@ -279,16 +279,17 @@ const NET = {
   rpc:      POLYGON_RPC_FALLBACKS[0],
   rpcUrls:  POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
-  contract: "0x413aEeBB2ac437483Bc68791EaAab492C2a4B346",
-  relations: "0x4aA459D68bDABc96A5838fDFb7713B5417dcae73",
-  proofRegistry: "0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0",
+  contract: "0x012aC6393464A73EC16131D701ff2e000695b91b",
+  relations: "0x2ea6f05a050973afa14E61b1Ea19De92621e3661",
+  proofRegistry: "0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49",
   /** Optional `ODPWalletDocumentAnchor` for `attestExternalDocument` when the main registry is v0.3+ (EIP-170). */
-  docAnchor: "0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee",
+  docAnchor: "0x35df3773919D9F10e5F8838abaa453DE120e6Cb4",
   /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
-  counterfeitConcern: "0xd5727f16dB061226E19F82287A81FC9f69E1aDE2",
-  contractGenerationFallback: 5,
-  /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
+  counterfeitConcern: "0x692935d6c1532b47cE0459bF1E9549991d0eD2C9",
+  contractGenerationFallback: 6,
+  /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). The v0.5 registry (gen 5) is kept here so passports minted before the v0.6 cutover still resolve. */
   previousContracts: [
+    "0x413aEeBB2ac437483Bc68791EaAab492C2a4B346",
     "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
     "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
     "0x6c83c8C2e18c183a2776431a23187832b42FfFBb",

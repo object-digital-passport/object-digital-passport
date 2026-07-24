@@ -12,7 +12,7 @@
 
 | | |
 |:--|:--|
-| **[object-digital-passport](https://github.com/object-digital-passport/object-digital-passport)** | SPEC, Solidity, reference web UI, deploy tooling — code line **v0.6** (on-chain generation **6**, not yet deployed) |
+| **[object-digital-passport](https://github.com/object-digital-passport/object-digital-passport)** | SPEC, Solidity, reference web UI, deploy tooling — **v0.6** (on-chain generation **6**), deployed on Polygon mainnet |
 | **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** | NFC verifier companion (Android): handoff from web, NTAG 424 / TagTamper scans |
 
 Pin **object-digital-passport** on this organization page so visitors see it first.
@@ -34,14 +34,14 @@ Pin **object-digital-passport** on this organization page so visitors see it fir
 
 ### Network · reference deployment
 
-The repository code is the **v0.6** line; the **currently deployed public registry is still v0.5** (generation 5). A v0.6 deployment will be announced separately.
+The **v0.6** line is live on Polygon mainnet (generation 6). The earlier v0.5 registry is superseded but stays readable in Verify.
 
 | | |
 |:--|:--|
 | **Chain** | Polygon PoS (137) |
-| **Main registry (v0.5, deployed)** | [`0x413aEeBB2ac437483Bc68791EaAab492C2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) |
+| **Main registry (v0.6, deployed)** | [`0x012aC6393464A73EC16131D701ff2e000695b91b`](https://polygonscan.com/address/0x012aC6393464A73EC16131D701ff2e000695b91b) |
 
-Full satellite addresses: [`docs/GUIDE.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md#current-release) · [`docs/V0.5.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/V0.5.md)
+Full satellite addresses: [`docs/GUIDE.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md#current-release) · [`docs/V0.6.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/V0.6.md)
 
 ---
 

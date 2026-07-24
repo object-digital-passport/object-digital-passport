@@ -8,7 +8,7 @@
 
 ![Обложка Object Digital Passport](../../../../docs/images/odp-cover-ru.png)
 
-*Снимок эталонной реализации · линия протокола **v0.6** (on-chain поколение **6**, ещё не задеплоено — про действующий реестр v0.5 см. [Текущий релиз](#текущий-релиз)). Заметки к релизу: [docs/V0.6.md](../../../../docs/V0.6.md) ([по-русски](RELEASE_v0.6.md)); обоснование модели данных: [docs/REQUIREMENTS_FIELDS_V0.6.md](../../../../docs/REQUIREMENTS_FIELDS_V0.6.md) (на русском).*
+*Снимок эталонной реализации · линия протокола **v0.6** (on-chain поколение **6**), **задеплоена в основной сети Polygon** — адреса в [Текущем релизе](#текущий-релиз). Заметки к релизу: [docs/V0.6.md](../../../../docs/V0.6.md) ([по-русски](RELEASE_v0.6.md)); обоснование модели данных: [docs/REQUIREMENTS_FIELDS_V0.6.md](../../../../docs/REQUIREMENTS_FIELDS_V0.6.md) (на русском).*
 
 [Лицензия: MIT](../../../../LICENSE)
 [Звёзды репозитория](https://github.com/object-digital-passport/object-digital-passport/stargazers)
@@ -220,13 +220,13 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 **Этот репозиторий** (ветка `main`) — эталонная линия **v0.6**: on-chain поколение **6** при деплое Solidity отсюда (упакованный байт `CONTRACT_VERSION` = **6**), карточка on-chain, блок идентификации `anchors[]` с жёстким минимумом, append-only события паспорта и раздельная спутниковая архитектура для relations / proofs / extension mint routing — см. [docs/V0.6.md](../../../../docs/V0.6.md) и [SPEC.md](../../../../SPEC.md).
 
-⚠️ **Деплой и код в репозитории:** **сейчас задеплоенный реестр Polygon — по-прежнему линия v0.5** (поколение **5**, адреса в [Текущем релизе](#текущий-релиз)); контракты v0.6 из этого репозитория компилируются и проходят тесты, но **ещё не задеплоены** в публичную сеть. Если хостите сами — сверяйте **сеть + адрес контракта + ABI** с вашим деплоем.
+✅ **Задеплоено:** **линия v0.6 запущена в основной сети Polygon** (поколение **6**, адреса в [Текущем релизе](#текущий-релиз)); эталонный UI указывает на неё. Прежний реестр v0.5 вытеснен, но по-прежнему читается в Verify. Если хостите сами — сверяйте **сеть + адрес контракта + ABI** с вашим деплоем.
 
 
 |                          |                                                                                                                                                                                                            |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Исходники**            | Ветка `main` этого репозитория — эталонный стек **v0.6** (контракты + статический веб).                                                                                                                      |
-| **Поколение on-chain**   | `CONTRACT_VERSION` = **6** (задеплоенный публичный реестр: **5**).                                                                                                                                           |
+| **Поколение on-chain**   | `CONTRACT_VERSION` = **6** (задеплоенный публичный реестр: **6**).                                                                                                                                           |
 | **Новое против v0.5**    | Карточка on-chain (`title` / `authorName` / `shortDescription`), `anchors[]` + `anchorsHash` с жёстким минимумом опознания, append-only история `recordPassportEvent`, опциональные пломбы — см. [docs/V0.6.md](../../../../docs/V0.6.md). |
 | **Порядок деплоя**       | `ODPPassportLib` → `ObjectDigitalPassport` → `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` / `ODPRegistryRelations` / `ODPPassportProofRegistry` / `ODPExtensionMintRouter` (+ wiring) — [chain/deploy/README.md](../../../../chain/deploy/README.md). |
 
@@ -235,20 +235,23 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 **Снимок кода:** **v0.6** — см. **[docs/V0.6.md](../../../../docs/V0.6.md)** ([по-русски](RELEASE_v0.6.md)). Исторические заметки: [docs/V0.5.md](../../../../docs/V0.5.md), [docs/V0.4.md](../../../../docs/V0.4.md), [RELEASE_v0.4.1.md](RELEASE_v0.4.1.md).
 
-**Задеплоенный эталонный реестр** (**основная сеть Polygon**, `chainId` 137) — это деплой **v0.5**, на который по умолчанию указывает статический UI; деплой v0.6 будет объявлен отдельно:
+**Задеплоенный эталонный реестр** (**основная сеть Polygon**, `chainId` 137) — деплой **v0.6**, на который по умолчанию указывает статический UI:
 
 
 | Пункт                                                                   | Значение                                                                                                                   |
 | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Линия протокола (задеплоено)                                            | **v0.5** — on-chain поколение **5** (байт `CONTRACT_VERSION` = **5**) |
-| Основной реестр `ObjectDigitalPassport`                                 | [0x413aEeBB2ac437483Bc68791EaAab492C2a4B346](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346)   |
-| Связанная библиотека `ODPPassportLib` (верификация / линковка байткода) | [0x8F856c08286BEe661e465A946726B255768AEd90](https://polygonscan.com/address/0x8F856c08286BEe661e465A946726B255768AEd90)   |
-| Спутник якорей документов `ODPWalletDocumentAnchor`                     | [0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee](https://polygonscan.com/address/0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee)   |
-| Спутник `ODPCounterfeitConcern`                                         | [0xd5727f16dB061226E19F82287A81FC9f69E1aDE2](https://polygonscan.com/address/0xd5727f16dB061226E19F82287A81FC9f69E1aDE2)   |
-| Спутник `ODPRegistryRelations`                                          | [0x4aA459D68bDABc96A5838fDFb7713B5417dcae73](https://polygonscan.com/address/0x4aA459D68bDABc96A5838fDFb7713B5417dcae73)   |
-| Реестр подтверждений `ODPPassportProofRegistry`                         | [0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0](https://polygonscan.com/address/0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0)   |
-| Маршрутизатор расширений `ODPExtensionMintRouter`                       | [0x039F415949bD661360b5D8A066525529631880B2](https://polygonscan.com/address/0x039F415949bD661360b5D8A066525529631880B2)   |
+| Линия протокола (задеплоено)                                            | **v0.6** — on-chain поколение **6** (байт `CONTRACT_VERSION` = **6**) |
+| Основной реестр `ObjectDigitalPassport`                                 | [0x012aC6393464A73EC16131D701ff2e000695b91b](https://polygonscan.com/address/0x012aC6393464A73EC16131D701ff2e000695b91b)   |
+| Связанная библиотека `ODPPassportLib` (верификация / линковка байткода) | [0xB7D7B8485eeb385c375ABd91035F5a6914171ccE](https://polygonscan.com/address/0xB7D7B8485eeb385c375ABd91035F5a6914171ccE)   |
+| Спутник якорей документов `ODPWalletDocumentAnchor`                     | [0x35df3773919D9F10e5F8838abaa453DE120e6Cb4](https://polygonscan.com/address/0x35df3773919D9F10e5F8838abaa453DE120e6Cb4)   |
+| Спутник `ODPCounterfeitConcern`                                         | [0x692935d6c1532b47cE0459bF1E9549991d0eD2C9](https://polygonscan.com/address/0x692935d6c1532b47cE0459bF1E9549991d0eD2C9)   |
+| Спутник `ODPRegistryRelations`                                          | [0x2ea6f05a050973afa14E61b1Ea19De92621e3661](https://polygonscan.com/address/0x2ea6f05a050973afa14E61b1Ea19De92621e3661)   |
+| Реестр подтверждений `ODPPassportProofRegistry`                         | [0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49](https://polygonscan.com/address/0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49)   |
+| Маршрутизатор расширений `ODPExtensionMintRouter`                       | [0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822](https://polygonscan.com/address/0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822)   |
 
+Задеплоено в сети `chainId` 137 24.07.2026 (деплойер `0xefB9f9Fa39965Ab1df3D244ecAEDef23D5242587`).
+
+**Прежняя линия — v0.5 (вытеснена).** Прежний реестр [`0x413aEeBB…2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) (поколение **5**) больше не цель эталонного UI. Он остаётся **читаемым** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) резолвит v0.5-паспорта через `previousContracts`, — но новые паспорта там не выпускаются. Он **не заморожен**: `freeze()` появился только в v0.6, поэтому у до-v0.6 реестров нет on-chain способа остановить запись; вывод из обращения — по соглашению и по тому, что UI смотрит вперёд. Начиная с v0.6 реестр можно заморозить деплойером при переходе на следующую линию.
 
 **Заметки к релизам:** [docs/V0.6.md](../../../../docs/V0.6.md) · исторические [docs/V0.5.md](../../../../docs/V0.5.md) / [docs/V0.4.md](../../../../docs/V0.4.md) / [RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · **ранняя линия (v0.3 vs v0.2):** [RELEASE_v0.3.md](RELEASE_v0.3.md).
 
