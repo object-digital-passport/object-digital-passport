@@ -170,41 +170,32 @@ async function main() {
     console.log(`     ✅ Profile ID: ${creatorId}`);
 
     console.log("\n  2. Minting digital passport...");
-    const fakeDataHash  = ethers.keccak256(ethers.toUtf8Bytes("test-passport-json"));
-    const fakeFileHash  = ethers.keccak256(ethers.toUtf8Bytes("test-original-file"));
-    const fakeImageHash = ethers.keccak256(ethers.toUtf8Bytes("test-preview-image"));
+    const nz = (s) => ethers.keccak256(ethers.toUtf8Bytes(s));
+    const ANCHOR_FILE_HASH = 32; // ODPAnchorBits.file_hash — digital object minimum
     const now = new Date();
 
-    const z = ethers.ZeroHash;
     const mintTx = await contract.mintDigital(
       {
         core: {
-          year: now.getFullYear(),
-          month: now.getMonth() + 1,
+          year: now.getUTCFullYear(),
+          month: now.getUTCMonth() + 1,
           title: "Deployment smoke test",
+          authorName: "ODP deploy",
+          shortDescription: "Digital smoke-test object",
           domain: "software",
           contentClass: 6,
           lifecycleStatus: 2,
           aiStatus: 1,
           verificationMethod: 1,
           editionModel: 1,
-          currentLocation: "",
-          rightsNote: "",
-          conditionNote: "",
-          damageHistoryHash: z,
-          damageHistoryUrl: "",
         },
-        dataHash: fakeDataHash,
+        dataHash: nz("smoke-passport-json"),
         dataUrl: "https://example.com/passport.odpass",
-        imageHash: fakeImageHash,
-        imageUrl: "https://example.com/preview.jpg",
-        imageHash2: z,
-        imageUrl2: "",
-        imageHash3: z,
-        imageUrl3: "",
-        fileHash: fakeFileHash,
-        auxCommitmentHash: z,
-        auxCommitmentUri: "",
+        imageHash: ethers.ZeroHash,
+        imageUrl: "",
+        fileHash: nz("smoke-original-file"),
+        anchorsHash: nz("smoke-anchors"),
+        anchorTypesMask: ANCHOR_FILE_HASH,
       },
       false,
       ""
@@ -215,7 +206,7 @@ async function main() {
     for (const log of mintReceipt.logs) {
       try {
         const parsed = contract.interface.parseLog(log);
-        if (parsed.name === "PassportMinted") {
+        if (parsed && parsed.name === "PassportMinted") {
           passportId = parsed.args.passportId;
           break;
         }
@@ -224,14 +215,14 @@ async function main() {
     console.log(`     ✅ Passport ID: ${passportId}`);
 
     console.log("\n  3. Resolving passport (multi-call)...");
-    const passport = await contract.getPassportHeader(passportId);
+    const header = await contract.getPassportHeader(passportId);
     const proofCount = proofRegistryAddress
       ? (await (await ethers.getContractAt("ODPPassportProofRegistry", proofRegistryAddress)).getProofsForPassport(passportId)).length
       : 0;
-    const version = await contract.CONTRACT_VERSION();
-    console.log(`     ✅ contractVersion: ${version}`);
-    console.log(`     ✅ objectType:      ${passport.objectType}`);
-    console.log(`     ✅ creatorId:       ${passport.creatorId}`);
+    console.log(`     ✅ contractVersion: ${await contract.CONTRACT_VERSION()}`);
+    console.log(`     ✅ objectType:      ${header.objectType}`);
+    console.log(`     ✅ creatorId:       ${header.creatorId}`);
+    console.log(`     ✅ title (card):    ${header.title}`);
     console.log(`     ✅ proofCount:      ${proofCount}`);
 
     console.log("\n  ✅ Smoke test passed");
