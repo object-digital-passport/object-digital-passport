@@ -802,6 +802,8 @@ contract ObjectDigitalPassport {
     }
 
     function _currentMonth() internal view returns (uint8) {
+        // Calendar math on block.timestamp, not randomness (triaged: not security-critical).
+        // slither-disable-next-line weak-prng
         uint256 secsInYear = block.timestamp % 31_556_952;
         uint256 m = secsInYear / 2_629_746 + 1;
         if (m > 12) m = 12;
@@ -820,6 +822,7 @@ contract ObjectDigitalPassport {
             // Combine multiple sources for better unpredictability.
             // Note: on-chain entropy is never truly random — IDs are not
             // security-critical (no funds at stake), so this is acceptable.
+            // slither-disable-next-line weak-prng
             uint64 n = uint64(uint256(keccak256(abi.encodePacked(
                 block.timestamp,
                 block.prevrandao,   // replaces block.difficulty post-Merge
@@ -845,6 +848,8 @@ contract ObjectDigitalPassport {
         uint32 key = uint32(year) * 100 + uint32(month);
         uint256 baseNonce = _passportNonce;
         for (uint i = 0; i < 25; i++) {
+            // Human-readable ID entropy, not security randomness (see SECURITY NOTES header).
+            // slither-disable-next-line weak-prng
             uint32 n = uint32(uint256(keccak256(abi.encodePacked(
                 block.timestamp,
                 block.prevrandao,

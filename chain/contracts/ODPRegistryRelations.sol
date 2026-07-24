@@ -66,6 +66,10 @@ contract ODPRegistryRelations {
         if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
         if (!(_pPendingParentsCountByChild[childPId] < MAX_P_PENDING_PARENTS_PER_CHILD)) revert EC(48);
 
+        // Triaged encodePacked collision: both IDs are validated registered P profiles with
+        // the fixed contract-generated format P-NNN-NNN-NNN-NNN (17 chars) — fixed-length
+        // concatenation is unambiguous. Next contract generation should use abi.encode.
+        // slither-disable-next-line encode-packed-collision
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
         if (!(!_pendingPAffiliation[k])) revert EC(47);
         _pendingPAffiliation[k] = true;
@@ -81,6 +85,8 @@ contract ODPRegistryRelations {
         if (!(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)))) revert EC(46);
         if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
 
+        // Triaged: fixed-format registered P IDs — see proposePAffiliation note.
+        // slither-disable-next-line encode-packed-collision
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
         if (!(_pendingPAffiliation[k])) revert EC(42);
         delete _pendingPAffiliation[k];
@@ -134,6 +140,8 @@ contract ODPRegistryRelations {
     function cancelPAffiliationRequest(string calldata parentPId) external {
         string memory childPId = _requireRegistered();
         _requireTypeP(childPId);
+        // Triaged: fixed-format registered P IDs — see proposePAffiliation note.
+        // slither-disable-next-line encode-packed-collision
         bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
         if (!(_pendingPAffiliation[k])) revert EC(42);
         delete _pendingPAffiliation[k];
@@ -145,6 +153,8 @@ contract ODPRegistryRelations {
         view
         returns (bool)
     {
+        // Triaged: view over the same fixed-format key space — see proposePAffiliation note.
+        // slither-disable-next-line encode-packed-collision
         return _pendingPAffiliation[keccak256(abi.encodePacked(parentPId, childPId))];
     }
 

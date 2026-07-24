@@ -1,0 +1,55 @@
+{
+  "version": "0.5",
+  "passportId": "ODP-2026-03-004829301",
+  "title": "Object Community #1",
+  "description": "Signed mixed-media object with NFC-backed seal.",
+  "creationDate": "2025-11",
+  "domain": "contemporary_art",
+  "objectType": "physical",
+  "status": "produced_object",
+  "contentClass": "static",
+  "aiStatus": "assisted",
+  "verificationMethod": "nfc",
+  "edition": { "model": "limited", "number": 1, "total": 3 },
+  "authorship": {
+    "author": {
+      "name": "Example holder",
+      "wallet": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+      "creatorId": "C-482-930-174-005"
+    },
+    "team": "Studio North"
+  },
+  "year": 2026,
+  "month": 3,
+  "registeredAt": 1748000000,
+  "registration": {
+    "ianaTimeZone": "UTC",
+    "localIso8601": "2026-03-22T18:30:45+00:00",
+    "utcIso8601": "2026-03-22T18:30:45Z"
+  },
+  "currentState": {
+    "location": "artist archive",
+    "rightsNote": "Exhibition by request",
+    "conditionNote": "Excellent"
+  },
+  "refinementTags": ["artwork", "mixed_media", "signed"],
+  "image": {
+    "url": "https://artist.example/objects/001-main.jpg",
+    "hash": "sha256:a3f1c2d4e5b6978810aabbccddeeff00112233445566778899aabbccddeeff00"
+  },
+  "physical": {
+    "category": "artwork",
+    "medium": "mixed media",
+    "materials": [{ "name": "canvas" }, { "name": "oil paint" }],
+    "dimensions": { "width": 60, "height": 40, "unit": "cm" },
+    "marks": [{ "type": "signature", "description": "Signed on reverse" }],
+    "seal": {
+      "nfc": {
+        "uid": "04a3f912cc8b4e",
+        "publicKey": "0f1e2d3c4b5a69788796a5b4c3d2e1f0",
+        "model": "NTAG424DNA_TAGTAMPER",
+        "installedAt": "2026-03-15"
+      }
+    }
+  }
+}

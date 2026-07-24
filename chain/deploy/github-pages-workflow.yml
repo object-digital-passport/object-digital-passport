@@ -1,31 +1,5 @@
-# Copy to .github/workflows/pages.yml in the repo (GitHub web UI if git rejects workflow paths).
-name: Deploy GitHub Pages
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
-jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: web
-      - id: deployment
-        uses: actions/deploy-pages@v4
+# DEPRECATED TEMPLATE — do not copy.
+# The live workflow is maintained at .github/workflows/pages.yml (site split:
+# landing / + rendered /spec/ + reference UI /demo/ + legacy redirects).
+# This file is kept only so old links do not 404; it will be removed in a
+# future cleanup.
