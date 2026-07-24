@@ -74,6 +74,16 @@ import type { NonPayableOverrides } from "../common.js"
               },
               {
                 "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
                 "name": "domain",
                 "type": "string"
               },
@@ -101,31 +111,6 @@ import type { NonPayableOverrides } from "../common.js"
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -154,52 +139,22 @@ import type { NonPayableOverrides } from "../common.js"
           },
           {
             "internalType": "bytes32",
-            "name": "imageHash2",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
             "name": "fileHash",
             "type": "bytes32"
           },
           {
             "internalType": "bytes32",
-            "name": "auxCommitmentHash",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct DigitalMintInputs",
-        "name": "dm",
+        "internalType": "struct PassportMintInputs",
+        "name": "m",
         "type": "tuple"
       }
     ],
@@ -237,180 +192,12 @@ import type { NonPayableOverrides } from "../common.js"
               },
               {
                 "internalType": "string",
-                "name": "domain",
-                "type": "string"
-              },
-              {
-                "internalType": "uint8",
-                "name": "contentClass",
-                "type": "uint8"
-              },
-              {
-                "internalType": "uint8",
-                "name": "lifecycleStatus",
-                "type": "uint8"
-              },
-              {
-                "internalType": "uint8",
-                "name": "aiStatus",
-                "type": "uint8"
-              },
-              {
-                "internalType": "uint8",
-                "name": "verificationMethod",
-                "type": "uint8"
-              },
-              {
-                "internalType": "uint8",
-                "name": "editionModel",
-                "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
+                "name": "authorName",
                 "type": "string"
               },
               {
                 "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
-              }
-            ],
-            "internalType": "struct PassportCoreMintInputs",
-            "name": "core",
-            "type": "tuple"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "dataHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "dataUrl",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl",
-            "type": "string"
-          },
-          {
-            "internalType": "uint8",
-            "name": "sealType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "sealHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "bytes",
-            "name": "nfcPublicKey",
-            "type": "bytes"
-          },
-          {
-            "internalType": "string",
-            "name": "nfcModel",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash2",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "auxCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
-          }
-        ],
-        "internalType": "struct PhysicalMintInputs",
-        "name": "pm",
-        "type": "tuple"
-      }
-    ],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes",
-        "name": "norm",
-        "type": "bytes"
-      }
-    ],
-    "name": "decodeDigitalExtensionNorm",
-    "outputs": [
-      {
-        "components": [
-          {
-            "components": [
-              {
-                "internalType": "uint32",
-                "name": "year",
-                "type": "uint32"
-              },
-              {
-                "internalType": "uint8",
-                "name": "month",
-                "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "title",
+                "name": "shortDescription",
                 "type": "string"
               },
               {
@@ -442,31 +229,6 @@ import type { NonPayableOverrides } from "../common.js"
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -491,26 +253,6 @@ import type { NonPayableOverrides } from "../common.js"
           {
             "internalType": "string",
             "name": "imageUrl",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash2",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
             "type": "string"
           },
           {
@@ -520,27 +262,17 @@ import type { NonPayableOverrides } from "../common.js"
           },
           {
             "internalType": "bytes32",
-            "name": "auxCommitmentHash",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct DigitalMintInputs",
-        "name": "dm",
+        "internalType": "struct PassportMintInputs",
+        "name": "m",
         "type": "tuple"
       }
     ],
@@ -555,7 +287,7 @@ import type { NonPayableOverrides } from "../common.js"
         "type": "bytes"
       }
     ],
-    "name": "decodePhysicalExtensionNorm",
+    "name": "decodeMintNorm",
     "outputs": [
       {
         "components": [
@@ -574,6 +306,16 @@ import type { NonPayableOverrides } from "../common.js"
               {
                 "internalType": "string",
                 "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
                 "type": "string"
               },
               {
@@ -605,31 +347,6 @@ import type { NonPayableOverrides } from "../common.js"
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -657,68 +374,23 @@ import type { NonPayableOverrides } from "../common.js"
             "type": "string"
           },
           {
-            "internalType": "uint8",
-            "name": "sealType",
-            "type": "uint8"
-          },
-          {
             "internalType": "bytes32",
-            "name": "sealHash",
+            "name": "fileHash",
             "type": "bytes32"
           },
           {
-            "internalType": "bytes",
-            "name": "nfcPublicKey",
-            "type": "bytes"
-          },
-          {
-            "internalType": "string",
-            "name": "nfcModel",
-            "type": "string"
-          },
-          {
             "internalType": "bytes32",
-            "name": "imageHash2",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "auxCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct PhysicalMintInputs",
-        "name": "pm",
+        "internalType": "struct PassportMintInputs",
+        "name": "m",
         "type": "tuple"
       }
     ],
@@ -862,6 +534,24 @@ import type { NonPayableOverrides } from "../common.js"
   {
     "inputs": [
       {
+        "internalType": "uint32",
+        "name": "mask",
+        "type": "uint32"
+      },
+      {
+        "internalType": "uint32",
+        "name": "required",
+        "type": "uint32"
+      }
+    ],
+    "name": "requireAnchorBits",
+    "outputs": [],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "string",
         "name": "dataUrl",
         "type": "string"
@@ -947,103 +637,6 @@ import type { NonPayableOverrides } from "../common.js"
   {
     "inputs": [
       {
-        "internalType": "bytes32",
-        "name": "auxHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "auxUri",
-        "type": "string"
-      }
-    ],
-    "name": "validateAuxCommitmentFields",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "dataHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "dataUrl",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "imageHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "imageUrl",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "imageHash2",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "imageUrl2",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "imageHash3",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "imageUrl3",
-        "type": "string"
-      }
-    ],
-    "name": "validateCommonHashesAndUrls",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "contentClass",
-        "type": "uint8"
-      }
-    ],
-    "name": "validateContentClass",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "damageHistoryHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "damageHistoryUrl",
-        "type": "string"
-      }
-    ],
-    "name": "validateDamageHistoryFields",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "components": [
           {
             "components": [
@@ -1060,6 +653,16 @@ import type { NonPayableOverrides } from "../common.js"
               {
                 "internalType": "string",
                 "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
                 "type": "string"
               },
               {
@@ -1091,31 +694,6 @@ import type { NonPayableOverrides } from "../common.js"
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -1144,22 +722,127 @@ import type { NonPayableOverrides } from "../common.js"
           },
           {
             "internalType": "bytes32",
-            "name": "imageHash2",
+            "name": "fileHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "anchorsHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
+          }
+        ],
+        "internalType": "struct PassportMintInputs",
+        "name": "m",
+        "type": "tuple"
+      }
+    ],
+    "name": "validateCommonMintInputs",
+    "outputs": [],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "contentClass",
+        "type": "uint8"
+      }
+    ],
+    "name": "validateContentClass",
+    "outputs": [],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "components": [
+              {
+                "internalType": "uint32",
+                "name": "year",
+                "type": "uint32"
+              },
+              {
+                "internalType": "uint8",
+                "name": "month",
+                "type": "uint8"
+              },
+              {
+                "internalType": "string",
+                "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "domain",
+                "type": "string"
+              },
+              {
+                "internalType": "uint8",
+                "name": "contentClass",
+                "type": "uint8"
+              },
+              {
+                "internalType": "uint8",
+                "name": "lifecycleStatus",
+                "type": "uint8"
+              },
+              {
+                "internalType": "uint8",
+                "name": "aiStatus",
+                "type": "uint8"
+              },
+              {
+                "internalType": "uint8",
+                "name": "verificationMethod",
+                "type": "uint8"
+              },
+              {
+                "internalType": "uint8",
+                "name": "editionModel",
+                "type": "uint8"
+              }
+            ],
+            "internalType": "struct PassportCoreMintInputs",
+            "name": "core",
+            "type": "tuple"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "dataHash",
             "type": "bytes32"
           },
           {
             "internalType": "string",
-            "name": "imageUrl2",
+            "name": "dataUrl",
             "type": "string"
           },
           {
             "internalType": "bytes32",
-            "name": "imageHash3",
+            "name": "imageHash",
             "type": "bytes32"
           },
           {
             "internalType": "string",
-            "name": "imageUrl3",
+            "name": "imageUrl",
             "type": "string"
           },
           {
@@ -1169,26 +852,16 @@ import type { NonPayableOverrides } from "../common.js"
           },
           {
             "internalType": "bytes32",
-            "name": "auxCommitmentHash",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct DigitalMintInputs",
+        "internalType": "struct PassportMintInputs",
         "name": "m",
         "type": "tuple"
       }
@@ -1247,6 +920,16 @@ import type { NonPayableOverrides } from "../common.js"
               },
               {
                 "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
                 "name": "domain",
                 "type": "string"
               },
@@ -1274,31 +957,6 @@ import type { NonPayableOverrides } from "../common.js"
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -1326,136 +984,27 @@ import type { NonPayableOverrides } from "../common.js"
             "type": "string"
           },
           {
-            "internalType": "uint8",
-            "name": "sealType",
-            "type": "uint8"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "sealHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "bytes",
-            "name": "nfcPublicKey",
-            "type": "bytes"
-          },
-          {
-            "internalType": "string",
-            "name": "nfcModel",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash2",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
-            "type": "string"
-          },
-          {
             "internalType": "bytes32",
             "name": "fileHash",
             "type": "bytes32"
           },
           {
             "internalType": "bytes32",
-            "name": "auxCommitmentHash",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct MixedMintInputs",
+        "internalType": "struct PassportMintInputs",
         "name": "m",
         "type": "tuple"
       }
     ],
     "name": "validateMixedMintInputs",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "ndppHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "ndppUri",
-        "type": "string"
-      }
-    ],
-    "name": "validateNdppCommitmentFields",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "nfcModel",
-        "type": "string"
-      }
-    ],
-    "name": "validateNfcModel",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "imageHash2",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "imageUrl2",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "imageHash3",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "string",
-        "name": "imageUrl3",
-        "type": "string"
-      }
-    ],
-    "name": "validateOptionalImageSlots",
     "outputs": [],
     "stateMutability": "pure",
     "type": "function"
@@ -1477,6 +1026,16 @@ import type { NonPayableOverrides } from "../common.js"
           {
             "internalType": "string",
             "name": "title",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "authorName",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "shortDescription",
             "type": "string"
           },
           {
@@ -1508,31 +1067,6 @@ import type { NonPayableOverrides } from "../common.js"
             "internalType": "uint8",
             "name": "editionModel",
             "type": "uint8"
-          },
-          {
-            "internalType": "string",
-            "name": "currentLocation",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "rightsNote",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "conditionNote",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "damageHistoryHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "damageHistoryUrl",
-            "type": "string"
           }
         ],
         "internalType": "struct PassportCoreMintInputs",
@@ -1541,6 +1075,39 @@ import type { NonPayableOverrides } from "../common.js"
       }
     ],
     "name": "validatePassportCore",
+    "outputs": [],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint8",
+        "name": "kind",
+        "type": "uint8"
+      },
+      {
+        "internalType": "uint8",
+        "name": "value",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "note",
+        "type": "string"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "attachmentHash",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "string",
+        "name": "attachmentUrl",
+        "type": "string"
+      }
+    ],
+    "name": "validatePassportEventInputs",
     "outputs": [],
     "stateMutability": "pure",
     "type": "function"
@@ -1564,6 +1131,16 @@ import type { NonPayableOverrides } from "../common.js"
               {
                 "internalType": "string",
                 "name": "title",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "authorName",
+                "type": "string"
+              },
+              {
+                "internalType": "string",
+                "name": "shortDescription",
                 "type": "string"
               },
               {
@@ -1595,31 +1172,6 @@ import type { NonPayableOverrides } from "../common.js"
                 "internalType": "uint8",
                 "name": "editionModel",
                 "type": "uint8"
-              },
-              {
-                "internalType": "string",
-                "name": "currentLocation",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "rightsNote",
-                "type": "string"
-              },
-              {
-                "internalType": "string",
-                "name": "conditionNote",
-                "type": "string"
-              },
-              {
-                "internalType": "bytes32",
-                "name": "damageHistoryHash",
-                "type": "bytes32"
-              },
-              {
-                "internalType": "string",
-                "name": "damageHistoryUrl",
-                "type": "string"
               }
             ],
             "internalType": "struct PassportCoreMintInputs",
@@ -1647,100 +1199,27 @@ import type { NonPayableOverrides } from "../common.js"
             "type": "string"
           },
           {
-            "internalType": "uint8",
-            "name": "sealType",
-            "type": "uint8"
-          },
-          {
             "internalType": "bytes32",
-            "name": "sealHash",
+            "name": "fileHash",
             "type": "bytes32"
           },
           {
-            "internalType": "bytes",
-            "name": "nfcPublicKey",
-            "type": "bytes"
-          },
-          {
-            "internalType": "string",
-            "name": "nfcModel",
-            "type": "string"
-          },
-          {
             "internalType": "bytes32",
-            "name": "imageHash2",
+            "name": "anchorsHash",
             "type": "bytes32"
           },
           {
-            "internalType": "string",
-            "name": "imageUrl2",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "imageHash3",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "imageUrl3",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "auxCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "auxCommitmentUri",
-            "type": "string"
-          },
-          {
-            "internalType": "bytes32",
-            "name": "ndppCommitmentHash",
-            "type": "bytes32"
-          },
-          {
-            "internalType": "string",
-            "name": "ndppCommitmentUri",
-            "type": "string"
+            "internalType": "uint32",
+            "name": "anchorTypesMask",
+            "type": "uint32"
           }
         ],
-        "internalType": "struct PhysicalMintInputs",
+        "internalType": "struct PassportMintInputs",
         "name": "m",
         "type": "tuple"
       }
     ],
-    "name": "validatePhysicalMintForMint",
-    "outputs": [],
-    "stateMutability": "pure",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint8",
-        "name": "sealType",
-        "type": "uint8"
-      },
-      {
-        "internalType": "bytes32",
-        "name": "sealHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "bytes",
-        "name": "nfcPublicKey",
-        "type": "bytes"
-      },
-      {
-        "internalType": "string",
-        "name": "nfcModel",
-        "type": "string"
-      }
-    ],
-    "name": "validateSealFields",
+    "name": "validatePhysicalMintInputs",
     "outputs": [],
     "stateMutability": "pure",
     "type": "function"
@@ -1779,7 +1258,7 @@ import type { NonPayableOverrides } from "../common.js"
   }
 ] as const;
 
-  const _bytecode = "0x6080806040523461001a576129fd908161001f823930815050f35b5f80fdfe6040608081526004361015610012575f80fd5b5f90813560e01c8063044757be14611017578063277fff0e14610ff65780632c675be114610fb25780633e48402514610f4a57806343bde85114610eef57806347a30e9114610e9957806348b5294414610e7c5780634b150adb14610d035780635dcdf76514610c0057806363e3c11714610b725780636435b5de14610b3e57806364a2f01e14610b055780636a3d01bb14610a475780636a6e298914610a345780636d27f24814610a13578063798ae862146108c95780637a9e7ba514610885578063a8acfc26146103ea578063ad547d1c14610868578063bb34d85314610805578063c5dfbf19146107e4578063cc869204146107c7578063cd8cd184146107aa578063d5b978251461078d578063d6f39eaf14610486578063d6f5ec6014610452578063d97b3c45146103fd578063e3c148cf146103ea578063e4f2674d14610208578063eb23b205146101d15763fa12dff614610171575f80fd5b60203660031901126101cd57600435916001600160401b0383116101ca57506101b26101a46101c693369060040161117b565b6101ac611df2565b50612014565b906101bc82611cfc565b519182918261157e565b0390f35b80fd5b5080fd5b8260203660031901126101ca576004356001600160401b0381116101cd5761020061020591369060040161117b565b611b18565b80f35b50600319906020368301126103e657600435916001600160401b03908184116103de576102209084360301126103da5781519161024483611106565b83600401358281116103e25761026090600436918701016113f5565b83526024840135602084015260448401358281116103e257610288906004369187010161117b565b908301526064830135606083015260848301358181116103de576102b2906004369186010161117b565b60808301526102c360a4840161105c565b60a083015260c483013560c083015260e48301358181116103de576102ee906004369186010161117b565b60e08301526101048301358181116103de57610310906004369186010161117b565b6101008301526101248301356101208301526101448301358181116103de5761033f906004369186010161117b565b6101408301526101648301356101608301526101848301358181116103de5761036e906004369186010161117b565b6101808301526101a48301356101a08301526101c48301358181116103de5761039d906004369186010161117b565b6101c08301526101e48301356101e08301526102048301359081116103da576102059260046103cf923692010161117b565b610200820152611c6d565b8380fd5b8480fd5b8580fd5b8280fd5b826102056103f73661154f565b9061185e565b8260803660031901126101ca576001600160401b036024358181116103e65761042a90369060040161117b565b6064359182116103e65761044561020592369060040161117b565b90604435906004356117aa565b5060203660031901126101cd576101c69061047361046e6110b0565b612851565b905191829160208352602083019061108b565b50600319906020368301126103e6576001600160401b03600435116103e6576102408092600435360301126103e65780519182016001600160401b038111838210176107795781526004803501356001600160401b0381116103da576104f39060043691813501016113f5565b825260043560248101356020840152604401356001600160401b0381116103da5761052590600436918135010161117b565b8282015260043560648101356060840152608401356001600160401b0381116103da5761055990600436918135010161117b565b608083015261056c60a46004350161105c565b60a083015260043560c481013560c084015260e401356001600160401b0381116103da576105a190600436918135010161117b565b60e083015260043561010401356001600160401b0381116103da576105cd90600436918135010161117b565b61010083015260043561012481013561012084015261014401356001600160401b0381116103da5761060690600436918135010161117b565b61014083015260043561016481013561016084015261018401356001600160401b0381116103da5761063f90600436918135010161117b565b6101808301526004356101a48101356101a08401526101c48101356101c08401526001600160401b036101e490910135116103e65761068936600480356101e4810135010161117b565b6101e083015260043561020481013561020084015261022401356001600160401b0381116103da576106c290600436918135010161117b565b6102208301526106d282516118f0565b610709602083015182840151606085015160808601516101208701519061014088015192610160890151946101808a015196611a96565b6101a08201511561076257508061073b60ff60a06102059401511660c083015160e08401519061010085015192611b95565b6107506101c08201516101e08301519061185e565b6102206102008201519101519061185e565b51632758b53f60e21b8152601d6004820152602490fd5b634e487b7160e01b84526041600452602484fd5b8260203660031901126101ca576102056107a5611038565b611732565b8260203660031901126101ca576102056107c2611038565b61176e565b8260203660031901126101ca576102056107df611038565b6116f6565b5060203660031901126101cd576101c6906104736108006110b0565b6128c2565b5060603660031901126101cd576001600160401b03916004358381116101cd5761083390369060040161117b565b926024359182151583036101ca576044359182116101ca575092610473916108626101c695369060040161117b565b91612516565b8260203660031901126101ca57610205610880611038565b61167e565b5060203660031901126101cd57600435916001600160401b0383116101ca57506108be6108b96101c693369060040161117b565b612014565b90519182918261157e565b5090816003193601126101ca576004359060ff60f81b82168092036101ca576001600160401b03602435818116939192908490036101ca575092610a0460246101c693610986968451916020978884019283526001845261092984611122565b63ffffffff9161097461094384633b9aca0085041661292b565b936103e861096c8282610960828289620f42408c0416061661292b565b9681890416061661292b565b94061661292b565b9388519b8c965180928d89019061106a565b850192602d60f81b93848c8201526109a88c835193849160218501910161106a565b018360218201526109c2825180938d60228501910161106a565b018260228201526109dc825180938c60238501910161106a565b019060238201526109f5825180938a878501910161106a565b0103600481018752018561113d565b5192828493845283019061108b565b5060203660031901126101cd576101c690610473610a2f6110b0565b61292b565b82610205610a413661154f565b906118a7565b509060603660031901126101ca5750610a5e6110b0565b906101c6610a6a61104c565b91610a046026610a93610a8d610a87610a816110c3565b9861270b565b966127e8565b96612851565b958351968791602097635052462d60e01b89850152610abb815180928b60248801910161106a565b830190602d60f81b91826024820152610add825180938c60258501910161106a565b01906025820152610af6825180938a878501910161106a565b0103600681018752018561113d565b5060203660031901126101cd57600435916001600160401b0383116101ca5750610473610b396101c693369060040161117b565b61245f565b8260203660031901126101ca576004356001600160401b0381116101cd57610b6d6102059136906004016113f5565b6118f0565b826101003660031901126101ca576001600160401b036024358181116103e657610ba090369060040161117b565b6064358281116103da57610bb890369060040161117b565b60a4358381116103de57610bd090369060040161117b565b60e4359384116103de57610beb61020594369060040161117b565b9260c435926084359160443590600435611a96565b509060203660031901126101ca5762015180600435046107b291805b6102588110610ccd575b50610c30836125d0565b821015610cb55760019182905b600c821115610c7c575b505015610c645760ff9063ffffffff845193168352166020820152f35b8251632758b53f60e21b815260536004820152602490fd5b610c868583612617565b90818110610ca757610ca191610c9b916123d9565b91612451565b90610c3d565b505091505060015f80610c47565b8351632758b53f60e21b815260536004820152602490fd5b9291610cd8836125d0565b90818110610cfb57610cf0610cf692610cf0926123d9565b93612451565b610c1c565b929350610c26565b50600319906020368301126103e657600435916001600160401b03908184116103de576101c09084360301126103da57815191610d3f836110d6565b83600401358281116103e257610d5b90600436918701016113f5565b83526024840135602084015260448401358281116103e257610d83906004369187010161117b565b908301526064830135606083015260848301358181116103de57610dad906004369186010161117b565b608083015260a483013560a083015260c48301358181116103de57610dd8906004369186010161117b565b60c083015260e483013560e08301526101048301358181116103de57610e04906004369186010161117b565b6101008301526101248301356101208301526101448301356101408301526101648301358181116103de57610e3f906004369186010161117b565b6101608301526101848301356101808301526101a48301359081116103da57610205926004610e71923692010161117b565b6101a0820152611cfc565b8260203660031901126101ca57610205610e94611038565b6116ba565b5060203660031901126101cd57600435916001600160401b0383116101ca5750610edb610ecd6101c693369060040161117b565b610ed5612185565b50612209565b90610ee582611c6d565b51918291826112b1565b8260803660031901126101ca57610f04611038565b6001600160401b03906044358281116103da57610f2590369060040161117b565b6064359283116103da57610f4061020593369060040161117b565b9160243590611b95565b509060603660031901126101ca5750610f616110b0565b906101c6610f6d61104c565b91610a046026610f8a610f84610a87610a816110c3565b966128c2565b958351968791602097634f44502d60e01b89850152610abb815180928b60248801910161106a565b5060203660031901126101cd57600435916001600160401b0383116101ca5750610feb610fe66101c693369060040161117b565b612209565b9051918291826112b1565b5060203660031901126101cd576101c6906104736110126110b0565b61270b565b5060203660031901126101cd576101c690610473611033611038565b6127e8565b6004359060ff8216820361104857565b5f80fd5b6024359060ff8216820361104857565b359060ff8216820361104857565b5f5b83811061107b5750505f910152565b818101518382015260200161106c565b906020916110a48151809281855285808601910161106a565b601f01601f1916010190565b6004359063ffffffff8216820361104857565b6044359063ffffffff8216820361104857565b6101c081019081106001600160401b038211176110f257604052565b634e487b7160e01b5f52604160045260245ffd5b61022081019081106001600160401b038211176110f257604052565b604081019081106001600160401b038211176110f257604052565b601f909101601f19168101906001600160401b038211908210176110f257604052565b6001600160401b0381116110f257601f01601f191660200190565b81601f820112156110485780359061119282611160565b926111a0604051948561113d565b8284526020838301011161104857815f926020809301838601378301015290565b906112ae9163ffffffff815116825261128f61127b61126760ff80602086015116602087015261121561120360408701516101c08060408b015289019061108b565b606087015188820360608a015261108b565b908060808701511660808801528060a08701511660a08801528060c08701511660c08801528060e08701511660e08801526101009081870151169087015261012080860151908783039088015261108b565b61014080850151908683039087015261108b565b61016080840151908583039086015261108b565b9161018080830151908201526101a0809201519181840391015261108b565b90565b906112ae91602081528151906112d5610220928360208401526102408301906111c1565b916020840151604083015261131d6112ff604086015194601f19958686830301606087015261108b565b606086015160808501526080860151858583030160a086015261108b565b9360ff60a08201511660c084015260c081015160e08401526113d96113b761139561137361135c60e0860151996101009a8a8a8303018c8b015261108b565b98850151986101209989898303018b8a015261108b565b978401516101409081880152840151976101609888888303018a89015261108b565b968301516101809081870152830151966101a09787878303018988015261108b565b958201516101c09081860152820151956101e09686868303018887015261108b565b948101519061020091828501520151928285030191015261108b565b91906101c083820312611048576040519061140f826110d6565b8193803563ffffffff8116810361104857835261142e6020820161105c565b60208401526001600160401b03916040820135838111611048578161145491840161117b565b60408501526060820135838111611048578161147191840161117b565b60608501526114826080830161105c565b608085015261149360a0830161105c565b60a08501526114a460c0830161105c565b60c08501526114b560e0830161105c565b60e08501526101006114c881840161105c565b908501526101208083013584811161104857826114e691850161117b565b9085015261014080830135848111611048578261150491850161117b565b9085015261016080830135848111611048578261152291850161117b565b9085015261018080830135908501526101a092838301359081116110485761154a920161117b565b910152565b9060406003198301126110485760043591602435906001600160401b038211611048576112ae9160040161117b565b906112ae91602081528151906115a26101c0928360208401526101e08301906111c1565b916020840151604083015261160b6115ed6115cf604087015195601f19968787830301606088015261108b565b606087015160808601526080870151868683030160a087015261108b565b60a086015160c085015260c0860151858583030160e086015261108b565b9361166261163560e08301516101009081870152830151966101209787878303018988015261108b565b9582015161014090818601528201516101609081860152820151956101809686868303018887015261108b565b94810151906101a091828501520151928285030191015261108b565b60ff16600181101590816116ae575b501561169557565b604051632758b53f60e21b815260546004820152602490fd5b6006915011155f61168d565b60ff16600181101590816116ea575b50156116d157565b604051632758b53f60e21b815260556004820152602490fd5b6004915011155f6116c9565b60ff1660018110159081611726575b501561170d57565b604051632758b53f60e21b815260566004820152602490fd5b6003915011155f611705565b60ff1660018110159081611762575b501561174957565b604051632758b53f60e21b815260576004820152602490fd5b6005915011155f611741565b60ff166001811015908161179e575b501561178557565b604051632758b53f60e21b815260586004820152602490fd5b6004915011155f61177d565b159190821561183a5751611821575b6117de5750516117c557565b604051632758b53f60e21b815260276004820152602490fd5b90610200905111611808576117ef57565b604051632758b53f60e21b815260256004820152602490fd5b604051632758b53f60e21b815260266004820152602490fd5b604051632758b53f60e21b815260296004820152602490fd5b610200905111156117b957604051632758b53f60e21b815260286004820152602490fd5b611882575161186957565b604051632758b53f60e21b815260466004820152602490fd5b61020090511161188e57565b604051632758b53f60e21b815260186004820152602490fd5b6118cb57516118b257565b604051632758b53f60e21b815260596004820152602490fd5b6102009051116118d757565b604051632758b53f60e21b8152605a6004820152602490fd5b63ffffffff81511615611a7d5760ff8060208301511660018110159081611a71575b5015611a58576040908183019081515115611a40576101008092515111611a2857608060608501515111611a10578061195361198a9260808701511661167e565b6119628160a0870151166116ba565b6119718160c0870151166116f6565b6119808160e087015116611732565b828501511661176e565b8061012084015151116119f8578061014084015151116119e05761016083015151116119c95750806101a06101806119c7930151910151906118a7565b565b51632758b53f60e21b815260606004820152602490fd5b8151632758b53f60e21b8152605f6004820152602490fd5b8151632758b53f60e21b8152605e6004820152602490fd5b8251632758b53f60e21b8152605d6004820152602490fd5b8251632758b53f60e21b8152605c6004820152602490fd5b8251632758b53f60e21b8152605b6004820152602490fd5b604051632758b53f60e21b815260086004820152602490fd5b600c915011155f611912565b604051632758b53f60e21b815260096004820152602490fd5b969594939615611aff576102008091511161188e57825111611ae65715611ac2575b506119c7936117aa565b51611acd575f611ab8565b604051632758b53f60e21b8152601c6004820152602490fd5b604051632758b53f60e21b815260176004820152602490fd5b604051632758b53f60e21b8152601e6004820152602490fd5b602081519101207feb71a536ce684e9690e23b6bc2e2bf9e6e3838e3415231004890df79a69a71228114908115611b6b575b5015611b5257565b604051632758b53f60e21b815260216004820152602490fd5b7face68ac1c0ebbe9f5d482a1dd74e397c3953cd5bfa87e0ff8538fb660352a0fc9150145f611b4a565b60ff1690600182101580611c62575b15611c4b5715611c325760018114908115611c27575b5015611be8575115611bcf576119c790611b18565b604051632758b53f60e21b815260226004820152602490fd5b9051611c0e5751611bf557565b604051632758b53f60e21b815260616004820152602490fd5b604051632758b53f60e21b815260206004820152602490fd5b60039150145f611bba565b604051632758b53f60e21b815260236004820152602490fd5b6024604051632758b53f60e21b8152816004820152fd5b506003821115611ba4565b6119c790611c7b81516118f0565b611cb3602082015160408301516060840151608085015161012086015190610140870151926101608801519461018089015196611a96565b611cd560ff60a08301511660c083015160e08401519061010085015192611b95565b611cea6101a08201516101c08301519061185e565b6102006101e08201519101519061185e565b611d0681516118f0565b611d3b602082015160408301516060840151608085015160a08601519060c08701519260e08801519461010089015196611a96565b61012081015115611d715780611d5f6101406119c79301516101608301519061185e565b6101a06101808201519101519061185e565b604051632758b53f60e21b8152601d6004820152602490fd5b60405190611d97826110d6565b816101a05f9182815282602082015260609283604083015283808301528060808301528060a08301528060c08301528060e0830152806101008301528361012083015283610140830152836101608301526101808201520152565b60405190611dff826110d6565b81611e08611d8a565b81526101a05f9182602082015260609283604083015280848301528360808301528060a08301528360c08301528060e0830152836101008301528061012083015280610140830152836101608301526101808201520152565b519060ff8216820361104857565b90929192611e7c81611160565b91611e8a604051938461113d565b8294828452828201116110485760206119c793019061106a565b9080601f830112156110485781516112ae92602001611e6f565b91906101c0838203126110485760405190611ed8826110d6565b8193805163ffffffff81168103611048578352611ef760208201611e61565b602084015260408101516001600160401b0392908381116110485781611f1e918401611ea4565b604085015260608201518381116110485781611f3b918401611ea4565b6060850152611f4c60808301611e61565b6080850152611f5d60a08301611e61565b60a0850152611f6e60c08301611e61565b60c0850152611f7f60e08301611e61565b60e0850152610100611f92818401611e61565b90850152610120808301518481116110485782611fb0918501611ea4565b90850152610140808301518481116110485782611fce918501611ea4565b90850152610160808301518481116110485782611fec918501611ea4565b9085015261018080830151908501526101a092838301519081116110485761154a9201611ea4565b61201c611df2565b5080518101602090818101828483031261104857838301516001600160401b039485821161104857019283926101c094859103126110485760405194612061866110d6565b8184015181811161104857838361207a92870101611ebe565b8652604084015182870152606084015181811161104857838361209f92870101611ea4565b60408701526080840151606087015260a08401518181116110485783836120c892870101611ea4565b608087015260c084015160a087015260e08401518181116110485783836120f192870101611ea4565b60c0870152610100948585015160e0880152610120958686015183811161104857858561212092890101611ea4565b90880152610140958686015190880152610160958686015190880152610180958686015183811161104857858561215992890101611ea4565b908801526101a09586860151908801528401519081116110485761217e930101611ea4565b9082015290565b6040519061219282611106565b8161219b611d8a565b81526102005f9182602082015260609283604083015280848301528360808301528060a08301528060c08301528360e08301528361010083015280610120830152836101408301528061016083015283610180830152806101a0830152836101c08301526101e08201520152565b612211612185565b5080518101602090818101828483031261104857838301516001600160401b039485821161104857019283926102209485910312611048576040519461225686611106565b8184015181811161104857838361226f92870101611ebe565b8652604084015182870152606084015181811161104857838361229492870101611ea4565b60408701526080840151606087015260a08401518181116110485783836122bd92870101611ea4565b60808701526122ce60c08501611e61565b60a087015260e084015160c0870152610100948585015182811161104857850184603f8201121561104857848160408661230b9401519101611e6f565b60e0880152610120958686015183811161104857858561232d92890101611ea4565b90880152610140958686015190880152610160958686015183811161104857858561235a92890101611ea4565b908801526101809586860151908801526101a0958686015183811161104857858561238792890101611ea4565b908801526101c09586860151908801526101e095868601518381116110485785856123b492890101611ea4565b908801526102009586860151908801528401519081116110485761217e930101611ea4565b919082039182116123e657565b634e487b7160e01b5f52601160045260245ffd5b90815181101561240b570160200190565b634e487b7160e01b5f52603260045260245ffd5b9061242982611160565b612436604051918261113d565b8281528092612447601f1991611160565b0190602036910137565b5f1981146123e65760010190565b9081515b801515806124d4575b15612479575f1901612463565b919091815181146124d05761248d8161241f565b915f90815b8381106124a0575050505090565b6124cb906001600160f81b03196124b782856123fa565b5116841a6124c582886123fa565b53612451565b612492565b5090565b505f19810181811161250257602f60f81b906001600160f81b0319906124fa90866123fa565b51161461246c565b60245f634e487b7160e01b81526011600452fd5b9081511561258e57156125895760286125316112ae9261245f565b604051938161254a86935180926020808701910161106a565b8201602f60f81b602082015261256a82518093602060218501910161106a565b01662e6f647061737360c81b602182015203600881018452018261113d565b905090565b9150506125b757604051602081016001600160401b038111828210176110f2576040525f815290565b604051632758b53f60e21b8152601f6004820152602490fd5b6125d9906125ea565b156125e45761016e90565b61016d90565b6003811615908161260a575b8115612600575090565b6101909150061590565b60648106151591506125f6565b6001811480156126e0575b80156126d6575b80156126cc575b80156126c2575b80156126b8575b80156126ae575b6126a7576004811490811561269c575b8115612691575b8115612686575b5061268057612671906125ea565b1561267b57601d90565b601c90565b50601e90565b600b9150145f612663565b60098114915061265c565b600681149150612655565b5050601f90565b50600c8114612645565b50600a811461263e565b5060088114612637565b5060078114612630565b5060058114612629565b5060038114612622565b80156123e6575f190190565b9063ffffffff8092166030019182116123e657565b63ffffffff91828216156127b757815f908482945b1693841561273b57600a6127348792612451565b9504612720565b93509091936127498461241f565b9391825b612758575050505090565b600a9082166001600160f81b03196127718383066126f6565b60f81b165f198501908582116127a3579061279461279c949392881a91896123fa565b5304926126ea565b918261274d565b634e487b7160e01b87526011600452602487fd5b9150506040516127c681611122565b60018152600360fc1b602082015290565b60ff166030019060ff82116123e657565b604051906127f582611122565b6002825260ff6020830191602036843716612812600a82066127d7565b9083516001101561240b57600a60ff8161283f938260f81b809660f81b165f1a60218901530416066127d7565b60f81b165f1a9082511561240b575390565b6040519061285e82611122565b6008825260203681840137600890815b61287757505090565b63ffffffff16600a6001600160f81b03196128938284066126f6565b60f81b16915f198401848111612502576128b36128bb945f1a91876123fa565b5304916126ea565b908161286e565b604051906128cf82611122565b6009825260203681840137600990815b6128e857505090565b63ffffffff16600a6001600160f81b03196129048284066126f6565b60f81b16915f198401848111612502576128b3612924945f1a91876123fa565b90816128df565b6040519061293882611122565b6003825260208201602036823763ffffffff809216612959600a82066126f6565b9284516002101561240b575f936001600160f81b0319929060f81b8316851a60228701538261298e600a8481850416066126f6565b60f81b16851a8651600110156129dc57916064600a926129b59460218a01530416066126f6565b60f81b16821a918351156129c857505390565b634e487b7160e01b81526032600452602490fd5b634e487b7160e01b86526032600452602486fdfea164736f6c6343000814000a";
+  const _bytecode = "0x6080806040523461001a57611bcc908161001f823930815050f35b5f80fdfe604060808152600480361015610013575f80fd5b5f91823560e01c8063044757be14610944578063277fff0e1461092257806331718570146108bb5780633e48402514610853578063468534b51461084157806347559590146107f857806347a30e91146107de57806348b52944146107c15780635dcdf765146106bc5780636435b5de1461068957806364a2f01e146106515780636a3d01bb146105935780636d27f2481461057157806378b71eb914610551578063798ae86214610403578063ad547d1c146103e6578063bb34d85314610385578063bba6516814610373578063c5dfbf1914610351578063cc86920414610334578063cd8cd18414610317578063d5b97825146102f7578063d6f5ec60146102be578063fa12dff614610288578063fde53722146102735763fe138d691461013b575f80fd5b60a036600319011261026f5761014f610966565b61015761097a565b6001600160401b039060443582811161026b576101779036908701610af0565b9160843590811161026b5761019160ff9136908801610af0565b9316600181101580610260575b156102495760010361022257906101b761010092610ea9565b511161020b576064356101e557516101ce57505080f35b9060596024925191632758b53f60e21b8352820152fd5b6102009051116101f457505080f35b90605a6024925191632758b53f60e21b8352820152fd5b8151632758b53f60e21b8152606081850152602490fd5b60ff1661023257610100906101b7565b8251632758b53f60e21b8152606d81860152602490fd5b8451632758b53f60e21b8152606c81880152602490fd5b50600781111561019e565b8680fd5b8280fd5b8361028561028036610c1c565b6112b3565b80f35b6102ba826102a661029836610cef565b6102a06112ef565b506113d9565b906102b0826112b3565b5191829182610d2a565b0390f35b838260203660031901126102f3576102ba906102e06102db6109de565b611a20565b90519182916020835260208301906109b9565b5080fd5b8360203660031901126103145761028561030f610966565b610f21565b80fd5b8360203660031901126103145761028561032f610966565b610f5d565b8360203660031901126103145761028561034c610966565b610ee5565b838260203660031901126102f3576102ba906102e061036e6109de565b611a91565b8361028561038036610c1c565b611145565b50826060366003190112610314576001600160401b0392803584811161026f576103b29036908301610af0565b93602435928315158403610314576044359182116103145750916103e06102ba95926102e094369101610af0565b916116e5565b836020366003190112610314576102856103fe610966565b610e6d565b508060031936011261026f5781359160ff60f81b831680930361054d576001600160401b039360243585811694919085900361031457506024839261053e926102ba95519060209889988984019283526001845261046084610a61565b63ffffffff916104ab61047a84633b9aca00850416611afa565b936103e86104a38282610497828289620f42408c04160616611afa565b96818904160616611afa565b940616611afa565b936104c08a519d8e9751928391890190610998565b850192602d60f81b93848d8201526104e28d8351938491602185019101610998565b018360218201526104fd8c8351938491602285019101610998565b01826022820152610517825180938d602385019101610998565b01906023820152610530825180938b8885019101610998565b010390810187520185610a7c565b519282849384528301906109b9565b8380fd5b6102ba8261056661056136610cef565b6113d9565b905191829182610d2a565b838260203660031901126102f3576102ba906102e061058e6109de565b611afa565b5082606036600319011261031457506105aa6109de565b906102ba6105b661097a565b9161053e60266105df6105d96105d36105cd6109f1565b986118da565b966119b7565b96611a20565b958351968791602097635052462d60e01b89850152610607815180928b602488019101610998565b830190602d60f81b91826024820152610629825180938c602585019101610998565b01906025820152610642825180938a8785019101610998565b01036006810187520185610a7c565b50826020366003190112610314578235906001600160401b03821161031457506106846102ba936102e092369101610af0565b61162e565b505060203660031901126102f35780356001600160401b03811161026f57610285916106b791369101610b0e565b610f99565b50919060203660031901126102f35762015180813504906107b292805b610258811061078b575b506106ed8461179f565b8310156107745760019283905b600c821115610739575b505015610722575060ff9063ffffffff845193168352166020820152f35b6024906053855191632758b53f60e21b8352820152fd5b61074386836117e6565b908181106107645761075e91610758916115a8565b91611620565b906106fa565b5050919250509060015f80610704565b8451632758b53f60e21b8152605381840152602490fd5b93926107968461179f565b908181106107b9576107ae6107b4926107ae926115a8565b94611620565b6106d9565b9394506106e3565b836020366003190112610314576102856107d9610966565b610ea9565b6102ba826107ee61029836610cef565b906102b08261123c565b508060031936011261026f5761080c6109de565b63ffffffff6024358181169283820361026b5716160361082a578280f35b9060696024925191632758b53f60e21b8352820152fd5b8361028561084e36610c1c565b61123c565b50826060366003190112610314575061086a6109de565b906102ba61087661097a565b9161053e602661089361088d6105d36105cd6109f1565b96611a91565b958351968791602097634f44502d60e01b89850152610607815180928b602488019101610998565b506108c536610c1c565b6108ce81611145565b60a08101511561090b576060810151156108f457602f60e081920151160361082a578280f35b8151632758b53f60e21b8152606b81850152602490fd5b8151632758b53f60e21b8152601d81850152602490fd5b838260203660031901126102f3576102ba906102e061093f6109de565b6118da565b838260203660031901126102f3576102ba906102e0610961610966565b6119b7565b6004359060ff8216820361097657565b5f80fd5b6024359060ff8216820361097657565b359060ff8216820361097657565b5f5b8381106109a95750505f910152565b818101518382015260200161099a565b906020916109d281518092818552858086019101610998565b601f01601f1916010190565b6004359063ffffffff8216820361097657565b6044359063ffffffff8216820361097657565b359063ffffffff8216820361097657565b61016081019081106001600160401b03821117610a3157604052565b634e487b7160e01b5f52604160045260245ffd5b61010081019081106001600160401b03821117610a3157604052565b604081019081106001600160401b03821117610a3157604052565b601f909101601f19168101906001600160401b03821190821017610a3157604052565b6001600160401b038111610a3157601f01601f191660200190565b929192610ac682610a9f565b91610ad46040519384610a7c565b829481845281830111610976578281602093845f960137010152565b9080601f8301121561097657816020610b0b93359101610aba565b90565b919091610160818403126109765760405190610b2982610a15565b8193610b3482610a04565b8352610b426020830161098a565b60208401526001600160401b039060408301358281116109765781610b68918501610af0565b604085015260608301358281116109765781610b85918501610af0565b606085015260808301358281116109765781610ba2918501610af0565b608085015260a083013591821161097657610bbe918301610af0565b60a0830152610bcf60c0820161098a565b60c0830152610be060e0820161098a565b60e0830152610100610bf381830161098a565b90830152610120610c0581830161098a565b90830152610c1761014080920161098a565b910152565b60031960208282011261097657600435916001600160401b0391828411610976576101009084830301126109765760405192610c5784610a45565b806004013583811161097657826004610c7292840101610b0e565b845260248101356020850152604481013583811161097657826004610c9992840101610af0565b604085015260648101356060850152608481013592831161097657610cc860e4926004610ce795840101610af0565b608085015260a481013560a085015260c481013560c085015201610a04565b60e082015290565b602060031982011261097657600435906001600160401b038211610976578060238301121561097657816024610b0b93600401359101610aba565b6020815281516101009081602084015260e0610e5063ffffffff928381511690610120918288015260ff90816020820151169061014091828a015282610dd28a610dbb610da4610d8a6040870151610160808601526102808501906109b9565b606087015161011f199461018086828503019101526109b9565b8d6080870151906101a085828503019101526109b9565b908c6101c060a087015192828503019101526109b9565b948160c0840151166101e08c01528188840151166102008c0152818a840151166102208c0152820151166102408a015201511661026087015260208701516040870152610e31604088015191601f1992838983030160608a01526109b9565b90606088015160808801526080880151908783030160a08801526109b9565b9460a081015160c086015260c08101518286015201511691015290565b60ff1660018110159081610e9d575b5015610e8457565b604051632758b53f60e21b815260546004820152602490fd5b6006915011155f610e7c565b60ff1660018110159081610ed9575b5015610ec057565b604051632758b53f60e21b815260556004820152602490fd5b6004915011155f610eb8565b60ff1660018110159081610f15575b5015610efc57565b604051632758b53f60e21b815260566004820152602490fd5b6003915011155f610ef4565b60ff1660018110159081610f51575b5015610f3857565b604051632758b53f60e21b815260576004820152602490fd5b6005915011155f610f30565b60ff1660018110159081610f8d575b5015610f7457565b604051632758b53f60e21b815260586004820152602490fd5b6004915011155f610f6c565b63ffffffff8151161561112c5760ff908160208201511660018110159081611120575b5015611107576040808201805151156110ef576080905151116110d85760608201805151156110c0576080905151116110a95760808201908151511561109257610100809251511161107b57608060a0840151511161106457508161104a84610140936110328260c06110629998015116610e6d565b6110418260e086015116610ea9565b83015116610ee5565b61105a8361012083015116610f21565b015116610f5d565b565b51632758b53f60e21b8152605d6004820152602490fd5b51632758b53f60e21b815260666004820152602490fd5b51632758b53f60e21b815260656004820152602490fd5b51632758b53f60e21b815260646004820152602490fd5b8151632758b53f60e21b815260636004820152602490fd5b51632758b53f60e21b8152605c6004820152602490fd5b8151632758b53f60e21b8152605b6004820152602490fd5b604051632758b53f60e21b815260086004820152602490fd5b600c915011155f610fbc565b604051632758b53f60e21b815260096004820152602490fd5b61114f8151610f99565b60208101511561122357610200906040918083830151511161120b576080820190815151116111f3576060820151156111cf575b5060c0810151156111b75760e0015163ffffffff16156111a05750565b51632758b53f60e21b815260686004820152602490fd5b8151632758b53f60e21b815260676004820152602490fd5b51516111db575f611183565b8151632758b53f60e21b8152601c6004820152602490fd5b8251632758b53f60e21b815260176004820152602490fd5b8251632758b53f60e21b815260186004820152602490fd5b604051632758b53f60e21b8152601e6004820152602490fd5b61124581611145565b60a081015161129a5760608101511561128157600f60e081920151160361126857565b604051632758b53f60e21b815260696004820152602490fd5b604051632758b53f60e21b8152606b6004820152602490fd5b604051632758b53f60e21b8152606a6004820152602490fd5b6112bc81611145565b60a0810151156112d657602060e081920151160361126857565b604051632758b53f60e21b8152601d6004820152602490fd5b604051906112fc82610a45565b60405160e08361130b83610a15565b5f9283815283602082015260609081604082015281808201528160808201528160a08201528460c082015284848201528461010082015284610120820152846101408201528252836020830152806040830152838183015260808201528260a08201528260c08201520152565b519063ffffffff8216820361097657565b519060ff8216820361097657565b81601f820112156109765780516113ad81610a9f565b926113bb6040519485610a7c565b8184526020828401011161097657610b0b9160208085019101610998565b6113e16112ef565b50805181019060209081830190828185031261097657808301516001600160401b039182821161097657019061010092838387031261097657604080519661142888610a45565b86850151848111610976578501809161016092839103126109765782519161144f83610a15565b61145a898301611378565b8352611467848301611389565b89840152606082015186811161097657858a61148592850101611397565b84840152608082015186811161097657858a6114a392850101611397565b606084015260a082015186811161097657858a6114c292850101611397565b608084015260c082015190868211610976576114e5868b61153794860101611397565b60a08501526114f660e08401611389565b60c0850152611506898401611389565b60e08501526101209261151a848201611389565b8a8601526101409361152d858301611389565b9086015201611389565b9082015287528084015186880152606084015183811161097657828761155f92870101611397565b908701526080830151606087015260a083015191821161097657610ce79461158992840101611397565b608085015260c081015160a085015260e081015160c085015201611378565b919082039182116115b557565b634e487b7160e01b5f52601160045260245ffd5b9081518110156115da570160200190565b634e487b7160e01b5f52603260045260245ffd5b906115f882610a9f565b6116056040519182610a7c565b8281528092611616601f1991610a9f565b0190602036910137565b5f1981146115b55760010190565b9081515b801515806116a3575b15611648575f1901611632565b9190918151811461169f5761165c816115ee565b915f90815b83811061166f575050505090565b61169a906001600160f81b031961168682856115c9565b5116841a61169482886115c9565b53611620565b611661565b5090565b505f1981018181116116d157602f60f81b906001600160f81b0319906116c990866115c9565b51161461163b565b60245f634e487b7160e01b81526011600452fd5b9081511561175d5715611758576028611700610b0b9261162e565b6040519381611719869351809260208087019101610998565b8201602f60f81b6020820152611739825180936020602185019101610998565b01662e6f647061737360c81b6021820152036008810184520182610a7c565b905090565b91505061178657604051602081016001600160401b03811182821017610a31576040525f815290565b604051632758b53f60e21b8152601f6004820152602490fd5b6117a8906117b9565b156117b35761016e90565b61016d90565b600381161590816117d9575b81156117cf575090565b6101909150061590565b60648106151591506117c5565b6001811480156118af575b80156118a5575b801561189b575b8015611891575b8015611887575b801561187d575b611876576004811490811561186b575b8115611860575b8115611855575b5061184f57611840906117b9565b1561184a57601d90565b601c90565b50601e90565b600b9150145f611832565b60098114915061182b565b600681149150611824565b5050601f90565b50600c8114611814565b50600a811461180d565b5060088114611806565b50600781146117ff565b50600581146117f8565b50600381146117f1565b80156115b5575f190190565b9063ffffffff8092166030019182116115b557565b63ffffffff918282161561198657815f908482945b1693841561190a57600a6119038792611620565b95046118ef565b9350909193611918846115ee565b9391825b611927575050505090565b600a9082166001600160f81b03196119408383066118c5565b60f81b165f19850190858211611972579061196361196b949392881a91896115c9565b5304926118b9565b918261191c565b634e487b7160e01b87526011600452602487fd5b91505060405161199581610a61565b60018152600360fc1b602082015290565b60ff166030019060ff82116115b557565b604051906119c482610a61565b6002825260ff60208301916020368437166119e1600a82066119a6565b908351600110156115da57600a60ff81611a0e938260f81b809660f81b165f1a60218901530416066119a6565b60f81b165f1a908251156115da575390565b60405190611a2d82610a61565b6008825260203681840137600890815b611a4657505090565b63ffffffff16600a6001600160f81b0319611a628284066118c5565b60f81b16915f1984018481116116d157611a82611a8a945f1a91876115c9565b5304916118b9565b9081611a3d565b60405190611a9e82610a61565b6009825260203681840137600990815b611ab757505090565b63ffffffff16600a6001600160f81b0319611ad38284066118c5565b60f81b16915f1984018481116116d157611a82611af3945f1a91876115c9565b9081611aae565b60405190611b0782610a61565b6003825260208201602036823763ffffffff809216611b28600a82066118c5565b928451600210156115da575f936001600160f81b0319929060f81b8316851a602287015382611b5d600a8481850416066118c5565b60f81b16851a865160011015611bab57916064600a92611b849460218a01530416066118c5565b60f81b16821a91835115611b9757505390565b634e487b7160e01b81526032600452602490fd5b634e487b7160e01b86526032600452602486fdfea164736f6c6343000814000a";
 
   
       type ODPPassportLibConstructorParams = [signer?: Signer] | ConstructorParameters<typeof ContractFactory>;

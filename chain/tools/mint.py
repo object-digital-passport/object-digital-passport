@@ -2,7 +2,7 @@
 """
 Object Digital Passport — Mint CLI
 Author: Andrei Chernikov
-Specification v0.5 (CLI targets the current v0.5 contract line)
+Specification 0.6 draft (CLI targets the spec 0.6 contract line)
 
 Usage:
     python mint.py                  # interactive mint → saves passports/<Passport ID>.odpass (SPEC §15)
@@ -102,6 +102,22 @@ EDITION_MODEL_CODES = {
     "dynamic": 4,
 }
 
+# Anchor type bits (must match ODPAnchorBits in ODPPassportTypes.sol)
+ANCHOR_BITS = {
+    "photo": 1,
+    "dimensions": 2,
+    "materials": 4,
+    "distinguishing_features": 8,
+    "marks": 16,
+    "file_hash": 32,
+    "perceptual_hash": 64,
+    "c2pa": 128,
+    "nfc": 256,
+    "numbered_seal": 512,
+    "fingerprint": 1024,
+    "dna": 2048,
+}
+
 CONTRACT_ABI = [
     # Creator Registry
     {
@@ -133,114 +149,104 @@ CONTRACT_ABI = [
             ]
         }],
     },
-    # Passport — physical
+    # Passport — unified 0.6 mint tuple (PassportMintInputs)
     {
         "name": "mintPhysical",
         "type": "function",
         "stateMutability": "nonpayable",
         "inputs": [
-            {"name": "year",         "type": "uint32"},
-            {"name": "month",        "type": "uint8"},
-            {"name": "dataHash",     "type": "bytes32"},
-            {"name": "dataUrl",      "type": "string"},
-            {"name": "imageHash",    "type": "bytes32"},
-            {"name": "imageUrl",     "type": "string"},
-            {"name": "sealType",     "type": "uint8"},
-            {"name": "sealHash",     "type": "bytes32"},
-            {"name": "nfcPublicKey", "type": "bytes"},
-            {"name": "nfcModel",     "type": "string"},
-            {"name": "imageHash2",   "type": "bytes32"},
-            {"name": "imageUrl2",    "type": "string"},
-            {"name": "imageHash3",   "type": "bytes32"},
-            {"name": "imageUrl3",    "type": "string"},
+            {
+                "name": "m", "type": "tuple",
+                "components": [
+                    {
+                        "name": "core", "type": "tuple",
+                        "components": [
+                            {"name": "year",  "type": "uint32"},
+                            {"name": "month", "type": "uint8"},
+                            {"name": "title", "type": "string"},
+                            {"name": "authorName", "type": "string"},
+                            {"name": "shortDescription", "type": "string"},
+                            {"name": "domain", "type": "string"},
+                            {"name": "contentClass", "type": "uint8"},
+                            {"name": "lifecycleStatus", "type": "uint8"},
+                            {"name": "aiStatus", "type": "uint8"},
+                            {"name": "verificationMethod", "type": "uint8"},
+                            {"name": "editionModel", "type": "uint8"},
+                        ],
+                    },
+                    {"name": "dataHash",  "type": "bytes32"},
+                    {"name": "dataUrl",   "type": "string"},
+                    {"name": "imageHash", "type": "bytes32"},
+                    {"name": "imageUrl",  "type": "string"},
+                    {"name": "fileHash",  "type": "bytes32"},
+                    {"name": "anchorsHash", "type": "bytes32"},
+                    {"name": "anchorTypesMask", "type": "uint32"},
+                ],
+            },
             {"name": "dataUrlIsFolderBase", "type": "bool"},
-            {"name": "auxCommitmentHash", "type": "bytes32"},
-            {"name": "auxCommitmentUri", "type": "string"},
             {"name": "mintOnBehalfOfCreatorId", "type": "string"},
         ],
-        "outputs": [{"name": "humanId", "type": "string"}],
+        "outputs": [{"name": "passportId", "type": "string"}],
     },
-    # Passport — digital
     {
         "name": "mintDigital",
         "type": "function",
         "stateMutability": "nonpayable",
         "inputs": [
-            {"name": "year",      "type": "uint32"},
-            {"name": "month",     "type": "uint8"},
-            {"name": "dataHash",  "type": "bytes32"},
-            {"name": "dataUrl",   "type": "string"},
-            {"name": "imageHash", "type": "bytes32"},
-            {"name": "imageUrl",  "type": "string"},
-            {"name": "imageHash2", "type": "bytes32"},
-            {"name": "imageUrl2",  "type": "string"},
-            {"name": "imageHash3", "type": "bytes32"},
-            {"name": "imageUrl3",  "type": "string"},
-            {"name": "fileHash",  "type": "bytes32"},
+            {
+                "name": "m", "type": "tuple",
+                "components": [
+                    {
+                        "name": "core", "type": "tuple",
+                        "components": [
+                            {"name": "year",  "type": "uint32"},
+                            {"name": "month", "type": "uint8"},
+                            {"name": "title", "type": "string"},
+                            {"name": "authorName", "type": "string"},
+                            {"name": "shortDescription", "type": "string"},
+                            {"name": "domain", "type": "string"},
+                            {"name": "contentClass", "type": "uint8"},
+                            {"name": "lifecycleStatus", "type": "uint8"},
+                            {"name": "aiStatus", "type": "uint8"},
+                            {"name": "verificationMethod", "type": "uint8"},
+                            {"name": "editionModel", "type": "uint8"},
+                        ],
+                    },
+                    {"name": "dataHash",  "type": "bytes32"},
+                    {"name": "dataUrl",   "type": "string"},
+                    {"name": "imageHash", "type": "bytes32"},
+                    {"name": "imageUrl",  "type": "string"},
+                    {"name": "fileHash",  "type": "bytes32"},
+                    {"name": "anchorsHash", "type": "bytes32"},
+                    {"name": "anchorTypesMask", "type": "uint32"},
+                ],
+            },
             {"name": "dataUrlIsFolderBase", "type": "bool"},
-            {"name": "auxCommitmentHash", "type": "bytes32"},
-            {"name": "auxCommitmentUri", "type": "string"},
             {"name": "mintOnBehalfOfCreatorId", "type": "string"},
         ],
-        "outputs": [{"name": "humanId", "type": "string"}],
+        "outputs": [{"name": "passportId", "type": "string"}],
     },
     {
         "anonymous": False,
         "name": "PassportMinted",
         "type": "event",
         "inputs": [
-            {"indexed": True, "name": "humanId", "type": "string"},
+            {"indexed": True, "name": "passportId", "type": "string"},
             {"indexed": True, "name": "creator", "type": "address"},
             {"indexed": False, "name": "creatorId", "type": "string"},
+            {"indexed": False, "name": "title", "type": "string"},
+            {"indexed": False, "name": "authorName", "type": "string"},
+            {"indexed": False, "name": "domain", "type": "string"},
             {"indexed": False, "name": "objectType", "type": "string"},
+            {"indexed": False, "name": "contentClass", "type": "uint8"},
             {"indexed": False, "name": "year", "type": "uint32"},
             {"indexed": False, "name": "month", "type": "uint8"},
             {"indexed": False, "name": "dataHash", "type": "bytes32"},
-            {"indexed": False, "name": "sealType", "type": "uint8"},
-            {"indexed": False, "name": "nfcModel", "type": "string"},
+            {"indexed": False, "name": "anchorsHash", "type": "bytes32"},
+            {"indexed": False, "name": "anchorTypesMask", "type": "uint32"},
             {"indexed": False, "name": "timestamp", "type": "uint256"},
             {"indexed": False, "name": "mintAgent", "type": "address"},
         ],
-    },
-    # Read
-    {
-        "name": "getPassport",
-        "type": "function",
-        "stateMutability": "view",
-        "inputs":  [{"name": "humanId", "type": "string"}],
-        "outputs": [{
-            "name": "", "type": "tuple",
-            "components": [
-                {"name": "humanId",          "type": "string"},
-                {"name": "contractVersion",  "type": "uint8"},
-                {"name": "creator",          "type": "address"},
-                {"name": "owner",            "type": "address"},
-                {"name": "creatorId",        "type": "string"},
-                {"name": "year",         "type": "uint32"},
-                {"name": "month",        "type": "uint8"},
-                {"name": "objectType",   "type": "string"},
-                {"name": "dataHash",     "type": "bytes32"},
-                {"name": "imageHash",    "type": "bytes32"},
-                {"name": "imageHash2",   "type": "bytes32"},
-                {"name": "imageHash3",   "type": "bytes32"},
-                {"name": "fileHash",     "type": "bytes32"},
-                {"name": "sealType",     "type": "uint8"},
-                {"name": "sealHash",     "type": "bytes32"},
-                {"name": "nfcPublicKey", "type": "bytes"},
-                {"name": "nfcModel",     "type": "string"},
-                {"name": "dataUrl",      "type": "string"},
-                {"name": "imageUrl",     "type": "string"},
-                {"name": "imageUrl2",    "type": "string"},
-                {"name": "imageUrl3",    "type": "string"},
-                {"name": "timestamp",    "type": "uint256"},
-                {"name": "revoked",      "type": "bool"},
-                {"name": "revokedAt",    "type": "uint256"},
-                {"name": "revocationReasonHash", "type": "bytes32"},
-                {"name": "auxCommitmentHash", "type": "bytes32"},
-                {"name": "auxCommitmentUri", "type": "string"},
-                {"name": "mintAgent", "type": "address"},
-            ]
-        }],
     },
 ]
 
@@ -639,23 +645,23 @@ def cmd_mint(args):
     choice      = prompt("Type", "1")
     is_physical = (choice == "1")
 
-    # Object info
+    # Object info — the on-chain card (immutable; typo = revoke + re-mint)
     print()
-    print("  [2/6] Object info")
-    title     = prompt("Title")
+    print("  [2/6] Object info (on-chain card — immutable after mint)")
+    title       = prompt("Title (max 128)")
+    author_name = prompt("Author / brand name (max 128, goes on-chain)")
+    short_description = prompt("Short description (max 256; object kind, technique, creation year)")
     now       = datetime.now(timezone.utc)
     reg_year  = int(prompt("Year", str(now.year)))
     reg_month = now.month
     domain    = prompt("Domain (e.g. contemporary_art / digital_art / software)", "contemporary_art" if is_physical else "digital_art")
-    description = prompt_optional("Description")
+    description = prompt_optional("Full description")
+    subject = prompt_optional("Subject (what is depicted / what the object is about)")
     creation_date = prompt_optional("Creation date / period (e.g. 2026-02-18 or 2025-11)")
     status = prompt("Status (concept / prototype / produced_object / archived)", "produced_object")
     content_class = prompt("Content class (static / time_based / spatial / textual / composite / executable)", "static")
     ai_status = prompt("AI status (none / assisted / generated)", "none")
     edition_model = prompt("Edition model (unique / limited / open / dynamic)", "limited" if is_physical else "unique")
-    location = prompt_optional("Current location")
-    rights_note = prompt_optional("Rights note")
-    condition_note = prompt_optional("Condition note")
 
     if is_physical:
         obj_type = prompt(
@@ -665,7 +671,6 @@ def cmd_mint(args):
         medium   = prompt_optional("Medium")
         edition_n = prompt_optional("Edition number (e.g. 1)")
         edition_t = prompt_optional("Edition total (e.g. 3)")
-        materials_raw = prompt_optional("Materials (comma-separated, e.g. canvas, oil paint)")
     else:
         obj_type = "digital"
         subtype  = prompt("Subtype (image / video / 3d / audio / document / other)", "image")
@@ -675,10 +680,14 @@ def cmd_mint(args):
     if not data_url:
         print("  ⚠  Empty dataUrl: Verify cannot fetch the bundle; only .odpass / passport.json holders can verify.")
 
-    # Image (preview)
+    # Primary photo (identification anchor — required for physical)
     print()
-    print("  [3/6] Preview image (optional)")
-    image_path       = prompt_optional("Path to image file")
+    if is_physical:
+        print("  [3/6] Primary photo (required identification anchor)")
+        image_path = prompt("Path to photo file")
+    else:
+        print("  [3/6] Preview image (optional)")
+        image_path = prompt_optional("Path to image file")
     image_hash_bytes = ZERO_BYTES32
     image_url        = ""
 
@@ -686,6 +695,9 @@ def cmd_mint(args):
         image_hash_bytes = sha256_file(image_path)
         image_url        = prompt_optional("URL where image will be hosted")
         print(f"  Image SHA-256: {image_hash_bytes.hex()}")
+    elif is_physical:
+        print(f"  ERROR: Photo not found: {image_path} — a physical passport is not valid without it.")
+        sys.exit(1)
     elif image_path:
         print(f"  WARNING: File not found — skipping image")
         image_path = ""
@@ -708,22 +720,47 @@ def cmd_mint(args):
         print(f"  File SHA-256: {file_hash_bytes.hex()}")
         file_size = Path(file_path).stat().st_size
 
-    # Seal (physical only)
-    seal_type     = 0
-    seal_data     = {}
-    nfc_pub_key   = b""
-    nfc_model_str = ""   # "NTAG424DNA" / "NTAG424DNA_TAGTAMPER" if NFC seal, "" otherwise
+    # Identification anchors (docs/REQUIREMENTS_FIELDS_V0.6.md §5.2).
+    # Hard minimum enforced by the contract: physical = photo + dimensions +
+    # materials + distinguishing features; digital = exact file hash.
+    anchors = []
+    anchor_mask = 0
+
+    def add_anchor(a_type, data=None, hash_hex=None, verification=None):
+        nonlocal anchor_mask
+        a = {"type": a_type}
+        if data:
+            a["data"] = data
+        if hash_hex:
+            a["hash"] = f"sha256:{hash_hex}"
+        if verification:
+            a["verification"] = verification
+        anchors.append(a)
+        anchor_mask |= ANCHOR_BITS[a_type]
 
     if is_physical:
+        add_anchor("photo", {"role": "primary"}, image_hash_bytes.hex())
         print()
-        print("  [4/6] Physical seal (required)")
-        print("    1 — NFC crypto chip (NTAG 424 DNA) only")
-        print("    2 — Numbered seal only")
-        print("    3 — Both NFC + numbered seal")
-        seal_choice = prompt("Seal type", "2")
-        seal_type   = int(seal_choice)
+        print("  [4/6] Identification anchors (required for physical objects)")
+        dims = prompt("Dimensions with units (e.g. 60 x 80 cm, canvas depth 2 cm)")
+        add_anchor("dimensions", {"text": dims})
+        materials_raw = prompt("Materials & technique (e.g. canvas, oil paint)")
+        add_anchor("materials", {"list": [m.strip() for m in materials_raw.split(",") if m.strip()]})
+        features = prompt("Distinguishing features (defects, craquelure, repairs — what a copy would not have)")
+        add_anchor("distinguishing_features", {"text": features})
+        marks = prompt_optional("Inscriptions & markings (signatures, stamps, serials + where)")
+        if marks:
+            add_anchor("marks", {"text": marks})
 
-        if seal_type in (1, 3):
+        print()
+        print("  Optional physical seal anchor:")
+        print("    0 — none")
+        print("    1 — NFC crypto chip (NTAG 424 DNA)")
+        print("    2 — Numbered seal")
+        print("    3 — Both")
+        seal_choice = int(prompt("Seal", "0") or "0")
+
+        if seal_choice in (1, 3):
             print()
             print("  NFC chip data (NTAG 424 DNA / TagTamper):")
             nfc_uid    = prompt("Chip UID (hex, e.g. 04a3f912cc8b4e)")
@@ -731,18 +768,17 @@ def cmd_mint(args):
             nfc_model  = prompt("Model (NTAG424DNA / NTAG424DNA_TAGTAMPER)", "NTAG424DNA_TAGTAMPER")
             nfc_date   = prompt("Installation date (YYYY-MM-DD)", now.strftime("%Y-%m-%d"))
             nfc_notes  = prompt_optional("Notes (location, installation method)")
-            nfc_pub_key = bytes.fromhex(nfc_key.replace("0x", ""))
-            nfc_model_str = nfc_model   # keep for contract call
-            seal_data["nfc"] = {
+            nfc_data = {
                 "uid":         nfc_uid,
-                "publicKey":   nfc_key,
+                "publicKey":   nfc_key.replace("0x", ""),
                 "model":       nfc_model,
                 "installedAt": nfc_date,
             }
             if nfc_notes:
-                seal_data["nfc"]["notes"] = nfc_notes
+                nfc_data["notes"] = nfc_notes
+            add_anchor("nfc", nfc_data)
 
-        if seal_type in (2, 3):
+        if seal_choice in (2, 3):
             print()
             print("  Numbered seal data:")
             seal_number = prompt("Seal number (as printed on seal)")
@@ -750,28 +786,33 @@ def cmd_mint(args):
             seal_color  = prompt_optional("Color")
             seal_size   = prompt_optional("Size (e.g. 30x30mm)")
             seal_notes  = prompt_optional("Notes")
-            seal_data["numbered"] = {
-                "number": seal_number,
-                "type":   seal_type_s,
-            }
-            if seal_color: seal_data["numbered"]["color"] = seal_color
-            if seal_size:  seal_data["numbered"]["size"]  = seal_size
-            if seal_notes: seal_data["numbered"]["notes"] = seal_notes
+            seal_data = {"number": seal_number, "type": seal_type_s}
+            if seal_color: seal_data["color"] = seal_color
+            if seal_size:  seal_data["size"]  = seal_size
+            if seal_notes: seal_data["notes"] = seal_notes
+            add_anchor("numbered_seal", seal_data)
+    else:
+        add_anchor("file_hash", None, file_hash_bytes.hex())
+        if image_path:
+            add_anchor("photo", {"role": "preview"}, image_hash_bytes.hex())
 
     # Build passport JSON
     print()
     print("  [5/6] Building passport...")
 
     reg_unix, reg_clock = registration_clock_block(now)
-    creator_name = prompt("Creator name (for passport)")
+    has_nfc_anchor = any(a["type"] == "nfc" for a in anchors)
     verification_method = prompt(
         "Verification method (self_asserted / institutional / nfc / c2pa / hybrid)",
-        "nfc" if (is_physical and seal_type in (1, 3)) else ("c2pa" if not is_physical else "self_asserted"),
+        "nfc" if (is_physical and has_nfc_anchor) else ("c2pa" if not is_physical else "self_asserted"),
     )
     passport = {
-        "version":    "0.5",
+        "version":    "0.6",
         "passportId": None,  # filled after mint
+        # On-chain card — these four fields MUST equal the on-chain values byte-for-byte
         "title":      title,
+        "authorName": author_name,
+        "shortDescription": short_description,
         "domain":     domain,
         "objectType": "physical" if is_physical else "digital",
         "status":     status,
@@ -781,11 +822,12 @@ def cmd_mint(args):
         "editionModel": edition_model,
         "authorship": {
             "author": {
-                "name": creator_name,
+                "name": author_name,
                 "wallet": account.address,
                 "creatorId": creator_id,
             }
         },
+        "anchors":      anchors,
         "year":         reg_year,
         "month":        reg_month,
         "registeredAt": reg_unix,
@@ -793,18 +835,10 @@ def cmd_mint(args):
     }
     if description:
         passport["description"] = description
+    if subject:
+        passport["subject"] = subject
     if creation_date:
         passport["creationDate"] = creation_date
-
-    current_state = {}
-    if location:
-        current_state["location"] = location
-    if rights_note:
-        current_state["rightsNote"] = rights_note
-    if condition_note:
-        current_state["conditionNote"] = condition_note
-    if current_state:
-        passport["currentState"] = current_state
 
     passport["edition"] = {"model": edition_model}
     if is_physical and edition_n and edition_t:
@@ -817,12 +851,6 @@ def cmd_mint(args):
             physical["category"] = obj_type
         if medium:
             physical["medium"] = medium
-        if materials_raw:
-            physical["materials"] = [
-                {"name": m.strip()} for m in materials_raw.split(",") if m.strip()
-            ]
-        if seal_data:
-            physical["seal"] = seal_data
         if physical:
             passport["physical"] = physical
     else:
@@ -832,12 +860,6 @@ def cmd_mint(args):
         digital["fileHash"] = f"sha256:{file_hash_bytes.hex()}"
         digital["fileSize"] = file_size
         passport["digital"] = digital
-
-    if image_path:
-        passport["image"] = {
-            "url":  image_url,
-            "hash": f"sha256:{image_hash_bytes.hex()}"
-        }
 
     print()
     print("  Optional additional metadata (key=value per line, empty line to finish)")
@@ -856,30 +878,27 @@ def cmd_mint(args):
 
     # Compute hashes
     data_hash_bytes = sha256_json(passport)
-
-    seal_hash_bytes = ZERO_BYTES32
-    if is_physical and seal_data:
-        seal_hash_bytes = sha256_obj(seal_data)
+    # anchorsHash: canonical minified serialization of the anchors array alone
+    anchors_hash_bytes = sha256_obj(anchors)
 
     # Preview
     print()
     print("  [6/6] Preview")
     divider()
-    print(f"  Title:       {title}")
-    print(f"  Type:        {'physical' if is_physical else 'digital'} / {obj_type}")
-    print(f"  Profile ID:  {creator_id}")
-    print(f"  Year/Month:  {reg_year}-{reg_month:02d}")
-    print(f"  Data URL:    {data_url}")
-    print(f"  Data hash:   {data_hash_bytes.hex()}")
-    if is_physical:
-        print(f"  Seal type:   {seal_type}")
-        print(f"  Seal hash:   {seal_hash_bytes.hex()}")
-        if nfc_pub_key:
-            print(f"  NFC key:     {nfc_pub_key.hex()[:32]}...")
-    else:
-        print(f"  File hash:   {file_hash_bytes.hex()}")
+    print(f"  Title:        {title}")
+    print(f"  Author:       {author_name}")
+    print(f"  Short desc:   {short_description}")
+    print(f"  Type:         {'physical' if is_physical else 'digital'} / {obj_type}")
+    print(f"  Profile ID:   {creator_id}")
+    print(f"  Year/Month:   {reg_year}-{reg_month:02d}")
+    print(f"  Data URL:     {data_url}")
+    print(f"  Data hash:    {data_hash_bytes.hex()}")
+    print(f"  Anchors:      {', '.join(a['type'] for a in anchors)} (mask {anchor_mask})")
+    print(f"  Anchors hash: {anchors_hash_bytes.hex()}")
+    if not is_physical:
+        print(f"  File hash:    {file_hash_bytes.hex()}")
     if image_path:
-        print(f"  Image hash:  {image_hash_bytes.hex()}")
+        print(f"  Image hash:   {image_hash_bytes.hex()}")
     divider()
 
     confirm = input("  Mint? (yes/no): ").strip().lower()
@@ -891,64 +910,35 @@ def cmd_mint(args):
     print()
     print("  Minting (gas only, no protocol fee)...")
 
-    core = {
-        "year": reg_year,
-        "month": reg_month,
-        "title": title,
-        "domain": domain,
-        "contentClass": CONTENT_CLASS_CODES.get(content_class, 1),
-        "lifecycleStatus": STATUS_CODES.get(status, 3),
-        "aiStatus": AI_STATUS_CODES.get(ai_status, 1),
-        "verificationMethod": VERIFICATION_METHOD_CODES.get(verification_method, 1),
-        "editionModel": EDITION_MODEL_CODES.get(edition_model, 1),
-        "currentLocation": location,
-        "rightsNote": rights_note,
-        "conditionNote": condition_note,
-        "damageHistoryHash": ZERO_BYTES32,
-        "damageHistoryUrl": "",
+    mint_inputs = {
+        "core": {
+            "year": reg_year,
+            "month": reg_month,
+            "title": title,
+            "authorName": author_name,
+            "shortDescription": short_description,
+            "domain": domain,
+            "contentClass": CONTENT_CLASS_CODES.get(content_class, 1),
+            "lifecycleStatus": STATUS_CODES.get(status, 3),
+            "aiStatus": AI_STATUS_CODES.get(ai_status, 1),
+            "verificationMethod": VERIFICATION_METHOD_CODES.get(verification_method, 1),
+            "editionModel": EDITION_MODEL_CODES.get(edition_model, 1),
+        },
+        "dataHash": to_bytes32(data_hash_bytes),
+        "dataUrl": data_url,
+        "imageHash": to_bytes32(image_hash_bytes),
+        "imageUrl": image_url,
+        "fileHash": to_bytes32(file_hash_bytes),
+        "anchorsHash": to_bytes32(anchors_hash_bytes),
+        "anchorTypesMask": anchor_mask,
     }
 
-    if is_physical:
-        fn = contract.functions.mintPhysical(
-            {
-                "core": core,
-                "dataHash": to_bytes32(data_hash_bytes),
-                "dataUrl": data_url,
-                "imageHash": to_bytes32(image_hash_bytes),
-                "imageUrl": image_url,
-                "sealType": seal_type,
-                "sealHash": to_bytes32(seal_hash_bytes),
-                "nfcPublicKey": nfc_pub_key,
-                "nfcModel": nfc_model_str,
-                "imageHash2": ZERO_BYTES32,
-                "imageUrl2": "",
-                "imageHash3": ZERO_BYTES32,
-                "imageUrl3": "",
-                "auxCommitmentHash": ZERO_BYTES32,
-                "auxCommitmentUri": "",
-            },
-            False,           # dataUrlIsFolderBase — CLI uses full dataUrl; use web UI for folder-base mint
-            "",              # mintOnBehalfOfCreatorId — empty = mint as connected wallet
-        )
-    else:
-        fn = contract.functions.mintDigital(
-            {
-                "core": core,
-                "dataHash": to_bytes32(data_hash_bytes),
-                "dataUrl": data_url,
-                "imageHash": to_bytes32(image_hash_bytes),
-                "imageUrl": image_url,
-                "imageHash2": ZERO_BYTES32,
-                "imageUrl2": "",
-                "imageHash3": ZERO_BYTES32,
-                "imageUrl3": "",
-                "fileHash": to_bytes32(file_hash_bytes),
-                "auxCommitmentHash": ZERO_BYTES32,
-                "auxCommitmentUri": "",
-            },
-            False,           # dataUrlIsFolderBase
-            "",              # mintOnBehalfOfCreatorId
-        )
+    mint_fn = contract.functions.mintPhysical if is_physical else contract.functions.mintDigital
+    fn = mint_fn(
+        mint_inputs,
+        False,           # dataUrlIsFolderBase — CLI uses full dataUrl; use web UI for folder-base mint
+        "",              # mintOnBehalfOfCreatorId — empty = mint as connected wallet
+    )
 
     tx_hash, receipt = send_tx(w3, account, fn, net)
 
@@ -979,9 +969,9 @@ def cmd_mint(args):
         "mode": "full",
         "onChain": {
             "dataHash": bytes32_to_hex0x(to_bytes32(data_hash_bytes)),
+            "anchorsHash": bytes32_to_hex0x(to_bytes32(anchors_hash_bytes)),
+            "anchorTypesMask": anchor_mask,
             "imageHash": b32h(image_hash_bytes),
-            "imageHash2": ZERO_HEX32,
-            "imageHash3": ZERO_HEX32,
             "fileHash": b32h(file_hash_bytes),
             "txHash": tx_hex,
             "chainId": int(net["chain_id"]),

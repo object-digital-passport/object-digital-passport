@@ -6,9 +6,9 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 export declare namespace ODPPassportProofRegistry {
       
-    export type ProofRecordStruct = {proofId: string, contractVersion: BigNumberish, prover: string, passportId: string, noteHash: BytesLike, noteUrl: string, timestamp: BigNumberish}
+    export type ProofRecordStruct = {proofId: string, contractVersion: BigNumberish, prover: string, passportId: string, documentHash: BytesLike, documentUrl: string, timestamp: BigNumberish}
 
-    export type ProofRecordStructOutput = [proofId: string, contractVersion: bigint, prover: string, passportId: string, noteHash: string, noteUrl: string, timestamp: bigint] & {proofId: string, contractVersion: bigint, prover: string, passportId: string, noteHash: string, noteUrl: string, timestamp: bigint }
+    export type ProofRecordStructOutput = [proofId: string, contractVersion: bigint, prover: string, passportId: string, documentHash: string, documentUrl: string, timestamp: bigint] & {proofId: string, contractVersion: bigint, prover: string, passportId: string, documentHash: string, documentUrl: string, timestamp: bigint }
   
     }
 
@@ -110,7 +110,7 @@ decodeFunctionResult(functionFragment: 'submitProof', data: BytesLike): Result;
 
     
     submitProof: TypedContractMethod<
-      [passportId: string, noteHash: BytesLike, noteUrl: string, year: BigNumberish, month: BigNumberish, ],
+      [passportId: string, documentHash: BytesLike, documentUrl: string, year: BigNumberish, month: BigNumberish, ],
       [string],
       'nonpayable'
     >
@@ -140,7 +140,7 @@ getFunction(nameOrSignature: 'odpRegistry'): TypedContractMethod<
       'view'
     >;
 getFunction(nameOrSignature: 'submitProof'): TypedContractMethod<
-      [passportId: string, noteHash: BytesLike, noteUrl: string, year: BigNumberish, month: BigNumberish, ],
+      [passportId: string, documentHash: BytesLike, documentUrl: string, year: BigNumberish, month: BigNumberish, ],
       [string],
       'nonpayable'
     >;

@@ -5,9 +5,13 @@ import "./ODPErrors.sol";
 import "./ODPPassportLib.sol";
 
 /**
- * Satellite: passport-bound institutional proofs (P / M attestations).
+ * Satellite: passport-bound institutional attestations (P / M profiles).
  * Deploy after `ObjectDigitalPassport`; constructor takes the registry address.
- * Keeps EIP-170 headroom on the main registry while preserving the v0.5 proof model.
+ *
+ * Attestation model 0.6 (docs/REQUIREMENTS_FIELDS_V0.6.md §4.3): an attestation states
+ * "this passport/object has been examined" as a whole — no per-anchor granularity.
+ * `documentHash` optionally anchors a signed expertise document (PDF, report);
+ * details of what exactly was examined belong in that document.
  */
 interface IODPRegistryForProofs {
     struct CreatorRecord {
@@ -43,15 +47,15 @@ contract ODPPassportProofRegistry {
 
     bytes1 private constant TYPE_P = "P";
     bytes1 private constant TYPE_M = "M";
-    uint8 private constant CONTRACT_VERSION = 5;
+    uint8 private constant CONTRACT_VERSION = 6;
 
     struct ProofRecord {
         string proofId;
         uint8 contractVersion;
         string prover;
         string passportId;
-        bytes32 noteHash;
-        string noteUrl;
+        bytes32 documentHash; // SHA-256 of the signed expertise document; bytes32(0) = none
+        string documentUrl;
         uint256 timestamp;
     }
 
@@ -74,14 +78,14 @@ contract ODPPassportProofRegistry {
 
     function submitProof(
         string calldata passportId,
-        bytes32 noteHash,
-        string calldata noteUrl,
+        bytes32 documentHash,
+        string calldata documentUrl,
         uint32 year,
         uint8 month
     ) external returns (string memory proofId) {
         IODPRegistryForProofs.PassportClassificationView memory classification = odpRegistry.getPassportClassification(passportId);
         if (classification.revoked) revert EC(11);
-        if (!(bytes(noteUrl).length <= 512)) revert EC(10);
+        if (!(bytes(documentUrl).length <= 512)) revert EC(10);
         if (!(year > 0)) revert EC(9);
         if (!(month >= 1 && month <= 12)) revert EC(8);
         _requireUtcYearMonth(year, month);
@@ -91,8 +95,8 @@ contract ODPPassportProofRegistry {
         bytes1 tp = odpRegistry.getCreator(callerId).typePrefix;
         if (!(tp == TYPE_P || tp == TYPE_M)) revert EC(6);
 
-        if (noteHash == bytes32(0)) {
-            if (!(bytes(noteUrl).length == 0)) revert EC(5);
+        if (documentHash == bytes32(0)) {
+            if (!(bytes(documentUrl).length == 0)) revert EC(5);
         }
 
         proofId = _generateProofId(year, month, passportId);
@@ -102,8 +106,8 @@ contract ODPPassportProofRegistry {
             contractVersion: CONTRACT_VERSION,
             prover: callerId,
             passportId: passportId,
-            noteHash: noteHash,
-            noteUrl: noteUrl,
+            documentHash: documentHash,
+            documentUrl: documentUrl,
             timestamp: block.timestamp
         });
 

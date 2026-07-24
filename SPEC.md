@@ -1,6 +1,6 @@
 # Object Digital Passport
 
-### Specification v0.5 — DRAFT
+### Specification v0.6 — DRAFT
 
 *Author: Andrei Chernikov*
 
@@ -23,7 +23,7 @@
 ## Table of Contents
 
 - [Languages and translations](#languages-and-translations)
-- [IMPORTANT: 0.x deployments, the reference v0.5 line, and alignment toward v1](#important-0x-deployments-the-reference-v05-line-and-alignment-toward-v1)
+- [IMPORTANT: 0.x deployments, the reference v0.6 line, and alignment toward v1](#important-0x-deployments-the-reference-v06-line-and-alignment-toward-v1)
 - [1. Overview](#1-overview)
 - [2. Passport ID](#2-passport-id)
 - [3. Profile ID](#3-profile-id)
@@ -44,7 +44,7 @@
 - [18. Interop, positioning, and DID (informative)](#18-interop-positioning-and-did-informative)
 - [19. URI scheme and optional resolvers (informative)](#19-uri-scheme-and-optional-resolvers-informative)
 
-## IMPORTANT: 0.x deployments, the reference v0.5 line, and alignment toward v1
+## IMPORTANT: 0.x deployments, the reference v0.6 line, and alignment toward v1
 
 This repository documents a **v0.X** protocol line. During **0.X**, contract rules may still change.
 
@@ -53,7 +53,7 @@ In plain terms:
 - A **deployment** means one specific contract address (**one registry instance**).
 - Your `creatorId` and passport records belong to **that** deployment only.
 - Launching another deployment — even for a newer 0.X line — does **not** move existing records; the same wallet may receive a **different** `creatorId` in the new registry.
-- **This specification describes the reference v0.5 *branch*** in this repository: on-chain packed `**CONTRACT_VERSION` = 5** (EIP-170 split: linked `**ODPPassportLib`**, optional satellites, slimmer read surface — see §14). NFC allowlist in reference `**ODPPassportLib`**: `**NTAG424DNA`** or `**NTAG424DNA_TAGTAMPER`**. Other addresses = separate registries; pair **chain + contract + ABI** + `**CONTRACT_VERSION`**.
+- **This specification describes the reference v0.6 *branch*** in this repository (storage-model redesign — see `docs/REQUIREMENTS_FIELDS_V0.6.md`): on-chain packed `**CONTRACT_VERSION` = 6** (EIP-170 split: linked `**ODPPassportLib`**, optional satellites — see §14). The 0.6 model stores an **immutable on-chain card** (`title`, `authorName`, `shortDescription`, `domain`), anchors the identification block via `**anchorsHash`** + `**anchorTypesMask`**, and replaces all overwritable current-state fields with **append-only passport events**. Other addresses = separate registries; pair **chain + contract + ABI** + `**CONTRACT_VERSION`**.
 
 If your goal is **one wallet + one long-lived `creatorId`** as canonical storage across protocol generations, wait for stable **v1**, which may define migration or dual-read explicitly.
 
@@ -63,41 +63,43 @@ The reference stack is intentionally split:
 
 - `**ObjectDigitalPassport.sol`** — the **main registry** (passports, profiles, proofs, governance surface in the ABI).
 - `**ODPPassportLib.sol`** — a **separately deployed, linked library** holding heavy **pure** validation / formatting logic so the registry contract stays under the **24 KiB EIP-170** creation limit (shared `**error EC`** with the registry).
-- `**ODPWalletDocumentAnchor.sol`** (optional **satellite**) — **wallet-level** `attestExternalDocument` / `getExternalDocumentAttestation` moved out of the main registry bytecode (**EIP-170**); in the **v0.4** reference stack the satellite’s constructor takes the main registry address and reuses its creator registry for access control.
+- `**ODPWalletDocumentAnchor.sol`** (optional **satellite**) — **wallet-level** `attestExternalDocument` / `getExternalDocumentAttestation` moved out of the main registry bytecode (**EIP-170**); the satellite’s constructor takes the main registry address and reuses its creator registry for access control.
 - `**ODPCounterfeitConcern.sol`** (optional **satellite**) — `**raiseCounterfeitConcern` / `clearCounterfeitConcern` / `getCounterfeitConcern`** for profiles `**P`** and `**M`** only; constructor pins one main registry; storage is **not** on the monolith so EIP-170 headroom is preserved.
 
 Deploy **library first**, then **registry** (with linker metadata), then **document anchor** / **counterfeit satellite** if used — see repository deploy scripts.
 
 ### Forward alignment: reference line → stable v1 (design intent)
 
-The **v0.4** reference implementation in this repository and this specification are written so that a future **stable v1** can define a clear **forward** path without pretending 0.x registries silently interoperate:
+The **v0.6** reference implementation in this repository and this specification are written so that a future **stable v1** can define a clear **forward** path without pretending 0.x registries silently interoperate:
 
-- On-chain records carry packed `**contractVersion`** at mint (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). **This branch’s reference mints byte `4`.** Older 0.x deployments at other addresses are **not** interchangeable; **peripheral** contracts (satellites) are wired by configuration.
+- On-chain records carry packed `**contractVersion`** at mint (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). **This branch’s reference mints byte `6`.** Older 0.x deployments at other addresses are **not** interchangeable; **peripheral** contracts (satellites) are wired by configuration.
 - `**passportId`** (Passport ID string; legacy ABIs may use `**humanId`** for the same field), `**creatorId`**, and `**passport.json**` versioning rules aim to stay stable enough that **v1** can specify **migration or dual-read** (e.g. tooling that verifies old deployments alongside a v1 registry) rather than ad-hoc field drift.
 - **v1** is not specified here; when it ships, it will define any **migration**, **bridging**, or **freeze** of v0.x registries explicitly. Until then, this paragraph states **engineering intent**, not a promise of in-place upgrade for any particular deployment.
 
-### On-chain capabilities of the reference (v0.4)
+### On-chain capabilities of the reference (v0.6)
 
-The following describes the **reference stack in this repository (v0.4)**. At mint, `**CONTRACT_VERSION` = 4** (byte `**4`**). The `Passport` struct table in §8 is normative for this deployment line.
+The following describes the **reference stack in this repository (v0.6)**. At mint, `**CONTRACT_VERSION` = 6** (byte `**6`**). The `Passport` struct table in §8 is normative for this deployment line.
 
-**Normative features** (same registry family; **v0.4** mints byte **4**):
+**Normative features** (same registry family; **v0.6** mints byte **6**):
 
 - `**owner`** (starts as `creator`) and `**transferPassport`**; optional `**delegateCreatorPublishing`** / `**revokeCreatorPublishing**` (account-scoped publishing agent for `**updatePassportUrls**`)
 - **Mint agent (delegated mint):** agent calls `**requestMintAgentRole(principalCreatorId)`**, principal calls `**confirmMintAgentRole(agent)`**; then `**mintDigital` / `mintPhysical` / `mint*ViaExtension**` accept trailing `**mintOnBehalfOfCreatorId**` (principal’s profile id, or `**""**` for self-mint). On-chain `**Passport.creator**` and `**owner**` are the principal wallet; `**Passport.mintAgent**` is `**address(0)**` if the principal minted, else the **delegate** wallet. Monthly mint caps (**C** / **B**) count against the **principal** wallet. Pending state: `**mintAgentDelegationPending(keccak256(abi.encodePacked(principalCreatorId, agent)))`**; active delegate: `**mintAgentForCreator(creatorId)`**. Lifecycle: `**MintAgentUpdate**` (`kind`: 0=request, 1=cancel, 2=activated, 3=removed). `**revokeMintAgentRole**` (principal), `**renounceMintAgentRole(principalCreatorId)**` (agent), `**cancelMintAgentRequest(principalCreatorId)**` (agent, pending only).
 - `**revokePassport**` (creator or `**governance**` address) with `**revocationReasonHash**`
-- Up to **three** image anchors: `**imageHash`**, `**imageHash2`**, `**imageHash3**` (and URL hints `**imageUrl**`, `**imageUrl2**`, `**imageUrl3**`)
+- **On-chain card** at mint: `**title`**, `**authorName`**, `**shortDescription`**, `**domain`** — immutable, no edit path (typo = revoke + re-mint), MUST equal the same `passport.json` fields byte-for-byte
+- **Identification anchors**: on-chain `**anchorsHash`** (SHA-256 of the canonical `anchors` array in `passport.json`) + `**anchorTypesMask`** (bit set of anchor types, §9); one primary `**imageHash`** / `**imageUrl`** on-chain — additional photos are `photo` anchors inside `anchors[]`
+- **Append-only events**: `**recordPassportEvent(passportId, kind, value, note, attachmentHash, attachmentUrl)`** (status / location / rights / condition / damage / restoration / custom) — replaces the v0.5 overwritable current-state setters and aux/NDPP commitment updaters
 - **P-affiliation audit**: `**getPAffiliationAudit`**, `**detachPAffiliation`** (parent P); timestamps for join / detach
 - **Compact reverts**: failures use `**error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference `**ObjectDigitalPassport`** is deployed **with a linked library** `**ODPPassportLib`** (shared `**error EC`**) so the registry creation bytecode stays within the 24 KiB (EIP-170) limit; deploy library first, then the registry (see repository deploy scripts). Local Hardhat tests may use `**allowUnlimitedContractSize`**; verify `**[ODP] EIP-170:`** output after compile before mainnet deploy.
 
 **Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`web/frontend/localization/ru/RELEASE_v0.4.md`](web/frontend/localization/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
 
-> **Deployable v0.5 split-line note:** the deployable reference line in this repository keeps the **main registry** focused on creator records, core passport state, minting, transfer, revocation, and mutable passport fields. To stay within `EIP-170`, several optional surfaces are served by **paired satellites** instead of the main registry ABI:
+> **Deployable v0.6 split-line note:** the deployable reference line in this repository keeps the **main registry** focused on creator records, the immutable passport core (card + hashes), minting, transfer, revocation, and append-only passport events. To stay within `EIP-170`, several optional surfaces are served by **paired satellites** instead of the main registry ABI:
 > - `**ODPRegistryRelations`** — P-affiliation, mint-agent delegation, creator publishing delegation
 > - `**ODPPassportProofRegistry`** — `**submitProof`** and proof reads
 > - `**ODPExtensionMintRouter`** — `**setMintExtension`** and `**mint*ViaExtension`**
 > - optional `**ODPWalletDocumentAnchor`** and `**ODPCounterfeitConcern`**
 >
-> Integrators MUST NOT assume those methods exist on the deployable `**ObjectDigitalPassport`** ABI itself. They SHOULD route them to the configured satellite for the same registry address (`**NET.relations`**, `**NET.proofRegistry`**, etc.). The deployable split line also omits convenience `**getRemainingMints()`** and global `**freeze()`** on the main registry.
+> Integrators MUST NOT assume those methods exist on the deployable `**ObjectDigitalPassport`** ABI itself. They SHOULD route them to the configured satellite for the same registry address (`**NET.relations`**, `**NET.proofRegistry`**, etc.). The deployable split line also omits the convenience `**getRemainingMints()`** getter on the main registry.
 
 **Type-definition governance with on-chain timelock** is not stored in the reference bytecode; operate governance (multisig / DAO) off-chain and document hashes in releases if needed.
 
@@ -128,16 +130,16 @@ This specification uses the following terms in a precise sense:
 
 | Term                             | Definition                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Passport ID**                  | The `ODP-…` object identifier (§2). In `passport.json` use `**passportId`**. The reference v0.4 `Passport` / `ProofRecord` structs and ABI use the Solidity field name `**passportId`** for that string (JSON-RPC, events). Older deployments or drafts may still show `**humanId**` in the ABI for the **same** value — pair **bytecode + ABI** to your registry.                                                                                                                                                                                                                                                                                                                                                                               |
+| **Passport ID**                  | The `ODP-…` object identifier (§2). In `passport.json` use `**passportId`**. The reference `Passport` / `ProofRecord` structs and ABI use the Solidity field name `**passportId`** for that string (JSON-RPC, events). Older deployments or drafts may still show `**humanId**` in the ABI for the **same** value — pair **bytecode + ABI** to your registry.                                                                                                                                                                                                                                                                                                                                                                               |
 | **Profile ID**                   | The issuer’s `C-…` / `B-…` / `P-…` / `M-…` identifier (§3). In `passport.json` it appears as `**creator.creatorId`**; on-chain event and function payloads use the string `**creatorId`**.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **Mint**, **minting**            | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Passport ID**, records **hashes**, optional **URLs**, and seal metadata. The **reference implementation (v0.4)** charges **network fees only** (no separate ODP protocol fee on mint). Minting does **not** upload `passport.json` to the blockchain; if `dataUrl` is set, the creator **must** host the **§15 `.odpass`** ZIP there — **not** bare `passport.json` (see §8–§9). If `dataUrl` is empty, public web verification cannot fetch a bundle — only a holder of the canonical `**.odpass`** or **passport.json** bytes can verify against `dataHash`. |
-| **Register (`registerCreator`)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **profile ID** before any mint or proof. **Reference (v0.4):** network fees only (no separate **REGISTER_FEE**).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Mint**, **minting**            | Submitting an Ethereum transaction that **creates** a new on-chain passport record via the contract’s `mintPhysical` or `mintDigital` (or equivalent). The contract assigns the **Passport ID**, records **hashes**, optional **URLs**, and seal metadata. The **reference implementation (v0.6)** charges **network fees only** (no separate ODP protocol fee on mint). Minting does **not** upload `passport.json` to the blockchain; if `dataUrl` is set, the creator **must** host the **§15 `.odpass`** ZIP there — **not** bare `passport.json` (see §8–§9). If `dataUrl` is empty, public web verification cannot fetch a bundle — only a holder of the canonical `**.odpass`** or **passport.json** bytes can verify against `dataHash`. |
+| **Register (`registerCreator`)** | Submitting `registerCreator` (or equivalent) so the wallet receives a permanent **profile ID** before any mint or proof. **Reference (v0.6):** network fees only (no separate **REGISTER_FEE**).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | **Deployment**                   | One specific smart-contract instance at one address (one registry). Profile IDs and passport records are tied to that deployment.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | **Passport**                     | The on-chain **Passport** record plus, when applicable, **passport.json** bytes matching `dataHash` (from a **§15 `.odpass`** at `dataUrl` when set — verifiers extract `passport.json` from the ZIP; see §9).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `**passport.json`**              | The normative off-chain JSON document (§9).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `**.odpass`** (ODP bundle)       | Normative **ZIP** file using the `.odpass` extension: portable offline container for a passport (§15). **Required** entries: `passport.json`, `manifest.json` (UX metadata, not a trust anchor); optional `originals/` paths for sidecar bytes. The bundle does **not** replace on-chain truth — verifiers still compare hashes to `**dataHash`** (and optional image/file hashes) from the registry. **Public `dataUrl` MUST serve this ZIP only** — not raw `passport.json` (§9). The same bytes may be passed offline as a file.                                                                                                                                                                                                              |
 | `**dataUrl`**                    | Optional HTTPS URL where the **§15 `.odpass`** ZIP is served (**only** — bare `.json` at this URL is **not** allowed; §8–§9). May be empty on-chain; if empty, verifiers relying on HTTP **cannot** obtain the bundle unless the user provides it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Gas**                          | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution. The **reference (v0.4)** has no additional ODP protocol fee on register/mint.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| **Gas**                          | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution. The **reference (v0.6)** has no additional ODP protocol fee on register/mint.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Verification**                 | The read-only process (§11) that retrieves on-chain data and, when `dataUrl` is set, fetches the `**.odpass`**, extracts `passport.json`, and checks consistency with `dataHash` and other fields. If `dataUrl` is empty, file-based verification still applies when the verifier has a `**.odpass`** or `passport.json`.                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 
@@ -147,7 +149,7 @@ This specification uses the following terms in a precise sense:
 
 Every registered object receives a globally unique Passport ID (human-readable `ODP-…` string).
 
-> **Wire names:** in the reference **v0.4** contract, the struct field is `**passportId`** (`Passport`, `ProofRecord`, and function parameters such as `submitProof`). In `passport.json`, use `**passportId`**. *Passport ID* is the specification’s name for the same string. Legacy ABIs may use `**humanId`** for the identical field.
+> **Wire names:** in the reference contract, the struct field is `**passportId`** (`Passport`, `ProofRecord`, and function parameters such as `submitProof`). In `passport.json`, use `**passportId`**. *Passport ID* is the specification’s name for the same string. Legacy ABIs may use `**humanId`** for the identical field.
 
 ### Format
 
@@ -178,7 +180,7 @@ This is intentional.
 
 ### Generation algorithm
 
-Reference `**ObjectDigitalPassport`** (v0.4) uses (Solidity `abi.encodePacked`):
+Reference `**ObjectDigitalPassport`** (v0.6) uses (Solidity `abi.encodePacked`):
 
 ```
 key     = uint32(year) * 100 + uint32(month)
@@ -242,7 +244,7 @@ T-NNN-NNN-NNN-NNN
 
 ### Monthly mint caps (reference contract)
 
-The reference `ObjectDigitalPassport` deployment (**v0.4**) limits **new passport mints** per wallet, per **calendar month** (anti-spam sketch; network fees only — no protocol fee). Caps depend on the registered **Creator type**:
+The reference `ObjectDigitalPassport` deployment (**v0.6**) limits **new passport mints** per wallet, per **calendar month** (anti-spam sketch; network fees only — no protocol fee). Caps depend on the registered **Creator type**:
 
 
 | Type | Approximate cap                                                                 |
@@ -273,7 +275,7 @@ M-204-839-112-441   ← museum or collection
 
 ### Generation algorithm
 
-Reference contract (v0.4) uses (packed encoding, same style as Passport ID):
+Reference contract (v0.6) uses (packed encoding, same style as Passport ID):
 
 ```
 entropy  = keccak256(block.timestamp, block.prevrandao, msg.sender, nonce, gasleft())
@@ -355,7 +357,7 @@ C-482-930-174-005
 
 The short format is intentionally compact — easy to type, read aloud, or print.
 
-### Mint agent delegation (reference v0.4)
+### Mint agent delegation (reference v0.6)
 
 The reference contract supports a **mint agent**: another wallet that may **submit mint transactions** on behalf of a profile owner (**principal**), after a **two-step handshake** — the agent calls `**requestMintAgentRole(principalCreatorId)`**, then the principal (the wallet that owns that profile) calls `**confirmMintAgentRole(agent)`**. Pending requests, replacement of an existing agent, and revocation are defined on-chain (see §8).
 
@@ -389,9 +391,9 @@ Verifiers display only the profile ID, never a self-declared name.
 
 ### Institutional authenticity concern (“counterfeit flag”)
 
-**On-chain (v0.4+):** `**ODPCounterfeitConcern`** exposes `**raiseCounterfeitConcern`**, `**clearCounterfeitConcern`**, `**getCounterfeitConcern**`. Only registered profiles `**P**` or `**M**` may raise; only the raising profile may clear. The flag is an institutional opinion, not a court finding. `**reasonHash**` is `**keccak256(UTF-8)`** of an optional off-chain statement (mirrors verifiers that hash a reason string).
+**On-chain:** `**ODPCounterfeitConcern`** exposes `**raiseCounterfeitConcern`**, `**clearCounterfeitConcern`**, `**getCounterfeitConcern**`. Only registered profiles `**P**` or `**M**` may raise; only the raising profile may clear. The flag is an institutional opinion, not a court finding. `**reasonHash**` is `**keccak256(UTF-8)`** of an optional off-chain statement (mirrors verifiers that hash a reason string).
 
-**Off-chain / proof metadata:** disputes, methodology, and reports remain appropriate in `**passport.json`**, linked documents, and `**submitProof`** (`noteHash` / `noteUrl`).
+**Off-chain / proof metadata:** disputes, methodology, and reports remain appropriate in `**passport.json`**, linked documents, and `**submitProof`** (`documentHash` / `documentUrl`).
 
 ### Optional public allowlist of institution IDs (off-chain, anti-spam)
 
@@ -426,7 +428,7 @@ ODP-2026-03-004829301  (original passport, 2026)
 PRF-YYYY-MM-NNNNNNNN
 ```
 
-Suffix is a **fixed-width decimal** string (eight digits in the reference implementation). Reference `**ObjectDigitalPassport`** (v0.4):
+Suffix is a **fixed-width decimal** string (eight digits in the reference implementation). Reference (v0.6):
 
 ```
 key           = uint32(year) * 100 + uint32(month)          // proof event year/month from tx args
@@ -445,11 +447,11 @@ Example: `PRF-2031-03-07392018`
 | Field             | Type      | Required | Description                                                                                                                  |
 | ----------------- | --------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `proofId`         | `string`  | yes      | Auto-generated: `PRF-YYYY-MM-` + fixed-width numeric suffix (see algorithm above)                                            |
-| `contractVersion` | `uint8`   | yes      | Packed spec line at submission (must match registry; reference deployment → **4**)                                           |
+| `contractVersion` | `uint8`   | yes      | Packed spec line at submission (must match registry; reference deployment → **6**)                                           |
 | `prover`          | `string`  | yes      | profile ID of the institution (e.g. `P-029-384-751-224`)                                                                     |
-| `passportId`      | `string`  | yes      | Passport ID of the attested object (same string as `Passport.passportId`; ABI field name `passportId` in reference **v0.4**) |
-| `noteHash`        | `bytes32` | no       | SHA-256 of an attached document. `bytes32(0)` if none                                                                        |
-| `noteUrl`         | `string`  | no       | URL of the attached document (max 512 chars)                                                                                 |
+| `passportId`      | `string`  | yes      | Passport ID of the attested object (same string as `Passport.passportId`; ABI field name `passportId` in the reference ABI) |
+| `documentHash`    | `bytes32` | no       | SHA-256 of the signed expertise document. `bytes32(0)` if none                                                               |
+| `documentUrl`     | `string`  | no       | URL of the expertise document (max 512 chars; empty when hash is 0)                                                          |
 | `timestamp`       | `uint256` | yes      | Set by the contract                                                                                                          |
 
 
@@ -523,12 +525,12 @@ what must be present, not how it must look.
 ## 6. Physical Seal
 
 A physical seal binds the digital passport to the specific physical object.
-**At least one seal method is required when minting a passport of type `physical`.**
 
-Without a seal, the passport only proves that a record exists on-chain —
-it does not prove that the object in front of you is the registered original.
+**v0.6 model:** seals are **identification anchors** — entries of type `**nfc`** or `**numbered_seal`** inside the `passport.json` `**anchors[]`** block (§9). Their bytes are integrity-anchored on-chain via `**dataHash`** and `**anchorsHash`** and flagged in `**anchorTypesMask`**; there are **no** dedicated on-chain seal fields (`sealType`, `sealHash`, `nfcPublicKey`, `nfcModel` were removed from the registry in the v0.6 line).
 
-Digital object passports (type `digital`) do not require a physical seal.
+A seal is **optional**: the mandatory identification minimum for a physical object is the anchor set `photo` + `dimensions` + `materials` + `distinguishing_features` (§9). A seal anchor adds a stronger, machine-verifiable binding on top of that minimum and is recommended for high-value objects.
+
+Digital object passports (type `digital`) do not use a physical seal.
 The file hash serves as the cryptographic binding.
 
 ### Method A — NFC crypto seal (NTAG 424 DNA TagTamper)
@@ -536,36 +538,36 @@ The file hash serves as the cryptographic binding.
 A cryptographic NFC chip embedded in or attached to the object.
 Recommended for high-value objects, artwork, and collectibles.
 
-**Required on-chain / JSON model:** `**NTAG424DNA`** or `**NTAG424DNA_TAGTAMPER`**. Generic Type 2 tags (e.g. NTAG 213) are **not** accepted by the reference contract’s `nfcModel` allowlist.
+**Model strings in the `nfc` anchor:** `**NTAG424DNA`** or `**NTAG424DNA_TAGTAMPER`**. Generic Type 2 tags (e.g. NTAG 213) are **not** a conforming `nfc` anchor. In the v0.6 line the model string lives in the anchor's `data.model` (SPEC-governed vocabulary), not in an on-chain allowlist.
 
-**How it works in the current ODP v0.5 deployment (NTAG 424 DNA):**
+**How it works in the current ODP v0.6 deployment (NTAG 424 DNA):**
 
 ```
 Registration (required order for issuers):
   1. Provision the tag so the EV2 application key you will publish
-     on-chain is loaded into the chip (typically 16-byte AES key 0x00)
+     is loaded into the chip (typically 16-byte AES key 0x00)
   2. Scan the live tag with the ODP Android companion ([odp-android-companion](https://github.com/object-digital-passport/odp-android-companion); issuer-chip-setup)
      and import odp-chip-issuer-setup JSON into passport.html — confirms
      UID, EV2 key, and TagTamper INTACT before mint
-  3. Record chip UID, model, and deployment notes in passport.json
-  4. Publish the same 16-byte value on-chain as nfcPublicKey
-  5. Passport is hashed and registered on-chain as usual
-  6. Write the NFC carrier (Verify URL) after the passport ID exists
+  3. Record chip UID, model, key, and deployment notes in the `nfc`
+     anchor inside passport.json anchors[]
+  4. Passport is hashed and registered on-chain as usual — the anchor
+     bytes are bound by dataHash and anchorsHash, and the nfc bit is
+     set in anchorTypesMask
+  5. Write the NFC carrier (Verify URL) after the passport ID exists
 
 Verification (primary profile: odp-ntag424-ev2-symmetric-cr-v1):
-  1. Verifier loads nfcPublicKey from blockchain
-  2. Phone runs AuthenticateEV2First using that 16-byte value as the
-     EV2 AES application key
+  1. Verifier obtains the nfc anchor from passport.json and confirms
+     the JSON integrity against on-chain dataHash (or the anchors
+     array alone against anchorsHash)
+  2. Phone runs AuthenticateEV2First using the anchor's 16-byte value
+     as the EV2 AES application key
   3. Chip and phone complete mutual challenge-response (RndA/RndB)
   4. Match    → SEAL_NFC_AUTHENTIC under EV2 symmetric challenge-response
      No match → wrong chip, wrong key, or wrong provisioning
-
-Optional secondary profile (odp-ntag424-nfc-public-key-file-v1):
-  use only when on-chain nfcPublicKey stores mirror bytes in protected
-  file 0x03 instead of the EV2 application key itself.
 ```
 
-**Honest trust note for this spec version:** NTAG 424 DNA does **not** expose a passport-specific ECC private key that signs an arbitrary verifier challenge verifiable with a public key on-chain. Its native challenge-response is **symmetric EV2 mutual authentication**. In ODP v0.5, publishing the 16-byte EV2 application key as `nfcPublicKey` is the primary public verification model. `Read_Sig` remains adjacent manufacturer evidence only.
+**Honest trust note for this spec version:** NTAG 424 DNA does **not** expose a passport-specific ECC private key that signs an arbitrary verifier challenge verifiable with a public key on-chain. Its native challenge-response is **symmetric EV2 mutual authentication**. In the ODP v0.6 line, publishing the 16-byte EV2 application key inside the integrity-anchored `nfc` anchor is the primary public verification model. `Read_Sig` remains adjacent manufacturer evidence only.
 
 **TagTamper behavior:**
 
@@ -580,9 +582,9 @@ Seal removed  → chip reports: TAMPERED (permanent, cannot be reset)
 
 For `NTAG424DNA_TAGTAMPER`, the reference Android companion ([odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)) treats a scan as **high assurance** only when all of the following hold:
 
-1. **EV2 symmetric challenge-response** against on-chain `nfcPublicKey` (16-byte EV2 application key) → `chipKeyMatch = PASS`
+1. **EV2 symmetric challenge-response** against the integrity-anchored key from the `nfc` anchor (16-byte EV2 application key) → `chipKeyMatch = PASS`
 2. **Authenticated TagTamper** after EV2 → `tamperState = INTACT`
-3. **Chip UID match** when `passport.json` / handoff supplies `physical.seal.nfc.uid` → authenticated live UID equals expected UID
+3. **Chip UID match** when `passport.json` / handoff supplies the `nfc` anchor's `data.uid` → authenticated live UID equals expected UID
 
 The companion exposes this as `highAssuranceSeal`. It is **not** checked for plain `NTAG424DNA` passports.
 
@@ -590,16 +592,16 @@ The companion exposes this as `highAssuranceSeal`. It is **not** checked for pla
 
 **Physical installation:**
 The chip must be embedded or encapsulated so that removal causes
-visible destruction. Installation method is described in `seal.nfc.notes`.
+visible destruction. Installation method is described in the anchor's `data.notes`.
 
-**NFC seal fields in passport.json:**
+**`nfc` anchor `data` fields in `passport.json` `anchors[]`:**
 
 
 | Field         | Required | Description                                           |
 | ------------- | -------- | ----------------------------------------------------- |
 | `uid`         | yes      | 7-byte chip UID, lowercase hex                        |
 | `publicKey`   | yes      | For NTAG 424 DNA: 16-byte EV2 AES application key (hex). For other future NFC ICs: deployment-specific public verification material |
-| `model`       | yes      | `NTAG424DNA` or `NTAG424DNA_TAGTAMPER` — must match on-chain `nfcModel` |
+| `model`       | yes      | `NTAG424DNA` or `NTAG424DNA_TAGTAMPER` (SPEC vocabulary) |
 | `installedAt` | yes      | ISO 8601 installation date (e.g. `2026-03-15`)        |
 | `notes`       | no       | Installation method, location, encapsulation material |
 
@@ -612,7 +614,7 @@ Examples: holographic sticker, wax seal, lead seal, tamper-evident label.
 The creator is responsible for using a seal that cannot be removed without visible damage.
 This method provides physical reference, not cryptographic proof.
 
-**Numbered seal fields in passport.json:**
+**`numbered_seal` anchor `data` fields in `passport.json` `anchors[]`:**
 
 
 | Field    | Required | Description                                           |
@@ -624,34 +626,30 @@ This method provides physical reference, not cryptographic proof.
 | `notes`  | no       | Additional description                                |
 
 
-### Seal requirement rule
+### Seal rule (v0.6)
 
 
 | Condition                                                 | Valid?                     |
 | --------------------------------------------------------- | -------------------------- |
-| NFC crypto seal (NTAG 424 DNA / TagTamper, `NTAG424DNA` or `NTAG424DNA_TAGTAMPER`) | ✅ |
-| Numbered seal only                                        | ✅                          |
-| Both seals                                                | ✅                          |
-| Standard NFC tag (NTAG213 etc.)                           | ❌ Not on allowlist         |
-| No seal (physical object)                                 | ❌ Contract rejects         |
+| NFC crypto anchor (NTAG 424 DNA / TagTamper, `NTAG424DNA` or `NTAG424DNA_TAGTAMPER`) | ✅ |
+| Numbered seal anchor only                                 | ✅                          |
+| Both seal anchors                                         | ✅                          |
+| Standard NFC tag (NTAG213 etc.)                           | ❌ Not a conforming `nfc` anchor |
+| No seal, physical object with the anchor minimum (photo + dimensions + materials + distinguishing features) | ✅ Seal is optional in v0.6 |
+| Physical object without the anchor minimum                | ❌ Contract rejects (`anchorTypesMask` check) |
 | No seal (digital object)                                  | ✅ File hash is the binding |
 
 
-### On-chain seal record
+### On-chain binding of seal anchors
 
-
-| Field          | Type      | Description                                     |
-| -------------- | --------- | ----------------------------------------------- |
-| `sealType`     | `uint8`   | `1` = NFC only, `2` = numbered only, `3` = both |
-| `sealHash`     | `bytes32` | SHA-256 of the `seal` object in passport.json   |
-| `nfcPublicKey` | `bytes`   | NFC verification anchor. For NTAG 424 DNA v0.5: typically the 16-byte EV2 AES application key |
+Seal anchors have no dedicated on-chain fields. Their integrity is bound by `**dataHash`** (whole document) and `**anchorsHash`** (the `anchors` array alone), and their presence is visible in `**anchorTypesMask`** (bits `nfc` = 256, `numbered_seal` = 512 — §9).
 
 
 ### Informative — other NFC / tag technologies
 
-- **HF/UHF RFID** or **QR-only** labels: fine for logistics or UX, but they are **not** drop-in replacements for **Level 2A** NFC crypto verification unless a future SPEC defines a binding and an optional `nfcModel` allowlist entry with a normative verify recipe.
-- **Other authenticated NFC ICs** (vendor secure-element tags with documented challenge–response and exportable public keys): MAY be added in a later line by extending the `**ODPPassportLib`** allowlist and SPEC **Level 2A** — generic static NDEF/UID tags remain a poor fit for the same security story as the current NTAG 424 DNA family allowlist.
-- **Bleeding-edge demos** (e.g. auxiliary blockchain-coupled tag stacks): out of scope for the reference allowlist in v0.4; integrations should not imply protocol support without a spec’d `nfcModel` string.
+- **HF/UHF RFID** or **QR-only** labels: fine for logistics or UX, but they are **not** drop-in replacements for **Level 2A** NFC crypto verification unless a future SPEC defines a binding with a normative verify recipe.
+- **Other authenticated NFC ICs** (vendor secure-element tags with documented challenge–response and exportable public keys): MAY be added in a later SPEC revision by extending the `nfc` anchor `data.model` vocabulary and **Level 2A** — generic static NDEF/UID tags remain a poor fit for the same security story as the current NTAG 424 DNA family.
+- **Bleeding-edge demos** (e.g. auxiliary blockchain-coupled tag stacks): out of scope for the reference vocabulary; integrations should not imply protocol support without a spec'd model string.
 
 ---
 
@@ -664,7 +662,7 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Network                          | Polygon PoS (mainnet)                                                                                         |
 | Chain ID                         | 137                                                                                                           |
-| Reference deployment (this repo) | Source in-repo; packed `**CONTRACT_VERSION` 4** at mint; main registry + optional satellites (§4, `chain/deploy/`). |
+| Reference deployment (this repo) | Source in-repo; packed `**CONTRACT_VERSION` 6** at mint; main registry + optional satellites (§4, `chain/deploy/`). |
 | Other Polygon addresses          | Separate registries — **bytecode / ABI** may differ; always pair **address + ABI + `CONTRACT_VERSION`**.      |
 | Testnet                          | Polygon Amoy (chain ID 80002)                                                                                 |
 | Gas token                        | POL (ex-POL)                                                                                                  |
@@ -681,66 +679,63 @@ Multi-network support is reserved for a future version.
 
 ## 8. On-Chain Record
 
-This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 5** at mint in this line). ABI tuple order may differ from this table; field **names** are normative.
+This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 6** at mint in this line). ABI tuple order may differ from this table; field **names** are normative. See `docs/REQUIREMENTS_FIELDS_V0.6.md` for the design rationale (storage layers A/B/C).
 
 
 | Field                  | Type      | Required | Description                                                                                                                                                                                                         |
 | ---------------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `passportId`           | `string`  | yes      | Passport ID, e.g. `ODP-2026-03-004829301` (reference **v0.4** ABI name; legacy `humanId` in some older ABIs)                                                                                                        |
-| `contractVersion`      | `uint8`   | yes      | Packed at mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (reference line in this repo → **5**)                                                                                                                                |
+| `passportId`           | `string`  | yes      | Passport ID, e.g. `ODP-2026-03-004829301` (legacy `humanId` in some older ABIs)                                                                                                                                     |
+| `contractVersion`      | `uint8`   | yes      | Packed at mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (reference line in this repo → **6**)                                                                                                                                |
 | `creator`              | `address` | yes      | **Immutable** issuer wallet (**principal** profile wallet; same when minting via agent)                                                                                                                             |
 | `owner`                | `address` | yes      | Current holder; **starts as `creator`** (principal); changes only via `**transferPassport**`                                                                                                                        |
 | `creatorId`            | `string`  | yes      | Profile ID (wallet must be registered before mint)                                                                                                                                                                  |
 | `year`                 | `uint32`  | yes      | **UTC** calendar year of the mint transaction (must match `mint*` args and `passport.json` `year` used in `dataHash`)                                                                                               |
 | `month`                | `uint8`   | yes      | **UTC** calendar month (1–12) of the mint transaction (same alignment as `year`)                                                                                                                                    |
-| `objectType`           | `string`  | yes      | `physical` or `digital`                                                                                                                                                                                             |
+| `title`                | `string`  | yes      | **On-chain card.** 1–128 bytes. MUST equal `passport.json` `title` byte-for-byte (after NFC normalization). Immutable — no edit path                                                                                |
+| `authorName`           | `string`  | yes      | **On-chain card.** 1–128 bytes; human-readable author / brand name. MUST equal `passport.json` `authorName` byte-for-byte. Immutable                                                                                |
+| `shortDescription`     | `string`  | yes      | **On-chain card.** 1–256 bytes; one-line annotation (object kind, technique, creation year). MUST equal `passport.json` `shortDescription` byte-for-byte. Immutable                                                 |
+| `domain`               | `string`  | no       | **On-chain card.** ≤128 bytes; area / field (e.g. `contemporary_art`, `software`). MUST equal `passport.json` `domain` byte-for-byte                                                                                |
+| `objectType`           | `string`  | yes      | `physical`, `digital`, or `mixed`                                                                                                                                                                                   |
+| `contentClass`, `lifecycleStatus`, `aiStatus`, `verificationMethod`, `editionModel` | `uint8` | yes | Controlled-vocabulary codes (§9). `lifecycleStatus` changes only via **STATUS events** (append-only)                                                                                |
 | `dataHash`             | `bytes32` | yes      | SHA-256 of minified `passport.json`                                                                                                                                                                                 |
-| `imageHash`            | `bytes32` | no       | Primary image SHA-256. `0x…00` if none                                                                                                                                                                              |
-| `imageHash2`           | `bytes32` | no       | Second image; `0x…00` if none                                                                                                                                                                                       |
-| `imageHash3`           | `bytes32` | no       | Third image; **must be zero if `imageHash2` is zero**                                                                                                                                                               |
-| `fileHash`             | `bytes32` | no       | Digital original SHA-256; **required non-zero** if `objectType = digital`                                                                                                                                           |
-| `sealType`             | `uint8`   | no       | Physical: `1` NFC, `2` numbered, `3` both. Digital: **0**                                                                                                                                                           |
-| `sealHash`             | `bytes32` | no       | SHA-256 of `seal` in `passport.json`; required for physical                                                                                                                                                         |
-| `nfcPublicKey`         | `bytes`   | no       | NFC public key; empty if no NFC                                                                                                                                                                                     |
-| `nfcModel`             | `string`  | no       | `**NTAG424DNA`** or `**NTAG424DNA_TAGTAMPER`** if NFC seal; empty otherwise                                                                                                       |
+| `anchorsHash`          | `bytes32` | yes      | SHA-256 of the canonical **minified `anchors` array** from `passport.json` (§9, §10) — lets verifiers check the identification block in isolation                                                                   |
+| `anchorTypesMask`      | `uint32`  | yes      | OR of anchor-type bits present in `anchors[]` (§9). Mint enforces the hard identification minimum per `objectType`                                                                                                  |
+| `imageHash`            | `bytes32` | phys/mixed: yes | Primary photo SHA-256; **required non-zero** for `physical` / `mixed`; optional for `digital`. Additional photos are `photo` anchors                                                                          |
+| `fileHash`             | `bytes32` | digital/mixed: yes | Digital original SHA-256; **required non-zero** if `objectType` is `digital` / `mixed`; MUST be zero for `physical`                                                                                          |
 | `dataUrl`              | `string`  | no       | HTTPS URL of the **§15 `.odpass`** bundle (max **512** chars). May be `**""`** — then HTTP verifiers cannot fetch. May be folder-resolved at mint (see below). **MUST NOT** point at bare `.json` — only `.odpass`. |
 | `imageUrl`             | `string`  | no       | Primary image URL hint (max **512** chars)                                                                                                                                                                          |
-| `imageUrl2`            | `string`  | no       | Second image URL (max **512**); must be empty if `imageHash2` is zero                                                                                                                                               |
-| `imageUrl3`            | `string`  | no       | Third image URL (max **512**); must be empty if `imageHash3` is zero                                                                                                                                                |
-| `timestamp`            | `uint256` | yes      | Mint block time                                                                                                                                                                                                     |
+| `timestamp`            | `uint256` | yes      | Mint block time — the primary proof of the registration moment                                                                                                                                                      |
 | `revoked`              | `bool`    | yes      | **Irreversible** revocation flag                                                                                                                                                                                    |
 | `revokedAt`            | `uint256` | yes      | Unix seconds when revoked; **0** if not revoked                                                                                                                                                                     |
 | `revocationReasonHash` | `bytes32` | no       | `**keccak256(UTF-8 reason)`**; **0** if not revoked                                                                                                                                                                 |
-| `auxCommitmentHash`    | `bytes32` | no       | Optional **second** commitment (e.g. PDF COA), independent of `dataHash`. **0** = unused; if **0**, `auxCommitmentUri` MUST be empty                                                                                |
-| `auxCommitmentUri`     | `string`  | no       | HTTPS hint for the aux file (max **512** chars when hash non-zero); **empty** when hash is **0**                                                                                                                    |
-| `ndppCommitmentHash`   | `bytes32` | no       | Optional dedicated commitment for **NDPP / offline-public payload bytes** (for example QR/NFC-carried public disclosure data or a long-DPP-style snapshot). **0** = unused; if **0**, `ndppCommitmentUri` MUST be empty |
-| `ndppCommitmentUri`    | `string`  | no       | HTTPS hint for the NDPP payload or snapshot (max **512** chars when hash non-zero); **empty** when hash is **0**                                                                                                    |
 | `mintAgent`            | `address` | yes      | Wallet that executed the mint tx; `**address(0)`** if the principal minted themselves                                                                                                                               |
+| `eventCount`           | `uint32`  | yes      | Append-only event counter (`recordPassportEvent`); full history lives in the event log                                                                                                                              |
+| `lastEventKind`        | `uint8`   | yes      | Kind of the most recent passport event; **0** if none                                                                                                                                                               |
+| `lastEventAt`          | `uint256` | yes      | Block time of the most recent passport event; **0** if none                                                                                                                                                          |
 
+
+**Removed relative to v0.5** (see the migration table in `docs/REQUIREMENTS_FIELDS_V0.6.md`): `sealType` / `sealHash` / `nfcPublicKey` / `nfcModel` (→ `nfc` / `numbered_seal` anchors), `imageHash2/3` + `imageUrl2/3` (→ `photo` anchors), `currentLocation` / `rightsNote` / `conditionNote` / `damageHistoryHash` / `damageHistoryUrl` (→ append-only events), `auxCommitment*` (→ attestation `documentHash` or a document anchor), `ndppCommitment*` (offline carriers verify against `dataHash` / `anchorsHash` directly).
 
 **Derived:** chain time is interpreted in **UTC** for off-chain display; no separate `timestampTimeZone` field.
 
-**Hash immutability after mint:** `dataHash`, `**imageHash` / `imageHash2` / `imageHash3`**, `fileHash`, `sealHash` never change on-chain. `**auxCommitmentHash` / `auxCommitmentUri` and `**ndppCommitmentHash` / `ndppCommitmentUri` are mutable** via `**updatePassportAuxCommitment`** / `**updatePassportNdppCommitment`** (`**creator` or `governance`** only; passport must not be revoked).
+**Immutability after mint:** the card (`title`, `authorName`, `shortDescription`, `domain`) and all hashes (`dataHash`, `anchorsHash`, `imageHash`, `fileHash`) **never change on-chain**. There is deliberately **no** card-edit function: a typo or renaming requires `**revokePassport`** + a new mint. Only `dataUrl` / `imageUrl` (hosting hints), `owner` (transfer), the append-only event summary, and revocation state can change.
 
-**Folder-base `dataUrl` at mint:** If `dataUrlIsFolderBase` is true, the caller passes an HTTPS **folder root** only; the contract stores `stripTrailingSlash(folder) + "/" + passportId + ".odpass"` after the Passport ID is known (§15 bundle filename). `**updatePassportUrls`** always sets **literal** strings (no folder resolution) and updates **only** `dataUrl` and **primary** `imageUrl` — not `imageUrl2` / `imageUrl3`.
+**Folder-base `dataUrl` at mint:** If `dataUrlIsFolderBase` is true, the caller passes an HTTPS **folder root** only; the contract stores `stripTrailingSlash(folder) + "/" + passportId + ".odpass"` after the Passport ID is known (§15 bundle filename). `**updatePassportUrls`** always sets **literal** strings (no folder resolution).
 
-### Reference contract — mint (v0.5)
+### Reference contract — mint (v0.6)
 
-- `**mintPhysical(m, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** — `**m**` is a `PhysicalMintInputs` tuple containing `core`, media hashes/URLs, seal fields, and aux / NDPP commitment fields.
-- `**mintDigital(dm, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** — `**dm**` is a `DigitalMintInputs` tuple containing `core`, media hashes/URLs, file hash, and aux / NDPP commitment fields.
-- `**mintMixed(mm, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** — `**mm**` is a `MixedMintInputs` tuple containing both physical and digital integrity fields plus aux / NDPP commitment fields.
-- `**mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** / `**mintPhysicalViaExtension(...)**` — governance-registered `**IODPExtension**`; `**normalize**` returns ABI encoding of the corresponding v0.5 mint tuple. On success the contract emits `**ExtensionMintUsed(mintClass, kind, passportId)`** with `**kind`**: `0` = digital, `1` = physical, in addition to `**PassportMinted`** (which includes `**mintAgent**`).
-- `**updatePassportAuxCommitment(passportId, newHash, newUri)**` — `**creator` or `governance**`; enforces the same aux empty/hash rules as at mint; emits `**PassportAuxCommitmentUpdated**`.
-- `**updatePassportNdppCommitment(passportId, newHash, newUri)**` — `**creator` or `governance**`; enforces the same empty/hash rules for the dedicated NDPP slot; emits `**PassportNdppCommitmentUpdated**`.
+- `**mintPhysical(m, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** / `**mintDigital(...)**` / `**mintMixed(...)**` — `**m**` is the unified `PassportMintInputs` tuple: `core` (card + classification), `dataHash`, `dataUrl`, `imageHash`, `imageUrl`, `fileHash`, `anchorsHash`, `anchorTypesMask`. Per-type rules: `physical` → `fileHash == 0`, `imageHash != 0`, mask ⊇ `photo|dimensions|materials|distinguishing_features`; `digital` → `fileHash != 0`, mask ⊇ `file_hash`; `mixed` → both sets.
+- `**mintDigitalViaExtension(mintClass, payload, dataUrlIsFolderBase, mintOnBehalfOfCreatorId)`** / `**mintPhysicalViaExtension(...)**` — governance-registered `**IODPExtension**`; `**normalize**` returns ABI encoding of the `PassportMintInputs` tuple. On success the router emits `**ExtensionMintUsed(mintClass, kind, passportId)`** with `**kind`**: `0` = digital, `1` = physical, in addition to `**PassportMinted`** (which includes the card and anchors fields plus `**mintAgent**`).
 
-### Reference contract — ownership, URLs, revocation (v0.5)
+### Reference contract — events, ownership, URLs, revocation (v0.6)
+
+- `**recordPassportEvent(passportId, kind, value, note, attachmentHash, attachmentUrl)`** — append-only layer-B record; callable by `**creator`**, `**owner`**, or `**governance`**; revoked passports rejected. `kind`: `1` = status (`value` = new `lifecycleStatus` 1–4, updates the stored summary field), `2` = location, `3` = rights, `4` = condition, `5` = damage, `6` = restoration, `7` = custom (`value` MUST be 0 for kinds 2–7). `note` ≤256 bytes; optional attachment = SHA-256 + HTTPS hint (≤512; URL empty when hash is 0). Emits `**PassportEventRecorded`**; on-chain storage keeps only `eventCount` / `lastEventKind` / `lastEventAt` — history is read from the log. **The current value of any mutable aspect is the latest event of that kind.**
 
 
 | Function                                                                     | Who may call                                                              | Notes                                                                                                                     |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `updatePassportUrls(passportId, newDataUrl, newImageUrl, confirmedDataHash)` | `**creator` or `owner**`, or the **issuer’s active publishing agent**     | Requires `confirmedDataHash == dataHash`; revoked passports rejected                                                      |
-| `updatePassportAuxCommitment(passportId, newHash, newUri)`                   | `**creator` or `governance`**                                             | Revoked passports rejected; aux field rules same as mint                                                                  |
-| `updatePassportNdppCommitment(passportId, newHash, newUri)`                  | `**creator` or `governance`**                                             | Revoked passports rejected; NDPP field rules same as mint                                                                 |
+| `recordPassportEvent(passportId, kind, value, note, attachmentHash, attachmentUrl)` | `**creator`, `owner`, or `governance`**                            | Append-only; see above                                                                                                    |
 | `transferPassport(passportId, newOwner)`                                     | `**owner`**                                                               | `newOwner != address(0)`                                                                                                  |
 | `delegateCreatorPublishing(agent, expiresAt)`                                | **Registered profile** (`msg.sender`); stored per `**msg.sender`** wallet | Single active agent per issuer wallet; `expiresAt > block.timestamp`                                                      |
 | `revokeCreatorPublishing()`                                                  | **Registered profile** (clears own slot)                                  |                                                                                                                           |
@@ -757,13 +752,12 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 
 **Counterfeit concern:** on the reference stack, `**ODPCounterfeitConcern`** (satellite) — see §4 and §13.
 
-### Reference contract — deploy, freeze, governance (v0.5)
+### Reference contract — deploy, freeze, governance (v0.6)
 
-> **Stable v1 (planned):** the registry-wide `**freeze()`** mechanism below is **not** part of the intended stable protocol line — it will be **removed** or replaced by a different governance story. See `[docs/IDEAS_V1.md](docs/IDEAS_V1.md)`.
-
-- `**deployer`**: `immutable`, set in constructor to deploying address.
-- `**governance`**: `address`; **constructor sets `governance = deployer`**. Use `**transferGovernance(newAddr)**` (caller must be current `governance`) to point at a multisig/DAO.
-- `**freeze()**`: **only `deployer`**; **irreversible**; blocks new writes (`notFrozen`); all reads remain. **Stable v1 is planned to omit this mechanism.**
+- `**deployer`**: `immutable`, set in the constructor to the deploying address; the **only** wallet allowed to `freeze()`.
+- `**governance`**: `address`; **constructor sets `governance = msg.sender`**. Use `**transferGovernance(newAddr)**` (caller must be current `governance`) to point at a multisig/DAO.
+- Governance wires satellites: `**setRelationsSatellite(addr)`**, `**setExtensionRouter(addr)`**.
+- `**freeze()**`: **only `deployer`**; **irreversible**; sets `**frozen = true`** and blocks every state-changing user path on the main registry (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) with revert `**EC(58)`**; all **reads** stay available. This is a **v0.x safety hatch** and is **planned for removal in stable v1** (`[docs/IDEAS_V1.md](docs/IDEAS_V1.md)`). Freeze affects the main registry only; satellites keep their own state.
 
 ### Reverts
 
@@ -771,7 +765,7 @@ The reference bytecode uses `**error EC(uint16 code)`** only (no string messages
 
 ### Planned protocol extensions (semantics not enforced today)
 
-The following items are **forward-looking protocol ideas** — they are **not** implemented as described in the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics**. *(The EIP-170 split — linked `**ODPPassportLib`** and satellite `**ODPWalletDocumentAnchor`** — is **already shipped** in the **v0.4** reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
+The following items are **forward-looking protocol ideas** — they are **not** implemented as described in the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics**. *(The EIP-170 split — linked `**ODPPassportLib`** and satellites — is **already shipped** in the reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
 
 #### A) Global uniqueness of passport `dataHash` (planned)
 
@@ -838,14 +832,12 @@ The protocol does **not** store the full passport JSON on-chain — only `dataHa
 
 1. If `dataUrl` is **non-empty** but there is **no** HTTP **200** whose body is a valid `**.odpass`** file (§15 ZIP) containing `passport.json` that matches `dataHash` after canonicalization, verifiers **must** treat web-based verification as **failed** (e.g. **UNVERIFIABLE** / hash mismatch per §11 — exact state names are implementation-defined).
 2. If `dataUrl` is **empty**, HTTP fetch cannot apply; only parties with the `**.odpass`** or `**passport.json`** file can verify against `dataHash` (implementation-defined UX SHOULD warn the creator at mint time).
-3. The `**creator` or `owner`** **may** update `dataUrl` (and primary `imageUrl`) later via `**updatePassportUrls`** in the reference contract (**v0.4**) **without** reminting, as long as the hosted `**.odpass`** still contains matching `passport.json` bytes for `dataHash` and the passport is not revoked.
+3. The `**creator` or `owner`** **may** update `dataUrl` (and primary `imageUrl`) later via `**updatePassportUrls`** in the reference contract **without** reminting, as long as the hosted `**.odpass`** still contains matching `passport.json` bytes for `dataHash` and the passport is not revoked.
 4. **Reference and compatible UIs** SHOULD require **explicit user acknowledgement** immediately before submitting a mint transaction: that publishing the `**.odpass`** is the creator’s responsibility; that public verification depends on that `**.odpass`** file being reachable at the registered URL when `dataUrl` is set; and that the user should download or copy the bundle before closing the success screen when the implementation provides that action.
 
-### Canonical v0.5 passport schema (normative)
+### Canonical v0.6 passport schema (normative)
 
-A machine-readable JSON Schema for this section is maintained at [`schema/passport-0.5.schema.json`](schema/passport-0.5.schema.json) (validated in CI against [`schema/examples/`](schema/examples/)); on conflict, this SPEC text is authoritative.
-
-The canonical `passport.json` for the current line is the **v0.5** shape used by the reference contract and web UI. Older top-level `type` / `digital.subtype` taxonomies are **not** the primary classifier anymore. The required classification axis is now:
+The canonical `passport.json` for the current line is the **v0.6 shape** used by the reference contract and tooling. The schema is built on the **Object ID identification principle** (object type, materials & technique, measurements, inscriptions & markings, distinguishing features, title, subject, date/period, maker + photographs + short description): the identification categories are first-class fields and anchors, not an external mapping. The required classification axis is:
 
 - `domain`
 - `objectType`
@@ -857,21 +849,68 @@ The canonical `passport.json` for the current line is the **v0.5** shape used by
 
 | Field / group | Required | Type | Notes |
 | --- | --- | --- | --- |
-| `version` | yes | `string` | MUST be `"0.5"` for this line. |
+| `version` | yes | `string` | MUST be `"0.6"` for this line. |
 | `passportId` | yes | `string` | MUST equal the on-chain Passport ID. |
-| `title` | yes | `string` | Human-readable title. |
-| `description` | recommended | `string` | Concise description of the object. |
-| `creationDate` | recommended | `string` | Object creation date or creation-period anchor; implementation-specific format SHOULD be ISO-like and unambiguous. |
-| `authorship` | yes | `object` | Contains `author` (required), optional `coAuthors`, optional `team`. |
-| `domain` | yes | `string` | Area / field such as `contemporary_art`, `graphic_design`, `software`. |
+| `title` | yes | `string` | 1–128 bytes. **On-chain card field** — MUST equal the on-chain `title` byte-for-byte. |
+| `authorName` | yes | `string` | 1–128 bytes. **On-chain card field** — human-readable author / brand name; MUST equal on-chain byte-for-byte. |
+| `shortDescription` | yes | `string` | 1–256 bytes. **On-chain card field** — one-line annotation (object kind, technique, creation year); MUST equal on-chain byte-for-byte. |
+| `domain` | no | `string` | ≤128 bytes. **On-chain card field** — MUST equal on-chain byte-for-byte (including the empty string). |
+| `description` | recommended | `string` | Full description; unbounded. Free-text pre-registration history MAY live here (informative only — see the provenance rule below). |
+| `subject` | optional | `string` | What is depicted / what the object is about (Object ID "subject"). |
+| `creationDate` | recommended | `string` | Object creation date or creation-period anchor (Object ID "date or period"); SHOULD be ISO-like and unambiguous. |
+| `authorship` | optional | `object` | Structured authorship detail: `author` object (name SHOULD repeat `authorName`), optional `coAuthors`, optional `team`. |
+| `anchors` | yes | `array` | **Identification anchors** — see below. Bound on-chain by `anchorsHash` + `anchorTypesMask`. |
 | `objectType` | yes | `string` | One of `physical`, `digital`, `mixed`. |
-| `status` | yes | `string` | Lifecycle state mirrored to on-chain `lifecycleStatus`. |
+| `status` | yes | `string` | Lifecycle state **at registration**; the current state afterwards is the latest on-chain STATUS event. |
 | `contentClass` | yes | `string` | One of the controlled values below. |
 | `aiStatus` | yes | `string` | One of the controlled values below. |
 | `verificationMethod` | yes | `string` | One of the controlled values below. |
 | `edition` | yes | `object` | MUST contain `model`; MAY include `number` and `total` when meaningful. |
+| `translations` | optional | `object` | Language-keyed translations / transliterations of `title`, `shortDescription`, `description` (e.g. `{"en": {"title": "…"}}`). The on-chain card stays in the author's original language. |
 | `year`, `month` | yes | integer | UTC mint year/month; MUST match on-chain mint inputs. |
 | `registeredAt`, `registration` | yes | number / object | UTC-only registration instant representation; see below. |
+
+#### Identification anchors (`anchors[]`) — normative
+
+An **anchor** is a verifiable property that binds the passport to the specific object — the thing that stops a genuine passport from being attached to a forgery. Each entry:
+
+```json
+{
+  "type": "photo",
+  "data": { "...type-specific fields..." },
+  "hash": "sha256:...",
+  "verification": "how to check (free text or a profile id)"
+}
+```
+
+`type` is required; `data`, `hash`, `verification` are per-type. Anchor type registry and `anchorTypesMask` bits:
+
+| Bit | `type` | Object ID category | `data` / `hash` content |
+| --- | --- | --- | --- |
+| 1 | `photo` | Photographs | reference to the shot (e.g. `role`: `primary` / `detail`); `hash` = SHA-256 of the image file |
+| 2 | `dimensions` | Measurements | dimensions with units and precision |
+| 4 | `materials` | Materials & techniques | materials list / technique |
+| 8 | `distinguishing_features` | Distinguishing features | defects, craquelure, repairs — what a copy would not reproduce |
+| 16 | `marks` | Inscriptions & markings | signatures, stamps, serials + where they are |
+| 32 | `file_hash` | — | exact SHA-256 of the digital original (`hash`; equals on-chain `fileHash`) |
+| 64 | `perceptual_hash` | — | perceptual hash with required `data.algorithm` (recommended: `phash-dct-64`, `pdq`); **supplementary only** |
+| 128 | `c2pa` | — | hash of the C2PA manifest; **supplementary only** |
+| 256 | `nfc` | — | NFC crypto seal (§6): `uid`, `publicKey`, `model`, `installedAt`, optional `notes` |
+| 512 | `numbered_seal` | — | numbered seal (§6): `number`, `type`, optional `color` / `size` / `notes` |
+| 1024 | `fingerprint` | — | measurable object fingerprint: `method` + `dataHash` + methodology reference |
+| 2048 | `dna` | — | synthetic DNA tag / microdot marking |
+| 2^31 | `custom` | — | anchor outside the registry; actual type in `data.customType` |
+
+Bits 12–30 are **reserved** for future SPEC revisions; new types are added by a SPEC update without changing the schema shape.
+
+**Hard identification minimum (enforced by the contract via `anchorTypesMask`):**
+
+- `physical` and `mixed`: anchors MUST include `photo` (≥1) + `dimensions` + `materials` + `distinguishing_features` (mask ⊇ 15), and on-chain `imageHash` MUST be non-zero;
+- `digital` and `mixed`: anchors MUST include `file_hash` (mask ⊇ 32), and on-chain `fileHash` MUST be non-zero.
+
+A passport without this minimum does not mint: a passport without photos and measurements proves nothing about the object in front of you.
+
+**Provenance rule (normative):** pre-registration history (previous owners, exhibitions, publications) is **not** a structured part of this standard — it is unverifiable by the protocol and would suggest false assurance. Protocol-level provenance starts at mint: `PassportMinted` → `PassportTransferred` chain → passport events → attestations.
 
 #### Controlled values
 
@@ -887,14 +926,12 @@ The canonical `passport.json` for the current line is the **v0.5** shape used by
 
 | Block | Required when | Notes |
 | --- | --- | --- |
-| `currentState` | recommended for all objects | Mutable-state snapshot: `location`, `rightsNote`, `conditionNote`, optional `damageHistoryHash`, `damageHistoryUrl`. |
-| `physical` | `objectType = physical` or `mixed` | Structured physical facts such as `category`, `medium`, `materials`, `dimensions`, `weight`, `marks`, `seal`. |
+| `physical` | optional for `physical` / `mixed` | Descriptive physical facts such as `category`, `medium`, `weight`. Identification facts (dimensions, materials, marks, features, seals, photos) belong in `anchors[]`, not here. |
 | `digital` | `objectType = digital` or `mixed` | Structured digital facts such as `subtype`, `format`, `fileHash`, `fileSize`, optional `c2pa`. |
-| `image` | recommended | Primary preview image hash / URL. |
-| `images` | optional | Additional preview images. |
 | `refinementTags` | optional | Free-form refinement labels; not a replacement for the controlled taxonomy. |
-| `objectId` | optional | Object ID compatibility block: `subject` + `distinguishingFeatures` for theft documentation and physical expertise; see [docs/OBJECTID_PROFILE.md](docs/OBJECTID_PROFILE.md). |
-| `additionalMetadata` | optional | Stable string-keyed metadata not modeled elsewhere. |
+| `additionalMetadata` | optional | Stable string-keyed metadata not modeled elsewhere (including former draft namespaces such as `identifiers.gtin` / `iiif` until separately specified). |
+
+Removed relative to v0.5: `currentState` (→ on-chain append-only events), `physical.seal` (→ `nfc` / `numbered_seal` anchors), `image` / `images` (→ `photo` anchors; sidecar bytes still live under `originals/` in the bundle, §15).
 
 #### Mixed object semantics
 
@@ -905,20 +942,20 @@ When `objectType` is `mixed`, the canonical JSON **MUST** contain **both** `phys
 
 `mixed` is **not** a fallback label for uncertain classification; it means both layers are intentionally first-class.
 
-#### Mutable vs immutable semantics (normative)
+#### Immutable core vs append-only events (normative)
 
-The v0.5 line deliberately separates the immutable hash-bound document from selected mutable on-chain state:
+The v0.6 line has **no** overwritable state at all:
 
 - **Immutable and hash-bound in `passport.json`:**
-  `title`, `description`, `creationDate`, `authorship`, `domain`, `objectType`, `contentClass`, `refinementTags`, `aiStatus`, `verificationMethod`, `edition`, `image`, `images`, `physical`, `digital`, `additionalMetadata`, `year`, `month`, `registeredAt`, `registration`.
-- **Mutable on-chain current-state fields:**
-  `status`, `currentState.location`, `currentState.rightsNote`, `currentState.conditionNote`, `currentState.damageHistoryHash`, `currentState.damageHistoryUrl`.
-- **Authority rule after mint:**
-  if the hash-bound JSON snapshot and on-chain mutable state differ, verifiers MUST treat the **on-chain current-state fields** as authoritative for current status / location / rights / condition.
-- **Append-only history model:**
-  `ProofRecord` attestations remain a separate append-only on-chain layer. Detailed provenance / ownership / damage history SHOULD be maintained as append-only off-chain records, with the current pointer or summary reflected in `currentState`.
+  everything — the entire document is bound by `dataHash`, and the `anchors` array additionally by `anchorsHash`. The card fields (`title`, `authorName`, `shortDescription`, `domain`) are duplicated on-chain and MUST match byte-for-byte.
+- **Append-only on-chain events (layer B):**
+  ownership (`PassportTransferred`), status / location / rights / condition / damage / restoration / custom (`PassportEventRecorded`), attestations (`ProofSubmitted` on the proof satellite), counterfeit flags, revocation. **The current value of any mutable aspect is the latest event of that kind**; history is never lost or overwritten.
+- **Consistency rule after mint:**
+  if the card fields in `passport.json` differ from the on-chain card in any byte, verifiers MUST report the passport as **invalid** (TAMPERED) — not as a warning. `status` in the JSON is the state *at registration*; the current lifecycle status is the on-chain value driven by STATUS events.
+- **Privacy of event payloads (normative):**
+  event notes and attachments are public forever and cannot be deleted. LOCATION events MUST carry only coarse, deliberately chosen values (a city, an institution name, "in storage") — never a street address, storage-site address, coordinates, or personal data. Reference UIs MUST NOT prompt for precise addresses.
 
-### Content class taxonomy (normative for v0.5)
+### Content class taxonomy (normative for v0.6)
 
 To avoid binding the protocol to short-lived file format labels, implementations MUST include top-level `contentClass` in `passport.json` with one of:
 
@@ -950,14 +987,16 @@ If local device time is shown to users, implementations MUST normalize that inst
 
 Implementations MUST **not** record the user’s **device-local IANA time zone** (e.g. `Europe/Berlin`), MUST **not** emit **non-`+00:00`** numeric offsets in `registration.localIso8601`, and MUST **not** derive `registration.*` from the device’s **local calendar wall clock**. The field name `localIso8601` is **legacy naming** only: the value must still encode the **same UTC instant** with offset `+00:00` only (see reference `chain/tools/mint.py` and web mint).
 
-### Canonical v0.5 example — physical object
+### Canonical v0.6 example — physical object
 
 ```json
 {
-  "version": "0.5",
+  "version": "0.6",
   "passportId": "ODP-2026-03-004829301",
   "title": "Object Community #1",
-  "description": "Signed mixed-media object with NFC-backed seal.",
+  "authorName": "Example Holder",
+  "shortDescription": "Mixed-media painting, canvas/oil, 2025",
+  "description": "Signed mixed-media object with NFC-backed seal anchor.",
   "creationDate": "2025-11",
   "domain": "contemporary_art",
   "objectType": "physical",
@@ -968,12 +1007,44 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
   "edition": { "model": "limited", "number": 1, "total": 3 },
   "authorship": {
     "author": {
-      "name": "Example holder",
+      "name": "Example Holder",
       "wallet": "0x742d...f2c8",
       "creatorId": "C-482-930-174-005"
     },
     "team": "Studio North"
   },
+  "anchors": [
+    {
+      "type": "photo",
+      "data": { "role": "primary" },
+      "hash": "sha256:abc123..."
+    },
+    {
+      "type": "dimensions",
+      "data": { "width": 60, "height": 40, "unit": "cm", "depth": 2 }
+    },
+    {
+      "type": "materials",
+      "data": { "list": ["canvas", "oil paint"] }
+    },
+    {
+      "type": "distinguishing_features",
+      "data": { "text": "Craquelure lower-left quadrant; retouched 2 cm scratch near frame edge" }
+    },
+    {
+      "type": "marks",
+      "data": { "text": "Signed on reverse, studio stamp on stretcher" }
+    },
+    {
+      "type": "nfc",
+      "data": {
+        "uid": "04a3f912cc8b4e",
+        "publicKey": "b2e3f1a9c3d2...",
+        "model": "NTAG424DNA_TAGTAMPER",
+        "installedAt": "2026-03-15"
+      }
+    }
+  ],
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
@@ -982,41 +1053,25 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
     "localIso8601": "2026-03-22T18:30:45+00:00",
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
-  "currentState": {
-    "location": "artist archive",
-    "rightsNote": "Exhibition by request",
-    "conditionNote": "Excellent"
-  },
   "refinementTags": ["artwork", "mixed_media", "signed"],
-  "image": {
-    "url": "https://artist.example/objects/001-main.jpg",
-    "hash": "sha256:abc123..."
-  },
   "physical": {
     "category": "artwork",
-    "medium": "mixed media",
-    "materials": [{ "name": "canvas" }, { "name": "oil paint" }],
-    "dimensions": { "width": 60, "height": 40, "unit": "cm" },
-    "marks": [{ "type": "signature", "description": "Signed on reverse" }],
-    "seal": {
-      "nfc": {
-        "uid": "04a3f912cc8b4e",
-        "publicKey": "04b2e3f1a9c3d2...",
-        "model": "NTAG424DNA_TAGTAMPER",
-        "installedAt": "2026-03-15"
-      }
-    }
+    "medium": "mixed media"
   }
 }
 ```
 
-### Canonical v0.5 example — digital object
+On-chain for this example: `anchorTypesMask = 1|2|4|8|16|256 = 287`; `imageHash` = the primary `photo` anchor hash; `fileHash = 0`.
+
+### Canonical v0.6 example — digital object
 
 ```json
 {
-  "version": "0.5",
+  "version": "0.6",
   "passportId": "ODP-2026-03-000193847",
   "title": "Untitled #7",
+  "authorName": "Example Holder",
+  "shortDescription": "Generative image, TIFF original, 2026",
   "description": "Single-edition digital work with optional C2PA manifest.",
   "creationDate": "2026-02-18",
   "domain": "digital_art",
@@ -1026,13 +1081,21 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
   "aiStatus": "generated",
   "verificationMethod": "c2pa",
   "edition": { "model": "unique" },
-  "authorship": {
-    "author": {
-      "name": "Example holder",
-      "wallet": "0x742d...f2c8",
-      "creatorId": "C-482-930-174-005"
+  "anchors": [
+    {
+      "type": "file_hash",
+      "hash": "sha256:abc123..."
+    },
+    {
+      "type": "perceptual_hash",
+      "data": { "algorithm": "pdq", "value": "f8f8..." }
+    },
+    {
+      "type": "c2pa",
+      "hash": "sha256:def456...",
+      "data": { "activeManifest": "Adobe Content Credentials" }
     }
-  },
+  ],
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
@@ -1041,14 +1104,7 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
     "localIso8601": "2026-03-22T18:30:45+00:00",
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
-  "currentState": {
-    "rightsNote": "Collector receives display rights only"
-  },
   "refinementTags": ["image", "generative"],
-  "image": {
-    "url": "https://artist.example/works/007-preview.jpg",
-    "hash": "sha256:preview789..."
-  },
   "digital": {
     "subtype": "image",
     "format": "TIFF",
@@ -1062,13 +1118,17 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
 }
 ```
 
-### Canonical v0.5 example — mixed object
+On-chain for this example: `anchorTypesMask = 32|64|128 = 224`; `fileHash` = the `file_hash` anchor value; `imageHash = 0` (no preview registered).
+
+### Canonical v0.6 example — mixed object
 
 ```json
 {
-  "version": "0.5",
+  "version": "0.6",
   "passportId": "ODP-2026-03-000555120",
   "title": "Executable Sculpture #2",
+  "authorName": "Example Holder",
+  "shortDescription": "Sculpture with realtime software, aluminium/electronics, 2026",
   "description": "Physical sculpture paired with executable realtime software.",
   "creationDate": "2026-01-30",
   "domain": "contemporary_art",
@@ -1080,12 +1140,21 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
   "edition": { "model": "dynamic" },
   "authorship": {
     "author": {
-      "name": "Example holder",
+      "name": "Example Holder",
       "wallet": "0x742d...f2c8",
       "creatorId": "C-482-930-174-005"
     },
     "coAuthors": [{ "name": "Collaborator A" }]
   },
+  "anchors": [
+    { "type": "photo", "data": { "role": "primary" }, "hash": "sha256:1122bb..." },
+    { "type": "dimensions", "data": { "width": 120, "height": 80, "depth": 40, "unit": "cm" } },
+    { "type": "materials", "data": { "list": ["aluminium", "custom electronics"] } },
+    { "type": "distinguishing_features", "data": { "text": "Hand-soldered controller board, serial ES-2 engraved inside base" } },
+    { "type": "marks", "data": { "text": "Internal serial ES-2" } },
+    { "type": "numbered_seal", "data": { "number": "SL-00429831", "type": "holographic sticker" } },
+    { "type": "file_hash", "hash": "sha256:99aa77..." }
+  ],
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
@@ -1094,28 +1163,9 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
     "localIso8601": "2026-03-22T18:30:45+00:00",
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
-  "currentState": {
-    "location": "studio lab",
-    "rightsNote": "Exhibition and documentation by agreement",
-    "conditionNote": "Prototype electronics serviced 2026-03",
-    "damageHistoryHash": "sha256:0011aa...",
-    "damageHistoryUrl": "https://artist.example/objects/executable-sculpture-2-condition-log.json"
-  },
   "refinementTags": ["installation", "software", "sensor_based"],
-  "image": {
-    "url": "https://artist.example/works/executable-sculpture-2-main.jpg",
-    "hash": "sha256:1122bb..."
-  },
   "physical": {
-    "category": "object",
-    "materials": [{ "name": "aluminium" }, { "name": "custom electronics" }],
-    "marks": [{ "type": "label", "description": "Internal serial ES-2" }],
-    "seal": {
-      "numbered": {
-        "number": "SL-00429831",
-        "type": "holographic sticker"
-      }
-    }
+    "category": "object"
   },
   "digital": {
     "subtype": "software",
@@ -1130,9 +1180,11 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
 }
 ```
 
+On-chain for this example: `anchorTypesMask = 1|2|4|8|16|512|32 = 575`; both `imageHash` and `fileHash` non-zero.
+
 ### Legacy note on old subtype/category fields
 
-`physical.category` and `digital.subtype` MAY still be included as descriptive sub-fields, but they are **secondary descriptors** only. Primary v0.5 classification MUST come from `domain`, `objectType`, `status`, `contentClass`, and optional `refinementTags`.
+`physical.category` and `digital.subtype` MAY still be included as descriptive sub-fields, but they are **secondary descriptors** only. Primary v0.6 classification MUST come from `domain`, `objectType`, `status`, `contentClass`, and optional `refinementTags`.
 
 
 ### Digital authorship principle
@@ -1211,11 +1263,12 @@ to appear as TAMPERED on other implementations.
 
 ### Rules
 
-- `version`, `passportId`, `objectType`, and `creator.creatorId` are required
-- For physical objects: at least one of `seal.nfc` or `seal.numbered` is required
-- For digital objects: `digital.fileHash` is required
+- `version`, `passportId`, `title`, `authorName`, `shortDescription`, `objectType`, and `anchors` are required
+- For physical / mixed objects: anchors MUST include `photo` + `dimensions` + `materials` + `distinguishing_features`
+- For digital / mixed objects: anchors MUST include `file_hash` and `digital.fileHash` is required
+- The card fields (`title`, `authorName`, `shortDescription`, `domain`) MUST equal the on-chain values byte-for-byte
 - `passportId` in JSON must exactly match the on-chain record (legacy `humanId` accepted for older exports)
-- `creator.wallet` must match the registered wallet in the Creator Registry
+- `authorship.author.wallet`, when present, must match the registered wallet in the Creator Registry
 - Encoding: UTF-8
 - The file must be minified before hashing
 
@@ -1236,14 +1289,14 @@ dataHash = SHA-256( minified passport.json bytes )
 5. Encode as UTF-8 bytes
 6. Compute SHA-256 → store as `bytes32`
 
-### `sealHash`
+### `anchorsHash`
 
 ```
-sealHash = SHA-256( minified seal object bytes )
+anchorsHash = SHA-256( minified canonical anchors array bytes )
 ```
 
-The `seal` object is extracted, minified separately, and hashed.
-Allows fast seal verification without re-hashing the full passport.
+The `anchors` array is extracted from `passport.json`, canonicalized with the **same rules** as `dataHash` (NFC normalization, keys sorted at every level, minified, UTF-8), and hashed as a standalone JSON array.
+This lets a verifier check the identification block in isolation — for example against bytes delivered by an offline carrier — without possessing the full passport document. The contract also stores `anchorTypesMask`, the OR of the type bits (§9), and enforces the hard identification minimum per `objectType` at mint.
 
 ### `fileHash` (digital objects)
 
@@ -1269,60 +1322,16 @@ imageHash = SHA-256( raw image file bytes )
 
 Do not modify the file in any way before hashing.
 
-### `ndppCommitmentHash` (optional NDPP / offline-public payload)
+### NFC / QR carriers and offline payloads (informative)
 
-```
-ndppCommitmentHash = SHA-256( raw NDPP payload bytes )
-```
+The dedicated `ndppCommitmentHash` / `ndppCommitmentUri` fields of the v0.5 line are **removed** in v0.6. NFC and QR remain an **optional carrier layer** only: a passport may be delivered and verified through QR, direct `**.odpass`** hosting, a printed certificate, or manual Passport ID lookup without any NFC tag.
 
-`**ndppCommitmentHash`** anchors an optional **public offline disclosure payload** without turning the main registry into a large JSON store. Typical examples:
+An offline or carrier-delivered payload is verified against the existing anchors instead of a separate commitment:
 
-- bytes carried by an NFC / QR flow as an NDPP-style public payload,
-- a compact public snapshot intended for offline or low-bandwidth verification,
-- a long-DPP-style public disclosure file published separately from the canonical `**.odpass`**.
+- the full canonical `passport.json` bytes → compare to `**dataHash`**;
+- the canonical `anchors` array bytes alone → compare to `**anchorsHash`** (compact identification payload for low-bandwidth carriers).
 
-ODP MUST **not** be modeled as if every passport were an NFC Forum DPP / NDPP object. NFC and NDPP are an **optional carrier layer** only. A passport may be delivered and verified through QR, direct `**.odpass`** hosting, a printed certificate, manual Passport ID lookup, or another compatible transport without any NFC tag at all.
-
-Likewise, DPP / sustainability disclosure is **not** equivalent to authenticity. ODP’s normative core remains the on-chain registry, Passport ID, canonical `**passport.json`** / `**.odpass``, and hash verification rules in this specification. NDPP-compatible payloads are a convenience layer for public disclosure or offline access; they do **not** redefine the primary authenticity model.
-
-The registry does **not** define one canonical NDPP media type in this line. The payload MAY be JSON, CBOR, an NDEF payload byte string, ZIP, or another deterministic byte sequence agreed by the issuer and verifier stack. Verifiers **must hash the exact raw bytes they received** from the file / carrier / URL and compare them to `**ndppCommitmentHash`**.
-
-When an issuer uses an NFC / QR **carrier** that wraps those bytes (for example a URL-first NDEF message with a secondary ODP payload record), `**ndppCommitmentHash`** still anchors the **raw NDPP / offline payload bytes only**. It does **not** hash the outer carrier framing, the full NDEF message, or the URL record bytes.
-
-`**ndppCommitmentUri`** is only a hint to where those bytes may be fetched. It does **not** replace `**dataUrl`**, and NDPP does **not** replace verification of the canonical `**passport.json`** / `**.odpass`** anchored by `**dataHash`**.
-
-ODP does **not** require sustainability-specific fields such as material composition, repairability, recycling instructions, end-of-life disclosure, or carbon-footprint reporting. Implementations MAY publish such data inside a separate NDPP / public-disclosure payload when relevant, but those fields are outside the normative ODP core unless another profile explicitly requires them.
-
-For NFC Forum-compatible NDEF carriers, implementations SHOULD place a standard URL / URI record **first** for broad smartphone compatibility. They MAY additionally include a separate ODP-specific record carrying compact verification metadata or another deterministic public payload whose raw bytes are anchored by `**ndppCommitmentHash`**.
-
-#### Optional profile: ODP-in-NDPP
-
-This specification defines an **optional**, **non-core** compatibility profile called **ODP-in-NDPP** for issuers that want a smartphone-friendly NFC / QR carrier without changing ODP's trust model.
-
-Profile intent:
-
-- preserve the canonical ODP authenticity flow (`**Passport ID`**, on-chain record, `**dataHash`**, canonical `**.odpass`** / `**passport.json`**),
-- keep NDPP as an **additional** public-disclosure / offline layer,
-- remain compatible with broad phone behavior by opening a normal web link first.
-
-Recommended NFC NDEF layout for this profile:
-
-1. **Record 1 (required for this profile):** standard URL / URI record that opens the ODP **Verify** page or another verifier entry URL for the passport.
-2. **Record 2 (optional but profile-typical):** secondary ODP / NDPP payload record containing the deterministic offline-public payload bytes.
-
-Hashing rule for this profile:
-
-- `ndppCommitmentHash = SHA-256(raw secondary payload bytes)`
-- **not** `SHA-256(full NDEF message)`
-- **not** `SHA-256(URL record + payload record)`
-
-`**ndppCommitmentUri`** MAY point to a hosted copy of those same raw payload bytes (for example a public CBOR / NDPP payload download). It is a discovery hint only; it does **not** turn NDPP into the canonical passport artifact and does **not** replace the Verify URL or `**dataUrl`**.
-
-Verifier behavior for this profile:
-
-- If the phone only opens the first URL record, that is merely the **carrier entry step**.
-- If the verifier stack can also read the secondary payload record, it MAY hash that raw payload and compare it with `**ndppCommitmentHash`**.
-- A verifier that cannot inspect the secondary record can still perform the canonical ODP checks; lack of NDPP parsing alone does **not** invalidate the passport.
+DPP / sustainability disclosure remains outside the normative ODP core; implementations MAY publish such data off-chain (e.g. in `additionalMetadata` or separate documents) without protocol-level anchoring.
 
 ---
 
@@ -1334,31 +1343,38 @@ Verifier behavior for this profile:
 INPUT: passportId (from QR, NFC, or manual entry)
 
 1. Query contract read surface:
-   - `getPassportHeader(passportId)`
+   - `getPassportHeader(passportId)`   → card (title, authorName, shortDescription, domain), IDs, owner
    - `getPassportClassification(passportId)`
-   - `getPassportMedia(passportId)`
-   - `getPassportPhysical(passportId)`
-   - `getPassportState(passportId)`
-   → combine fields needed for verification (`dataHash`, `objectType`, `sealType`, `sealHash`,
-     `nfcPublicKey`, `fileHash`, `dataUrl`, `creator`, `creatorId`, `timestamp`, current status/state)
+   - `getPassportMedia(passportId)`    → dataHash, anchorsHash, anchorTypesMask, imageHash, fileHash, URLs
+   - `getPassportEvents(passportId)`   → eventCount, lastEventKind, lastEventAt, current lifecycleStatus
 
 2. If not found → INVALID
 
 3. Query Creator Registry: getCreator(creatorId)
-   → attach creator name and wallet to result
+   → attach profile record to result
 
-4. Query Proof records: getProofsForPassport(passportId)
-   → fetch institution data for each proof
+4. Query attestations: getProofsForPassport(passportId) on the proof
+   satellite; query getCounterfeitConcern(passportId) on the concern
+   satellite. Display registration timestamp, attestations, and any
+   active concern flag — the duplicate-passport model is reputational
+   (the protocol does not decide which of two competing passports is
+   "the real one"; humans weigh these signals).
 
 5. Fetch from `dataUrl`: HTTP **200** body MUST be a **`.odpass`** file (§15 ZIP); extract `passport.json` (ZIP local header `PK\x03\x04`; path SHOULD end with **`.odpass`**). Raw JSON at `dataUrl` is **not** allowed (§9).
 
 6. If fetch fails → UNVERIFIABLE
    (on-chain record still proves the object was registered)
 
-7. Minify JSON → compute SHA-256
+7. Minify JSON → compute SHA-256 → compare to dataHash
+   Extract anchors array → canonicalize → SHA-256 → compare to anchorsHash;
+   check actual anchor types against anchorTypesMask
 
-8. Match    → AUTHENTIC
-   No match → TAMPERED
+8. Compare card fields byte-for-byte:
+   JSON title / authorName / shortDescription / domain == on-chain values;
+   JSON objectType / year / month == on-chain values
+
+9. All match → AUTHENTIC
+   Any mismatch in steps 7–8 → TAMPERED (not a warning)
 ```
 
 ### Authorship and legal rights (informative)
@@ -1396,13 +1412,13 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**Reference v0.5 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**chain/deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**chain/deploy/scripts/deploy-doc-anchor-only.js`** (see `**chain/deploy/README.md`**). The reference Polygon deployment records both addresses in `**deployments/polygon.json`**.
+**Reference v0.6 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**chain/deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**chain/deploy/scripts/deploy-doc-anchor-only.js`** (see `**chain/deploy/README.md`**). The reference Polygon deployment records both addresses in `**deployments/polygon.json`**.
 
-Older protocol lines that exposed these functions on the monolithic main registry are **out of scope** for this document — only the **v0.5** split (main registry + `**ODPWalletDocumentAnchor`**) is specified here.
+Older protocol lines that exposed these functions on the monolithic main registry are **out of scope** for this document — only the split (main registry + `**ODPWalletDocumentAnchor`**) is specified here.
 
-For a **second document anchor tied to a passport**, use `**auxCommitmentHash` / `auxCommitmentUri`** (mint or `**updatePassportAuxCommitment`**) on the main registry.
+For a **document tied to a passport** (e.g. an expertise report), use an attestation with `**documentHash`** on the proof satellite (§4, §13) — the v0.5 `auxCommitment*` fields are removed in v0.6.
 
-**On-chain (`ODPWalletDocumentAnchor`, reference v0.5):**
+**On-chain (`ODPWalletDocumentAnchor`, reference v0.6):**
 
 - `attestExternalDocument(bytes32 documentHash, string documentUri)` — caller must be registered on the **main** registry; `documentHash` is SHA-256 of raw file bytes (same as `fileHash` encoding); `documentUri` optional HTTPS URL (max 512 chars); **at most one** attestation per `(wallet, documentHash)` in that anchor contract.
 - `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — returns `attested`, `creatorId`, timestamp, and `documentUri`.
@@ -1414,50 +1430,21 @@ For a **second document anchor tied to a passport**, use `**auxCommitmentHash` /
 - **Anchor (submit):** a registered wallet calls `attestExternalDocument(documentHash, documentUri)` on `**ODPWalletDocumentAnchor`**. The reference UI allows an optional HTTPS URL (max 512 chars).
 - **Check (verify):** the user uploads a file; the page computes SHA-256 locally, then searches for attestations of that hash via `**ExternalDocumentAttested`** (**indexed `documentHash`**) and confirms with `**getExternalDocumentAttestation**` on the anchor. The UI performs **global** discovery and does **not** require a profile ID or wallet filter.
 
-### Level 1D — NDPP / offline-public payload (optional carrier layer)
-
-**Purpose:** anchor a compact **public** payload for offline or low-bandwidth disclosure without replacing the canonical `**passport.json`** / `**.odpass`**.
-
-This level is **optional**. A passport remains valid without NFC, without NDPP, and without any special carrier payload beyond the canonical registry + `**.odpass`** flow.
-
-**On-chain (`ObjectDigitalPassport`, reference v0.5):**
-
-- `**ndppCommitmentHash`** / `**ndppCommitmentUri`** on the passport record.
-- `**updatePassportNdppCommitment(passportId, newHash, newUri)`** — only `**creator`** or `**governance`**; same empty/hash rule as aux commitment fields.
-
-**Verification:**
-
-1. Obtain the NDPP payload bytes from the intended source (for example NFC-read bytes, QR-resolved file bytes, or the raw body fetched from `**ndppCommitmentUri`**).
-2. Compute `**SHA-256(raw bytes)`**.
-3. Compare with on-chain `**ndppCommitmentHash`**.
-4. **Match**    → the public offline payload is the one currently anchored for this passport.
-5. **No match** → NDPP payload mismatch.
-
-**Verifier interpretation:** NDPP is an **additional public-information layer**, not the primary passport integrity anchor. A matching NDPP payload can be displayed as anchored public disclosure data; a mismatch means the NDPP layer failed, but it does **not** by itself override the canonical `**dataHash`** / `**.odpass`** verification result. Conversely, a valid `**dataHash`** match does **not** automatically validate a separate NDPP payload unless its own hash also matches.
-
-If the carrier is NFC Forum-compatible NDEF, verifiers and issuers should treat the NFC medium as a transport convenience only. A standard URL / URI record may be used as the phone-friendly entry point, while any additional ODP-specific verification record remains secondary and optional.
-
-In the optional **ODP-in-NDPP** profile, the URL-first carrier opening step, the chip-authentication step, and the offline-payload step remain distinct:
-
-1. opening the first URL / URI record only launches the verifier entry point,
-2. validating the secondary payload only proves that the public offline bytes match `**ndppCommitmentHash`**,
-3. validating the physical chip still requires chip-side cryptography against on-chain `**nfcPublicKey`** when NFC seal verification is expected.
-
-### Level 2A — NFC seal verification (physical, sealType 1 or 3)
+### Level 2A — NFC seal verification (physical objects with an `nfc` anchor)
 
 **Primary path for NTAG 424 DNA (`odp-ntag424-ev2-symmetric-cr-v1`):**
 
 ```
-1. Load nfcPublicKey from blockchain (16-byte EV2 AES application key)
+1. Obtain the `nfc` anchor from passport.json and confirm its integrity
+   against on-chain dataHash (or the anchors array against anchorsHash);
+   read the 16-byte EV2 AES application key from the anchor
 2. Run AuthenticateEV2First on the tag using that key
 3. Mutual challenge-response (RndA/RndB) completes
 4. Match    → SEAL_NFC_AUTHENTIC
    No match → SEAL_NFC_INVALID
 ```
 
-**Optional mirror path (`odp-ntag424-nfc-public-key-file-v1`):** only when on-chain `nfcPublicKey` stores protected-file mirror bytes instead of the EV2 key itself.
-
-If chip model is `NTAG424DNA_TAGTAMPER` on-chain:
+If the anchor's `data.model` is `NTAG424DNA_TAGTAMPER`:
 
 ```
 5. Read tamper status after EV2 auth
@@ -1467,12 +1454,25 @@ If chip model is `NTAG424DNA_TAGTAMPER` on-chain:
 
 `Read_Sig` proves NXP originality, not passport binding. EV2 session auth alone is necessary but, under the primary profile, `chipKeyMatch` means the mutual challenge-response succeeded with the on-chain key bytes.
 
-### Level 2B — Numbered seal verification (physical, sealType 2 or 3)
+### Level 2B — Numbered seal verification (physical objects with a `numbered_seal` anchor)
 
 ```
-1. Read seal.numbered.number from passport.json
+1. Read the `numbered_seal` anchor's data.number from passport.json
+   (integrity-anchored via dataHash / anchorsHash)
 2. User visually compares number on object to number in passport
 3. Cannot be automated — requires human inspection
+```
+
+### Level 2D — Physical anchor inspection (the identification minimum)
+
+```
+1. Read the photo, dimensions, materials, distinguishing_features
+   (and optional marks) anchors from passport.json
+2. Compare the physical object against them: photos, measured
+   dimensions, materials/technique, and the distinguishing features
+   a copy would not reproduce
+3. Cannot be automated — requires human inspection; this is the
+   Object ID-style core check for objects without a crypto seal
 ```
 
 ### Level 2C — File hash verification (digital objects)
@@ -1514,6 +1514,25 @@ If chip model is `NTAG424DNA_TAGTAMPER` on-chain:
 | `NO_IMAGE_REGISTERED` | No image hash on record                             |
 
 
+### Assurance tiers (normative)
+
+A verifier MAY summarize the strength of the evidence bound to a passport as a single **assurance tier**. Tiers are a display-layer summary of §11 checks — they exist so a non-expert can see the degree of binding at a glance.
+
+**Computation rule (normative):** a tier is **derived at view time** from current on-chain state (`anchorTypesMask`, proof records, counterfeit-concern flags, revocation, and the §11 hash checks). It MUST NOT be stored on-chain, encoded into a Passport ID or Profile ID, or printed on objects, certificates, or labels as a static claim — a printed "tier" is exactly the kind of stale assurance this protocol exists to prevent. The only value printed on an object is the Passport ID (§2, §5).
+
+| Tier | Criteria (all lower tiers included) |
+| --- | --- |
+| — (no tier) | Passport `INVALID`, `TAMPERED`, or revoked. No tier is shown; the failure state dominates. |
+| **Base** | Valid v0.6 passport: hard identification minimum present in `anchorTypesMask`, and — when the bundle is available — `dataHash`, `anchorsHash`, and the byte-for-byte card check all pass. |
+| **Sealed** | Base + a seal anchor (`nfc` = bit 256 or `numbered_seal` = bit 512) present and integrity-bound. |
+| **Attested** | Base + at least one institutional proof record (§4) from a P/M profile on the paired proof registry. A seal is not required for this tier. |
+
+**Downgrade rule (normative):** an active institutional counterfeit concern (§4) does not remove a tier but MUST be displayed at least as prominently as the tier itself. A revoked passport has no tier regardless of anchors or proofs.
+
+**Verified vs declared (normative):** when the verifier could not obtain the passport bundle (`UNVERIFIABLE` / no public URL), the tier reflects **on-chain declarations only** and MUST be visually marked as such (e.g. "declared"). When the bundle checks passed, the tier MAY be marked as verified. A web verifier MUST NOT imply that a **Sealed** tier means a live chip check happened — the EV2 challenge-response (§6, Level 2A) runs only in an NFC-capable verifier, and its result is reported separately (`SEAL_NFC_*`).
+
+**Honesty rule (normative):** the tier label MUST be presented as a measure of *binding evidence*, never as an authenticity verdict. A Base-tier passport from an honest issuer is not "worse" than a Sealed-tier passport from a fraudulent one; the human checks of §11 (issuer identity, distinguishing features) remain decisive at every tier.
+
 ---
 
 ## 12. QR Code and protocol URI schemes
@@ -1552,16 +1571,14 @@ An `odp://` URI **does not** identify **chain ID** or **registry contract addres
 
 ### Almost-ERC Read Standard (reference main registry + satellites)
 
-This section defines the practical read/write surface integrators should align with for the reference `**ObjectDigitalPassport`** line (**v0.5**; packed byte **5** at mint).
+This section defines the practical read/write surface integrators should align with for the reference `**ObjectDigitalPassport`** line (**v0.6**; packed byte **6** at mint).
 
 Level 1 (core reading)
 
-- `exists(passportId) -> bool` (no revert)
-- `getPassportHeader(passportId) -> PassportHeaderView`
+- `getPassportHeader(passportId) -> PassportHeaderView` (includes the on-chain card: `title`, `authorName`, `shortDescription`, `domain`)
 - `getPassportClassification(passportId) -> PassportClassificationView`
-- `getPassportMedia(passportId) -> PassportMediaView`
-- `getPassportPhysical(passportId) -> PassportPhysicalView`
-- `getPassportState(passportId) -> PassportStateView`
+- `getPassportMedia(passportId) -> PassportMediaView` (`dataHash`, `dataUrl`, `imageHash`, `imageUrl`, `fileHash`, `anchorsHash`, `anchorTypesMask`)
+- `getPassportEvents(passportId) -> PassportEventsView` (`eventCount`, `lastEventKind`, `lastEventAt`, `lifecycleStatus`; full history via `PassportEventRecorded` logs)
 - `getCreator(creatorId) -> CreatorRecord`
 - `governance() -> address`
 
@@ -1569,7 +1586,7 @@ Optional — **counterfeit / authenticity concern:** `getCounterfeitConcern(pass
 
 Optional — **proof satellite (`ODPPassportProofRegistry`):**
 
-- `submitProof(passportId, noteHash, noteUrl, year, month) -> proofId`
+- `submitProof(passportId, documentHash, documentUrl, year, month) -> proofId` — v0.6 attestation: "this passport/object was examined" as a whole; `documentHash` optionally anchors a signed expertise document
 - `getProofsForPassport(passportId) -> string[]` (proof IDs; verifiers SHOULD paginate **client-side** if the list may be large)
 - `getProof(proofId) -> ProofRecord`
 
@@ -1596,18 +1613,19 @@ Optional Level 1 list endpoints
 
 Core guarantees (invariants)
 
-- Hashes are immutable after mint: `dataHash`, `**imageHash`, `imageHash2`, `imageHash3`**, `fileHash`, `sealHash`.
-- `updatePassportUrls()` may change **only** primary `dataUrl` and `**imageUrl`** (not `imageUrl2`/`imageUrl3`) and requires `confirmedDataHash == on-chain dataHash`; caller must be `**creator` or `owner`**, or the **issuer’s active publishing agent** (`getCreatorPublishingDelegation(passport.creator)`).
-- `**submitProof` reverts** if the passport is **revoked**.
+- The card (`title`, `authorName`, `shortDescription`, `domain`) and all hashes (`dataHash`, `anchorsHash`, `imageHash`, `fileHash`) are immutable after mint; the card has no edit path (typo = revoke + re-mint).
+- All mutable aspects are **append-only**: `recordPassportEvent` only adds records; nothing is overwritten and history is never lost.
+- `updatePassportUrls()` may change **only** `dataUrl` and `**imageUrl`** (hosting hints) and requires `confirmedDataHash == on-chain dataHash`; caller must be `**creator` or `owner`**, or the **issuer’s active publishing agent** (`getCreatorPublishingDelegation(passport.creator)`).
+- `**submitProof` and `recordPassportEvent` revert** if the passport is **revoked**.
 
 Affiliation note (P → P, one-level)
 
-- `getPAffiliatedChildren(parentPId) -> string[]` returns the full list; verifiers/frontends MUST treat the result as potentially large and apply **client-side** pagination or caps, or use `**getPAffiliatedChildrenPaged(parentPId, offset, limit)`** on the **v0.4** reference main registry.
+- `getPAffiliatedChildren(parentPId) -> string[]` returns the full list; verifiers/frontends MUST treat the result as potentially large and apply **client-side** pagination or caps, or use `**getPAffiliatedChildrenPaged(parentPId, offset, limit)`** on the relations satellite.
 - Hard caps: a single parent `P` can have at most **100 active child `P`**, and a single child `P` can have at most **100 pending parent proposals** at any moment.
 
 Document anchoring
 
-- `**getExternalDocumentAttestation(wallet, documentHash)`** on `**ODPWalletDocumentAnchor`** (reference **v0.5** — configure `**NET.docAnchor`**) returns metadata for a single `(wallet, hash)` attestation when present.
+- `**getExternalDocumentAttestation(wallet, documentHash)`** on `**ODPWalletDocumentAnchor`** (reference **v0.6** — configure `**NET.docAnchor`**) returns metadata for a single `(wallet, hash)` attestation when present.
 - Reference `**verify.html`**: file-hash check and wallet submit require external-doc support (generation ≥ 2) and `**NET.docAnchor`** on `**ODPWalletDocumentAnchor**` (see §Level 1C).
 
 ```
@@ -1629,14 +1647,19 @@ verifyImage(passportId, imageBytes) → ImageResult
   .status       // IMAGE_AUTHENTIC | IMAGE_REPLACED | NO_IMAGE_REGISTERED
 
 mint(params) → passportId
-  // physical: requires seal data
-  // digital: requires digital.fileHash
+  // unified PassportMintInputs tuple: card + hashes + anchorsHash + anchorTypesMask
+  // physical: anchors minimum photo+dimensions+materials+distinguishing_features, imageHash != 0, fileHash == 0
+  // digital: file_hash anchor, fileHash != 0
+  // mixed: both rule sets
   // wallet must be registered (profile ID mandatory)
+
+recordPassportEvent(passportId, kind, value, note, attachmentHash, attachmentUrl)
+  // append-only layer B; creator / owner / governance
 
 registerCreator(type) → creatorId
   // type: "C" | "B" | "P" | "M"
 
-submitProof(passportId, noteHash, noteUrl, year, month) → proofId
+submitProof(passportId, documentHash, documentUrl, year, month) → proofId
   // caller must be registered as type P or M; year/month are proof-event calendar values for the PRF id
 
 proposePAffiliation(parentPId)
@@ -1655,13 +1678,13 @@ revokePassport(passportId, reasonHash)
 // raiseCounterfeitConcern(passportId, reasonHash)
 // clearCounterfeitConcern(passportId)
 transferGovernance(newGovernance)
-freeze()  // v0.x only — stable v1 planned to omit registry-wide freeze
+freeze()  // deployer only; irreversible; blocks writes. v0.x safety hatch — planned removal in stable v1
 
 getCreator(creatorId) → CreatorRecord
 getProofsForPassport(passportId) → ProofRecord[]
 
 computeDataHash(passportJson) → bytes32
-computeSealHash(sealObject) → bytes32
+computeAnchorsHash(anchorsArray) → bytes32
 computeFileHash(fileBytes) → bytes32
 computeImageHash(imageBytes) → bytes32
 ```
@@ -1670,8 +1693,8 @@ computeImageHash(imageBytes) → bytes32
 
 ## 14. Versioning
 
-- This specification draft line is **v0.5** in this repository branch; `passport.json` SHOULD use a `version` field consistent with your tooling (older document schemas remain valid where unchanged).
-- On-chain `**CONTRACT_VERSION`** is the packed byte (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). The reference **v0.4 branch** bytecode **omits** public `**SPEC_MAJOR()` / `SPEC_MINOR()`** and *`*MONTHLY_LIMIT_*()`** getters (EIP-170): derive **major** as `CONTRACT_VERSION >> 4`, **minor** as `CONTRACT_VERSION & 0x0f`, and use normative **C = 1000** / **B = 100_000** from `ObjectDigitalPassport.sol` (or `getRemainingMints`) when limits are not exposed.
+- This specification draft line is **v0.6** in this repository branch; `passport.json` uses `version: "0.6"`.
+- On-chain `**CONTRACT_VERSION`** is the packed byte (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**); the reference **v0.6 branch** mints byte **6**. The bytecode **omits** public `**SPEC_MAJOR()` / `SPEC_MINOR()`** and `**MONTHLY_LIMIT_*()`** getters (EIP-170): derive **major** as `CONTRACT_VERSION >> 4`, **minor** as `CONTRACT_VERSION & 0x0f`, and use normative **C = 1000** / **B = 100_000** from `ObjectDigitalPassport.sol` when limits are not exposed.
 - Breaking changes increment the minor **document** `version` inside `passport.json`.
 - Stable release will be `1.0`
 - All `passport.json` files include a `version` field for forward compatibility
@@ -1697,13 +1720,14 @@ Expected ZIP entries:
   - `passport.json` — the canonical ODP `passport.json` document bytes (UTF-8 text).
   - `manifest.json` — bundle metadata for UX (not a trust anchor).
 - Optional (current reference bundle layout; `manifest.json` `**bundleVersion`** identifies the layout):
-  - All on-chain-anchored byte files live under `**originals/<role>__<filename>`** (UTF-8 path segments; `<role>` is a short ASCII token such as `digital`, `image`, `image2`, `image3` so basenames cannot collide).
-  - `**manifest.originals`** — object whose values are the **exact ZIP paths** (strings) for sidecars, keyed by on-chain semantics:
+  - All anchored byte files live under `**originals/<role>__<filename>`** (UTF-8 path segments; `<role>` is a short ASCII token such as `digital`, `image`, `photo2` so basenames cannot collide).
+  - `**manifest.originals`** — object whose values are the **exact ZIP paths** (strings) for sidecars, keyed by anchor semantics:
     - `fileHash` → path of bytes matching on-chain `fileHash` (digital original asset when present).
-    - `imageHash`, `imageHash2`, `imageHash3` → paths matching the corresponding on-chain image hashes when present.
+    - `imageHash` → path matching the on-chain primary `imageHash` when present.
+    - additional `photo` anchors MAY use keys matching their anchor `hash` semantics (implementation-defined, e.g. `photo2`); the comparison target is always the `sha256:` value inside the anchor.
   - Omitted keys mean that sidecar was not included in the bundle.
 
-**Normative rule:** sidecar bytes MUST use the `**originals/`** layout above. Separate top-level folders per sidecar (`original/*`, `image/*`, `image2/*`, `image3/*`) MUST **not** appear as the sole sidecar layout in a conforming bundle.
+**Normative rule:** sidecar bytes MUST use the `**originals/`** layout above. Separate top-level folders per sidecar (`original/*`, `image/*`) MUST **not** appear as the sole sidecar layout in a conforming bundle.
 
 #### 15.1.1 Reference `manifest.json` shape (implementations)
 
@@ -1712,7 +1736,7 @@ Reference tooling in this repository (`web/frontend/passport.html`, `chain/tools
 - `format`: `"odpass-bundle"` (legacy bundles MAY use `"odp-bundle"`)
 - `bundleVersion`: string for the bundle layout exported by reference tooling (older manifest layout strings may still read)
 - `passportId` (or legacy `humanId`), `createdAtUtc` (UTC ISO-8601, e.g. `2026-03-22T12:00:00Z`), `mode` (e.g. `"full"`)
-- `onChain`: `dataHash`, `imageHash`, `imageHash2`, `imageHash3`, `fileHash` (`0x` + 64 hex, or all-zero), `txHash`, `chainId`, `contract` (checksummed address string where applicable)
+- `onChain`: `dataHash`, `anchorsHash` (`0x` + 64 hex), `anchorTypesMask` (integer), `imageHash`, `fileHash` (`0x` + 64 hex, or all-zero), `txHash`, `chainId`, `contract` (checksummed address string where applicable)
 - `originals`: map of logical keys (`fileHash`, `imageHash`, …) to **ZIP entry paths** under `originals/` (explicit strings; normative for resolving sidecar bytes in current reference bundles)
 - `files`: array of `{ path, role, mime }`; sidecar entries MAY include `sizeBytes` and `sha256` (`0x` + 64 hex)
 
@@ -1727,11 +1751,13 @@ An offline verifier of an `**.odpass`** bundle MUST:
   using the bundle Passport ID normalization for chain-hash comparison (i.e. treat the bundle Passport ID as `passportId: null` — legacy JSON may use `humanId: null` for the same step — when recomputing the chain-hash input).
 3. Compare `localDataHash` to the on-chain `dataHash` for the claimed Passport ID (`passportId`).
 
+An offline verifier SHOULD also recompute the anchors hash: extract the `anchors` array, canonicalize (same rules), SHA-256, compare to on-chain `**anchorsHash`**, and check the actual anchor types against `**anchorTypesMask`**.
+
 If the on-chain record contains non-zero `fileHash` and the bundle includes bytes for that commitment, a verifier SHOULD also:
 
 - resolve the file using the path in `manifest.originals.fileHash` when present and safe (must be under `originals/`, per the rules below), recompute SHA-256, and compare to `fileHash`.
 
-Likewise, for non-zero `imageHash` / `imageHash2` / `imageHash3`, a verifier SHOULD resolve the corresponding entry using `manifest.originals.imageHash` / `imageHash2` / `imageHash3` (paths under `originals/` only), recompute SHA-256, and compare to the on-chain hash. Verifiers MUST **not** fall back to legacy top-level `original/*` or `image*/*` folders.
+Likewise, for non-zero `imageHash` (and for any `photo` anchors with sidecar bytes in the bundle), a verifier SHOULD resolve the corresponding entry via `manifest.originals` (paths under `originals/` only), recompute SHA-256, and compare to the on-chain hash or the anchor's `sha256:` value. Verifiers MUST **not** fall back to legacy top-level `original/*` or `image*/*` folders.
 
 Paths under `manifest.originals` MUST be rejected if they contain `..` or do not start with the `originals/` prefix (case-insensitive), to avoid zip-slip confusion; on-chain hashes still govern the outcome.
 
@@ -1850,7 +1876,7 @@ Implementations MAY include optional namespaces (all off-chain unless hashed int
 - `**identifiers.gtin**` — GS1 GTIN; mappable to GS1 Digital Link URIs in tooling
 - `**iiif.manifest**` — IIIF Presentation API manifest URL or embedded reference
 - **Object metadata** — physical dimensions, weight, depth, `**creationDate`**, `**listingPrice`**, `**internalTag**` (inventory label; not a Passport ID)
-- `**images**` — up to **three** logical images: primary aligns with on-chain `imageHash`; additional entries align with `imageHash2` / `imageHash3` when minted
+- Additional images are `photo` anchors in `anchors[]` (no fixed limit); the primary photo aligns with on-chain `imageHash`
 
 Verifiers MUST NOT treat optional fields as legal offers (e.g. listing price is not an on-chain binding offer).
 
@@ -1862,7 +1888,7 @@ Minimal integration pattern:
 
 1. The GS1 Digital Link identifies a **GTIN** and, if available, a **serial**.
 2. A resolver page or service maps that GS1 tuple to an ODP passport and opens the relevant passport or verify page with the required registry context.
-3. The verifier then checks the ODP **Passport ID**, canonical `**.odpass`** / `**passport.json`** bytes against on-chain `**dataHash`**, and optional `**ndpp`** / offline-public payloads only as additional carrier or disclosure layers.
+3. The verifier then checks the ODP **Passport ID** and canonical `**.odpass`** / `**passport.json`** bytes against on-chain `**dataHash`** (offline payloads verify against `**dataHash`** / `**anchorsHash`** directly).
 
 `**identifiers.gtin`** in `**passport.json`** is a natural off-chain place to align ODP records with GS1 identifiers. GS1 Digital Link by itself does **not** prove authenticity and does **not** replace the ODP registry, Passport ID, or hash verification.
 

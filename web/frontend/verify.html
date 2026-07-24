@@ -279,16 +279,17 @@ const NET = {
   rpc:      POLYGON_RPC_FALLBACKS[0],
   rpcUrls:  POLYGON_RPC_FALLBACKS.concat(["https://polygon.drpc.org"]),
   explorer: "https://polygonscan.com",
-  contract: "0x413aEeBB2ac437483Bc68791EaAab492C2a4B346",
-  relations: "0x4aA459D68bDABc96A5838fDFb7713B5417dcae73",
-  proofRegistry: "0x99A113a509bcF3dABf89Eddfee1a0Fdc1cb5dab0",
+  contract: "0x012aC6393464A73EC16131D701ff2e000695b91b",
+  relations: "0x2ea6f05a050973afa14E61b1Ea19De92621e3661",
+  proofRegistry: "0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49",
   /** Optional `ODPWalletDocumentAnchor` for `attestExternalDocument` when the main registry is v0.3+ (EIP-170). */
-  docAnchor: "0x5d1e18A475A82e1b7Ce754084e23a3F56a57c7ee",
+  docAnchor: "0x35df3773919D9F10e5F8838abaa453DE120e6Cb4",
   /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
-  counterfeitConcern: "0xd5727f16dB061226E19F82287A81FC9f69E1aDE2",
-  contractGenerationFallback: 5,
-  /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). */
+  counterfeitConcern: "0x692935d6c1532b47cE0459bF1E9549991d0eD2C9",
+  contractGenerationFallback: 6,
+  /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). The v0.5 registry (gen 5) is kept here so passports minted before the v0.6 cutover still resolve. */
   previousContracts: [
+    "0x413aEeBB2ac437483Bc68791EaAab492C2a4B346",
     "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
     "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
     "0x6c83c8C2e18c183a2776431a23187832b42FfFBb",
@@ -568,13 +569,13 @@ function renderVerifyAndroidNfcGuide(humanId, rec, passport) {
       </div>
     </div>` : ""}
     <div class="btn-row" style="margin-top:10px;flex-wrap:wrap">
-      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedPassportId"))})'>${esc(t("verify.detail.nfcCopyPassportId"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(verifyUrl)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedVerifyLink"))})'>${esc(t("verify.detail.nfcCopyVerifyLink"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${JSON.stringify(chipKey)}, ${JSON.stringify(statusId)}, ${JSON.stringify(t("verify.detail.nfcCopiedChipKey"))})'>${esc(t("verify.detail.nfcCopyChipKey"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "copy")'>${esc(t("verify.detail.nfcCopyHandoff"))}</button>
-      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "share")'>${esc(t("verify.detail.nfcShareHandoff"))}</button>
-      <button type="button" class="btn btn-ghost" onclick='void verifyUseAndroidHandoff(${JSON.stringify(String(humanId || ""))}, ${JSON.stringify(verifyUrl)}, ${JSON.stringify(ndppCommitmentHash)}, ${JSON.stringify(chipKey)}, ${JSON.stringify(dataHash)}, ${JSON.stringify(nfcModel)}, ${JSON.stringify(nfcUid)}, ${JSON.stringify(statusId)}, "open")'>${esc(t("verify.detail.nfcOpenCompanion"))}</button>
-      <button type="button" class="btn btn-ghost" onclick='window.open(${JSON.stringify(verifyUrl)}, "_blank", "noopener")'>${esc(t("verify.detail.nfcOpenVerifyLink"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(statusId))}, ${escAttr(JSON.stringify(t("verify.detail.nfcCopiedPassportId")))})'>${esc(t("verify.detail.nfcCopyPassportId"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(statusId))}, ${escAttr(JSON.stringify(t("verify.detail.nfcCopiedVerifyLink")))})'>${esc(t("verify.detail.nfcCopyVerifyLink"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyCopyGuideValue(${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(statusId))}, ${escAttr(JSON.stringify(t("verify.detail.nfcCopiedChipKey")))})'>${esc(t("verify.detail.nfcCopyChipKey"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(ndppCommitmentHash))}, ${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(dataHash))}, ${escAttr(JSON.stringify(nfcModel))}, ${escAttr(JSON.stringify(nfcUid))}, ${escAttr(JSON.stringify(statusId))}, "copy")'>${esc(t("verify.detail.nfcCopyHandoff"))}</button>
+      <button type="button" class="btn btn-sec" onclick='void verifyUseAndroidHandoff(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(ndppCommitmentHash))}, ${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(dataHash))}, ${escAttr(JSON.stringify(nfcModel))}, ${escAttr(JSON.stringify(nfcUid))}, ${escAttr(JSON.stringify(statusId))}, "share")'>${esc(t("verify.detail.nfcShareHandoff"))}</button>
+      <button type="button" class="btn btn-ghost" onclick='void verifyUseAndroidHandoff(${escAttr(JSON.stringify(String(humanId || "")))}, ${escAttr(JSON.stringify(verifyUrl))}, ${escAttr(JSON.stringify(ndppCommitmentHash))}, ${escAttr(JSON.stringify(chipKey))}, ${escAttr(JSON.stringify(dataHash))}, ${escAttr(JSON.stringify(nfcModel))}, ${escAttr(JSON.stringify(nfcUid))}, ${escAttr(JSON.stringify(statusId))}, "open")'>${esc(t("verify.detail.nfcOpenCompanion"))}</button>
+      <button type="button" class="btn btn-ghost" onclick='window.open(${escAttr(JSON.stringify(verifyUrl))}, "_blank", "noopener")'>${esc(t("verify.detail.nfcOpenVerifyLink"))}</button>
       ${ndppUrl ? `<a class="btn btn-ghost" href="${esc(ndppUrl)}" target="_blank" rel="noopener noreferrer">${esc(t("verify.detail.nfcOpenNdppLink"))}</a>` : ""}
     </div>
     <div id="${esc(statusId)}" class="fhint" style="margin-top:8px;min-height:1.25em"></div>
@@ -1697,6 +1698,36 @@ async function verify() {
       } catch {}
     }
 
+    // spec 0.6: card MUST match on-chain byte-for-byte, anchors array MUST match
+    // anchorsHash — any mismatch is TAMPERED, not a warning (SPEC §11 steps 7–8).
+    if (
+      passport &&
+      typeof odpSupportsV06 === "function" &&
+      odpSupportsV06(odpContractGeneration) &&
+      typeof rec.anchorsHash !== "undefined"
+    ) {
+      const nfcs = (x) => String(x == null ? "" : x).normalize("NFC");
+      const cardOk =
+        nfcs(passport.title) === nfcs(rec.title) &&
+        nfcs(passport.authorName) === nfcs(rec.authorName) &&
+        nfcs(passport.shortDescription) === nfcs(rec.shortDescription) &&
+        nfcs(passport.domain) === nfcs(rec.domain) &&
+        nfcs(passport.objectType) === nfcs(rec.objectType);
+      let anchorsOk = false;
+      try {
+        const anchorsCanon = JSON.stringify(
+          sortKeysDeep(normalizeNFC(Array.isArray(passport.anchors) ? passport.anchors : []))
+        );
+        anchorsOk = (await sha256text(anchorsCanon)).toLowerCase() === odpBytes32HexLower(rec.anchorsHash);
+      } catch {}
+      verifyRenderOpts.v06 = {
+        cardOk,
+        anchorsOk,
+        anchorTypes: Array.isArray(passport.anchors) ? passport.anchors.map((a) => String(a && a.type || "?")) : [],
+      };
+      if (dataStatus === "authentic" && (!cardOk || !anchorsOk)) dataStatus = "tampered";
+    }
+
     await verifyMergeCounterfeitConcern(readContract, humanId, verifyRenderOpts);
 
     Object.assign(verifyRenderOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
@@ -2234,6 +2265,23 @@ function attachInstitutionProofVerifyHandlers() {
   });
 }
 
+/**
+ * SPEC §11 "Assurance tiers": derived at view time from current on-chain
+ * state; never stored, never encoded into IDs, never printed. Returns null
+ * when no tier may be shown (invalid / tampered / revoked / pre-0.6 record).
+ */
+function odpComputeAssuranceTier(rec, proofs, dataStatus, renderOpts) {
+  if (!rec || rec.revoked) return null;
+  if (typeof rec.anchorsHash === "undefined") return null;
+  if (dataStatus === "tampered") return null;
+  if (renderOpts && renderOpts.v06 && (!renderOpts.v06.cardOk || !renderOpts.v06.anchorsOk)) return null;
+  const mask = Number(rec.anchorTypesMask || 0);
+  const hasSeal = (mask & 256) !== 0 || (mask & 512) !== 0; // nfc | numbered_seal
+  const proofCount = Array.isArray(proofs) ? proofs.length : 0;
+  const tier = proofCount > 0 ? "attested" : hasSeal ? "sealed" : "base";
+  return { tier, verified: dataStatus === "authentic", hasSeal, proofCount };
+}
+
 function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnAddress, renderOpts) {
   renderOpts = renderOpts && typeof renderOpts === "object" ? renderOpts : null;
   const net_     = NET;
@@ -2364,6 +2412,20 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             ? `<div class="err-box" style="margin:0 0 14px;font-size:13px;line-height:1.55"><strong>Institutional authenticity concern</strong> — profile <span class="mono">${esc(String(renderOpts.counterfeitProver || ""))}</span> (P or M) raised a counterfeit-related flag. This is an institutional opinion, not a legal ruling.</div>`
             : ""
         }
+        ${(() => {
+          const at = odpComputeAssuranceTier(rec, proofs, dataStatus, renderOpts);
+          if (!at) return "";
+          const shields = at.tier === "attested" ? "🛡🛡🛡" : at.tier === "sealed" ? "🛡🛡" : "🛡";
+          const comps = t("verify.tier.components")
+            .replace("{seal}", t(at.hasSeal ? "verify.tier.yes" : "verify.tier.no"))
+            .replace("{proofs}", String(at.proofCount));
+          return `<div class="info neutral" style="font-size:12px;margin:0 0 14px;line-height:1.55;border-left:3px solid var(--accent);padding-left:10px">
+            <strong>${esc(t("verify.tier.label"))}: ${shields} ${esc(t("verify.tier." + at.tier))}</strong>
+            <span class="vbadge ${at.verified ? "ok" : "warn"}" style="margin-left:6px">${esc(t(at.verified ? "verify.tier.verified" : "verify.tier.declared"))}</span>
+            <div style="margin-top:4px">${esc(comps)}</div>
+            <div style="margin-top:4px;color:var(--ink3)">${esc(t("verify.tier.note"))}</div>
+          </div>`;
+        })()}
 
         <div class="obj-title">${esc(title)}</div>
         <div class="obj-creator">${esc(cname)}</div>
@@ -2569,6 +2631,34 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>
 
+        ${renderOpts && renderOpts.v06 ? `
+        <div class="vrow" style="margin-top:10px">
+          <span class="vbadge ${renderOpts.v06.cardOk ? "ok" : "bad"}">${renderOpts.v06.cardOk ? "Verified" : "Mismatch"}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">On-chain card (byte-for-byte vs passport.json)</div>
+            <div class="vinfo-val">${esc(String(rec.title || ""))}${rec.authorName ? " — " + esc(String(rec.authorName)) : ""}</div>
+            ${rec.shortDescription ? `<p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(String(rec.shortDescription))}</p>` : ""}
+          </div>
+        </div>
+        <div class="vrow" style="margin-top:10px">
+          <span class="vbadge ${renderOpts.v06.anchorsOk ? "ok" : "bad"}">${renderOpts.v06.anchorsOk ? "Verified" : "Mismatch"}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Identification anchors (SHA-256 of anchors[])</div>
+            <div class="vinfo-val mono" style="font-size:11px;word-break:break-all">${esc(odpBytes32HexLower(rec.anchorsHash))}</div>
+            ${renderOpts.v06.anchorTypes.length ? `<p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">${esc(renderOpts.v06.anchorTypes.join(", "))}</p>` : ""}
+          </div>
+        </div>` : ""}
+
+        ${typeof rec.eventCount !== "undefined" ? `
+        <div class="vrow" style="margin-top:10px">
+          <span class="vbadge na">${Number(rec.eventCount || 0)}</span>
+          <div class="vinfo">
+            <div class="vinfo-label">Append-only passport events</div>
+            <div class="vinfo-val" style="font-size:12px">${Number(rec.eventCount || 0) === 0 ? "No events recorded since mint" : "Last event kind " + Number(rec.lastEventKind || 0) + " · " + (Number(rec.lastEventAt || 0) ? new Date(Number(rec.lastEventAt) * 1000).toISOString().slice(0, 19) + "Z" : "")}</div>
+            <p style="font-size:11px;color:var(--text2);margin:8px 0 0;line-height:1.5">Ownership, status, condition, damage, and restoration history is append-only on-chain; full history lives in the PassportEventRecorded log.</p>
+          </div>
+        </div>` : ""}
+
         ${
           typeof rec.ndppCommitmentHash !== "undefined" && odpNonZeroBytes32(rec.ndppCommitmentHash)
             ? `<div class="vrow" style="margin-top:10px">
@@ -2642,7 +2732,7 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
           </div>
         </div>` : ""}
 
-        ${!isDigital ? `
+        ${!isDigital && typeof rec.sealType !== "undefined" ? `
         <div class="vrow">
           <span class="vbadge na">${rec.sealType === 0 ? esc(t("verify.detail.sealTypeNone")) : rec.sealType === 1 ? esc(t("verify.detail.sealTypeNfc")) : rec.sealType === 2 ? esc(t("verify.detail.sealTypeNum")) : esc(t("verify.detail.sealTypeBoth"))}</span>
           <div class="vinfo">
@@ -3303,6 +3393,18 @@ function esc(s) {
   return String(s ?? "")
     .replace(/&/g,"&amp;").replace(/</g,"&lt;")
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/**
+ * HTML-attribute-safe encoding for values interpolated into an inline handler
+ * attribute (e.g. onclick='...JSON.stringify(x)...'). esc() leaves the single
+ * quote intact, which would break a single-quoted attribute; this also encodes
+ * `'`. The browser HTML-decodes the attribute value before the JS is parsed, so
+ * wrapping JSON.stringify(x) in escAttr() is behavior-preserving and prevents
+ * any character in x from breaking out of the attribute or the HTML context.
+ */
+function escAttr(s) {
+  return esc(s).replace(/'/g, "&#39;");
 }
 
 function bytesToHex(b) {

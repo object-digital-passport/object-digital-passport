@@ -3,17 +3,14 @@ pragma solidity ^0.8.20;
 
 import "./ODPErrors.sol";
 import {
-    DigitalMintInputs,
-    MixedMintInputs,
+    ODPAnchorBits,
+    ODPEventKinds,
     PassportCoreMintInputs,
-    PhysicalMintInputs
+    PassportMintInputs
 } from "./ODPPassportTypes.sol";
 
 /// @dev Linked library: validation + decode + URL resolution for ObjectDigitalPassport (EIP-170 size).
 library ODPPassportLib {
-    bytes32 private constant NFC_NTAG424DNA_HASH = keccak256("NTAG424DNA");
-    bytes32 private constant NFC_NTAG424DNA_TAGTAMPER_HASH = keccak256("NTAG424DNA_TAGTAMPER");
-
     uint8 private constant CONTENT_CLASS_STATIC = 1;
     uint8 private constant CONTENT_CLASS_EXECUTABLE = 6;
     uint8 private constant STATUS_CONCEPT = 1;
@@ -45,175 +42,94 @@ library ODPPassportLib {
         if (!(editionModel >= EDITION_UNIQUE && editionModel <= EDITION_DYNAMIC)) revert EC(88);
     }
 
-    function validateOptionalImageSlots(
-        bytes32 imageHash2,
-        string memory imageUrl2,
-        bytes32 imageHash3,
-        string memory imageUrl3
-    ) public pure {
-        if (imageHash2 == bytes32(0)) {
-            if (!(bytes(imageUrl2).length == 0)) revert EC(41);
-        } else {
-            if (!(bytes(imageUrl2).length <= 512)) revert EC(40);
-        }
-        if (imageHash3 == bytes32(0)) {
-            if (!(bytes(imageUrl3).length == 0)) revert EC(39);
-        } else {
-            if (!(bytes(imageUrl3).length <= 512)) revert EC(38);
-            if (!(imageHash2 != bytes32(0))) revert EC(37);
-        }
-    }
-
-    function validateAuxCommitmentFields(bytes32 auxHash, string memory auxUri) public pure {
-        if (auxHash == bytes32(0)) {
-            if (!(bytes(auxUri).length == 0)) revert EC(70);
-        } else {
-            if (!(bytes(auxUri).length <= 512)) revert EC(24);
-        }
-    }
-
-    function validateNdppCommitmentFields(bytes32 ndppHash, string memory ndppUri) public pure {
-        if (ndppHash == bytes32(0)) {
-            if (!(bytes(ndppUri).length == 0)) revert EC(70);
-        } else {
-            if (!(bytes(ndppUri).length <= 512)) revert EC(24);
-        }
-    }
-
-    function validateDamageHistoryFields(bytes32 damageHistoryHash, string memory damageHistoryUrl) public pure {
-        if (damageHistoryHash == bytes32(0)) {
-            if (!(bytes(damageHistoryUrl).length == 0)) revert EC(89);
-        } else {
-            if (!(bytes(damageHistoryUrl).length <= 512)) revert EC(90);
-        }
-    }
-
+    /// @dev Immutable on-chain card: no edit path exists after mint (typo = revoke + re-mint).
     function validatePassportCore(PassportCoreMintInputs memory core) public pure {
         if (!(core.year > 0)) revert EC(9);
         if (!(core.month >= 1 && core.month <= 12)) revert EC(8);
         if (!(bytes(core.title).length > 0)) revert EC(91);
-        if (!(bytes(core.title).length <= 256)) revert EC(92);
+        if (!(bytes(core.title).length <= 128)) revert EC(92);
+        if (!(bytes(core.authorName).length > 0)) revert EC(99);
+        if (!(bytes(core.authorName).length <= 128)) revert EC(100);
+        if (!(bytes(core.shortDescription).length > 0)) revert EC(101);
+        if (!(bytes(core.shortDescription).length <= 256)) revert EC(102);
         if (!(bytes(core.domain).length <= 128)) revert EC(93);
         validateContentClass(core.contentClass);
         validateLifecycleStatus(core.lifecycleStatus);
         validateAiStatus(core.aiStatus);
         validateVerificationMethod(core.verificationMethod);
         validateEditionModel(core.editionModel);
-        if (!(bytes(core.currentLocation).length <= 256)) revert EC(94);
-        if (!(bytes(core.rightsNote).length <= 256)) revert EC(95);
-        if (!(bytes(core.conditionNote).length <= 256)) revert EC(96);
-        validateDamageHistoryFields(core.damageHistoryHash, core.damageHistoryUrl);
     }
 
-    function validateCommonHashesAndUrls(
-        bytes32 dataHash,
-        string memory dataUrl,
-        bytes32 imageHash,
-        string memory imageUrl,
-        bytes32 imageHash2,
-        string memory imageUrl2,
-        bytes32 imageHash3,
-        string memory imageUrl3
-    ) public pure {
-        if (!(dataHash != bytes32(0))) revert EC(30);
-        if (!(bytes(dataUrl).length <= 512)) revert EC(24);
-        if (!(bytes(imageUrl).length <= 512)) revert EC(23);
-        if (imageHash == bytes32(0)) {
-            if (!(bytes(imageUrl).length == 0)) revert EC(28);
+    function validateCommonMintInputs(PassportMintInputs memory m) public pure {
+        validatePassportCore(m.core);
+        if (!(m.dataHash != bytes32(0))) revert EC(30);
+        if (!(bytes(m.dataUrl).length <= 512)) revert EC(24);
+        if (!(bytes(m.imageUrl).length <= 512)) revert EC(23);
+        if (m.imageHash == bytes32(0)) {
+            if (!(bytes(m.imageUrl).length == 0)) revert EC(28);
         }
-        validateOptionalImageSlots(imageHash2, imageUrl2, imageHash3, imageUrl3);
+        if (!(m.anchorsHash != bytes32(0))) revert EC(103);
+        if (!(m.anchorTypesMask != 0)) revert EC(104);
     }
 
-    function validateNfcModel(string memory nfcModel) public pure {
-        bytes32 h = keccak256(bytes(nfcModel));
-        if (!(h == NFC_NTAG424DNA_HASH || h == NFC_NTAG424DNA_TAGTAMPER_HASH)) revert EC(33);
+    function requireAnchorBits(uint32 mask, uint32 required) public pure {
+        if (!((mask & required) == required)) revert EC(105);
     }
 
-    function validateSealFields(
-        uint8 sealType,
-        bytes32 sealHash,
-        bytes memory nfcPublicKey,
-        string memory nfcModel
+    function validatePhysicalMintInputs(PassportMintInputs memory m) public pure {
+        validateCommonMintInputs(m);
+        if (!(m.fileHash == bytes32(0))) revert EC(106);
+        if (!(m.imageHash != bytes32(0))) revert EC(107);
+        requireAnchorBits(m.anchorTypesMask, ODPAnchorBits.PHYSICAL_REQUIRED);
+    }
+
+    function validateDigitalMintInputs(PassportMintInputs memory m) public pure {
+        validateCommonMintInputs(m);
+        if (!(m.fileHash != bytes32(0))) revert EC(29);
+        requireAnchorBits(m.anchorTypesMask, ODPAnchorBits.DIGITAL_REQUIRED);
+    }
+
+    function validateMixedMintInputs(PassportMintInputs memory m) public pure {
+        validateCommonMintInputs(m);
+        if (!(m.fileHash != bytes32(0))) revert EC(29);
+        if (!(m.imageHash != bytes32(0))) revert EC(107);
+        requireAnchorBits(m.anchorTypesMask, ODPAnchorBits.PHYSICAL_REQUIRED | ODPAnchorBits.DIGITAL_REQUIRED);
+    }
+
+    /// @dev Append-only event inputs. `value` carries the new lifecycleStatus for STATUS events only.
+    function validatePassportEventInputs(
+        uint8 kind,
+        uint8 value,
+        string memory note,
+        bytes32 attachmentHash,
+        string memory attachmentUrl
     ) public pure {
-        if (!(sealType >= 1 && sealType <= 3)) revert EC(36);
-        if (!(sealHash != bytes32(0))) revert EC(35);
-        if (sealType == 1 || sealType == 3) {
-            if (!(nfcPublicKey.length > 0)) revert EC(34);
-            validateNfcModel(nfcModel);
+        if (!(kind >= ODPEventKinds.STATUS && kind <= ODPEventKinds.CUSTOM)) revert EC(108);
+        if (kind == ODPEventKinds.STATUS) {
+            validateLifecycleStatus(value);
         } else {
-            if (!(bytes(nfcModel).length == 0)) revert EC(32);
-            if (!(nfcPublicKey.length == 0)) revert EC(97);
+            if (!(value == 0)) revert EC(109);
+        }
+        if (!(bytes(note).length <= 256)) revert EC(96);
+        if (attachmentHash == bytes32(0)) {
+            if (!(bytes(attachmentUrl).length == 0)) revert EC(89);
+        } else {
+            if (!(bytes(attachmentUrl).length <= 512)) revert EC(90);
         }
     }
 
-    function validatePhysicalMintForMint(PhysicalMintInputs memory m) public pure {
-        validatePassportCore(m.core);
-        validateCommonHashesAndUrls(
-            m.dataHash,
-            m.dataUrl,
-            m.imageHash,
-            m.imageUrl,
-            m.imageHash2,
-            m.imageUrl2,
-            m.imageHash3,
-            m.imageUrl3
-        );
-        validateSealFields(m.sealType, m.sealHash, m.nfcPublicKey, m.nfcModel);
-        validateAuxCommitmentFields(m.auxCommitmentHash, m.auxCommitmentUri);
-        validateNdppCommitmentFields(m.ndppCommitmentHash, m.ndppCommitmentUri);
+    function decodeMintNorm(bytes memory norm) public pure returns (PassportMintInputs memory m) {
+        m = abi.decode(norm, (PassportMintInputs));
     }
 
-    function validateDigitalMintInputs(DigitalMintInputs memory m) public pure {
-        validatePassportCore(m.core);
-        validateCommonHashesAndUrls(
-            m.dataHash,
-            m.dataUrl,
-            m.imageHash,
-            m.imageUrl,
-            m.imageHash2,
-            m.imageUrl2,
-            m.imageHash3,
-            m.imageUrl3
-        );
-        if (!(m.fileHash != bytes32(0))) revert EC(29);
-        validateAuxCommitmentFields(m.auxCommitmentHash, m.auxCommitmentUri);
-        validateNdppCommitmentFields(m.ndppCommitmentHash, m.ndppCommitmentUri);
+    function decodeAndValidateDigitalExtensionNorm(bytes memory norm) public pure returns (PassportMintInputs memory m) {
+        m = decodeMintNorm(norm);
+        validateDigitalMintInputs(m);
     }
 
-    function validateMixedMintInputs(MixedMintInputs memory m) public pure {
-        validatePassportCore(m.core);
-        validateCommonHashesAndUrls(
-            m.dataHash,
-            m.dataUrl,
-            m.imageHash,
-            m.imageUrl,
-            m.imageHash2,
-            m.imageUrl2,
-            m.imageHash3,
-            m.imageUrl3
-        );
-        if (!(m.fileHash != bytes32(0))) revert EC(29);
-        validateSealFields(m.sealType, m.sealHash, m.nfcPublicKey, m.nfcModel);
-        validateAuxCommitmentFields(m.auxCommitmentHash, m.auxCommitmentUri);
-        validateNdppCommitmentFields(m.ndppCommitmentHash, m.ndppCommitmentUri);
-    }
-
-    function decodeDigitalExtensionNorm(bytes memory norm) public pure returns (DigitalMintInputs memory dm) {
-        dm = abi.decode(norm, (DigitalMintInputs));
-    }
-
-    function decodeAndValidateDigitalExtensionNorm(bytes memory norm) public pure returns (DigitalMintInputs memory dm) {
-        dm = decodeDigitalExtensionNorm(norm);
-        validateDigitalMintInputs(dm);
-    }
-
-    function decodeAndValidatePhysicalExtensionNorm(bytes memory norm) public pure returns (PhysicalMintInputs memory pm) {
-        pm = decodePhysicalExtensionNorm(norm);
-        validatePhysicalMintForMint(pm);
-    }
-
-    function decodePhysicalExtensionNorm(bytes memory norm) public pure returns (PhysicalMintInputs memory pm) {
-        pm = abi.decode(norm, (PhysicalMintInputs));
+    function decodeAndValidatePhysicalExtensionNorm(bytes memory norm) public pure returns (PassportMintInputs memory m) {
+        m = decodeMintNorm(norm);
+        validatePhysicalMintInputs(m);
     }
 
     function trimTrailingSlashBytes(bytes memory b) internal pure returns (bytes memory) {

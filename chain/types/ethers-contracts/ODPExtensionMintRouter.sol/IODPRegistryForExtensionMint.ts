@@ -4,19 +4,14 @@
 import type { BaseContract, BigNumberish, BytesLike, FunctionFragment, Result, Interface, ContractRunner, ContractMethod, Listener } from "ethers"
 import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, TypedListener, TypedContractMethod } from "../common.js"
   
-    export type PassportCoreMintInputsStruct = {year: BigNumberish, month: BigNumberish, title: string, domain: string, contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: BytesLike, damageHistoryUrl: string}
+    export type PassportCoreMintInputsStruct = {year: BigNumberish, month: BigNumberish, title: string, authorName: string, shortDescription: string, domain: string, contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish}
 
-    export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string] & {year: bigint, month: bigint, title: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint, currentLocation: string, rightsNote: string, conditionNote: string, damageHistoryHash: string, damageHistoryUrl: string }
+    export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint] & {year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint }
   
 
-    export type DigitalMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, fileHash: BytesLike, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
+    export type PassportMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, fileHash: BytesLike, anchorsHash: BytesLike, anchorTypesMask: BigNumberish}
 
-    export type DigitalMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, fileHash: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
-  
-
-    export type PhysicalMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, sealType: BigNumberish, sealHash: BytesLike, nfcPublicKey: BytesLike, nfcModel: string, imageHash2: BytesLike, imageUrl2: string, imageHash3: BytesLike, imageUrl3: string, auxCommitmentHash: BytesLike, auxCommitmentUri: string, ndppCommitmentHash: BytesLike, ndppCommitmentUri: string}
-
-    export type PhysicalMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, sealType: bigint, sealHash: string, nfcPublicKey: string, nfcModel: string, imageHash2: string, imageUrl2: string, imageHash3: string, imageUrl3: string, auxCommitmentHash: string, auxCommitmentUri: string, ndppCommitmentHash: string, ndppCommitmentUri: string }
+    export type PassportMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint }
   
 
   export interface IODPRegistryForExtensionMintInterface extends Interface {
@@ -25,8 +20,8 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
     
 
     encodeFunctionData(functionFragment: 'governance', values?: undefined): string;
-encodeFunctionData(functionFragment: 'mintDigital', values: [DigitalMintInputsStruct, boolean, string]): string;
-encodeFunctionData(functionFragment: 'mintPhysical', values: [PhysicalMintInputsStruct, boolean, string]): string;
+encodeFunctionData(functionFragment: 'mintDigital', values: [PassportMintInputsStruct, boolean, string]): string;
+encodeFunctionData(functionFragment: 'mintPhysical', values: [PassportMintInputsStruct, boolean, string]): string;
 
     decodeFunctionResult(functionFragment: 'governance', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintDigital', data: BytesLike): Result;
@@ -78,7 +73,7 @@ decodeFunctionResult(functionFragment: 'mintPhysical', data: BytesLike): Result;
 
     
     mintDigital: TypedContractMethod<
-      [dm: DigitalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
+      [m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >
@@ -86,7 +81,7 @@ decodeFunctionResult(functionFragment: 'mintPhysical', data: BytesLike): Result;
 
     
     mintPhysical: TypedContractMethod<
-      [pm: PhysicalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
+      [m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >
@@ -101,12 +96,12 @@ decodeFunctionResult(functionFragment: 'mintPhysical', data: BytesLike): Result;
       'view'
     >;
 getFunction(nameOrSignature: 'mintDigital'): TypedContractMethod<
-      [dm: DigitalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
+      [m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >;
 getFunction(nameOrSignature: 'mintPhysical'): TypedContractMethod<
-      [pm: PhysicalMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
+      [m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
       'nonpayable'
     >;

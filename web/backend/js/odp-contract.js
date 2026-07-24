@@ -39,6 +39,11 @@
     return generation >= 5;
   }
 
+  /** Spec 0.6 storage model: on-chain card, anchors, append-only events. */
+  function odpSupportsV06(generation) {
+    return generation >= 6;
+  }
+
   /**
    * Known Polygon mainnet v0.4 deployment whose ABI still used `humanId` (before redeploy with `passportId`).
    * New registry at another address with the same packed `CONTRACT_VERSION` uses `passportId`.
@@ -435,6 +440,22 @@
 
   function odpPassportHeaderViewComponents(generation, net) {
     var idn = odpPassportIdAbiName(generation, net);
+    if (odpSupportsV06(generation)) {
+      return [
+        { name: idn, type: "string" },
+        { name: "contractVersion", type: "uint8" },
+        { name: "creator", type: "address" },
+        { name: "owner", type: "address" },
+        { name: "creatorId", type: "string" },
+        { name: "year", type: "uint32" },
+        { name: "month", type: "uint8" },
+        { name: "title", type: "string" },
+        { name: "authorName", type: "string" },
+        { name: "shortDescription", type: "string" },
+        { name: "domain", type: "string" },
+        { name: "objectType", type: "string" },
+      ];
+    }
     return [
       { name: idn, type: "string" },
       { name: "contractVersion", type: "uint8" },
@@ -464,7 +485,18 @@
     ];
   }
 
-  function odpPassportMediaViewComponents() {
+  function odpPassportMediaViewComponents(generation) {
+    if (odpSupportsV06(generation)) {
+      return [
+        { name: "dataHash", type: "bytes32" },
+        { name: "dataUrl", type: "string" },
+        { name: "imageHash", type: "bytes32" },
+        { name: "imageUrl", type: "string" },
+        { name: "fileHash", type: "bytes32" },
+        { name: "anchorsHash", type: "bytes32" },
+        { name: "anchorTypesMask", type: "uint32" },
+      ];
+    }
     return [
       { name: "dataHash", type: "bytes32" },
       { name: "dataUrl", type: "string" },
@@ -475,6 +507,16 @@
       { name: "imageHash3", type: "bytes32" },
       { name: "imageUrl3", type: "string" },
       { name: "fileHash", type: "bytes32" },
+    ];
+  }
+
+  /** Spec 0.6 (gen >= 6): append-only event summary view. */
+  function odpPassportEventsViewComponents() {
+    return [
+      { name: "eventCount", type: "uint32" },
+      { name: "lastEventKind", type: "uint8" },
+      { name: "lastEventAt", type: "uint256" },
+      { name: "lifecycleStatus", type: "uint8" },
     ];
   }
 
@@ -1069,6 +1111,306 @@
     var pid = odpPassportIdAbiName(generation, net);
     var folder = generation >= 2;
     var mintMut = "nonpayable";
+    if (odpSupportsV06(generation)) {
+      // spec 0.6: unified PassportMintInputs, on-chain card, anchors, append-only events.
+      var v06Core = [
+        { name: "year", type: "uint32" },
+        { name: "month", type: "uint8" },
+        { name: "title", type: "string" },
+        { name: "authorName", type: "string" },
+        { name: "shortDescription", type: "string" },
+        { name: "domain", type: "string" },
+        { name: "contentClass", type: "uint8" },
+        { name: "lifecycleStatus", type: "uint8" },
+        { name: "aiStatus", type: "uint8" },
+        { name: "verificationMethod", type: "uint8" },
+        { name: "editionModel", type: "uint8" },
+      ];
+      var v06MintTuple = {
+        name: "m",
+        type: "tuple",
+        components: [
+          { name: "core", type: "tuple", components: v06Core },
+          { name: "dataHash", type: "bytes32" },
+          { name: "dataUrl", type: "string" },
+          { name: "imageHash", type: "bytes32" },
+          { name: "imageUrl", type: "string" },
+          { name: "fileHash", type: "bytes32" },
+          { name: "anchorsHash", type: "bytes32" },
+          { name: "anchorTypesMask", type: "uint32" },
+        ],
+      };
+      var v06Suffix = [
+        { name: "dataUrlIsFolderBase", type: "bool" },
+        { name: "mintOnBehalfOfCreatorId", type: "string" },
+      ];
+      var v06MintedEvent =
+        "event PassportMinted(string indexed " +
+        pid +
+        ",address indexed creator,string creatorId,string title,string authorName,string domain,string objectType,uint8 contentClass,uint32 year,uint8 month,bytes32 dataHash,bytes32 anchorsHash,uint32 anchorTypesMask,uint256 timestamp,address mintAgent)";
+
+      return [
+        {
+          name: "getCreatorByWallet",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "wallet", type: "address" }],
+          outputs: [{ name: "", type: "string" }],
+        },
+        {
+          name: "getPassportsByCreatorPaged",
+          type: "function",
+          stateMutability: "view",
+          inputs: [
+            { name: "creator", type: "address" },
+            { name: "offset", type: "uint256" },
+            { name: "limit", type: "uint256" },
+          ],
+          outputs: [
+            { name: "result", type: "string[]" },
+            { name: "total", type: "uint256" },
+          ],
+        },
+        {
+          name: "getPassportHeader",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportHeaderViewComponents(generation, net) }],
+        },
+        {
+          name: "getPassportClassification",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportClassificationViewComponents() }],
+        },
+        {
+          name: "getPassportMedia",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportMediaViewComponents(generation) }],
+        },
+        {
+          name: "getPassportEvents",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportEventsViewComponents() }],
+        },
+        v06MintedEvent,
+        "event PassportEventRecorded(string indexed " +
+          pid +
+          ",uint8 indexed kind,uint8 value,string note,bytes32 attachmentHash,string attachmentUrl,address recordedBy,uint256 timestamp)",
+        { name: "mintPhysical", type: "function", stateMutability: mintMut, inputs: [v06MintTuple].concat(v06Suffix), outputs: [{ name: pid, type: "string" }] },
+        { name: "mintDigital", type: "function", stateMutability: mintMut, inputs: [v06MintTuple].concat(v06Suffix), outputs: [{ name: pid, type: "string" }] },
+        { name: "mintMixed", type: "function", stateMutability: mintMut, inputs: [v06MintTuple].concat(v06Suffix), outputs: [{ name: pid, type: "string" }] },
+        {
+          name: "updatePassportUrls",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newDataUrl", type: "string" },
+            { name: "newImageUrl", type: "string" },
+            { name: "confirmedDataHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "recordPassportEvent",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "kind", type: "uint8" },
+            { name: "value", type: "uint8" },
+            { name: "note", type: "string" },
+            { name: "attachmentHash", type: "bytes32" },
+            { name: "attachmentUrl", type: "string" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "submitProof",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "documentHash", type: "bytes32" },
+            { name: "documentUrl", type: "string" },
+            { name: "year", type: "uint32" },
+            { name: "month", type: "uint8" },
+          ],
+          outputs: [{ name: "proofId", type: "string" }],
+        },
+        {
+          name: "getProofsByInstitution",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorId", type: "string" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
+          name: "getProofsForPassport",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "string[]" }],
+        },
+        {
+          name: "getProof",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "proofId", type: "string" }],
+          outputs: [
+            {
+              name: "",
+              type: "tuple",
+              components: [
+                { name: "proofId", type: "string" },
+                { name: "contractVersion", type: "uint8" },
+                { name: "prover", type: "string" },
+                { name: pid, type: "string" },
+                { name: "documentHash", type: "bytes32" },
+                { name: "documentUrl", type: "string" },
+                { name: "timestamp", type: "uint256" },
+              ],
+            },
+          ],
+        },
+        {
+          name: "transferPassport",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "newOwner", type: "address" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "delegateCreatorPublishing",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: "agent", type: "address" },
+            { name: "expiresAt", type: "uint256" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "revokeCreatorPublishing",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [],
+          outputs: [],
+        },
+        {
+          name: "getCreatorPublishingDelegation",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "creatorWallet", type: "address" }],
+          outputs: [
+            { name: "agent", type: "address" },
+            { name: "expiresAt", type: "uint256" },
+          ],
+        },
+        {
+          name: "requestMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "confirmMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "agent", type: "address" }],
+          outputs: [],
+        },
+        {
+          name: "revokeMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [],
+          outputs: [],
+        },
+        {
+          name: "renounceMintAgentRole",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "cancelMintAgentRequest",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "principalCreatorId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "mintAgentForCreator",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "", type: "string" }],
+          outputs: [{ name: "", type: "address" }],
+        },
+        {
+          name: "mintAgentDelegationPending",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "", type: "bytes32" }],
+          outputs: [{ name: "", type: "bool" }],
+        },
+        {
+          name: "revokePassport",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [
+            { name: pid, type: "string" },
+            { name: "reasonHash", type: "bytes32" },
+          ],
+          outputs: [],
+        },
+        {
+          name: "getPAffiliationAudit",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [
+            { name: "activeParent", type: "string" },
+            { name: "joinedAt", type: "uint256" },
+            { name: "detachedAt", type: "uint256" },
+            { name: "lastDetachedFromParent", type: "string" },
+          ],
+        },
+        {
+          name: "detachPAffiliation",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "childPId", type: "string" }],
+          outputs: [],
+        },
+        {
+          name: "governance",
+          type: "function",
+          stateMutability: "view",
+          inputs: [],
+          outputs: [{ name: "", type: "address" }],
+        },
+        {
+          name: "transferGovernance",
+          type: "function",
+          stateMutability: "nonpayable",
+          inputs: [{ name: "newGovernance", type: "address" }],
+          outputs: [],
+        },
+      ];
+    }
     if (generation >= 5) {
       var coreMintInputs = [
         { name: "year", type: "uint32" },
@@ -2257,23 +2599,35 @@
           type: "function",
           stateMutability: "view",
           inputs: [{ name: pid, type: "string" }],
-          outputs: [{ name: "", type: "tuple", components: odpPassportMediaViewComponents() }],
-        },
-        {
-          name: "getPassportPhysical",
-          type: "function",
-          stateMutability: "view",
-          inputs: [{ name: pid, type: "string" }],
-          outputs: [{ name: "", type: "tuple", components: odpPassportPhysicalViewComponents() }],
-        },
-        {
-          name: "getPassportState",
-          type: "function",
-          stateMutability: "view",
-          inputs: [{ name: pid, type: "string" }],
-          outputs: [{ name: "", type: "tuple", components: odpPassportStateViewComponents() }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportMediaViewComponents(gen) }],
         }
       );
+      if (odpSupportsV06(gen)) {
+        abi.push({
+          name: "getPassportEvents",
+          type: "function",
+          stateMutability: "view",
+          inputs: [{ name: pid, type: "string" }],
+          outputs: [{ name: "", type: "tuple", components: odpPassportEventsViewComponents() }],
+        });
+      } else {
+        abi.push(
+          {
+            name: "getPassportPhysical",
+            type: "function",
+            stateMutability: "view",
+            inputs: [{ name: pid, type: "string" }],
+            outputs: [{ name: "", type: "tuple", components: odpPassportPhysicalViewComponents() }],
+          },
+          {
+            name: "getPassportState",
+            type: "function",
+            stateMutability: "view",
+            inputs: [{ name: pid, type: "string" }],
+            outputs: [{ name: "", type: "tuple", components: odpPassportStateViewComponents() }],
+          }
+        );
+      }
     } else {
       abi.push(
         {
@@ -2381,13 +2735,18 @@
     if (typeof contract.getPassport === "function") {
       return await contract.getPassport(passportId);
     }
-    var parts = await Promise.all([
+    var calls = [
       contract.getPassportHeader(passportId),
       contract.getPassportClassification(passportId),
       contract.getPassportMedia(passportId),
-      contract.getPassportPhysical(passportId),
-      contract.getPassportState(passportId),
-    ]);
+    ];
+    if (typeof contract.getPassportEvents === "function") {
+      // spec 0.6 (gen >= 6): physical/state views are replaced by the append-only event summary
+      calls.push(contract.getPassportEvents(passportId));
+    } else {
+      calls.push(contract.getPassportPhysical(passportId), contract.getPassportState(passportId));
+    }
+    var parts = await Promise.all(calls);
     var merged = {};
     function normalizeResult(part) {
       if (part && typeof part.toObject === "function") return part.toObject();
@@ -3185,6 +3544,7 @@
   global.odpSupportsOptionalDataUrl = odpSupportsOptionalDataUrl;
   global.odpSupportsV03 = odpSupportsV03;
   global.odpSupportsContentClass = odpSupportsContentClass;
+  global.odpSupportsV06 = odpSupportsV06;
   global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;
