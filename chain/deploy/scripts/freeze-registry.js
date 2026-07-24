@@ -4,7 +4,8 @@
  * Usage:
  *   ODP_FREEZE_CONTRACT=0x… npx hardhat run scripts/freeze-registry.js --network polygon
  *
- * After freeze, the contract rejects new writes; reads stay available. Deploy the updated v0.4 stack to a new address.
+ * After freeze, the contract rejects new writes; reads stay available. Deploy the next-line stack to a new address.
+ * (Present again from v0.6; the v0.5 line omitted `freeze()` for the EIP-170 bytecode budget.)
  *
  * Note: Hardhat’s JSON-RPC provider keeps sockets open; we call `process.exit(0)` so the shell returns to the prompt.
  */
