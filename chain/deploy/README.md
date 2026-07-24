@@ -4,7 +4,7 @@
 
 ## Важно перед mainnet
 
-1. **Лимит EIP-170 (24 576 байт на контракт при создании):** реестр **`ObjectDigitalPassport`** линкуется с библиотекой **`ODPPassportLib`** — сначала деплой библиотеки, затем реестра (так делает **`chain/deploy/scripts/deploy.js`**). После **`npm run compile`** из **корня репозитория** смотрите строку **`[ODP] EIP-170:`**: размер **основного** контракта должен быть **≤ 24 576** байт; у библиотеки свой лимит (она тоже должна укладываться — в референсной сборке оба укладываются). Подробности: **[`docs/EIP170_STRATEGY.md`](../docs/EIP170_STRATEGY.md)**.
+1. **Лимит EIP-170 (24 576 байт на контракт при создании):** реестр **`ObjectDigitalPassport`** линкуется с библиотекой **`ODPPassportLib`** — сначала деплой библиотеки, затем реестра (так делает **`chain/deploy/scripts/deploy.js`**). После **`npm run compile`** из **корня репозитория** смотрите строку **`[ODP] EIP-170:`**: размер **основного** контракта должен быть **≤ 24 576** байт; у библиотеки свой лимит (она тоже должна укладываться — в референсной сборке оба укладываются). Подробности: **[`docs/EIP170_STRATEGY.md`](../../docs/EIP170_STRATEGY.md)**.
 2. **Приватный ключ:** используйте **отдельный** кошелёк только под деплой/операции ODP, храните ключ только в `.env`, **никогда** не коммитьте `.env`.
 3. **POL:** на кошельке деплоя должно быть достаточно **MATIC/POL** на gas (запас на **два** деплоя: библиотека + реестр, плюс опционально спутник `ODPWalletDocumentAnchor`).
 
@@ -51,7 +51,7 @@ cp .env.example .env
 npm run compile
 ```
 
-В выводе смотрите строку **`[ODP] EIP-170:`** (размер реестра и библиотеки). Если реестр **> 24 576** байт — mainnet-деплой реестра отклонят; вернитесь к [`docs/EIP170_STRATEGY.md`](../docs/EIP170_STRATEGY.md).
+В выводе смотрите строку **`[ODP] EIP-170:`** (размер реестра и библиотеки). Если реестр **> 24 576** байт — mainnet-деплой реестра отклонят; вернитесь к [`docs/EIP170_STRATEGY.md`](../../docs/EIP170_STRATEGY.md).
 
 Локальная сеть EDR в **`hardhat.config.ts`** (сеть `default`) использует `allowUnlimitedContractSize: true` — это **только для тестов**; на Polygon лимит соблюдается.
 
@@ -73,7 +73,7 @@ npm run deploy:mainnet
 4. Попытается задеплоить **`ODPRegistryRelations`**, **`ODPPassportProofRegistry`** и **`ODPExtensionMintRouter`**; для relations/router также выполнит wiring вызовами `setRelationsSatellite(...)` и `setExtensionRouter(...)`.
 5. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
 
-После деплоя пропишите адреса в **`web/frontend/creator.html`**, **`web/frontend/passport.html`**, **`web/frontend/verify.html`**: как минимум **`NET.contract`**, а для линии v0.5 также **`NET.docAnchor`**, **`NET.counterfeitConcern`**, **`NET.relations`** и **`NET.proofRegistry`** (если соответствующие спутники задеплоены). Для текущей ветки сначала проверьте отчёт **EIP-170** из `npm run compile`: контрактная линия v0.5 уже проходит compile/tests, но размер байткода всё ещё нужно держать под лимитом сети перед mainnet rollout. Исторические указатели: **[`docs/V0.3.md`](../docs/V0.3.md)**, **[`docs/V0.4.md`](../docs/V0.4.md)**.
+После деплоя пропишите адреса в **`web/frontend/creator.html`**, **`web/frontend/passport.html`**, **`web/frontend/verify.html`**: как минимум **`NET.contract`**, а также **`NET.docAnchor`**, **`NET.counterfeitConcern`**, **`NET.relations`** и **`NET.proofRegistry`** (если соответствующие спутники задеплоены), и **`NET.contractGenerationFallback: 6`**. Перед mainnet-раскаткой сверьтесь с отчётом **EIP-170** из `npm run compile` (линия v0.6: реестр ≈ 13 309 байт из 24 576). Текущая линия: **[`docs/V0.6.md`](../../docs/V0.6.md)**; исторические указатели: **[`docs/V0.5.md`](../../docs/V0.5.md)**, **[`docs/V0.4.md`](../../docs/V0.4.md)**, **[`docs/V0.3.md`](../../docs/V0.3.md)**.
 
 ---
 
@@ -111,7 +111,7 @@ npx hardhat run chain/deploy/scripts/deploy-doc-anchor-only.js --network polygon
 
 Скрипт проверит, что по адресу есть байткод, задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`walletDocumentAnchorAddress`**). Дальше пропишите этот адрес в **`NET.docAnchor`** в **`web/frontend/verify.html`**.
 
-Эталонный деплой в репозитории уже содержит оба адреса — см. **`deployments/polygon.json`** и таблицу «Current release» в **[`README.md`](../README.md)**.
+Адреса эталонного деплоя — в таблице «Current Release» в **[`docs/GUIDE.md`](../../docs/GUIDE.md#current-release)** и в **[`SPEC.md`](../../SPEC.md)** §7. Файл **`deployments/polygon.json`** создаётся локально при вашем деплое и в репозиторий не коммитится.
 
 ---
 

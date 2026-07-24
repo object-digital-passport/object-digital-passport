@@ -662,7 +662,7 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Network                          | Polygon PoS (mainnet)                                                                                         |
 | Chain ID                         | 137                                                                                                           |
-| Reference deployment (this repo) | Source in-repo; packed `**CONTRACT_VERSION` 6** at mint; main registry + optional satellites (§4, `chain/deploy/`). |
+| Reference deployment (this repo) | Source in-repo; packed `**CONTRACT_VERSION` 6** at mint; main registry + optional satellites (§4, `chain/deploy/`). Addresses below. |
 | Other Polygon addresses          | Separate registries — **bytecode / ABI** may differ; always pair **address + ABI + `CONTRACT_VERSION`**.      |
 | Testnet                          | Polygon Amoy (chain ID 80002)                                                                                 |
 | Gas token                        | POL (ex-POL)                                                                                                  |
@@ -672,6 +672,24 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 
 A single canonical network eliminates ambiguity in verification.
 Multi-network support is reserved for a future version.
+
+### Reference deployment addresses (informative)
+
+The addresses below identify the **reference v0.6 registry** the maintainers operate on Polygon mainnet. They are **informative, not normative**: this specification defines the protocol, not one privileged deployment. Any conforming registry deployed from this source is equally valid, and clients **MUST** always pair **chain + contract address + ABI + `CONTRACT_VERSION`** (§8) rather than assume these addresses.
+
+
+| Contract                             | Address (Polygon PoS, chain ID 137)          |
+| ------------------------------------ | -------------------------------------------- |
+| `ObjectDigitalPassport` (main)       | `0x012aC6393464A73EC16131D701ff2e000695b91b` |
+| `ODPPassportLib` (linked library)    | `0xB7D7B8485eeb385c375ABd91035F5a6914171ccE` |
+| `ODPWalletDocumentAnchor` (§11 L1C)  | `0x35df3773919D9F10e5F8838abaa453DE120e6Cb4` |
+| `ODPCounterfeitConcern` (§4)         | `0x692935d6c1532b47cE0459bF1E9549991d0eD2C9` |
+| `ODPRegistryRelations` (§3, §4)      | `0x2ea6f05a050973afa14E61b1Ea19De92621e3661` |
+| `ODPPassportProofRegistry` (§4)      | `0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49` |
+| `ODPExtensionMintRouter` (§8)        | `0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822` |
+
+
+Earlier lines (v0.5 and before) are **separate registries** at different addresses with incompatible ABIs; records do not migrate between deployments. The previous v0.5 main registry `0x413aEeBB2ac437483Bc68791EaAab492C2a4B346` remains readable for passports issued under it.
 
 **Registry context for links:** Human-readable protocol links (`odp://…`; see §12 and §19) **do not** encode which **chain ID** or **registry contract** produced a record. Clients **MUST** pair **chain + contract address + ABI** as elsewhere in this specification; an `odp://` URI **without** that context is **ambiguous**. See §19.
 
@@ -1412,7 +1430,7 @@ The verifier should confirm `chainId` and `contract` in the message match the de
 
 **Purpose:** Anchor **SHA-256** of an off-chain file (e.g. PDF contract) to a **Creator wallet** on-chain so counterparties can verify the same bytes without trusting email attachments alone.
 
-**Reference v0.6 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**chain/deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**chain/deploy/scripts/deploy-doc-anchor-only.js`** (see `**chain/deploy/README.md`**). The reference Polygon deployment records both addresses in `**deployments/polygon.json`**.
+**Reference v0.6 (normative in this specification):** The main `**ObjectDigitalPassport`** contract does **not** include `attestExternalDocument` / `**getExternalDocumentAttestation`** (removed for **EIP-170**). Level 1C is implemented only by the satellite `**ODPWalletDocumentAnchor`**: deploy after the main registry and pass the registry address to its constructor. It enforces registration via the main contract’s `**getCreatorByWallet`**, exposes `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, and emits `**ExternalDocumentAttested`** with `**documentHash` indexed** (plus indexed `creatorId` and `**attestor`**) so verifiers can filter logs by hash. At most one attestation per `(wallet, documentHash)` per anchor contract. The reference repo deploys the satellite from `**chain/deploy/scripts/deploy.js`**; to attach an anchor to an already deployed registry, use `**chain/deploy/scripts/deploy-doc-anchor-only.js`** (see `**chain/deploy/README.md`**). Both reference addresses are listed in §7 (Reference deployment addresses).
 
 Older protocol lines that exposed these functions on the monolithic main registry are **out of scope** for this document — only the split (main registry + `**ODPWalletDocumentAnchor`**) is specified here.
 
