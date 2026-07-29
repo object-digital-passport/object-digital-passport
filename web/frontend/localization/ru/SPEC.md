@@ -1288,18 +1288,18 @@ dataHash = SHA-256( minified passport.json bytes )
 1. Нормализуйте все строковые значения в Unicode NFC
 2. Соберите `passport.json` со всеми полями
 3. Отсортируйте все ключи по алфавиту на каждом уровне вложенности
-4. Минимизируйте: нет пробелов вне значений строк
+4. Минифицируйте: нет пробелов вне значений строк
 5. Кодируйте как UTF-8 байты
 6. Посчитайте SHA-256 → сохраните как `bytes32`
 
-### `sealHash`
+### `anchorsHash`
 
 ```
-sealHash = SHA-256( minified seal object bytes )
+anchorsHash = SHA-256( minified canonical anchors array bytes )
 ```
 
-Объект `seal` извлекается, минимизируется отдельно и хэшируется.
-Это позволяет быстро проверять seal без повторного хэширования всего паспорта.
+Массив `anchors` извлекается из `passport.json`, каноникализируется по **тем же правилам**, что и `dataHash` (NFC-нормализация, ключи отсортированы на каждом уровне, минификация, UTF-8), и хэшируется как самостоятельный JSON-массив.
+Это позволяет верификатору проверить блок идентификации отдельно — например против байтов, доставленных offline-носителем, — не имея полного документа паспорта. Контракт также хранит `anchorTypesMask` — побитовое ИЛИ битов типов (§9) — и проверяет жёсткий минимум идентификации по `objectType` при mint.
 
 ### `fileHash` (цифровые объекты)
 
@@ -1315,7 +1315,7 @@ fileHash = SHA-256( raw file bytes )
 ```
 
 Этот формат используется последовательно в `passport.json`, Python CLI и web UI.
-Поле `fileHash` в on-chain хранится как “сырой” `bytes32` (без префикса).
+On-chain поле `fileHash` — это «сырой» `bytes32` (без префикса).
 
 ### `imageHash`
 
@@ -1325,60 +1325,16 @@ imageHash = SHA-256( raw image file bytes )
 
 Перед хэшированием ни в коем случае не модифицируйте файл.
 
-### `ndppCommitmentHash` (опциональный NDPP / public offline payload)
+### NFC / QR-носители и offline-payload (справочно)
 
-```
-ndppCommitmentHash = SHA-256( raw bytes NDPP payload )
-```
+Выделенные поля `ndppCommitmentHash` / `ndppCommitmentUri` линии v0.5 в v0.6 **убраны**. NFC и QR остаются только **опциональным слоем-носителем**: паспорт может выдаваться и проверяться через QR, прямой хостинг `**.odpass`**, печатный сертификат или ручной ввод Passport ID вообще без NFC-метки.
 
-`**ndppCommitmentHash`** якорит опциональный **публичный offline payload** без превращения основного реестра в хранилище большого JSON. Типичные примеры:
+Offline- или доставленный носителем payload проверяется против уже существующих якорей, а не отдельного commitment:
 
-- байты, переносимые NFC / QR как NDPP-style public payload,
-- компактный публичный snapshot для offline- или low-bandwidth-проверки,
-- long-DPP-style public disclosure файл, публикуемый отдельно от канонического `**.odpass`**.
+- полные канонические байты `passport.json` → сравниваются с `**dataHash`**;
+- байты канонического массива `anchors` отдельно → сравниваются с `**anchorsHash`** (компактный payload идентификации для low-bandwidth-носителей).
 
-ODP **НЕ ДОЛЖЕН** моделироваться так, будто каждый паспорт обязан быть объектом NFC Forum DPP / NDPP. NFC и NDPP — это только **опциональный carrier layer**. Паспорт может выпускаться и проверяться через QR, прямую публикацию `**.odpass`**, печатный сертификат, ручной ввод Passport ID или другой совместимый транспорт вообще без NFC-метки.
-
-Аналогично, DPP / sustainability disclosure **не равно** authenticity. Нормативное ядро ODP — это on-chain registry, Passport ID, канонический `**passport.json`** / `**.odpass`** и правила hash verification из этой спецификации. NDPP-совместимый payload — это лишь слой удобной public disclosure / offline delivery, но не новая основа модели подлинности.
-
-В этой линии реестр **не** задаёт один обязательный NDPP media type. Payload **МОЖЕТ** быть JSON, CBOR, NDEF-payload byte string, ZIP или другой детерминированной последовательностью байтов, о которой договорились issuer и verifier stack. Верификаторы **обязаны хэшировать точные raw-байты**, полученные из файла / carrier / URL, и сравнивать их с `**ndppCommitmentHash`**.
-
-Если issuer использует NFC / QR **carrier**, который оборачивает эти байты (например URL-first NDEF message со второй ODP payload record), `**ndppCommitmentHash`** всё равно якорит только **raw-байты NDPP / offline payload**. Он **не** хэширует внешнее carrier-оформление, весь NDEF message целиком или байты URL record.
-
-`**ndppCommitmentUri`** — только подсказка, где можно получить эти байты. Он **не** заменяет `**dataUrl`**, а NDPP **не** заменяет верификацию канонического `**passport.json`** / `**.odpass`**, привязанного через `**dataHash`**.
-
-ODP **не требует** sustainability-полей вроде состава материалов, ремонтопригодности, recycling instructions, end-of-life disclosure или carbon-footprint reporting. Реализации **МОГУТ** публиковать такие данные внутри отдельного NDPP / public-disclosure payload, когда это уместно, но эти поля не входят в нормативное ядро ODP, если другой профиль явно не требует иного.
-
-Для NFC Forum-compatible NDEF carriers реализации **ДОЛЖНЫ** размещать стандартную URL / URI запись **первой** ради широкой совместимости со смартфонами. Дополнительно они **МОГУТ** добавлять отдельную ODP-specific запись с компактными verification metadata или иным детерминированным public payload, чьи raw-байты заякорены через `**ndppCommitmentHash`**.
-
-#### Опциональный профиль: ODP-in-NDPP
-
-Эта спецификация определяет **опциональный**, **ненормативный для ядра** профиль совместимости под названием **ODP-in-NDPP** для issuers, которым нужен smartphone-friendly NFC / QR carrier без изменения trust model ODP.
-
-Замысел профиля:
-
-- сохранить канонический ODP-поток подлинности (`**Passport ID`**, on-chain record, `**dataHash`**, канонический `**.odpass`** / `**passport.json`**),
-- оставить NDPP только **дополнительным** public-disclosure / offline-слоем,
-- сохранить совместимость с типичным поведением телефонов, открывая сначала обычную веб-ссылку.
-
-Рекомендуемый NFC NDEF layout для этого профиля:
-
-1. **Record 1 (обязателен для профиля):** стандартная URL / URI запись, открывающая страницу ODP **Verify** или другой verifier entry URL для этого паспорта.
-2. **Record 2 (необязателен, но типичен для профиля):** вторичная ODP / NDPP payload record с детерминированными байтами offline-public payload.
-
-Правило хэширования для этого профиля:
-
-- `ndppCommitmentHash = SHA-256(raw bytes secondary payload)`
-- **не** `SHA-256(full NDEF message)`
-- **не** `SHA-256(URL record + payload record)`
-
-`**ndppCommitmentUri`** **МОЖЕТ** указывать на размещённую копию этих же raw payload bytes (например публичный CBOR / NDPP payload download). Это только подсказка для обнаружения; она **не** превращает NDPP в канонический артефакт паспорта и **не** заменяет ни Verify URL, ни `**dataUrl`**.
-
-Поведение верификатора для этого профиля:
-
-- если телефон умеет только открыть первый URL record, это лишь **шаг входа через carrier**;
-- если verifier stack умеет читать и вторичную payload record, он **МОЖЕТ** захэшировать её raw payload и сравнить с `**ndppCommitmentHash`**;
-- если вторичная record не разбирается, каноническая ODP-проверка всё равно возможна; отсутствие NDPP-parsing само по себе **не** инвалидирует паспорт.
+DPP / раскрытие данных об устойчивости остаётся вне нормативного ядра ODP; реализации МОГУТ публиковать такие данные оффчейн (например в `additionalMetadata` или отдельных документах) без якорения на уровне протокола.
 
 ---
 
@@ -1390,36 +1346,43 @@ ODP **не требует** sustainability-полей вроде состава 
 Ввод: passportId (из QR, NFC или ручного ввода)
 
 1. Запросить read surface контракта:
-   - `getPassportHeader(passportId)`
+   - `getPassportHeader(passportId)`   → карточка (title, authorName, shortDescription, domain), ID, owner
    - `getPassportClassification(passportId)`
-   - `getPassportMedia(passportId)`
-   - `getPassportPhysical(passportId)`
-   - `getPassportState(passportId)`
-   → собрать поля, нужные для верификации (`dataHash`, `objectType`, `sealType`, `sealHash`,
-     `nfcPublicKey`, `fileHash`, `dataUrl`, `creator`, `creatorId`, `timestamp`, текущее состояние)
+   - `getPassportMedia(passportId)`    → dataHash, anchorsHash, anchorTypesMask, imageHash, fileHash, URL
+   - `getPassportEvents(passportId)`   → eventCount, lastEventKind, lastEventAt, текущий lifecycleStatus
 
 2. Если запись не найдена → INVALID
 
 3. Запрос к реестру создателей: getCreator(creatorId)
-   → добавить к результату имя и кошелёк создателя
+   → добавить к результату запись профиля
 
-4. Записи proof: getProofsForPassport(passportId)
-   → получить данные по каждому proof
+4. Запросить аттестации: getProofsForPassport(passportId) на
+   спутнике proof; getCounterfeitConcern(passportId) на спутнике
+   concern. Показать метку времени регистрации, аттестации и любой
+   активный флаг concern — модель конкурирующих паспортов
+   репутационная (протокол не решает, какой из двух конкурирующих
+   паспортов «настоящий»; эти сигналы взвешивают люди).
 
-5. Загрузить с `dataUrl`: тело HTTP **200** **ДОЛЖНО** быть файлом **`.odpass`** (ZIP §15); извлечь `passport.json` (сигнатура `PK\x03\x04`; путь **ДОЛЖЕН** заканчиваться на **`.odpass`**). Сырой JSON по `dataUrl` **не** допускается (§9).
+5. Загрузить с `dataUrl`: тело HTTP **200** ОБЯЗАНО быть файлом **`.odpass`** (ZIP §15); извлечь `passport.json` (сигнатура ZIP `PK\x03\x04`; путь SHOULD заканчиваться на **`.odpass`**). Сырой JSON по `dataUrl` **не** допускается (§9).
 
 6. Если загрузка не удалась → UNVERIFIABLE
    (on-chain запись всё равно доказывает, что объект был зарегистрирован)
 
-7. Минифицировать JSON → вычислить SHA-256
+7. Минифицировать JSON → вычислить SHA-256 → сравнить с dataHash
+   Извлечь массив anchors → каноникализировать → SHA-256 → сравнить с anchorsHash;
+   проверить фактические типы якорей против anchorTypesMask
 
-8. Совпадение → AUTHENTIC
-   Нет совпадения → TAMPERED
+8. Сравнить поля карточки байт-в-байт:
+   JSON title / authorName / shortDescription / domain == on-chain значения;
+   JSON objectType / year / month == on-chain значения
+
+9. Всё совпало → AUTHENTIC
+   Любое несовпадение на шагах 7–8 → TAMPERED (не предупреждение)
 ```
 
 ### Авторство и правовой статус (справочно)
 
-On-chain поля `**creator**`, `**creatorId**` и хэши содержимого показывают, **кто зарегистрировал** паспорт в **каком деплойменте** и **какие байты** были зафиксированы. Они **не** заменяют национальное **авторское право**, **моральные права** или **право собственности** на физический объект. Для пользователя по-прежнему важны **репутация выпускающей стороны** (§3), публичная идентичность и перекрёстные проверки с **DPP**, **C2PA**, институциональными каталогами и т.д., когда это уместно.
+On-chain поля `**creator**`, `**creatorId**` и хэши содержимого показывают, **кто зарегистрировал** паспорт в **каком деплойменте** и **какие байты** были зафиксированы. Они **не** заменяют национальное **авторское право**, **моральные права** или **право собственности** на физический объект. Для пользователя по-прежнему важны **репутация выпускающей стороны**, публичная идентичность (§3) и перекрёстные проверки с другими системами (**DPP**, **C2PA**, институциональными каталогами и т. д.), когда это уместно.
 
 ### Уровень 1B — доказательство контроля кошелька creator (off-chain, EIP-191)
 
@@ -1444,104 +1407,94 @@ nonce: <random unique string, e.g. 0x-prefixed hex>
 2. `getPassportHeader(passportId)` у реестра этой сети → прочитать `creator`.
 3. **Совпадение**, если `recoveredAddress == creator` (сравнение адресов без учёта регистра).
 
-Верификатор должен подтвердить, что `chainId` и `contract` в сообщении совпадают с проверяемым деплойментом. Реализации могут отклонять сообщения, у которых строка `passportId` не соответствует паспорту, который проверяется.
+Верификатор должен подтвердить, что `chainId` и `contract` в сообщении совпадают с проверяемым деплойментом. Реализации могут отклонять сообщения, у которых строка `passportId` не соответствует проверяемому паспорту.
 
-**Референсный веб-UI:** страница `verify.html` в этом репозитории **не** предоставляет инструмент уровня 1B. Интеграторы и кошельки могут по-прежнему реализовать уровень 1B по этому разделу для совместимых off-chain доказательств; каноничный формат сообщения и шаги верификации выше остаются нормативными.
+**Референсный веб-UI:** страница `verify.html` в этом репозитории **не** предоставляет инструмент уровня 1B. Интеграторы и кошельки могут по-прежнему реализовать уровень 1B по этому разделу для совместимых off-chain доказательств; нормативный формат сообщения и шаги верификации выше остаются неизменными.
 
 ### Уровень 1C — хэш внешнего документа (PDF, файл контракта)
 
-**Назначение:** связать on-chain **SHA-256** оффчейн-файла (например PDF-контракт) с **кошельком Creator**, чтобы контрагенты могли проверить те же байты без доверия только email-вложениям.
+**Назначение:** связать on-chain **SHA-256** оффчейн-файла (например PDF-контракт) с **кошельком Creator**, чтобы контрагенты могли проверить те же байты, не полагаясь только на email-вложения.
 
-**Эталон v0.5 (нормативно в этой спецификации):** в основном контракте `**ObjectDigitalPassport`** **нет** `attestExternalDocument` / `**getExternalDocumentAttestation`** (удалено ради **EIP-170**). Уровень 1C реализуется только спутником `**ODPWalletDocumentAnchor`**: деплой после основного реестра, в конструктор передаётся адрес реестра. Регистрация проверяется через `**getCreatorByWallet`** основного контракта; доступны `**attestExternalDocument`**, `**getExternalDocumentAttestation`**, событие `**ExternalDocumentAttested**` с индексированным `documentHash` (плюс индексированные `creatorId` и адрес `**attestor**`). Не более одной аттестации на `(wallet, documentHash)` в одном контракте-якоре. В репозитории спутник деплоится из `**chain/deploy/scripts/deploy.js**`; подключение к уже задеплоенному реестру — `**chain/deploy/scripts/deploy-doc-anchor-only.js`** (см. `**chain/deploy/README.md`**). Эталонный деплой Polygon хранит оба адреса в `**deployments/polygon.json`**.
+**Эталон v0.6 (нормативно в этой спецификации):** основной контракт `**ObjectDigitalPassport`** **не** включает `attestExternalDocument` / `**getExternalDocumentAttestation`** (убраны ради **EIP-170**). Уровень 1C реализуется только спутником `**ODPWalletDocumentAnchor`**: деплоится после основного реестра, в конструктор передаётся адрес реестра. Он проверяет регистрацию через `**getCreatorByWallet`** основного контракта, предоставляет `**attestExternalDocument`**, `**getExternalDocumentAttestation`** и эмитит `**ExternalDocumentAttested`** с индексированным `**documentHash`** (плюс индексированные `creatorId` и `**attestor`**), чтобы верификаторы могли фильтровать логи по хэшу. Не более одной аттестации на `(wallet, documentHash)` в одном контракте-якоре. Референсный репозиторий деплоит спутник из `**chain/deploy/scripts/deploy.js`**; чтобы подключить якорь к уже задеплоенному реестру, используйте `**chain/deploy/scripts/deploy-doc-anchor-only.js`** (см. `**chain/deploy/README.md`**). Оба референсных адреса перечислены в §7 (адреса эталонного деплоя).
 
-Старые линии протокола, где эти функции были в монолитном основном реестре, **вне области** этого документа — здесь описан только расклад **v0.5** (основной реестр + `**ODPWalletDocumentAnchor`**).
+Старые линии протокола, где эти функции были на монолитном основном реестре, **вне области** этого документа — здесь описан только раскол (основной реестр + `**ODPWalletDocumentAnchor`**).
 
-Для **второго якоря документа, привязанного к паспорту**, на основном реестре используйте `**auxCommitmentHash` / `auxCommitmentUri`** (mint или `**updatePassportAuxCommitment`**).
+Для **документа, привязанного к паспорту** (например отчёта экспертизы), используйте аттестацию с `**documentHash`** на спутнике proof (§4, §13) — поля v0.5 `auxCommitment*` в v0.6 убраны.
 
-**On-chain (`ODPWalletDocumentAnchor`, эталон v0.5):**
+**On-chain (`ODPWalletDocumentAnchor`, эталон v0.6):**
 
-- `attestExternalDocument(bytes32 documentHash, string documentUri)` — вызывающий должен быть зарегистрирован в **основном** реестре; `documentHash` — SHA-256 от raw-байтов файла (как для `fileHash`); `documentUri` опциональный HTTPS URL (макс. 512 символов); **не более одной** аттестации на `(wallet, documentHash)` в этом контракте-якоре.
-- `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — возвращает `attested`, `creatorId`, timestamp и `documentUri`.
+- `attestExternalDocument(bytes32 documentHash, string documentUri)` — вызывающий должен быть зарегистрирован в **основном** реестре; `documentHash` — SHA-256 от raw-байтов файла (то же кодирование, что у `fileHash`); `documentUri` — опциональный HTTPS URL (макс. 512 символов); **не более одной** аттестации на `(wallet, documentHash)` в этом контракте-якоре.
+- `getExternalDocumentAttestation(address wallet, bytes32 documentHash)` — возвращает `attested`, `creatorId`, метку времени и `documentUri`.
 
-**Верификация:** SHA-256 локального файла; запрос к `**ODPWalletDocumentAnchor`**; **совпадение** — кошелёк записал хэш в `timestamp`. Это **не** замена квалифицированным e-подписям — это **публичный якорь**.
+**Верификация:** посчитать SHA-256 локального файла; запросить `**ODPWalletDocumentAnchor`**; **совпадение** означает, что кошелёк записал этот хэш в `timestamp`. Это **не** замена квалифицированным электронным подписям или национальному законодательству — это **публичный неизменяемый якорь**, связывающий кошелёк с хэшем файла.
 
-**Референсный веб-UI:** `verify.html` включает уровень 1C при поддержке стека (**generation ≥ 2** в `odp-contract.js`). Запись и discovery идут через `**NET.docAnchor`** (задеплоенный `**ODPWalletDocumentAnchor`**); без него панель Anchor a file скрыта. Проверка хэша использует настроенный якорь и `**ExternalDocumentAttested`** / `**getExternalDocumentAttestation`**.
+**Референсный веб-UI:** `verify.html` реализует уровень 1C, когда стек его поддерживает (**generation ≥ 2** в `odp-contract.js`). Запись и обнаружение идут через `**NET.docAnchor`** (задеплоенный `**ODPWalletDocumentAnchor`**); без него панель Anchor a file (wallet) скрыта. Проверка хэша файла on-chain использует настроенный якорь и `**ExternalDocumentAttested`** / `**getExternalDocumentAttestation`**.
 
-- **Закрепить (submit):** зарегистрированный кошелёк вызывает `attestExternalDocument` на `**ODPWalletDocumentAnchor`**; UI допускает опциональный HTTPS URL (макс. 512 символов).
-- **Проверить (verify):** загрузка файла, локальный SHA-256, поиск аттестаций по `**ExternalDocumentAttested`** (`documentHash` в topic), подтверждение через `**getExternalDocumentAttestation`** на якоре; **глобальный** поиск без ввода profile ID.
+- **Закрепить (submit):** зарегистрированный кошелёк вызывает `attestExternalDocument(documentHash, documentUri)` на `**ODPWalletDocumentAnchor`**. Референсный UI допускает опциональный HTTPS URL (макс. 512 символов).
+- **Проверить (verify):** пользователь загружает файл; страница локально вычисляет SHA-256, затем ищет аттестации этого хэша через `**ExternalDocumentAttested`** (**индексированный `documentHash`**) и подтверждает через `**getExternalDocumentAttestation`** на якоре. UI выполняет **глобальный** поиск и **не** требует ID профиля или фильтра по кошельку.
 
-### Уровень 1D — NDPP / public offline payload (опциональный carrier layer)
+### Уровень 2A — проверка NFC-пломбы (физические объекты с якорем `nfc`)
 
-**Назначение:** заякорить компактный **публичный** payload для offline- или low-bandwidth-раскрытия без замены канонического `**passport.json`** / `**.odpass`**.
-
-Этот уровень **опционален**. Паспорт остаётся валидным и без NFC, и без NDPP, и без какого-либо специального carrier payload сверх канонической связки registry + `**.odpass`**.
-
-**On-chain (`ObjectDigitalPassport`, эталон v0.5):**
-
-- `**ndppCommitmentHash`** / `**ndppCommitmentUri`** в записи паспорта.
-- `**updatePassportNdppCommitment(passportId, newHash, newUri)`** — только `**creator`** или `**governance`**; то же правило пустоты/хэша, что и у aux commitment.
-
-**Верификация:**
-
-1. Получить NDPP payload bytes из ожидаемого источника (например байты, считанные через NFC, файл по QR, или raw body, загруженный по `**ndppCommitmentUri`**).
-2. Вычислить `**SHA-256(raw bytes)`**.
-3. Сравнить с on-chain `**ndppCommitmentHash`**.
-4. **Совпадение**    → публичный offline payload сейчас заякорен для этого паспорта.
-5. **Нет совпадения** → mismatch NDPP payload.
-
-**Интерпретация для верификатора:** NDPP — это **дополнительный слой публичной информации**, а не основной integrity anchor паспорта. Совпавший NDPP payload можно показывать как заякоренные public disclosure data; mismatch означает, что именно NDPP-слой не прошёл проверку, но сам по себе не отменяет результат канонической проверки `**dataHash`** / `**.odpass`**. И наоборот: совпавший `**dataHash`** не валидирует отдельный NDPP payload автоматически, пока не совпадёт и его собственный хэш.
-
-Если carrier использует NFC Forum-compatible NDEF, верификаторы и issuers должны воспринимать сам NFC-носитель только как удобный транспорт. Стандартная URL / URI запись может быть phone-friendly точкой входа, а любая дополнительная ODP-specific verification record остаётся вторичной и опциональной.
-
-В опциональном профиле **ODP-in-NDPP** нужно явно различать URL-first carrier opening, chip-authentication и offline-payload validation:
-
-1. открытие первой URL / URI record лишь запускает verifier entry point;
-2. проверка вторичного payload доказывает только то, что public offline bytes совпадают с `**ndppCommitmentHash`**;
-3. проверка физического chip по-прежнему требует chip-side proof против on-chain `**nfcPublicKey`**, если ожидается NFC seal verification; для текущего NTAG 424 deployment это честно означает документированный mirror-profile path, а не автоматически native challenge-response.
-
-### Уровень 2A — проверка NFC seal (physical, sealType 1 или 3)
+**Основной путь для NTAG 424 DNA (`odp-ntag424-ev2-symmetric-cr-v1`):**
 
 ```
-1. Открыть защищённую EV2-authenticated сессию с чипом, если
-   deployment документирует такой verifier path
-2. Считать документированный protected mirror file с чипа
-3. Сравнить возвращённые live bytes с `nfcPublicKey` из блокчейна
-4. Match    → SEAL_NFC_AUTHENTIC в рамках documentированного mirror profile
-   No match → SEAL_NFC_INVALID / mismatch профиля / mismatch подготовки
+1. Получить якорь nfc из passport.json и подтвердить его целостность
+   против on-chain dataHash (или массива anchors против anchorsHash);
+   прочитать 16-байтный EV2 AES application key из якоря
+2. Выполнить AuthenticateEV2First на чипе с этим ключом
+3. Взаимный challenge-response (RndA/RndB) завершается
+4. Совпадение    → SEAL_NFC_AUTHENTIC
+   Нет совпадения → SEAL_NFC_INVALID
+```
 
-If chip model is `NTAG424DNA_TAGTAMPER`:
-5. Read tamper status
+Если `data.model` якоря — `NTAG424DNA_TAGTAMPER`:
+
+```
+5. Прочитать tamper-статус после EV2-аутентификации
    INTACT   → SEAL_NFC_INTACT
    TAMPERED → SEAL_NFC_TAMPERED
 ```
 
-`Read_Sig` / originality evidence и сам факт EV2-session establishment полезны как supporting signals, но сами по себе не равны passport-specific `nfcPublicKey` match. Этот уровень также **не** заявляет завершённый native arbitrary challenge/response для текущего NTAG 424 deployment, пока отдельный будущий профиль явно его не опишет.
+`Read_Sig` доказывает подлинность NXP-чипа, а не привязку к паспорту. Само по себе установление сессии EV2 необходимо, но недостаточно; в рамках базового профиля `chipKeyMatch` означает, что взаимный challenge-response успешно прошёл именно с on-chain байтами ключа.
 
-### Уровень 2B — проверка нумерованной seal (physical, sealType 2 или 3)
+### Уровень 2B — проверка нумерованной пломбы (физические объекты с якорем `numbered_seal`)
 
 ```
-1. Read seal.numbered.number from passport.json
-2. User visually compares number on object to number in passport
-3. Cannot be automated — requires human inspection
+1. Прочитать data.number якоря numbered_seal из passport.json
+   (целостность заякорена через dataHash / anchorsHash)
+2. Пользователь визуально сравнивает номер на объекте с номером в паспорте
+3. Не может быть автоматизировано — требует осмотра человеком
+```
+
+### Уровень 2D — осмотр физических якорей (минимум идентификации)
+
+```
+1. Прочитать якоря photo, dimensions, materials, distinguishing_features
+   (и опционально marks) из passport.json
+2. Сравнить физический объект с ними: фотографии, измеренные
+   размеры, материалы/технику и отличительные признаки,
+   которые копия не воспроизведёт
+3. Не может быть автоматизировано — требует осмотра человеком; это
+   базовая проверка в духе Object ID для объектов без крипто-пломбы
 ```
 
 ### Уровень 2C — проверка хэша файла (цифровые объекты)
 
 ```
-1. User provides the original file
-2. Compute SHA-256 of raw file bytes
-3. Compare with fileHash from blockchain
-4. Match    → FILE_AUTHENTIC (this is the registered original)
-   No match → FILE_MISMATCH (different file — not the registered original)
+1. Пользователь предоставляет оригинальный файл
+2. Вычислить SHA-256 от raw-байтов файла
+3. Сравнить с fileHash из блокчейна
+4. Совпадение    → FILE_AUTHENTIC (это зарегистрированный оригинал)
+   Нет совпадения → FILE_MISMATCH (другой файл — не зарегистрированный оригинал)
 ```
 
 ### Уровень 3 — подлинность изображения (опционально)
 
 ```
-1. If imageHash == 0x000...0 → NO_IMAGE_REGISTERED, stop
-2. Compute SHA-256 of raw image bytes
-3. Match    → IMAGE_AUTHENTIC
-   No match → IMAGE_REPLACED
+1. Если imageHash == 0x000...0 → NO_IMAGE_REGISTERED, стоп
+2. Вычислить SHA-256 от raw-байтов изображения
+3. Совпадение    → IMAGE_AUTHENTIC
+   Нет совпадения → IMAGE_REPLACED
 ```
 
 ### Состояния верификации
@@ -1555,14 +1508,33 @@ If chip model is `NTAG424DNA_TAGTAMPER`:
 | `TAMPERED`            | Несовпадение хэша — `passport.json` был изменён        |
 | `SEAL_NFC_AUTHENTIC`  | Проверена подпись NFC-чипа                             |
 | `SEAL_NFC_INVALID`    | Подпись NFC-чипа не прошла проверку                    |
-| `SEAL_NFC_INTACT`     | TagTamper: seal никогда не снимался                    |
-| `SEAL_NFC_TAMPERED`   | TagTamper: seal снимался в какой-то момент             |
+| `SEAL_NFC_INTACT`     | TagTamper: пломба никогда не снималась                 |
+| `SEAL_NFC_TAMPERED`   | TagTamper: пломба снималась в какой-то момент          |
 | `FILE_AUTHENTIC`      | Хэш файла совпадает — это зарегистрированный оригинал  |
 | `FILE_MISMATCH`       | Хэш файла не совпадает                                 |
 | `IMAGE_AUTHENTIC`     | Хэш изображения совпадает                              |
 | `IMAGE_REPLACED`      | Несовпадение хэша изображения                          |
 | `NO_IMAGE_REGISTERED` | В записи нет хэша изображения                          |
 
+
+### Уровни защиты / assurance tiers (нормативно)
+
+Верификатор МОЖЕТ обобщить силу доказательств, привязанных к паспорту, в единый **уровень защиты (assurance tier)**. Уровни — это сводка проверок §11 на уровне отображения; они существуют, чтобы не-эксперт мог увидеть степень привязки с одного взгляда.
+
+**Правило вычисления (нормативно):** уровень **вычисляется в момент просмотра** из текущего on-chain состояния (`anchorTypesMask`, записи proof, флаги counterfeit-concern, отзыв и проверки хэшей §11). Он НЕ ДОЛЖЕН храниться on-chain, кодироваться в Passport ID или Profile ID, или печататься на объектах, сертификатах или ярлыках как статичное утверждение — напечатанный «уровень» — это именно тот вид устаревшей гарантии, для предотвращения которой существует протокол. Единственное значение, печатаемое на объекте, — это Passport ID (§2, §5).
+
+| Уровень | Критерии (все критерии более низких уровней включены) |
+| --- | --- |
+| — (нет уровня) | Паспорт `INVALID`, `TAMPERED` или отозван. Уровень не показывается; доминирует состояние сбоя. |
+| **Base** | Валидный паспорт v0.6: жёсткий минимум идентификации присутствует в `anchorTypesMask`, и — когда бандл доступен — проверки `dataHash`, `anchorsHash` и байт-в-байт карточки все проходят. |
+| **Sealed** | Base + присутствует и целостностно привязан якорь пломбы (`nfc` = бит 256 или `numbered_seal` = бит 512). |
+| **Attested** | Base + хотя бы одна институциональная запись proof (§4) от профиля P/M на парном реестре proof. Пломба для этого уровня не обязательна. |
+
+**Правило понижения (нормативно):** активный институциональный флаг подозрения на подделку (§4) не убирает уровень, но ДОЛЖЕН отображаться как минимум так же заметно, как сам уровень. У отозванного паспорта нет уровня независимо от якорей или proof.
+
+**Проверено vs заявлено (нормативно):** если верификатор не смог получить бандл паспорта (`UNVERIFIABLE` / нет публичного URL), уровень отражает **только on-chain заявления** и ДОЛЖЕН быть визуально помечен как таковой (например «заявлено»). Если проверки бандла прошли, уровень МОЖЕТ быть помечен как «подтверждено». Веб-верификатор НЕ ДОЛЖЕН подразумевать, что уровень **Sealed** означает, что произошла живая проверка чипа — challenge-response EV2 (§6, уровень 2A) выполняется только в верификаторе с поддержкой NFC, и его результат сообщается отдельно (`SEAL_NFC_*`).
+
+**Правило честности (нормативно):** метка уровня ДОЛЖНА представляться как мера *силы привязывающих доказательств*, а не как вердикт о подлинности. Паспорт уровня Base от честного эмитента не «хуже» паспорта уровня Sealed от мошенника; человеческие проверки §11 (личность эмитента, отличительные признаки) остаются решающими на любом уровне.
 
 ---
 
