@@ -1,7 +1,9 @@
 {
-  "version": "0.5",
+  "version": "0.6",
   "passportId": "ODP-2026-03-000555120",
   "title": "Executable Sculpture #2",
+  "authorName": "Example Holder",
+  "shortDescription": "Sculpture with realtime software, aluminium/electronics, 2026",
   "description": "Physical sculpture paired with executable realtime software.",
   "creationDate": "2026-01-30",
   "domain": "contemporary_art",
@@ -13,12 +15,21 @@
   "edition": { "model": "dynamic" },
   "authorship": {
     "author": {
-      "name": "Example holder",
+      "name": "Example Holder",
       "wallet": "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
       "creatorId": "C-482-930-174-005"
     },
     "coAuthors": [{ "name": "Collaborator A" }]
   },
+  "anchors": [
+    { "type": "photo", "data": { "role": "primary" }, "hash": "sha256:1122bb33cc44dd55ee66ff778899aabbccddeeff001122334455667788990011" },
+    { "type": "dimensions", "data": { "width": 120, "height": 80, "depth": 40, "unit": "cm" } },
+    { "type": "materials", "data": { "list": ["aluminium", "custom electronics"] } },
+    { "type": "distinguishing_features", "data": { "text": "Hand-soldered controller board, serial ES-2 engraved inside base" } },
+    { "type": "marks", "data": { "text": "Internal serial ES-2" } },
+    { "type": "numbered_seal", "data": { "number": "SL-00429831", "type": "holographic sticker" } },
+    { "type": "file_hash", "hash": "sha256:99aa77bb66cc55dd44ee33ff22110088aabbccddeeff001122334455667788aa" }
+  ],
   "year": 2026,
   "month": 3,
   "registeredAt": 1748000000,
@@ -27,28 +38,9 @@
     "localIso8601": "2026-03-22T18:30:45+00:00",
     "utcIso8601": "2026-03-22T18:30:45Z"
   },
-  "currentState": {
-    "location": "studio lab",
-    "rightsNote": "Exhibition and documentation by agreement",
-    "conditionNote": "Prototype electronics serviced 2026-03",
-    "damageHistoryHash": "sha256:0011aa22bb33cc44dd55ee66ff778899aabbccddeeff00112233445566778899",
-    "damageHistoryUrl": "https://artist.example/objects/executable-sculpture-2-condition-log.json"
-  },
   "refinementTags": ["installation", "software", "sensor_based"],
-  "image": {
-    "url": "https://artist.example/works/executable-sculpture-2-main.jpg",
-    "hash": "sha256:1122bb33cc44dd55ee66ff778899aabbccddeeff001122334455667788990011"
-  },
   "physical": {
-    "category": "object",
-    "materials": [{ "name": "aluminium" }, { "name": "custom electronics" }],
-    "marks": [{ "type": "label", "description": "Internal serial ES-2" }],
-    "seal": {
-      "numbered": {
-        "number": "SL-00429831",
-        "type": "holographic sticker"
-      }
-    }
+    "category": "object"
   },
   "digital": {
     "subtype": "software",
