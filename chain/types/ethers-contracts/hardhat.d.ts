@@ -11,6 +11,8 @@ import * as Contracts from "./index.js";
 declare module "@nomicfoundation/hardhat-ethers/types" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
   getContractFactory(name: 'IODPExtension', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPExtension__factory>
+getContractFactory(name: 'IODPRegistryForAuthor', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForAuthor__factory>
+getContractFactory(name: 'ODPAuthorAttestation', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPAuthorAttestation__factory>
 getContractFactory(name: 'IODPRegistryForCounterfeit', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForCounterfeit__factory>
 getContractFactory(name: 'ODPCounterfeitConcern', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPCounterfeitConcern__factory>
 getContractFactory(name: 'IODPRegistryForExtensionMint', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.IODPRegistryForExtensionMint__factory>
@@ -28,6 +30,8 @@ getContractFactory(name: 'ODPPassThroughDigitalExtension', signerOrOptions?: eth
 getContractFactory(name: 'ODPPassThroughPhysicalExtension', signerOrOptions?: ethers.Signer | FactoryOptions): Promise<Contracts.ODPPassThroughPhysicalExtension__factory>
 
   getContractAt(name: 'IODPExtension', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPExtension>
+getContractAt(name: 'IODPRegistryForAuthor', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForAuthor>
+getContractAt(name: 'ODPAuthorAttestation', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPAuthorAttestation>
 getContractAt(name: 'IODPRegistryForCounterfeit', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForCounterfeit>
 getContractAt(name: 'ODPCounterfeitConcern', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPCounterfeitConcern>
 getContractAt(name: 'IODPRegistryForExtensionMint', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.IODPRegistryForExtensionMint>
@@ -45,6 +49,8 @@ getContractAt(name: 'ODPPassThroughDigitalExtension', address: string | ethers.A
 getContractAt(name: 'ODPPassThroughPhysicalExtension', address: string | ethers.Addressable, signer?: ethers.Signer): Promise<Contracts.ODPPassThroughPhysicalExtension>
 
   deployContract(name: 'IODPExtension', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPExtension>
+deployContract(name: 'IODPRegistryForAuthor', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForAuthor>
+deployContract(name: 'ODPAuthorAttestation', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPAuthorAttestation>
 deployContract(name: 'IODPRegistryForCounterfeit', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForCounterfeit>
 deployContract(name: 'ODPCounterfeitConcern', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPCounterfeitConcern>
 deployContract(name: 'IODPRegistryForExtensionMint', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForExtensionMint>
@@ -62,6 +68,8 @@ deployContract(name: 'ODPPassThroughDigitalExtension', signerOrOptions?: ethers.
 deployContract(name: 'ODPPassThroughPhysicalExtension', signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPPassThroughPhysicalExtension>
 
   deployContract(name: 'IODPExtension', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPExtension>
+deployContract(name: 'IODPRegistryForAuthor', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForAuthor>
+deployContract(name: 'ODPAuthorAttestation', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPAuthorAttestation>
 deployContract(name: 'IODPRegistryForCounterfeit', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForCounterfeit>
 deployContract(name: 'ODPCounterfeitConcern', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.ODPCounterfeitConcern>
 deployContract(name: 'IODPRegistryForExtensionMint', args: any[], signerOrOptions?: ethers.Signer | DeployContractOptions): Promise<Contracts.IODPRegistryForExtensionMint>
