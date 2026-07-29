@@ -918,4 +918,189 @@ describe("ObjectDigitalPassport", function () {
         .withArgs(6n);
     });
   });
+
+  describe("ODPAuthorAttestation satellite", function () {
+    async function deployRegAndAuthor() {
+      await syncMintYm();
+      const LibFactory = await ethers.getContractFactory("ODPPassportLib");
+      const lib = await LibFactory.deploy();
+      await lib.waitForDeployment();
+      const libAddress = await lib.getAddress();
+      const Factory = await ethers.getContractFactory("ObjectDigitalPassport", {
+        libraries: { "project/contracts/ODPPassportLib.sol:ODPPassportLib": libAddress },
+      });
+      const reg = await Factory.deploy();
+      await reg.waitForDeployment();
+      const AuthorF = await ethers.getContractFactory("ODPAuthorAttestation");
+      const author = await AuthorF.deploy(await reg.getAddress());
+      await author.waitForDeployment();
+      return { reg, author };
+    }
+
+    async function mintDigitalId(reg, signer, n) {
+      const tx = await reg.connect(signer).mintDigital(digitalInputs(n), false, MINT_SELF);
+      await tx.wait();
+      const page = await reg.getPassportsByCreatorPaged(signer.address, 0, 100);
+      const rows = page.result || page[0] || [];
+      return rows[rows.length - 1];
+    }
+
+    /** Sign the EIP-712 AuthorAttestation struct with an arbitrary (non-minting) key. */
+    async function signAttestation(author, signer, passportId, dataHash, creatorId, authorSigner) {
+      const domain = {
+        name: "Object Digital Passport",
+        version: "1",
+        chainId: (await ethers.provider.getNetwork()).chainId,
+        verifyingContract: await author.getAddress(),
+      };
+      const types = {
+        AuthorAttestation: [
+          { name: "passportId", type: "string" },
+          { name: "dataHash", type: "bytes32" },
+          { name: "creatorId", type: "string" },
+          { name: "authorSigner", type: "address" },
+        ],
+      };
+      return signer.signTypedData(domain, types, { passportId, dataHash, creatorId, authorSigner });
+    }
+
+    async function passportFacts(reg, passportId) {
+      const [header, media] = await Promise.all([
+        reg.getPassportHeader(passportId),
+        reg.getPassportMedia(passportId),
+      ]);
+      return { creatorId: header.creatorId, dataHash: media.dataHash };
+    }
+
+    it("binds a separate author key; digest matches ethers signTypedData", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, , , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 900);
+      const { creatorId, dataHash } = await passportFacts(reg, passportId);
+
+      // The author key is NOT the minting wallet — that is the whole point.
+      expect(wAuthor.address).to.not.equal(wC.address);
+
+      const sig = await signAttestation(author, wAuthor, passportId, dataHash, creatorId, wAuthor.address);
+      await author.connect(wC).attestAuthor(passportId, wAuthor.address, sig);
+
+      const a = await author.getAuthorAttestation(passportId);
+      expect(a.attested).to.equal(true);
+      expect(a.authorSigner).to.equal(wAuthor.address);
+      expect(a.dataHash).to.equal(dataHash);
+      expect(a.creatorId).to.equal(creatorId);
+    });
+
+    it("returns empty tuple when no attestation exists", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 901);
+      const a = await author.getAuthorAttestation(passportId);
+      expect(a.attested).to.equal(false);
+      expect(a.authorSigner).to.equal(ethers.ZeroAddress);
+    });
+
+    it("rejects a signature over a different passport's dataHash (EC 115)", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, , , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const idA = await mintDigitalId(reg, wC, 902);
+      const idB = await mintDigitalId(reg, wC, 903);
+      const factsB = await passportFacts(reg, idB);
+
+      // Signature is valid, but bound to passport B's bytes — must not attach to A.
+      const sig = await signAttestation(author, wAuthor, idB, factsB.dataHash, factsB.creatorId, wAuthor.address);
+      await expect(author.connect(wC).attestAuthor(idA, wAuthor.address, sig))
+        .to.be.revertedWithCustomError(author, "EC")
+        .withArgs(115n);
+    });
+
+    it("rejects a signature from a key other than authorSigner (EC 115)", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, wOther, , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 904);
+      const { creatorId, dataHash } = await passportFacts(reg, passportId);
+
+      const sig = await signAttestation(author, wOther, passportId, dataHash, creatorId, wAuthor.address);
+      await expect(author.connect(wC).attestAuthor(passportId, wAuthor.address, sig))
+        .to.be.revertedWithCustomError(author, "EC")
+        .withArgs(115n);
+    });
+
+    it("rejects a non-creator/owner submitter — no slot squatting (EC 112)", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, wStranger, , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 905);
+      const { creatorId, dataHash } = await passportFacts(reg, passportId);
+
+      const sig = await signAttestation(author, wAuthor, passportId, dataHash, creatorId, wAuthor.address);
+      await expect(author.connect(wStranger).attestAuthor(passportId, wAuthor.address, sig))
+        .to.be.revertedWithCustomError(author, "EC")
+        .withArgs(112n);
+    });
+
+    it("is one-shot — a second attestation reverts (EC 111)", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, , , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 906);
+      const { creatorId, dataHash } = await passportFacts(reg, passportId);
+
+      const sig = await signAttestation(author, wAuthor, passportId, dataHash, creatorId, wAuthor.address);
+      await author.connect(wC).attestAuthor(passportId, wAuthor.address, sig);
+      await expect(author.connect(wC).attestAuthor(passportId, wAuthor.address, sig))
+        .to.be.revertedWithCustomError(author, "EC")
+        .withArgs(111n);
+    });
+
+    it("rejects attestation on a revoked passport (EC 11)", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, , , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 907);
+      const { creatorId, dataHash } = await passportFacts(reg, passportId);
+      const sig = await signAttestation(author, wAuthor, passportId, dataHash, creatorId, wAuthor.address);
+
+      await reg.connect(wC).revokePassport(passportId, ethers.keccak256(ethers.toUtf8Bytes("oops")));
+      await expect(author.connect(wC).attestAuthor(passportId, wAuthor.address, sig))
+        .to.be.revertedWithCustomError(author, "EC")
+        .withArgs(11n);
+    });
+
+    it("rejects zero authorSigner (EC 110) and malformed signature (EC 113)", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, , , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 908);
+      const { creatorId, dataHash } = await passportFacts(reg, passportId);
+      const sig = await signAttestation(author, wAuthor, passportId, dataHash, creatorId, wAuthor.address);
+
+      await expect(author.connect(wC).attestAuthor(passportId, ethers.ZeroAddress, sig))
+        .to.be.revertedWithCustomError(author, "EC")
+        .withArgs(110n);
+      await expect(author.connect(wC).attestAuthor(passportId, wAuthor.address, "0xdeadbeef"))
+        .to.be.revertedWithCustomError(author, "EC")
+        .withArgs(113n);
+    });
+
+    it("owner (after transfer) may also submit the attestation", async function () {
+      const { reg, author } = await deployRegAndAuthor();
+      const [wC, wNewOwner, , wAuthor] = await ethers.getSigners();
+      await reg.connect(wC).registerCreator(TYPE_C);
+      const passportId = await mintDigitalId(reg, wC, 909);
+      const { creatorId, dataHash } = await passportFacts(reg, passportId);
+
+      await reg.connect(wC).transferPassport(passportId, wNewOwner.address);
+      const sig = await signAttestation(author, wAuthor, passportId, dataHash, creatorId, wAuthor.address);
+      await author.connect(wNewOwner).attestAuthor(passportId, wAuthor.address, sig);
+
+      const a = await author.getAuthorAttestation(passportId);
+      expect(a.attested).to.equal(true);
+      expect(a.authorSigner).to.equal(wAuthor.address);
+    });
+  });
 });

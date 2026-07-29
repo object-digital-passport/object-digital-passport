@@ -787,9 +787,9 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 
 The reference bytecode uses `**error EC(uint16 code)`** only (no string messages), to satisfy the EIP-170 size limit. Integrators **must** decode codes against the deployed source.
 
-### Planned protocol extensions (semantics not enforced today)
+### Protocol extensions beyond the main registry semantics
 
-The following items are **forward-looking protocol ideas** — they are **not** implemented as described in the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics**. *(The EIP-170 split — linked `**ODPPassportLib`** and satellites — is **already shipped** in the reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
+The following items are **not** enforced by the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics**. **(A)** is a forward-looking idea with no implementation. **(B)** now ships as an optional **satellite** in this repository but is **not deployed** on the canonical registry’s network — treat it as available to self-hosted deployments and as design intent for the canonical one until an address appears in §7. *(The EIP-170 split — linked `**ODPPassportLib`** and satellites — is **already shipped** in the reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
 
 #### A) Global uniqueness of passport `dataHash` (planned)
 
@@ -799,23 +799,26 @@ The following items are **forward-looking protocol ideas** — they are **not** 
 
 **If implemented:** enforce in the shared mint commit path (all `mintDigital` / `mintPhysical` / `mint*ViaExtension` routes). **Do not** apply this rule to `**attestExternalDocument`** / wallet document anchors — those commitments use a **different** on-chain meaning (file hash attestation, not `Passport.dataHash`). **Recommended:** after `revokePassport`, the hash remains **consumed** (slot never freed) so the same JSON anchor cannot get a “second life”.
 
-#### B) Optional author attestation (ECDSA) (planned)
+#### B) Optional author attestation (EIP-712) — satellite `ODPAuthorAttestation`
 
-**Intent:** allow an **optional** cryptographic binding between a **separate author key** and the integrity anchor (`dataHash`) and/or issuer profile, without replacing trust in the registered minter when the feature is unused.
+**Intent:** allow an **optional** cryptographic binding between a **separate author key** and the integrity anchor (`dataHash`) and issuer profile, without replacing trust in the registered minter when the feature is unused. It gives verifiers two independent signals — *this wallet minted it* and *this author key signed exactly these bytes* — so a compromised minting wallet cannot forge the second.
 
-**Non-goals until implemented:**
+**Status:** implemented in this repository as the optional satellite `**ODPAuthorAttestation`** (`chain/contracts/ODPAuthorAttestation.sol`). It is **not deployed** to the canonical registry’s network yet, so it is **not** a property of any live passport until an address is published in §7 and wired as `**NET.authorAttestation`**. The main registry bytecode is **unchanged** — adopting this feature does **not** re-deploy or move the canonical registry.
 
-- Integrators **must not** assume `ecrecover` or author signatures are validated on-chain in the reference contract.
-- Optional author signing does **not** by itself stop a compromised minter from minting **without** invoking the author path (unless a future product line makes author attestation **mandatory**).
+**Normative shape (reference implementation):**
 
-**Suggested shape (normative target for a future SPEC line, subject to review):**
+1. **Satellite, not mint calldata.** The main registry mint entrypoints are unchanged; attestation is a **separate transaction after mint**, like `submitProof` (§4) and `attestExternalDocument` (§11, Level 1C). The satellite constructor pins one `ObjectDigitalPassport` address and reads `getPassportHeader` / `getPassportMedia` / `getPassportClassification` from it.
+2. **Digest — EIP-712 typed data.** Domain: `name` `"Object Digital Passport"`, `version` `"1"`, `chainId`, and `verifyingContract` = **the satellite address** (so a signature is not replayable against a different anchor contract). Struct:
+   `AuthorAttestation(string passportId,bytes32 dataHash,string creatorId,address authorSigner)`.
+   The `dataHash` and `creatorId` signed MUST be the passport’s **current on-chain** values — the contract reads them from the registry rather than accepting them as calldata, so a signature cannot be pointed at other bytes.
+3. **Mint agent interaction:** the binding uses on-chain `**creator`** / `**creatorId`** — i.e. the **principal** profile, never the delegate agent address (§8, mint agent).
+4. **Who may submit:** the passport’s `**creator`** or `**owner`**. The signature alone authorizes the *key*, but gating the transaction prevents a third party from squatting the single attestation slot with a key of their own.
+5. **One-shot and immutable:** at most one attestation per passport; there is no overwrite or clear path, matching the immutability class of the on-chain card. A wrong binding is corrected by `revokePassport` + re-mint. Attestation on a **revoked** passport reverts (`EC(11)`), consistent with `submitProof` / `recordPassportEvent`.
+6. **Signature hygiene:** 65-byte ECDSA with EIP-2 low-`s` and `v ∈ {27,28}` enforced, so a malleable second signature cannot be presented as a distinct one.
 
-1. **Storage or events:** persist `authorSigner` (`address`) on `Passport` when used, and/or emit a dedicated event carrying the signer and a commitment to the signature for indexers. Storing full `bytes signature` on-chain is optional (gas vs re-verifiability).
-2. **Digest:** use **EIP-712** typed data with domain `chainId` + `verifyingContract` and a struct including at least `**bytes32 dataHash`** and a binding to `**creatorId`** (or principal wallet) so the signature is chain- and registry-specific. Simpler **EIP-191** hashes are acceptable only if collision and replay semantics are documented.
-3. **Mint agent interaction:** the attestation should reference the **principal** profile / wallet semantics (the on-chain `creator` after mint), not merely the delegate agent address, unless explicitly designed otherwise.
-4. **Parameters:** new calldata on mint entrypoints (e.g. `authorSigner`, `authorSignature`) with **empty** / zero sentinel meaning “skip verification” for backward compatibility.
+**Read surface:** `getAuthorAttestation(passportId) -> (attested, authorSigner, dataHash, creatorId, timestamp)`; `hashAuthorAttestation(...)` and `domainSeparator()` expose the digest for clients that want to cross-check what they are signing. Event: `**AuthorAttested`** with indexed `passportId`, `authorSigner`, `creatorId`.
 
-**Implementation gate:** bytecode size (**EIP-170**); likely **after** splitting auxiliary logic to a satellite or shipping a new contract generation.
+**Verifier rule (normative when the satellite is configured):** an attestation is meaningful **only** if its stored `dataHash` still equals the passport’s current on-chain `dataHash`. Verifiers MUST compare the two and MUST NOT present an author attestation as a verdict on authorship in a legal sense (§11, *Authorship and legal rights*) — it proves control of a key over specific bytes, nothing more. Absence of an attestation is **not** a negative signal: the feature is optional and most passports will not use it.
 
 ---
 
@@ -1623,6 +1626,12 @@ Optional — **relations satellite (`ODPRegistryRelations`):**
 - `delegateCreatorPublishing(agent, expiresAt)`
 - `revokeCreatorPublishing()`
 - `requestMintAgentRole(principalCreatorId)` / `confirmMintAgentRole(agent)` / `revokeMintAgentRole()`
+
+Optional — **author attestation satellite (`ODPAuthorAttestation`, §8 B):**
+
+- `attestAuthor(passportId, authorSigner, signature)` — EIP-712; caller must be the passport `creator` or `owner`; one-shot per passport
+- `getAuthorAttestation(passportId) -> (attested, authorSigner, dataHash, creatorId, timestamp)` — verifiers MUST check the returned `dataHash` still equals the passport’s current on-chain `dataHash`
+- `hashAuthorAttestation(passportId, dataHash, creatorId, authorSigner) -> bytes32`, `domainSeparator() -> bytes32`
 
 Optional — **extension mint router (`ODPExtensionMintRouter`):**
 
