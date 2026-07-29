@@ -8,9 +8,11 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="Лицензия MIT"></a>
-  <img src="https://img.shields.io/badge/status-v0.6%20Alpha-orange.svg" alt="v0.6 Alpha">
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PR приветствуются">
+  <a href="SPEC.md"><img src="https://img.shields.io/badge/spec-v0.6%20alpha-orange.svg" alt="Спека v0.6 alpha"></a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://object-digital-passport.github.io/object-digital-passport/"><img src="https://img.shields.io/badge/live-demo-2ea44f.svg" alt="Живое демо"></a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/wiki"><img src="https://img.shields.io/badge/docs-wiki-blue.svg" alt="Вики"></a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport/discussions"><img src="https://img.shields.io/github/discussions/object-digital-passport/object-digital-passport?color=blueviolet" alt="Обсуждения"></a>
 </p>
 
 <p align="center">
@@ -70,6 +72,67 @@
 При проверке объекта страница показывает **уровень защиты** с одного взгляда — **базовый** (минимум опознания сходится), **с пломбой** (＋защитная или NFC-пломба), **с подтверждением** (＋за объект поручилась институция). Он пересчитывается на лету из блокчейна при каждой проверке, а не печатается наклейкой — поэтому не устаревает и его нельзя нарисовать.
 
 ODP — инструмент в руках человека, а не волшебная палочка: он делает подделку дорогой и заметной и даёт экспертам, покупателям и институциям одни и те же защищённые от подмены факты.
+
+### Что на самом деле делает проверка
+
+```mermaid
+flowchart LR
+    ID["Passport ID<br/>(QR, NFC или вручную)"] --> CHAIN["Читаем реестр<br/>карточка · хэши · события"]
+    CHAIN -->|не найден| INVALID(["INVALID"])
+    CHAIN --> FETCH["Скачиваем файл .odpass<br/>по публичной ссылке"]
+    FETCH -->|недоступен| UNVER(["UNVERIFIABLE<br/>регистрация всё равно доказана"])
+    FETCH --> HASH["Пересчитываем SHA-256<br/>документ · якоря · карточка"]
+    HASH -->|есть расхождение| TAMPER(["TAMPERED"])
+    HASH -->|всё сошлось| OK(["AUTHENTIC<br/>+ уровень защиты"])
+```
+
+Каждый шаг — только чтение и бесплатно: без кошелька, без аккаунта, без разрешения от нас. Полный алгоритм — [`SPEC.md` §11](SPEC.md).
+
+---
+
+## Как это устроено внутри
+
+Реестр намеренно разделён. Ethereum ограничивает контракт 24 КБ, поэтому ядро остаётся маленьким, а всё необязательное живёт в **спутниках** — отдельных контрактах, которые читают основной реестр, но могут быть добавлены позже без его передеплоя и без переноса чьих-либо паспортов.
+
+```mermaid
+flowchart TB
+    subgraph core["Ядро — сами паспорта"]
+        REG["ObjectDigitalPassport<br/><i>реестр: карточка, хэши, события</i>"]
+        LIB["ODPPassportLib<br/><i>линкуемая библиотека проверок</i>"]
+    end
+    subgraph sat["Спутники — опциональные, добавляются со временем"]
+        PROOF["ODPPassportProofRegistry<br/><i>институциональные подтверждения</i>"]
+        REL["ODPRegistryRelations<br/><i>делегирование, аффилиация</i>"]
+        CF["ODPCounterfeitConcern<br/><i>флаги подделки</i>"]
+        DOC["ODPWalletDocumentAnchor<br/><i>якорение хэшей файлов</i>"]
+        EXT["ODPExtensionMintRouter<br/><i>минт через расширения</i>"]
+    end
+    ISSUER(["Автор · Бренд · Институция"]) -->|регистрация, минт| REG
+    REG -.->|delegatecall| LIB
+    PROOF & REL & CF & DOC & EXT -.->|чтение| REG
+    VERIFIER(["Любой проверяющий"]) -->|только чтение| REG
+    VERIFIER -->|только чтение| PROOF & CF
+```
+
+Актуальные адреса — [`docs/GUIDE.md` → Current Release](docs/GUIDE.md#current-release).
+
+---
+
+## Запустить у себя
+
+Интерфейс — обычный статический HTML, без сборки и серверного фреймворка:
+
+```bash
+git clone https://github.com/object-digital-passport/object-digital-passport.git
+cd object-digital-passport/web/frontend
+python3 -m http.server 8000    # затем откройте http://localhost:8000/verify.html
+```
+
+Если интересуют контракты:
+
+```bash
+cd chain/deploy && npm ci && npm test
+```
 
 ---
 
