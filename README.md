@@ -8,9 +8,11 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/status-v0.6%20Alpha-orange.svg" alt="v0.6 Alpha">
-  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs welcome">
+  <a href="SPEC.md"><img src="https://img.shields.io/badge/spec-v0.6%20alpha-orange.svg" alt="Spec v0.6 alpha"></a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://object-digital-passport.github.io/object-digital-passport/"><img src="https://img.shields.io/badge/live-demo-2ea44f.svg" alt="Live demo"></a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/wiki"><img src="https://img.shields.io/badge/docs-wiki-blue.svg" alt="Wiki"></a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport/discussions"><img src="https://img.shields.io/github/discussions/object-digital-passport/object-digital-passport?color=blueviolet" alt="Discussions"></a>
 </p>
 
 <p align="center">
@@ -70,6 +72,67 @@ The full description travels in a portable **`.odpass`** file that you keep and 
 When someone verifies your object, the page shows an at-a-glance **protection level** — **Base** (the identification minimum checks out), **Sealed** (＋a tamper-evident or NFC seal), **Attested** (＋an institution vouched for it). It's recomputed live from the chain on every check, never a sticker you can print — so it can't go stale or be faked.
 
 ODP is a tool in human hands, not a magic wand: it makes forgery expensive and detectable, and it gives experts, buyers, and institutions the same tamper-proof facts to reason from.
+
+### What a check actually does
+
+```mermaid
+flowchart LR
+    ID["Passport ID<br/>(QR, NFC or typed)"] --> CHAIN["Read the registry<br/>card · hashes · events"]
+    CHAIN -->|not found| INVALID(["INVALID"])
+    CHAIN --> FETCH["Fetch the .odpass file<br/>from its public URL"]
+    FETCH -->|unreachable| UNVER(["UNVERIFIABLE<br/>registration still proven"])
+    FETCH --> HASH["Recompute SHA-256<br/>document · anchors · card"]
+    HASH -->|any mismatch| TAMPER(["TAMPERED"])
+    HASH -->|all match| OK(["AUTHENTIC<br/>+ protection level"])
+```
+
+Every step is read-only and free: no wallet, no account, no permission from us. Full algorithm: [`SPEC.md` §11](SPEC.md).
+
+---
+
+## Under the hood
+
+The registry is deliberately split. Ethereum caps a contract at 24 KB, so the core stays small and everything optional lives in **satellites** — separate contracts that read the main registry but can be added later without redeploying it or moving anyone's passports.
+
+```mermaid
+flowchart TB
+    subgraph core["Core — the passports themselves"]
+        REG["ObjectDigitalPassport<br/><i>registry: card, hashes, events</i>"]
+        LIB["ODPPassportLib<br/><i>linked validation library</i>"]
+    end
+    subgraph sat["Satellites — optional, added over time"]
+        PROOF["ODPPassportProofRegistry<br/><i>institutional attestations</i>"]
+        REL["ODPRegistryRelations<br/><i>delegation, affiliation</i>"]
+        CF["ODPCounterfeitConcern<br/><i>counterfeit flags</i>"]
+        DOC["ODPWalletDocumentAnchor<br/><i>file hash anchoring</i>"]
+        EXT["ODPExtensionMintRouter<br/><i>extension mints</i>"]
+    end
+    ISSUER(["Creator · Brand · Institution"]) -->|register, mint| REG
+    REG -.->|delegatecall| LIB
+    PROOF & REL & CF & DOC & EXT -.->|read| REG
+    VERIFIER(["Anyone verifying"]) -->|read-only| REG
+    VERIFIER -->|read-only| PROOF & CF
+```
+
+Live addresses: [`docs/GUIDE.md` → Current Release](docs/GUIDE.md#current-release).
+
+---
+
+## Run it locally
+
+The UI is plain static HTML — no build step, no server framework:
+
+```bash
+git clone https://github.com/object-digital-passport/object-digital-passport.git
+cd object-digital-passport/web/frontend
+python3 -m http.server 8000    # then open http://localhost:8000/verify.html
+```
+
+Working on the contracts instead:
+
+```bash
+cd chain/deploy && npm ci && npm test
+```
 
 ---
 
