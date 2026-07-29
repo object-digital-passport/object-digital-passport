@@ -662,8 +662,8 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Network                          | Polygon PoS (mainnet)                                                                                         |
 | Chain ID                         | 137                                                                                                           |
-| Reference deployment (this repo) | Source in-repo; packed `**CONTRACT_VERSION` 6** at mint; main registry + optional satellites (§4, `chain/deploy/`). Addresses below. |
-| Other Polygon addresses          | Separate registries — **bytecode / ABI** may differ; always pair **address + ABI + `CONTRACT_VERSION`**.      |
+| Canonical registry               | Source in-repo; packed `**CONTRACT_VERSION` 6** at mint; main registry + optional satellites (§4, `chain/deploy/`). **Addresses below — normative.** |
+| Other Polygon addresses          | Separate, **non-canonical** registries — **bytecode / ABI** may differ; always pair **address + ABI + `CONTRACT_VERSION`**, and name the registry when presenting their records. |
 | Testnet                          | Polygon Amoy (chain ID 80002)                                                                                 |
 | Gas token                        | POL (ex-POL)                                                                                                  |
 | Avg. mint cost                   | ~$0.01                                                                                                        |
@@ -673,9 +673,15 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 A single canonical network eliminates ambiguity in verification.
 Multi-network support is reserved for a future version.
 
-### Reference deployment addresses (informative)
+### Canonical registry addresses (normative)
 
-The addresses below identify the **reference v0.6 registry** the maintainers operate on Polygon mainnet. They are **informative, not normative**: this specification defines the protocol, not one privileged deployment. Any conforming registry deployed from this source is equally valid, and clients **MUST** always pair **chain + contract address + ABI + `CONTRACT_VERSION`** (§8) rather than assume these addresses.
+The addresses below are the **canonical ODP v0.6 registry** on Polygon mainnet. They are **normative**: an object described as holding "an ODP passport", or an identifier presented as an ODP **Passport ID** (§2) or **Profile ID** (§3) without further qualification, refers to a record in **this** registry.
+
+Consequently:
+
+- Verifiers **SHOULD** resolve against these addresses by default, and **MUST** state plainly which registry produced a result when they resolve anywhere else.
+- Deployments of this source to other addresses remain **valid instances of the protocol** — the source is MIT-licensed and self-hosting is expressly supported — but they are **separate, non-canonical registries**. Anything presenting records from them as ODP passports **MUST** identify the registry (chain ID + address) alongside the record.
+- Correct decoding still requires pairing **chain + contract address + ABI + `CONTRACT_VERSION`** (§8); canonicity settles *which* registry is meant by default, not how to read it.
 
 
 | Contract                             | Address (Polygon PoS, chain ID 137)          |
@@ -689,9 +695,9 @@ The addresses below identify the **reference v0.6 registry** the maintainers ope
 | `ODPExtensionMintRouter` (§8)        | `0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822` |
 
 
-Earlier lines (v0.5 and before) are **separate registries** at different addresses with incompatible ABIs; records do not migrate between deployments. The previous v0.5 main registry `0x413aEeBB2ac437483Bc68791EaAab492C2a4B346` remains readable for passports issued under it.
+Earlier lines (v0.5 and before) were each canonical for their own line and remain **separate registries** at different addresses with incompatible ABIs; records do not migrate between deployments. The previous v0.5 main registry `0x413aEeBB2ac437483Bc68791EaAab492C2a4B346` is **superseded** but stays readable, so passports issued under it continue to verify against it.
 
-**Registry context for links:** Human-readable protocol links (`odp://…`; see §12 and §19) **do not** encode which **chain ID** or **registry contract** produced a record. Clients **MUST** pair **chain + contract address + ABI** as elsewhere in this specification; an `odp://` URI **without** that context is **ambiguous**. See §19.
+**Registry context for links:** Human-readable protocol links (`odp://…`; see §12 and §19) **do not** encode which **chain ID** or **registry contract** produced a record. Clients **MUST** pair **chain + contract address + ABI** as elsewhere in this specification; absent an explicit context, they **SHOULD** default to the **canonical registry** above and **MUST** name the registry when resolving against any other. See §12.3 and §19.
 
 ---
 
@@ -1581,7 +1587,9 @@ Hierarchical paths (`/passports`, `/proofs`) and query parameters beyond a futur
 
 ### 12.3 Registry context (normative)
 
-An `odp://` URI **does not** identify **chain ID** or **registry contract address**. Any client that resolves these URIs to on-chain reads **MUST** obtain **registry context** (`chainId`, main registry `address`, ABI, optional satellite addresses) from configuration, a **trusted** deeplink, or a **trusted** resolver (§19). See also §7.
+An `odp://` URI **does not** identify **chain ID** or **registry contract address**. Any client that resolves these URIs to on-chain reads **MUST** obtain **registry context** (`chainId`, main registry `address`, ABI, optional satellite addresses) from configuration, a **trusted** deeplink, or a **trusted** resolver (§19).
+
+**Default context:** absent an explicit registry context, a client **SHOULD** resolve the URI against the **canonical registry** of §7 (Polygon PoS, chain ID 137), and **MUST** show which registry produced the result whenever it resolves against any other. A URI is therefore no longer ambiguous by default — but a client that silently resolves against a non-canonical registry, without saying so, is misleading its user.
 
 ---
 
@@ -1951,7 +1959,7 @@ Resolving `odp://…` to chain state requires a **registry context**: at minimum
 - A **trusted** transport that carries metadata (e.g. HTTPS page that embeds `chainId` + address), and/or  
 - A **trusted** off-chain resolver response (§19.4).
 
-An **unsourced** URI **without** registry metadata is **ambiguous** — many incompatible registries may exist at different addresses.
+An **unsourced** URI **without** registry metadata resolves against the **canonical registry** of §7 by default. It is not ambiguous in the common case, but it is also not self-describing: incompatible registries may exist at other addresses, so a client resolving anywhere other than the canonical registry **MUST** say which one it used.
 
 ### 19.3 Relationship to `did:odp` (§18.2)
 
