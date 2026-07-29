@@ -36,7 +36,7 @@ jobs:
       - name: Validate examples against schema
         run: >
           npx --yes ajv-cli@5 validate --spec=draft2020
-          -s schema/passport-0.5.schema.json
+          -s schema/passport-0.6.schema.json
           -d "schema/examples/*.json"
 
   slither:

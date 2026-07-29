@@ -116,6 +116,7 @@ Start at the [**Wiki**](https://github.com/object-digital-passport/object-digita
 | [`SPEC.md`](SPEC.md) | The full protocol specification (normative, English) |
 | [`docs/GUIDE.md`](docs/GUIDE.md) | The detailed long-form guide |
 | [`docs/V0.6.md`](docs/V0.6.md) | What's new in v0.6 — the storage-model redesign |
+| [`CHANGELOG.md`](CHANGELOG.md) | Notable changes across protocol lines |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Threat model and security recommendations |
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | How to contribute |
 | [Live demo →](https://object-digital-passport.github.io/object-digital-passport/) | Try everything online |

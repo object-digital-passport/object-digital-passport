@@ -116,6 +116,7 @@ ODP — инструмент в руках человека, а не волше�
 | [`SPEC.md`](SPEC.md) | Полная спецификация протокола (нормативная, англ.) |
 | [`docs/GUIDE.md`](docs/GUIDE.md) | Подробный длинный гайд ([русская версия](web/frontend/localization/ru/README.md)) |
 | [`docs/V0.6.md`](docs/V0.6.md) | Что нового в v0.6 ([по-русски](web/frontend/localization/ru/RELEASE_v0.6.md)) |
+| [`CHANGELOG.md`](CHANGELOG.md) | Заметные изменения по линиям протокола (англ.) |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Модель угроз ([по-русски](web/frontend/localization/ru/SECURITY.md)) |
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Как участвовать ([по-русски](web/frontend/localization/ru/CONTRIBUTING.md)) |
 | [Живое демо →](https://object-digital-passport.github.io/object-digital-passport/) | Попробовать всё онлайн |
