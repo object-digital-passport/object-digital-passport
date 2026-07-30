@@ -877,7 +877,7 @@
     }
     var noteRead = odpStackT(
       "stack.disclosure.readPara",
-      "The checker talks to the main registry first. If a record isn’t there, it may look at older registry addresses you configured — useful when data moved between deployments."
+      "The checker resolves against the canonical v0.6 registry only — it does not fall back to earlier, superseded registry lines."
     );
     var noteOdpass = odpStackT(
       "stack.disclosure.odpassPara",

@@ -7,7 +7,7 @@
 <body>
   <!-- Reference copy only (modal uses localization stack.disclosure.* + odpStackDisclosureParagraphsHtml). Keep in sync when policy text changes. -->
   <div class="odp-site-trust-disclosure">
-    <p class="odp-stack-note">Lookups use the <strong>main</strong> registry first. If there’s no match, you can fall back to <strong>older registry addresses</strong> from settings — useful when data moved between deployments.</p>
+    <p class="odp-stack-note">Lookups resolve against the <strong>canonical v0.6 registry</strong> only — this verifier does not fall back to earlier, superseded registry lines.</p>
     <p class="odp-stack-note">On <strong>Verify</strong>, you can open a <strong>.odpass</strong> file from your device (it’s a ZIP). It contains <strong>passport.json</strong>; the page checks it against the public record. Extra files live under <strong>originals/</strong>. Hashing and previews run in your browser — files are not uploaded to this site. Older bundle layouts still work.</p>
     <p class="odp-stack-note"><strong>Site version 0.x</strong> means <strong>experimental</strong> builds (🚩 red flag). Stable releases start at <strong>1.0</strong>. If several stable lines exist, an older major can be a <strong>yellow flag</strong> — read the release notes.</p>
   </div>

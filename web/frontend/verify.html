@@ -287,13 +287,6 @@ const NET = {
   /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
   counterfeitConcern: "0x692935d6c1532b47cE0459bF1E9549991d0eD2C9",
   contractGenerationFallback: 6,
-  /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). The v0.5 registry (gen 5) is kept here so passports minted before the v0.6 cutover still resolve. */
-  previousContracts: [
-    "0x413aEeBB2ac437483Bc68791EaAab492C2a4B346",
-    "0xBf3398E16aF6Ae7ab41524bee3570Fa36C219e75",
-    "0xadb65b2F25596be7A798640BE3Ecc23956198d39",
-    "0x6c83c8C2e18c183a2776431a23187832b42FfFBb",
-  ],
 };
 
 /** Reference helper links default to the GitHub-hosted Verify page. Set this only when you intentionally want a different public Verify host. */
@@ -881,7 +874,6 @@ async function connect() {
   odpVerifyDebugLog("verify.html:connect", "registry config after merge", {
     contract: c.contract,
     chainId: c.chainId,
-    previousContracts: (c.previousContracts || []).length,
   }, "B");
   // #endregion
   verifyContractError = null;
@@ -981,19 +973,11 @@ async function connect() {
   syncVerifyPaffAuditVisibility();
 }
 
-/** Primary deployment first, then `NET.previousContracts` (deduped; same read ABI). */
+/** This verifier resolves only the canonical v0.6 registry — no fallback to earlier, superseded lines (SPEC §7). */
 function verifyReadContractsOrdered(abiOverride) {
   const abi = abiOverride || currentVerifyReadAbi();
-  const addrs = [NET.contract, ...(NET.previousContracts || [])].filter(Boolean);
-  const seen = {};
-  const uniq = [];
-  for (let i = 0; i < addrs.length; i++) {
-    const a = String(addrs[i]).toLowerCase();
-    if (seen[a]) continue;
-    seen[a] = true;
-    uniq.push(addrs[i]);
-  }
-  return uniq.map((addr) => new ethers.Contract(addr, abi, provider));
+  if (!NET.contract) return [];
+  return [new ethers.Contract(NET.contract, abi, provider)];
 }
 
 async function passportExistsOnRegistry(reader, passportId) {
@@ -1608,27 +1592,6 @@ async function verify() {
           continue;
         }
         continue;
-      }
-    }
-    if (!res || !readContract) {
-      const staleGen = odpContractGeneration != null && odpContractGeneration < 5;
-      if (staleGen && typeof odpBuildVerifyReadAbi === "function" && NET && NET.contract && provider) {
-        if (typeof odpClearContractGenerationCache === "function") {
-          odpClearContractGenerationCache(NET.contract);
-        }
-        odpContractGeneration = 5;
-        verifyReadAbi = odpBuildVerifyReadAbi(5, NET);
-        contract = new ethers.Contract(NET.contract, verifyReadAbi, provider);
-        try {
-          const c5 = new ethers.Contract(NET.contract, verifyReadAbi, provider);
-          res = await fetchResolvedPassport(c5, humanId);
-          readContract = c5;
-        } catch (retryErr) {
-          odpVerifyDebugLog("verify.html:verify", "v5 retry after miss failed", {
-            humanId,
-            message: String(retryErr && (retryErr.reason || retryErr.message) || "").slice(0, 180),
-          }, "C");
-        }
       }
     }
     if (!res || !readContract) {

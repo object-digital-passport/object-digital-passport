@@ -50,7 +50,7 @@
     "disclosure": {
       "registryPara": "<strong>On-chain registry generation {gen}.</strong> {spec}",
       "odpassPara": "On <strong>Verify</strong>, open a <strong>.odpass</strong> file from your device (ZIP). The canonical document is <strong>passport.json</strong> inside the archive; the page checks it against the public record. Extra files live under <strong>originals/</strong>. Hashing and previews run in your browser — files are not uploaded to this site.",
-      "readPara": "Lookups use the <strong>main</strong> registry first. If there’s no match, you can fall back to <strong>older registry addresses</strong> from settings — useful when data moved between deployments.",
+      "readPara": "Lookups resolve against the <strong>canonical v0.6 registry</strong> only — this verifier does not fall back to earlier, superseded registry lines.",
       "semverLte1": "<strong>Site version 0.x</strong> means <strong>experimental</strong> builds (🚩 red flag). Stable releases start at <strong>1.0</strong>. If several stable lines exist, an older major can be a <strong>yellow flag</strong> — read the release notes.",
       "semverGt1": "<strong>0.x</strong> = red flag. <strong>Major {L}</strong> (latest stable) = green. <strong>Majors 1…{prevMajorsEnd}</strong> = yellow — older stable lines; check migration. Small updates under the same major stay green while that major is current."
     }
