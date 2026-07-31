@@ -142,14 +142,6 @@ const ODP_ANCHOR_BITS = {
   dna: 2048,
 };
 
-/** Spec 0.6 registry: on-chain card + anchors[] instead of seal/currentState fields. */
-function odpIsV06MintMode() {
-  return (
-    typeof odpSupportsV06 === "function" &&
-    typeof odpContractGeneration === "number" &&
-    odpSupportsV06(odpContractGeneration)
-  );
-}
 
 /** Append-only passport event kinds — must match ODPEventKinds in chain/contracts/ODPPassportTypes.sol (SPEC §8). */
 const ODP_EVENT_KINDS = {
@@ -1013,10 +1005,7 @@ async function loadMyPassports(reset) {
       })
     );
     const vbase = "verify.html?id=";
-    const showManage =
-      typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration);
     const showManageModal =
-      odpContractGeneration >= 5 &&
       contract &&
       typeof contract.updatePassportStatus === "function";
     el.innerHTML = `
@@ -1035,11 +1024,9 @@ async function loadMyPassports(reset) {
               <button type="button" class="pl-url-btn" onclick='void downloadOdpDidForPassport(${JSON.stringify(r.hid)})'>${esc(t("passport.list.didDoc"))}</button>
               <button type="button" class="pl-url-btn" onclick='openPassportUrlEditor(${JSON.stringify(r.hid)})'>${esc(t("passport.list.urls"))}</button>
               ${
-                showManage
-                  ? showManageModal
-                    ? `<button type="button" class="pl-url-btn" onclick='openPassportManageEditor(${JSON.stringify(r.hid)})'>${esc(t("passport.list.manageOps"))}</button>`
-                    : `<a class="pl-url-btn" href="creator.html?${new URLSearchParams({ v03hid: r.hid }).toString()}">${esc(t("passport.list.manageOps"))}</a>`
-                  : ""
+                showManageModal
+                  ? `<button type="button" class="pl-url-btn" onclick='openPassportManageEditor(${JSON.stringify(r.hid)})'>${esc(t("passport.list.manageOps"))}</button>`
+                  : `<a class="pl-url-btn" href="creator.html?${new URLSearchParams({ v03hid: r.hid }).toString()}">${esc(t("passport.list.manageOps"))}</a>`
               }
             </div>
           </div>`
@@ -1487,7 +1474,7 @@ async function openPassportManageEditor(humanId) {
     const canEditAux = !revoked && contract && typeof contract.updatePassportAuxCommitment === "function" && (isCreator || isGov);
     const canEditNdpp = !revoked && contract && typeof contract.updatePassportNdppCommitment === "function" && (isCreator || isGov);
     const canRevoke = !revoked && contract && typeof contract.revokePassport === "function" && (isCreator || isGov);
-    const showOffline = odpContractGeneration >= 5 && typeof odpOfflineEncode === "function";
+    const showOffline = typeof odpOfflineEncode === "function";
     passportManageState = {
       hid: humanId,
       record: p,
@@ -2203,7 +2190,6 @@ function canShowPassportPmProof() {
     typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "";
   return (
     (letter === "P" || letter === "M") &&
-    odpContractGeneration >= 2 &&
     contract &&
     typeof contract.submitProof === "function"
   );
@@ -2214,7 +2200,7 @@ function passportPmProofHasCounterfeitBackend() {
   if (!contract || odpContractGeneration == null) return false;
   if (typeof contract.getCounterfeitConcern === "function") return true;
   if (typeof odpCounterfeitSatelliteAddress === "function" && odpCounterfeitSatelliteAddress(NET)) {
-    return typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration);
+    return true;
   }
   return false;
 }
@@ -2806,7 +2792,7 @@ function mintFormRequiredSectionHtml() {
     '<input type="text" id="f_name" placeholder="' + esc(t("passport.form.phName")) + '">' +
     htmlFieldHint("passport.form.hintYourName") + '</div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelShortDescription")) +
-    (odpIsV06MintMode() ? '<span class="req">*</span>' : '') + '</label>' +
+    '<span class="req">*</span></label>' +
     '<input type="text" id="f_short_desc" maxlength="256" placeholder="' +
     esc(t("passport.form.phShortDescription")) + '">' +
     '</div>' +
@@ -2864,10 +2850,10 @@ function mintFormPhysicalOptionalHtml() {
     '<div class="field"><label>' + esc(t("passport.form.labelEditionNum")) + '</label><input type="number" id="f_edn" placeholder="' + esc(t("passport.form.phEdition")) + '" min="1"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelEditionTotal")) + '</label><input type="number" id="f_edt" placeholder="' + esc(t("passport.form.phEditionTotal")) + '" min="1"></div></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelMedium")) + '</label><input type="text" id="f_medium" placeholder="' + esc(t("passport.form.phMedium")) + '"></div>' +
-    '<div class="field"><label>' + esc(t("passport.form.labelMaterials")) + (odpIsV06MintMode() ? '<span class="req">*</span>' : '') + '</label><input type="text" id="f_mat" placeholder="' + esc(t("passport.form.phMaterials")) + '"></div>' +
-    '<div class="field"><label>' + esc(t("passport.form.labelFeatures")) + (odpIsV06MintMode() ? '<span class="req">*</span>' : '') + '</label>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelMaterials")) + '<span class="req">*</span></label><input type="text" id="f_mat" placeholder="' + esc(t("passport.form.phMaterials")) + '"></div>' +
+    '<div class="field"><label>' + esc(t("passport.form.labelFeatures")) + '<span class="req">*</span></label>' +
     '<textarea id="f_features" placeholder="' + esc(t("passport.form.phFeatures")) + '"></textarea></div>' +
-    '<div class="row3"' + (odpIsV06MintMode() ? ' style="display:none"' : '') + '>' +
+    '<div class="row3" style="display:none">' +
     '<div class="field"><label>' + esc(t("passport.form.labelLocation")) + '</label><input type="text" id="f_location" placeholder="' + esc(t("passport.form.phLocation")) + '"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelRightsNote")) + '</label><input type="text" id="f_rights_note" placeholder="' + esc(t("passport.form.phRightsNote")) + '"></div>' +
     '<div class="field"><label>' + esc(t("passport.form.labelConditionNote")) + '</label><input type="text" id="f_condition_note" placeholder="' + esc(t("passport.form.phConditionNote")) + '"></div></div>' +
@@ -2908,7 +2894,6 @@ function mintFormDigitalOptionalHtml() {
 }
 
 function mintFormPreviewOptionalHtml() {
-  const v03Display = typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration) ? "" : "display:none";
   const previewBody =
     '<div class="fdrop" id="imgDrop" onclick="document.getElementById(\'imgIn\').click()">' +
     '<input type="file" id="imgIn" accept="image/*" onchange="hashImg(event)">' +
@@ -2918,7 +2903,7 @@ function mintFormPreviewOptionalHtml() {
     '<div style="margin-top:8px"><button type="button" class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="clearPreviewImage(1)">' + esc(t("passport.form.clearImageBtn")) + '</button></div>' +
     '<div class="field" style="margin-top:10px"><label>' + esc(t("passport.form.labelImageUrl")) + '</label>' +
     '<input type="url" id="f_imgUrl" placeholder="' + esc(t("passport.form.phImageUrl")) + '"></div>' +
-    '<div id="passportAdditionalV03" style="' + v03Display + ';margin-top:18px">' +
+    '<div id="passportAdditionalV03" style="margin-top:18px">' +
     '<p class="form-group-lead" style="margin:0 0 10px">' + esc(t("passport.form.extraImagesHint")) + '</p>' +
     '<div class="fdrop" id="imgDrop2" onclick="document.getElementById(\'imgIn2\').click()"><input type="file" id="imgIn2" accept="image/*" onchange="hashImg2(event)">' +
     '<div class="fdrop-icon">🖼</div><div class="fdrop-text">' + esc(t("passport.form.fdropImg2")) + '</div></div><div id="imgInfo2"></div>' +
@@ -3023,7 +3008,7 @@ function renderForm() {
       <div class="section-label">${esc(t("passport.form.hosting"))}<span class="req">*</span></div>
       ${mintFormDiscoveryOptionalHtml()}
       <p class="fhint form-section-lead">${esc(t("passport.form.groupHostingLead"))}</p>
-      <div id="skipPublicUrlRow" class="field" style="margin-bottom:12px;${odpSupportsOptionalDataUrl(odpContractGeneration) ? "" : "display:none"}">
+      <div id="skipPublicUrlRow" class="field" style="margin-bottom:12px;">
         <label class="fhint" style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
           <input type="checkbox" id="f_skip_public_url" onchange="syncHostingInputs()">
           <span>${esc(t("passport.form.skipPublicUrl"))}</span>
@@ -3079,12 +3064,14 @@ function renderForm() {
     <!-- Physical seal -->
     <div id="sealSection">
       <div class="section">
-        <div class="section-label">${esc(t("passport.form.physicalSeal"))}${odpIsV06MintMode() ? "" : '<span class="req">*</span>'}</div>
+        <div class="section-label">${esc(t("passport.form.physicalSeal"))}</div>
         ${mintFormPhysicalOptionalHtml()}
         <p class="fhint form-section-lead">${esc(t("passport.form.groupSealLead"))}</p>
 
         <div class="seal-grid">
-          ${odpIsV06MintMode() ? '<div class="seal-opt" id="s0" onclick="setSeal(0)"><span class="seal-icon">∅</span>' + esc(t("passport.form.sealNone")) + '<br><small class="seal-sub">' + esc(t("passport.form.sealNoneSmall")) + '</small></div>' : ""}
+          <div class="seal-opt" id="s0" onclick="setSeal(0)">
+            <span class="seal-icon">∅</span>${esc(t("passport.form.sealNone"))}<br><small class="seal-sub">${esc(t("passport.form.sealNoneSmall"))}</small>
+          </div>
           <div class="seal-opt" id="s1" onclick="setSeal(1)">
             <span class="seal-icon">📡</span>${esc(t("passport.form.sealNfc"))}<br><small class="seal-sub">${esc(t("passport.form.sealNfcSmall"))}</small>
           </div>
@@ -3471,11 +3458,7 @@ function bindMyPassportsLoadMore() {
 async function updatePassportMintsRow() {
   const el = document.getElementById("passportMintsRow");
   if (!el || !contract || !wallet) return;
-  if (
-    typeof odpSupportsFolderBaseMint !== "function" ||
-    !odpSupportsFolderBaseMint(odpContractGeneration) ||
-    typeof odpEstimateRemainingMints !== "function"
-  ) {
+  if (typeof odpEstimateRemainingMints !== "function") {
     el.style.display = "none";
     el.innerHTML = "";
     return;
@@ -3524,7 +3507,7 @@ async function updatePassportMintsRow() {
 
 function syncHostingInputs() {
   const skip =
-    odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
+    document.getElementById("f_skip_public_url")?.checked === true;
   const rowMode = document.getElementById("hostingModeRow");
   const rowF = document.getElementById("hostingFolderRow");
   const rowU = document.getElementById("hostingFullRow");
@@ -3909,16 +3892,7 @@ function buildRegistrationClock(now) {
 /** @param {Date} [mintAt] wall-clock instant for mint; UTC calendar year/month in JSON must match on-chain mint args. */
 function buildPassport(humanId, mintAt) {
   const now = mintAt instanceof Date ? mintAt : new Date();
-  const isV06 = odpIsV06MintMode();
-  const jsonSpecVersion = isV06
-    ? "0.6"
-    : typeof odpContractGeneration === "number" && odpContractGeneration >= 5
-      ? "0.5"
-      : typeof odpContractGeneration === "number" && odpContractGeneration >= 4
-      ? "0.4"
-      : typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-        ? "0.3"
-        : "0.2";
+  const jsonSpecVersion = "0.6";
   const clock = buildRegistrationClock(now);
   const utcY = now.getUTCFullYear();
   const utcM = now.getUTCMonth() + 1;
@@ -3963,23 +3937,9 @@ function buildPassport(humanId, mintAt) {
   if (creationDate) p.creationDate = creationDate;
   if (!Number.isNaN(fy) && fy !== utcY) p.objectYear = fy;
 
-  if (isV06) {
-    // spec 0.6 on-chain card fields — MUST equal the on-chain values byte-for-byte (SPEC §9)
-    p.authorName = v("f_name");
-    p.shortDescription = v("f_short_desc");
-  }
-
-  if (!isV06) {
-    // v0.5 mutable-state snapshot; in 0.6 current state lives only in on-chain events
-    const currentState = {};
-    const currentLocation = v("f_location");
-    const rightsNote = v("f_rights_note");
-    const conditionNote = v("f_condition_note");
-    if (currentLocation) currentState.location = currentLocation;
-    if (rightsNote) currentState.rightsNote = rightsNote;
-    if (conditionNote) currentState.conditionNote = conditionNote;
-    if (Object.keys(currentState).length) p.currentState = currentState;
-  }
+  // spec 0.6 on-chain card fields — MUST equal the on-chain values byte-for-byte (SPEC §9)
+  p.authorName = v("f_name");
+  p.shortDescription = v("f_short_desc");
 
   if (editionModel) {
     p.edition = { model: editionModel };
@@ -3991,34 +3951,9 @@ function buildPassport(humanId, mintAt) {
 
   if (isPhysicalLikeType(objType)) {
     const med = v("f_medium");
-    const mat = v("f_mat");
     const physical = {};
     if (categoryTag) physical.category = categoryTag;
     if (med) physical.medium = med;
-    if (!isV06) {
-      // v0.5 layout; in 0.6 these facts are identification anchors (built below)
-      if (mat) physical.materials = mat.split(",").map((m) => ({ name: m.trim() })).filter((m) => m.name);
-      const seal = {};
-      if (sealType===1||sealType===3) {
-        seal.nfc = { uid:v("f_nuid"), publicKey:v("f_nkey"), model:v("f_nmod"), installedAt:v("f_ndate") };
-        const nn=v("f_nnotes"); if(nn) seal.nfc.notes=nn;
-      }
-      if (sealType===2||sealType===3) {
-        seal.numbered = { number:v("f_snum"), type:v("f_stype") };
-        const sc=v("f_scol"),ss=v("f_ssz"),sn=v("f_snotes");
-        if(sc) seal.numbered.color=sc; if(ss) seal.numbered.size=ss; if(sn) seal.numbered.notes=sn;
-      }
-      if (Object.keys(seal).length) physical.seal = seal;
-      if (marksRaw) physical.marks = [{ type: "note", description: marksRaw }];
-      const dw = v("f_dim_w"), dh = v("f_dim_h"), dpt = v("f_depth");
-      if (dw || dh || dpt) {
-        physical.dimensions = {};
-        if (dw) physical.dimensions.width = Number(dw);
-        if (dh) physical.dimensions.height = Number(dh);
-        if (dpt) physical.dimensions.depth = Number(dpt);
-        physical.dimensions.unit = v("f_dim_unit") || "cm";
-      }
-    }
     const wv = v("f_weight");
     if (wv) physical.weight = { value: Number(wv), unit: v("f_weight_unit") || "kg" };
     if (Object.keys(physical).length) p.physical = physical;
@@ -4042,7 +3977,7 @@ function buildPassport(humanId, mintAt) {
   }
 
   imageUrl = v("f_imgUrl");
-  if (isV06) {
+  {
     // identification anchors (SPEC §9); anchorsHash + anchorTypesMask bind them on-chain
     const anchors = [];
     if (imageHash !== ZERO32) anchors.push({ type: "photo", data: { role: "primary" }, hash: "sha256:" + imageHash.slice(2) });
@@ -4085,13 +4020,6 @@ function buildPassport(humanId, mintAt) {
       }
     }
     p.anchors = anchors;
-  } else {
-    // JSON field matches mint.py: f"sha256:{hex}"; on-chain still uses 0x bytes32 (imageHash)
-    if (imageHash!==ZERO32) p.image = { url:imageUrl, hash: "sha256:"+imageHash.slice(2) };
-    const extras = [];
-    if (imageHash2 !== ZERO32) extras.push({ url: v("f_imgUrl2"), hash: "sha256:" + imageHash2.slice(2) });
-    if (imageHash3 !== ZERO32) extras.push({ url: v("f_imgUrl3"), hash: "sha256:" + imageHash3.slice(2) });
-    if (extras.length) p.images = extras;
   }
   const additionalMetadata = {};
   const metaRoot = document.getElementById("extraMetaRows");
@@ -4160,17 +4088,15 @@ function validate() {
   if (!v("f_name"))    return t("passport.form.validateName");
   if (!v("f_content_class")) return t("passport.form.validateContentClass");
   if (!v("f_status")) return t("passport.form.validateStatus");
-  if (odpIsV06MintMode()) {
-    // hard identification minimum (SPEC §9) — the contract enforces it via anchorTypesMask
-    if (!v("f_short_desc")) return t("passport.form.validateShortDesc");
-    if (v("f_title").length > 128) return t("passport.form.validateTitleLen");
-    if (v("f_name").length > 128) return t("passport.form.validateNameLen");
-    if (isPhysicalLikeType(objType)) {
-      if (imageHash === ZERO32) return t("passport.form.validateV06Photo");
-      if (!v("f_dim_w") && !v("f_dim_h") && !v("f_depth")) return t("passport.form.validateV06Dims");
-      if (!v("f_mat")) return t("passport.form.validateV06Materials");
-      if (!v("f_features")) return t("passport.form.validateV06Features");
-    }
+  // hard identification minimum (SPEC §9) — the contract enforces it via anchorTypesMask
+  if (!v("f_short_desc")) return t("passport.form.validateShortDesc");
+  if (v("f_title").length > 128) return t("passport.form.validateTitleLen");
+  if (v("f_name").length > 128) return t("passport.form.validateNameLen");
+  if (isPhysicalLikeType(objType)) {
+    if (imageHash === ZERO32) return t("passport.form.validateV06Photo");
+    if (!v("f_dim_w") && !v("f_dim_h") && !v("f_depth")) return t("passport.form.validateV06Dims");
+    if (!v("f_mat")) return t("passport.form.validateV06Materials");
+    if (!v("f_features")) return t("passport.form.validateV06Features");
   }
   if (
     (imageHash2 !== ZERO32 || imageHash3 !== ZERO32) &&
@@ -4182,7 +4108,7 @@ function validate() {
     return t("passport.form.validateNeedImage2Before3");
   }
   const skip =
-    odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
+    document.getElementById("f_skip_public_url")?.checked === true;
   if (!skip) {
     const useFolder = document.getElementById("f_use_folder")?.checked !== false;
     if (useFolder) {
@@ -4221,7 +4147,7 @@ function openPreMintModal() {
     return;
   }
   const skip =
-    odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
+    document.getElementById("f_skip_public_url")?.checked === true;
   const blkUrl = document.getElementById("preMintWithUrlBlock");
   const blkSkip = document.getElementById("preMintSkipUrlBlock");
   const ackText = document.getElementById("preMintAckText");
@@ -4303,10 +4229,9 @@ async function executeMint() {
   const passportForHash = buildPassport(null, mintAt);
   const dataHash_ = await sha256obj(passportForHash);
   // spec 0.6: anchors array is additionally hashed standalone (same canonicalization) → on-chain anchorsHash
-  const isV06Mint = odpIsV06MintMode();
-  const anchorsHash_ = isV06Mint ? await sha256obj(passportForHash.anchors || []) : ZERO32;
+  const anchorsHash_ = await sha256obj(passportForHash.anchors || []);
   let anchorTypesMask_ = 0;
-  if (isV06Mint) {
+  {
     for (const a of passportForHash.anchors || []) {
       anchorTypesMask_ |= ODP_ANCHOR_BITS[a.type] || (1 << 31);
     }
@@ -4314,15 +4239,6 @@ async function executeMint() {
   }
   const imgH_     = imageHash;
   const imgU_     = imageUrl;
-  const imgEx =
-    typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-      ? [
-          imageHash2 !== ZERO32 ? imageHash2 : ethers.constants.HashZero,
-          v("f_imgUrl2") || "",
-          imageHash3 !== ZERO32 ? imageHash3 : ethers.constants.HashZero,
-          v("f_imgUrl3") || "",
-        ]
-      : [];
   const year      = mintAt.getUTCFullYear();
   const month     = mintAt.getUTCMonth() + 1;
   const contentClassCode = contentClassCodeFromValue(v("f_content_class"));
@@ -4331,7 +4247,7 @@ async function executeMint() {
   const verificationMethodCode = verificationMethodCodeFromValue(derivePassportVerificationMethod());
   const editionModelCode = editionModelCodeFromValue(derivePassportEditionModel());
   const skip =
-    odpSupportsOptionalDataUrl(odpContractGeneration) && document.getElementById("f_skip_public_url")?.checked === true;
+    document.getElementById("f_skip_public_url")?.checked === true;
   const useFolder = document.getElementById("f_use_folder")?.checked !== false;
   const baseNorm  = useFolder ? normalizeBaseUrl(v("f_urlBase")) : "";
   let dataUrlForMint;
@@ -4339,27 +4255,11 @@ async function executeMint() {
   if (skip) {
     dataUrlForMint = "";
     dataUrlIsFolderBase = false;
-  } else if (odpSupportsFolderBaseMint(odpContractGeneration)) {
-    if (useFolder) {
-      dataUrlForMint = baseNorm;
-      dataUrlIsFolderBase = true;
-    } else {
-      dataUrlForMint = v("f_url");
-    }
+  } else if (useFolder) {
+    dataUrlForMint = baseNorm;
+    dataUrlIsFolderBase = true;
   } else {
-    dataUrlForMint = useFolder
-      ? `${baseNorm}/odp-mint-pending-${Date.now()}.odpass`
-      : v("f_url");
-  }
-
-  let sealHash_ = ZERO32;
-  let nfcBytes  = new Uint8Array(0);
-
-  if (isPhysicalLikeType(objType) && passportForHash.physical && passportForHash.physical.seal) {
-    sealHash_ = await sha256obj(passportForHash.physical.seal);
-    if ((sealType===1||sealType===3) && v("f_nkey")) {
-      try { nfcBytes = ethers.utils.arrayify("0x"+v("f_nkey").replace(/^0x/,"")); } catch {}
-    }
+    dataUrlForMint = v("f_url");
   }
 
   document.getElementById("app").innerHTML = `
@@ -4379,147 +4279,32 @@ async function executeMint() {
       passportIdsBeforeMint = [];
     }
 
-    let tx;
-    if (isV06Mint) {
-      // spec 0.6: unified PassportMintInputs tuple — card + hashes + anchors
-      const v06Inputs = {
-        core: {
-          year,
-          month,
-          title: passportForHash.title || "",
-          authorName: passportForHash.authorName || "",
-          shortDescription: passportForHash.shortDescription || "",
-          domain: passportForHash.domain || "",
-          contentClass: contentClassCode,
-          lifecycleStatus: lifecycleStatusCode,
-          aiStatus: aiStatusCode,
-          verificationMethod: verificationMethodCode,
-          editionModel: editionModelCode,
-        },
-        dataHash: dataHash_,
-        dataUrl: dataUrlForMint,
-        imageHash: imgH_,
-        imageUrl: imgU_,
-        fileHash: objType === "physical" ? ZERO32 : fileHashBytes32,
-        anchorsHash: anchorsHash_,
-        anchorTypesMask: anchorTypesMask_,
-      };
-      const mintFn =
-        objType === "physical" ? contract.mintPhysical : objType === "mixed" ? contract.mintMixed : contract.mintDigital;
-      tx = await mintFn(v06Inputs, dataUrlIsFolderBase, "", mintTxOpts());
-    } else if (typeof odpContractGeneration === "number" && odpContractGeneration >= 5) {
-      const v05Core = {
+    // spec 0.6: unified PassportMintInputs tuple — card + hashes + anchors
+    const v06Inputs = {
+      core: {
         year,
         month,
         title: passportForHash.title || "",
+        authorName: passportForHash.authorName || "",
+        shortDescription: passportForHash.shortDescription || "",
         domain: passportForHash.domain || "",
         contentClass: contentClassCode,
         lifecycleStatus: lifecycleStatusCode,
         aiStatus: aiStatusCode,
         verificationMethod: verificationMethodCode,
         editionModel: editionModelCode,
-        currentLocation: v("f_location") || "",
-        rightsNote: v("f_rights_note") || "",
-        conditionNote: v("f_condition_note") || "",
-        damageHistoryHash: ZERO32,
-        damageHistoryUrl: "",
-      };
-      const v05Suffix = [dataUrlIsFolderBase, ""];
-      const nfcModelStr = (sealType===1||sealType===3) ? (v("f_nmod") || "NTAG424DNA_TAGTAMPER") : "";
-      if (objType === "physical") {
-        tx = await contract.mintPhysical(
-          {
-            core: v05Core,
-            dataHash: dataHash_,
-            dataUrl: dataUrlForMint,
-            imageHash: imgH_,
-            imageUrl: imgU_,
-            sealType,
-            sealHash: sealHash_,
-            nfcPublicKey: nfcBytes,
-            nfcModel: nfcModelStr,
-            imageHash2: imgEx[0],
-            imageUrl2: imgEx[1],
-            imageHash3: imgEx[2],
-            imageUrl3: imgEx[3],
-            auxCommitmentHash: ZERO32,
-            auxCommitmentUri: "",
-            ndppCommitmentHash: ZERO32,
-            ndppCommitmentUri: "",
-          },
-          ...v05Suffix,
-          mintTxOpts()
-        );
-      } else if (objType === "mixed") {
-        tx = await contract.mintMixed(
-          {
-            core: v05Core,
-            dataHash: dataHash_,
-            dataUrl: dataUrlForMint,
-            imageHash: imgH_,
-            imageUrl: imgU_,
-            sealType,
-            sealHash: sealHash_,
-            nfcPublicKey: nfcBytes,
-            nfcModel: nfcModelStr,
-            imageHash2: imgEx[0],
-            imageUrl2: imgEx[1],
-            imageHash3: imgEx[2],
-            imageUrl3: imgEx[3],
-            fileHash: fileHashBytes32,
-            auxCommitmentHash: ZERO32,
-            auxCommitmentUri: "",
-            ndppCommitmentHash: ZERO32,
-            ndppCommitmentUri: "",
-          },
-          ...v05Suffix,
-          mintTxOpts()
-        );
-      } else {
-        tx = await contract.mintDigital(
-          {
-            core: v05Core,
-            dataHash: dataHash_,
-            dataUrl: dataUrlForMint,
-            imageHash: imgH_,
-            imageUrl: imgU_,
-            imageHash2: imgEx[0],
-            imageUrl2: imgEx[1],
-            imageHash3: imgEx[2],
-            imageUrl3: imgEx[3],
-            fileHash: fileHashBytes32,
-            auxCommitmentHash: ZERO32,
-            auxCommitmentUri: "",
-            ndppCommitmentHash: ZERO32,
-            ndppCommitmentUri: "",
-          },
-          ...v05Suffix,
-          mintTxOpts()
-        );
-      }
-    } else if (objType==="physical") {
-      tx = await contract.mintPhysical(
-        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-        sealType,sealHash_,nfcBytes,(sealType===1||sealType===3) ? (v("f_nmod") || "") : "",
-        ...imgEx,
-        ...(odpSupportsFolderBaseMint(odpContractGeneration) ? [dataUrlIsFolderBase] : []),
-        ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [ZERO32, "", ""]
-          : []),
-        mintTxOpts()
-      );
-    } else {
-      tx = await contract.mintDigital(
-        year,month,dataHash_,dataUrlForMint,imgH_,imgU_,
-        ...imgEx,
-        fileHashBytes32,
-        ...(odpSupportsFolderBaseMint(odpContractGeneration) ? [dataUrlIsFolderBase] : []),
-        ...(typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-          ? [ZERO32, "", ""]
-          : []),
-        mintTxOpts()
-      );
-    }
+      },
+      dataHash: dataHash_,
+      dataUrl: dataUrlForMint,
+      imageHash: imgH_,
+      imageUrl: imgU_,
+      fileHash: objType === "physical" ? ZERO32 : fileHashBytes32,
+      anchorsHash: anchorsHash_,
+      anchorTypesMask: anchorTypesMask_,
+    };
+    const mintFn =
+      objType === "physical" ? contract.mintPhysical : objType === "mixed" ? contract.mintMixed : contract.mintDigital;
+    const tx = await mintFn(v06Inputs, dataUrlIsFolderBase, "", mintTxOpts());
 
     const exBaseMint = (NET && NET.explorer) ? String(NET.explorer).replace(/\/$/, "") : "https://polygonscan.com";
     const txExMint = `${exBaseMint}/tx/${tx.hash}`;
@@ -4586,29 +4371,8 @@ async function executeMint() {
     let registeredDataUrl = dataUrlForMint;
     if (!humanId) throw new Error(t("passport.form.mintReadHumanId"));
 
-    if (odpSupportsFolderBaseMint(odpContractGeneration) && dataUrlIsFolderBase) {
+    if (dataUrlIsFolderBase) {
       registeredDataUrl = joinPassportBundleUrl(baseNorm, humanId);
-    } else if (!skip && !odpSupportsFolderBaseMint(odpContractGeneration) && useFolder && baseNorm) {
-      registeredDataUrl = joinPassportBundleUrl(baseNorm, humanId);
-      document.getElementById("app").innerHTML = `
-        <div style="text-align:center;padding:48px 0">
-          <div style="width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 20px"></div>
-          <div style="font-family:var(--serif);font-size:20px;font-style:italic;margin-bottom:8px">${esc(t("passport.form.mintRegisteringUrl"))}</div>
-          <div style="font-size:12px;color:var(--text2)">${esc(t("passport.form.mintSecondConfirm"))}</div>
-        </div>
-        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
-      try {
-        await updatePassportUrlsWithRetry(humanId, registeredDataUrl, imgU_, dataHash_);
-      } catch (e2) {
-        const want = esc(registeredDataUrl);
-        document.getElementById("app").innerHTML = `<div class="info w" style="max-width:440px;margin:24px auto;line-height:1.6">
-          ${esc(t("passport.form.mintUrlFail"))}<br><br>
-          <code style="font-size:11px;word-break:break-all">${want}</code><br><br>
-          ${esc(e2.message || String(e2))}
-        </div>
-        <div style="text-align:center;margin-top:16px"><button class="btn" onclick="renderForm()">${esc(t("passport.form.mintBackForm"))}</button></div>`;
-        return;
-      }
     }
 
     // dataHash on-chain is sha256(passportForHash). Bundle JSON = same object + real passportId (verify minify maps ID → null to match hash).
@@ -4618,8 +4382,8 @@ async function executeMint() {
     showSuccess(humanId, tx.hash, finalJson, passportForHash.title, registeredDataUrl, {
       txHash: tx.hash,
       dataHash: dataHash_,
-      anchorsHash: isV06Mint ? anchorsHash_ : undefined,
-      anchorTypesMask: isV06Mint ? anchorTypesMask_ : undefined,
+      anchorsHash: anchorsHash_,
+      anchorTypesMask: anchorTypesMask_,
       imageHash: imgH_,
       imageHash2: imageHash2,
       imageHash3: imageHash3,

@@ -222,7 +222,6 @@ function render() {
     if (typeof odpBindPassportV03Operations === "function") odpBindPassportV03Operations();
     if (
       (typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "") === "P" &&
-      odpContractGeneration >= 2 &&
       contract &&
       typeof contract.getPAffiliatedChildren === "function"
     ) {
@@ -1172,16 +1171,9 @@ function renderAlready() {
         <a class="btn btn-sec" href="${net.explorer}/address/${wallet}" target="_blank" rel="noopener noreferrer">${esc(t("creator.already.btnExplorer"))}</a>
       </div>
     </div>
+    ${typeof odpHtmlPassportV03OperationsCard === "function" ? odpHtmlPassportV03OperationsCard() : ""}
     ${
-      typeof odpSupportsV03 === "function" && odpSupportsV03(odpContractGeneration)
-        ? typeof odpHtmlPassportV03OperationsCard === "function"
-          ? odpHtmlPassportV03OperationsCard()
-          : ""
-        : ""
-    }
-    ${
-      (typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "") === "P" &&
-      odpContractGeneration >= 2
+      (typeof odpPassportProfileTypeLetter === "function" ? odpPassportProfileTypeLetter(creatorId) : "") === "P"
         ? `
     <div class="card creator-p-aff-card" style="margin-top:20px">
       <div class="card-head">${esc(t("creator.pAff.cardTitle"))}</div>
