@@ -286,6 +286,8 @@ const NET = {
   docAnchor: "0x35df3773919D9F10e5F8838abaa453DE120e6Cb4",
   /** Optional `ODPCounterfeitConcern` (must be deployed against `contract`); v0.4+ satellite. */
   counterfeitConcern: "0x692935d6c1532b47cE0459bF1E9549991d0eD2C9",
+  /** Optional `ODPAuthorAttestation` (SPEC §8 B): EIP-712 author key bound to a passport's dataHash + creatorId. */
+  authorAttestation: "0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7",
   contractGenerationFallback: 6,
   /** Older Polygon deployments tried after `contract` if a passport/creator is not found (separate registries). The v0.5 registry (gen 5) is kept here so passports minted before the v0.6 cutover still resolve. */
   previousContracts: [

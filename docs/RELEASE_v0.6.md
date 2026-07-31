@@ -4,7 +4,7 @@
 
 ## Summary
 
-**v0.6** is a ground-up redesign of what a passport stores and where, built around the **Object ID identification principle**. Every passport now carries a small, immutable **on-chain card** (`title`, `authorName`, `shortDescription`, `domain`); the scattered v0.5 fields for seals, extra images, materials, dimensions, and marks are replaced by a single extensible `anchors[]` array; and every previously overwritable current-state field is now an **append-only event**. This tag also includes the optional `**ODPAuthorAttestation`** satellite (EIP-712 author attestation, not yet deployed), a rewritten JSON Schema tracking the new shape, and a fully retranslated Russian `SPEC.md`.
+**v0.6** is a ground-up redesign of what a passport stores and where, built around the **Object ID identification principle**. Every passport now carries a small, immutable **on-chain card** (`title`, `authorName`, `shortDescription`, `domain`); the scattered v0.5 fields for seals, extra images, materials, dimensions, and marks are replaced by a single extensible `anchors[]` array; and every previously overwritable current-state field is now an **append-only event**. This tag also includes the optional `**ODPAuthorAttestation`** satellite (EIP-712 author attestation, now deployed), a rewritten JSON Schema tracking the new shape, and a fully retranslated Russian `SPEC.md`.
 
 ---
 
@@ -16,7 +16,7 @@
 - **`freeze()` restored:** the deployer-only, irreversible write-stop safety hatch existed through v0.4, was removed in the v0.5 line to fit the EIP-170 bytecode budget, and is back in v0.6.
 - **Assurance tiers** (Base / Sealed / Attested): a display-layer summary of the SPEC §11 verification checks, computed at view time from current on-chain state — never stored on-chain, encoded into an ID, or printed on an object.
 - **Canonical registry:** the deployed v0.6 registry is now the normative default target for unqualified `odp://` references (SPEC §7, §12.3, §19.2); other deployments must self-identify.
-- **`ODPAuthorAttestation` satellite (new, not yet deployed):** optional EIP-712 author attestation binding a separate author key to a passport's `dataHash` and `creatorId`, independent of the wallet that sent the mint transaction. Ships as a satellite specifically so the main registry bytecode is untouched — adopting it needs no re-deploy of the canonical registry.
+- **`ODPAuthorAttestation` satellite (new, deployed):** optional EIP-712 author attestation binding a separate author key to a passport's `dataHash` and `creatorId`, independent of the wallet that sent the mint transaction. Ships as a satellite specifically so the main registry bytecode is untouched — adopting it needed no re-deploy of the canonical registry, and the registry address did not move.
 
 ## Bytecode (EIP-170)
 
@@ -33,8 +33,9 @@ Removing six overwriting functions and a large slice of the struct more than pay
 | `ODPRegistryRelations` (satellite) | [`0x2ea6f05a050973afa14E61b1Ea19De92621e3661`](https://polygonscan.com/address/0x2ea6f05a050973afa14E61b1Ea19De92621e3661) |
 | `ODPPassportProofRegistry` (satellite) | [`0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49`](https://polygonscan.com/address/0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49) |
 | `ODPExtensionMintRouter` (satellite) | [`0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822`](https://polygonscan.com/address/0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822) |
+| `ODPAuthorAttestation` (satellite) | [`0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7`](https://polygonscan.com/address/0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7) |
 
-`ODPAuthorAttestation` is **not** in this table — it is not yet deployed against the canonical registry.
+The author-attestation satellite's EIP-712 domain separator is `0x6ad8954a8660debd479bf96c0362aee94b5297e61a46d121d49cb7981e109788` — signing clients should arrive at the same value from domain `{ name: "Object Digital Passport", version: "1", chainId: 137, verifyingContract: "0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7" }`.
 
 **Previous line (v0.5, superseded):** [`0x413aEeBB2ac437483Bc68791EaAab492C2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) stays readable — Verify still resolves v0.5 passports via `previousContracts` — but is not where new passports are issued.
 
