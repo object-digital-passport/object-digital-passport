@@ -693,6 +693,7 @@ Consequently:
 | `ODPRegistryRelations` (§3, §4)      | `0x2ea6f05a050973afa14E61b1Ea19De92621e3661` |
 | `ODPPassportProofRegistry` (§4)      | `0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49` |
 | `ODPExtensionMintRouter` (§8)        | `0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822` |
+| `ODPAuthorAttestation` (§8 B)        | `0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7` |
 
 
 Earlier lines (v0.5 and before) were each canonical for their own line and remain **separate registries** at different addresses with incompatible ABIs; records do not migrate between deployments. The previous v0.5 main registry `0x413aEeBB2ac437483Bc68791EaAab492C2a4B346` is **superseded** but stays readable, so passports issued under it continue to verify against it.
@@ -789,7 +790,7 @@ The reference bytecode uses `**error EC(uint16 code)`** only (no string messages
 
 ### Protocol extensions beyond the main registry semantics
 
-The following items are **not** enforced by the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics**. **(A)** is a forward-looking idea with no implementation. **(B)** now ships as an optional **satellite** in this repository but is **not deployed** on the canonical registry’s network — treat it as available to self-hosted deployments and as design intent for the canonical one until an address appears in §7. *(The EIP-170 split — linked `**ODPPassportLib`** and satellites — is **already shipped** in the reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
+The following items are **not** enforced by the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics** — they live outside the main registry, not inside it. **(A)** is a forward-looking idea with no implementation. **(B)** ships as an optional **satellite** and is **deployed** on the canonical registry’s network (address in §7); it is enforced by that satellite, never by the main registry. *(The EIP-170 split — linked `**ODPPassportLib`** and satellites — is **already shipped** in the reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
 
 #### A) Global uniqueness of passport `dataHash` (planned)
 
@@ -803,7 +804,7 @@ The following items are **not** enforced by the current reference `[ObjectDigita
 
 **Intent:** allow an **optional** cryptographic binding between a **separate author key** and the integrity anchor (`dataHash`) and issuer profile, without replacing trust in the registered minter when the feature is unused. It gives verifiers two independent signals — *this wallet minted it* and *this author key signed exactly these bytes* — so a compromised minting wallet cannot forge the second.
 
-**Status:** implemented in this repository as the optional satellite `**ODPAuthorAttestation`** (`chain/contracts/ODPAuthorAttestation.sol`). It is **not deployed** to the canonical registry’s network yet, so it is **not** a property of any live passport until an address is published in §7 and wired as `**NET.authorAttestation`**. The main registry bytecode is **unchanged** — adopting this feature does **not** re-deploy or move the canonical registry.
+**Status:** implemented as the optional satellite `**ODPAuthorAttestation`** (`chain/contracts/ODPAuthorAttestation.sol`) and **deployed** on Polygon mainnet at `**0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7`** (§7). The main registry bytecode is **unchanged** — adopting this feature did **not** re-deploy or move the canonical registry. Attestation remains **optional**: a passport without one is not deficient, and the absence of an attestation is **not** a negative signal (see the verifier rule below).
 
 **Normative shape (reference implementation):**
 

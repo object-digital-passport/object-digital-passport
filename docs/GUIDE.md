@@ -248,6 +248,7 @@ The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap
 | Relations satellite `ODPRegistryRelations`                     | [0x2ea6f05a050973afa14E61b1Ea19De92621e3661](https://polygonscan.com/address/0x2ea6f05a050973afa14E61b1Ea19De92621e3661)   |
 | Proof registry `ODPPassportProofRegistry`                      | [0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49](https://polygonscan.com/address/0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49)   |
 | Extension mint router `ODPExtensionMintRouter`                 | [0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822](https://polygonscan.com/address/0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822)   |
+| Author attestation `ODPAuthorAttestation` (satellite)          | [0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7](https://polygonscan.com/address/0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7)   |
 
 Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAEDef23D5242587`).
 

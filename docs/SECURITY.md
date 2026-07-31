@@ -4,7 +4,7 @@
 
 Object Digital Passport is a **registry of claims**, not a guarantee of physical authenticity.
 
-This document describes the threat model, known limitations, and recommendations for the **reference line on `main`**: **`ObjectDigitalPassport`** with packed **`CONTRACT_VERSION` = 4** (same **v0.3-shaped** `Passport` tuple as earlier generation **3** deploys), optional **`ODPCounterfeitConcern`** satellite, and the static web pages wired via **`NET.*`**. Older **v0.3**-era deployments used packed byte **3** at the same tuple layout; they are **different registries** (address + ABI). Normative field names and rules: **[`SPEC.md`](SPEC.md)**.
+This document describes the threat model, known limitations, and recommendations for the **reference line on `main`**: **`ObjectDigitalPassport`** with packed **`CONTRACT_VERSION` = 4** (same **v0.3-shaped** `Passport` tuple as earlier generation **3** deploys), optional **`ODPCounterfeitConcern`** satellite, and the static web pages wired via **`NET.*`**. Older **v0.3**-era deployments used packed byte **3** at the same tuple layout; they are **different registries** (address + ABI). Normative field names and rules: **[`SPEC.md`](../SPEC.md)**.
 
 ---
 
@@ -15,12 +15,12 @@ This document describes the threat model, known limitations, and recommendations
 - The profile ID (`creatorId`) is tied to the **registered wallet** for that profile at registration time.
 - **No one** — including the deployer — can delete or rewrite immutable hash fields on existing passports.
 - **Contract version:** deployments expose `CONTRACT_VERSION` / generation; verifiers should confirm they read the intended registry (address + chain).
-- **UTC-aligned prefixes (v0.4 reference bytecode):** `mintDigital` / `mintPhysical` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp` (see **[`docs/V0.4.md`](docs/V0.4.md)** and **[`web/frontend/localization/ru/RELEASE_v0.4.md`](web/frontend/localization/ru/RELEASE_v0.4.md)**). This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
+- **UTC-aligned prefixes (v0.4 reference bytecode):** `mintDigital` / `mintPhysical` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp` (see **[`docs/V0.4.md`](V0.4.md)** and **[`web/frontend/localization/ru/RELEASE_v0.4.md`](../web/frontend/localization/ru/RELEASE_v0.4.md)**). This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
 
 ## Registry versions: v0.4 vs older 0.x and future v1
 
 - **No backward compatibility** between reference **v0.4**, **v0.3**, **v0.2**, and **v0.1**: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
-- **Forward alignment:** the specification is written so a future **stable v1** can define migration or dual-verification paths using stable identifiers and `contractVersion` on records — see **[`SPEC.md`](SPEC.md)** (*IMPORTANT: registry versions…*). Until v1 is published, treat this as **design intent**, not a guarantee of upgrade for any live registry.
+- **Forward alignment:** the specification is written so a future **stable v1** can define migration or dual-verification paths using stable identifiers and `contractVersion` on records — see **[`SPEC.md`](../SPEC.md)** (*IMPORTANT: registry versions…*). Until v1 is published, treat this as **design intent**, not a guarantee of upgrade for any live registry.
 
 ## What the protocol does NOT guarantee
 
@@ -45,7 +45,7 @@ This document describes the threat model, known limitations, and recommendations
 
 - **`governance`** is one `address` (constructor defaults to deployer; should be moved to a multisig/Safe via **`transferGovernance`**).
 - A compromised **`governance`** can affect **policy-level** actions allowed by the contract (e.g. revoke passports alongside creator, register mint extensions, aux updates where permitted). There is **no** on-chain timelock in the reference bytecode — operate multisig and procedures off-chain.
-- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes). **Stable v1 is planned to omit this mechanism** (see [`docs/IDEAS_V1.md`](docs/IDEAS_V1.md)).
+- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes). **Stable v1 is planned to omit this mechanism** (see [`docs/IDEAS_V1.md`](IDEAS_V1.md)).
 
 ### Mint agent (delegated mint)
 
@@ -75,7 +75,7 @@ This document describes the threat model, known limitations, and recommendations
 ### Optional satellite: `ODPCounterfeitConcern` (v0.4+)
 
 - Deployed **separately** from the main registry; constructor **pins one** `ObjectDigitalPassport` address. Static pages use **`NET.counterfeitConcern`** — a **wrong address** means **wrong or empty** reads.
-- **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`web/frontend/localization/ru/RELEASE_v0.4.md`](web/frontend/localization/ru/RELEASE_v0.4.md)**).
+- **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`web/frontend/localization/ru/RELEASE_v0.4.md`](../web/frontend/localization/ru/RELEASE_v0.4.md)**).
 - The chain stores **`reasonHash`** (and optional audit fields per deployment), **not** the full free-text reason. Treat as **institutional opinion** bound to that registry and timestamp, not as universal truth.
 
 ---
@@ -140,12 +140,16 @@ When verifying an object:
 
 ---
 
-## Planned protocol options (not deployed in reference bytecode yet)
+## Protocol options outside the main registry
 
-Described in **[`SPEC.md`](SPEC.md)** for roadmap alignment only:
+Described in **[`SPEC.md`](../SPEC.md)**:
 
-- **Global uniqueness of passport `dataHash`** — would forbid two mints with the same JSON anchor hash; product tradeoff.
-- **Optional author attestation (ECDSA)** — separate key could attest to `dataHash` / profile binding; **no** on-chain verification in the current reference contract; implementation blocked on **bytecode size / architecture** — see **[`docs/EIP170_STRATEGY.md`](docs/EIP170_STRATEGY.md)**.
+- **Global uniqueness of passport `dataHash`** — would forbid two mints with the same JSON anchor hash; product tradeoff. **Not implemented**, roadmap alignment only.
+- **Optional author attestation (EIP-712)** — a separate author key attests to a passport's `dataHash` + `creatorId` binding, independent of the wallet that minted. **Deployed** as the `ODPAuthorAttestation` satellite (SPEC §7 for the address); the main registry itself performs **no** attestation checks, so this is a property of that satellite, not of the registry.
+
+**What an author attestation does and does not prove.** It proves that whoever controls the attesting key signed *those exact bytes* for *that passport on that registry* — the EIP-712 domain binds the signature to this chain and this satellite address, so it cannot be replayed elsewhere. It does **not** prove authorship in any legal sense, and it does **not** vouch for the key holder's real-world identity: as everywhere else in ODP, an ID is only as trustworthy as the issuer's own published channels (§3).
+
+**Reading attestations safely:** an attestation is meaningful only while its stored `dataHash` still equals the passport's current on-chain `dataHash` — verifiers MUST compare the two before showing it. Its absence is **not** a negative signal: attestation is optional and most passports will not carry one. Submission is restricted to the passport's `creator` or `owner` so a third party cannot squat the single, one-shot attestation slot with a key of their own.
 
 ---
 
