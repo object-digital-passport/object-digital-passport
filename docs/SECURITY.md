@@ -1,25 +1,29 @@
-# ODP Security Model · v0.4 reference line
+# ODP Security Model · v0.6 reference line
 
 *Author: Andrei Chernikov*
 
 Object Digital Passport is a **registry of claims**, not a guarantee of physical authenticity.
 
-This document describes the threat model, known limitations, and recommendations for the **reference line on `main`**: **`ObjectDigitalPassport`** with packed **`CONTRACT_VERSION` = 4** (same **v0.3-shaped** `Passport` tuple as earlier generation **3** deploys), optional **`ODPCounterfeitConcern`** satellite, and the static web pages wired via **`NET.*`**. Older **v0.3**-era deployments used packed byte **3** at the same tuple layout; they are **different registries** (address + ABI). Normative field names and rules: **[`SPEC.md`](../SPEC.md)**.
+This document describes the threat model, known limitations, and recommendations for the **reference line on `main`**: **`ObjectDigitalPassport`** with packed **`CONTRACT_VERSION` = 6** — the on-chain **card**, the **`anchors[]`** identification block committed as `anchorsHash`, and **append-only** passport events — together with the paired satellites (`ODPPassportLib`, `ODPWalletDocumentAnchor`, `ODPCounterfeitConcern`, `ODPRegistryRelations`, `ODPPassportProofRegistry`, `ODPExtensionMintRouter`) and the static web pages wired via **`NET.*`**. Earlier lines (**v0.5** and before) are **different registries** (address + ABI) and do not migrate. Normative field names, rules, and the canonical registry addresses: **[`SPEC.md`](../SPEC.md)**.
 
 ---
 
 ## What the protocol guarantees
 
 - A passport or profile record exists on-chain at a specific timestamp (within the chosen deployment).
-- **Integrity anchor:** `dataHash`, image hashes, `fileHash`, and `sealHash` recorded at mint are **immutable** on-chain.
+- **Integrity anchors:** `dataHash`, `anchorsHash`, `imageHash`, and `fileHash` recorded at mint are **immutable** on-chain.
+- **Card immutability (v0.6):** `title`, `authorName`, `shortDescription`, and `domain` are written once at mint and have **no edit path** — a typo means revoke and re-issue. A verifier that finds any byte of difference against `passport.json` MUST report the passport as tampered, not merely "changed".
+- **Identification minimum enforced at mint (v0.6):** a physical object cannot be minted without `photo` + `dimensions` + `materials` + `distinguishing_features` anchors; a digital object cannot be minted without an exact `fileHash`. This is a **contract-level** check, not a UI convention.
+- **Append-only history (v0.6):** status, location, rights, condition, damage, and restoration are recorded as events that can be added but **never rewritten**; the current value of any aspect is the latest event of that kind.
 - The profile ID (`creatorId`) is tied to the **registered wallet** for that profile at registration time.
-- **No one** — including the deployer — can delete or rewrite immutable hash fields on existing passports.
+- **No one** — including the deployer — can delete or rewrite immutable fields on existing passports.
 - **Contract version:** deployments expose `CONTRACT_VERSION` / generation; verifiers should confirm they read the intended registry (address + chain).
-- **UTC-aligned prefixes (v0.4 reference bytecode):** `mintDigital` / `mintPhysical` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp` (see **[`docs/V0.4.md`](V0.4.md)** and **[`web/frontend/localization/ru/RELEASE_v0.4.md`](../web/frontend/localization/ru/RELEASE_v0.4.md)**). This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
+- **UTC-aligned prefixes:** `mintDigital` / `mintPhysical` / `mintMixed` and `submitProof` **year** / **month** must match **Gregorian UTC** from `block.timestamp`. This **reduces abuse** of human-readable `ODP-YYYY-MM-…` / `PRF-YYYY-MM-…` prefixes; it is **not** a claim about physical objects.
 
-## Registry versions: v0.4 vs older 0.x and future v1
+## Registry versions: v0.6 vs older 0.x and future v1
 
-- **No backward compatibility** between reference **v0.4**, **v0.3**, **v0.2**, and **v0.1**: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
+- **No backward compatibility** between reference **v0.6** and the earlier **v0.5 / v0.4 / v0.3 / v0.2 / v0.1** lines: each is a different deployment (bytecode + ABI). The same wallet may have different `creatorId` values on different lines; passport IDs and records do not auto-migrate.
+- **Canonical vs other registries:** the addresses in **[`SPEC.md`](../SPEC.md)** §7 are the **canonical** v0.6 registry. Deployments of this source elsewhere are valid instances but **non-canonical** — a client resolving against one MUST say so, otherwise it misleads the user about which registry a record came from.
 - **Forward alignment:** the specification is written so a future **stable v1** can define migration or dual-verification paths using stable identifiers and `contractVersion` on records — see **[`SPEC.md`](../SPEC.md)** (*IMPORTANT: registry versions…*). Until v1 is published, treat this as **design intent**, not a guarantee of upgrade for any live registry.
 
 ## What the protocol does NOT guarantee
@@ -30,7 +34,7 @@ This document describes the threat model, known limitations, and recommendations
 - That **P-** or **M-** type profiles represent a real museum or institution **on-chain** — the protocol stores an ID and type prefix only; names are self-declared.
 - That the person holding the wallet is the original artist or rightsholder.
 - **Institutional “counterfeit concern” (satellite):** if **`ODPCounterfeitConcern`** is deployed and wired, **P**/**M** profiles can record an **opaque** `reasonHash` and timestamps for a passport ID. That is an **on-chain signal** from that profile at that time — **not** a cryptographic proof that an object is fake, and **not** a substitute for physical inspection or legal process.
-- **Optional future features** described in **SPEC** (e.g. global `dataHash` uniqueness, **author ECDSA attestation**) are **not** security properties until deployed in bytecode for your registry — see **SPEC** *Planned* sections.
+- **Options outside the main registry** are only security properties of *your* deployment once their bytecode is actually deployed and wired there. **Global `dataHash` uniqueness** is not implemented at all. **Author attestation (EIP-712)** is deployed as the `ODPAuthorAttestation` satellite, but the main registry performs no attestation check itself — see [Protocol options outside the main registry](#protocol-options-outside-the-main-registry) for what an attestation does and does not prove.
 
 ### URLs vs hashes (important)
 
@@ -39,13 +43,14 @@ This document describes the threat model, known limitations, and recommendations
 
 ---
 
-## Reference line trust boundaries (v0.4 / v0.3-shaped tuple)
+## Reference line trust boundaries (v0.6)
 
 ### Governance (single on-chain address)
 
 - **`governance`** is one `address` (constructor defaults to deployer; should be moved to a multisig/Safe via **`transferGovernance`**).
-- A compromised **`governance`** can affect **policy-level** actions allowed by the contract (e.g. revoke passports alongside creator, register mint extensions, aux updates where permitted). There is **no** on-chain timelock in the reference bytecode — operate multisig and procedures off-chain.
-- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes). **Stable v1 is planned to omit this mechanism** (see [`docs/IDEAS_V1.md`](IDEAS_V1.md)).
+- A compromised **`governance`** can affect **policy-level** actions allowed by the contract (e.g. revoke passports alongside creator, register mint extensions, point the relations/extension satellites elsewhere). There is **no** on-chain timelock in the reference bytecode — operate multisig and procedures off-chain.
+- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes; reads keep working). History note: `freeze()` existed through **v0.4**, was **removed in the v0.5 line** to fit the EIP-170 bytecode limit, and is **restored in v0.6** — so the superseded v0.5 registry has no on-chain way to stop writes. **Stable v1 is planned to omit this mechanism** (see [`IDEAS_V1.md`](IDEAS_V1.md)).
+- **Satellite pointers:** `setRelationsSatellite` / `setExtensionRouter` accept `address(0)` **by design** — that is the documented way to clear a satellite. Governance pointing them at a hostile contract is a **high-privilege** action, same class as extension registration.
 
 ### Mint agent (delegated mint)
 
@@ -68,11 +73,13 @@ This document describes the threat model, known limitations, and recommendations
 - **Same class of risk:** verifiers see a type label (e.g. Institution / Museum) and a profile ID. **On-chain does not verify** the legal name or website of the organization.
 - Confirm **`creatorId`** on the organization’s **official** channel before trusting proofs or institutional claims.
 
-### Auxiliary commitment
+### What stays mutable in v0.6 (and what does not)
 
-- **`auxCommitmentHash` / `auxCommitmentUri`** may be updated by **creator or governance** per **SPEC**; they are **not** the same immutability class as `dataHash`.
+- **Immutable:** the card, every hash anchor (`dataHash`, `anchorsHash`, `imageHash`, `fileHash`), and all recorded events. The v0.5 overwritable current-state setters and the `auxCommitment*` / `ndppCommitment*` pointers **no longer exist** in this line.
+- **Still mutable:** hosting URLs (`updatePassportUrls`, hashes unchanged), passport ownership (`transferPassport`), and revocation status. Everything else changes only by **appending** a new event.
+- **Event payloads are public forever.** `note` and attachment fields cannot be deleted. LOCATION events MUST carry only coarse values (a city, an institution, "in storage") — never a street address, storage site, coordinates, or personal data (**SPEC** §9, normative).
 
-### Optional satellite: `ODPCounterfeitConcern` (v0.4+)
+### Optional satellite: `ODPCounterfeitConcern`
 
 - Deployed **separately** from the main registry; constructor **pins one** `ObjectDigitalPassport` address. Static pages use **`NET.counterfeitConcern`** — a **wrong address** means **wrong or empty** reads.
 - **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`web/frontend/localization/ru/RELEASE_v0.4.md`](../web/frontend/localization/ru/RELEASE_v0.4.md)**).
@@ -113,13 +120,13 @@ This document describes the threat model, known limitations, and recommendations
 
 ### 5–8. Frontend CDN, RPC privacy, canonical JSON, NFC, numbered seals
 
-Unchanged from v0.1 guidance — see **SPEC** §9–11 for JSON/NFC levels.
+Unchanged from earlier guidance — see **SPEC** §9–11 for JSON/NFC levels.
 
 ---
 
 ## Deployer key security
 
-Same as v0.1: **`freeze()`** only; cannot alter historical records. Protect offline. **Stable v1 is planned to omit registry-wide `freeze()`.**
+The deployer key can **`freeze()`** the registry and nothing else; it cannot alter historical records. Protect it offline, and keep it long-lived — the address is fixed at deploy time and cannot be rotated. **Stable v1 is planned to omit registry-wide `freeze()`.**
 
 ---
 
@@ -130,6 +137,8 @@ When verifying an object:
 - [ ] **Chain and contract:** you are connected to the intended network and registry address (or known-good deployment); if using **concern** data, **`NET.counterfeitConcern`** matches the deployment you trust.
 - [ ] Passport ID matches QR / bundle (`humanId` / `passportId`).
 - [ ] Passport data status shows **AUTHENTIC** (hash check succeeded).
+- [ ] **v0.6 card check:** the on-chain `title` / `authorName` / `shortDescription` / `domain` match the file **byte-for-byte**, and the `anchors` array matches `anchorsHash`. Any mismatch is **TAMPERED**, not a warning.
+- [ ] **Protection level** (Base / Sealed / Attested) is a summary of *evidence strength*, recomputed live — never an authenticity verdict, and never something printed on the object. Treat a passport shown as "declared" (bundle unavailable) as unverified content.
 - [ ] **`creatorId`** matches what the issuer publishes on an **official** site.
 - [ ] For **P** or **M** profiles — the ID is **not** proof of identity on-chain; confirm on the institution’s official channel.
 - [ ] If **`mintAgent`** is shown non-zero — understand a delegate executed the mint; **`creator`** is still the issuer wallet on record.
@@ -153,9 +162,29 @@ Described in **[`SPEC.md`](../SPEC.md)**:
 
 ---
 
-## Third-party static analysis (e.g. Remix)
+## Static analysis in CI (Slither) — findings and triage
 
-**Informal snapshot only — not a substitute for a professional audit.**
+**Not a substitute for a professional audit.** Every push and pull request runs **Slither** over each entry contract (`.github/workflows/ci.yml`, job *Slither static analysis*) with `--fail-high --solc-args "--via-ir --optimize"`. The build fails on **high** severity.
+
+**Current status: no high or critical findings.** The detectors that do fire are listed below with the reason each is accepted, so contributors and reviewers can see they were triaged rather than ignored. Re-check this table whenever the contracts change.
+
+| Slither detector | Where | Verdict |
+| --- | --- | --- |
+| `uninitialized-local` | `ODPPassportLib.utcYearMonthFromTimestamp` — `bool found` | **Accepted.** Solidity zero-initializes the local to `false`; the loop sets it and `if (!found) revert EC(83)` immediately follows. The detector flags the declaration style, not a defect. |
+| `missing-zero-check` | `setRelationsSatellite`, `setExtensionRouter` | **By design.** `address(0)` is the documented way to *clear* a satellite pointer; a zero-check would remove that capability. |
+| `incorrect-equality` | profile-type comparisons (`t == TYPE_P` …), `year == cy && month == cm` | **Accepted.** These compare a `bytes1` type prefix and integer year/month — strict equality is the only correct comparison. |
+| `timestamp` | several functions | **Mostly noise** (the detector taints whole functions, flagging even `bytes(x).length > 0`). The genuine uses are delegation expiry and UTC month derivation, where a miner's few-second drift is immaterial at that granularity. |
+| `reentrancy-events` | `ODPExtensionMintRouter.mint*ViaExtension` | **Low.** Only event ordering: the external call targets our own registry and no state is read back afterwards. |
+| `unused-return` | `getCreator`, `getPassportClassification` calls | **By design.** These are existence checks — the callee reverts when the record is absent, so the return value is intentionally discarded. |
+| `solc-version` | `^0.8.20` across all files | **Known limitation — see below.** |
+
+### Known limitation: solc 0.8.20
+
+The deployed v0.6 bytecode was compiled with **solc 0.8.20 + `--via-ir --optimize`**. That version carries three known compiler bugs. Two are **not applicable** to this codebase — verified by inspection: `MissingSideEffectsOnSelectorAccess` needs `.selector` access (not used anywhere in `chain/contracts/`) and `VerbatimInvalidDeduplication` needs `verbatim`/inline assembly (not used). The third, `FullInlinerNonExpressionSplitArgumentEvaluationOrder`, relates to the full inliner and is therefore relevant in principle under `--via-ir`; it is fixed in **0.8.21+**.
+
+The compiler will be raised to ≥0.8.21 when the **next registry line (v0.7)** is compiled. Recompiling now would change the bytecode without changing the already-deployed v0.6 registry, so the live deployment stays on 0.8.20 and its Polygonscan verification must use that version.
+
+### Earlier informal review (Remix)
 
 A pass through **Remix** (or similar IDE/static tooling) on the reference **`ObjectDigitalPassport.sol`** reported **no major on-chain issues** immediately suggesting direct theft or classic scam patterns, and noted sensible patterns: **custom errors**, **input validation**, **role checks** (`governance`, creator, owner paths), **`notFrozen`** on writes, and limited reentrancy surface on core paths.
 
