@@ -24,8 +24,8 @@ RELATIONS="0x2ea6f05a050973afa14E61b1Ea19De92621e3661"
 PROOFS="0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49"
 EXT_ROUTER="0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822"
 
-# Set after deploying the author-attestation satellite; leave empty to skip it.
-AUTHOR_ATTESTATION="${ODP_AUTHOR_ATTESTATION_ADDRESS:-}"
+# Override only to point at a different (e.g. self-hosted) author-attestation deployment.
+AUTHOR_ATTESTATION="${ODP_AUTHOR_ATTESTATION_ADDRESS:-0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7}"
 
 if [ ! -f hardhat.config.ts ]; then
   echo "  Error: run this from the chain/ directory (hardhat.config.ts not found here)."
