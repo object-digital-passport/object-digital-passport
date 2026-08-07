@@ -194,9 +194,19 @@ Because the message is fully specified by the spec, no agreement with anyone —
 
 On activation, a **unit passport may be lazily minted** — created only when someone actually needs it, rather than 100 000 times in advance. It is parented to the edition passport, with membership proven by a Merkle proof, and from there lives by ordinary ODP rules: owner-supplied photo anchors, append-only events, transfers, attestations.
 
-**Owner starts as the unit key address.** The code behaves like a bearer instrument: whoever holds the paper holds the passport — which is exactly the physics of a code sitting inside a box that travels with the object. Lose the box, lose the passport.
+**The key names the owner; anyone may pay.** The mint is authorized by a message signed with the unit key that states the owner address explicitly, and the contract takes the owner from that message rather than from whoever sent the transaction.
 
-**Later, one tap moves it to a real wallet**: the holder signs a transfer with the same unit key. No barrier at the entrance; a real custodial guarantee for whoever wants one.
+This falls out of the mint being paid (below). An earlier draft made the unit address the owner unconditionally — which, once the minter pays, means paying for a passport you do not own and then paying again to transfer it to yourself. Naming the owner in the signature collapses that into one transaction and covers all three real cases:
+
+| Situation | Owner named in the signature |
+|---|---|
+| Buyer has a wallet | their own address — pays and owns in one step |
+| Brand runs a minting service | **the buyer's address**, not the brand's |
+| Holder wants no wallet at all | the unit address — the bearer path, unchanged |
+
+The bearer path therefore survives as an option rather than as the only rule: whoever holds the code holds the passport, which is exactly the physics of a code sitting inside a box that travels with the object. Lose the box, lose the passport — and a transfer to a real wallet later is one signature with the same key.
+
+Two guards come with it: at most one passport per unit, and no mint before the unit is activated.
 
 **The unit passport mint is always paid by whoever mints it.** It is an ordinary mint: a wallet, a transaction, a network fee.
 

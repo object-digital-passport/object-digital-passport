@@ -2204,9 +2204,26 @@ Consequences that implementations MAY rely on:
 
 On or after activation, a **unit passport** MAY be minted for an individual unit. It is a normal passport with two additions: it names its edition passport as parent, and its membership is proven by the §20.3 Merkle proof at mint.
 
-- **Initial owner MUST be the unit address.** The printed code therefore behaves as a bearer instrument: whoever holds the code holds the passport. This matches the physical situation — the code travels inside the package with the object.
-- The holder MAY transfer the unit passport to any address by signing a transfer with the unit key.
+**The unit key names the initial owner (normative).** Minting is authorized by a second signed message, which carries the owner address explicitly:
+
+```
+message = "ODP-UNIT-MINT-v1"
+        || uint256be(chainId)
+        || contractAddress20
+        || utf8(editionPassportId)
+        || uint32be(unitIndex)
+        || ownerAddress20
+signed by unitKey_i (EIP-191 personal-sign envelope)
+```
+
+- The contract MUST set the initial owner to `ownerAddress` recovered from the signed message, and MUST NOT derive ownership from `msg.sender`. As in §20.9, the submitter is a courier: it pays the fee and gains nothing.
+- `ownerAddress` MUST NOT be the zero address. It MAY be the unit address itself — that is the **bearer** path, for a holder who wants no wallet, and an interface SHOULD offer it as the default when no wallet is connected.
+- **At most one unit passport may exist per (edition, unit index).** A second mint attempt MUST NOT create a second passport and MUST NOT overwrite the owner of the first.
+- A unit passport MUST NOT be minted for a unit with no activation record (§20.9). An implementation MAY perform the activation and the mint atomically in one transaction when both signatures are supplied.
+- The owner MAY transfer the unit passport afterwards by the ordinary `transferPassport` path; a bearer-owned passport is transferred by signing with the unit key.
 - Minting is **lazy**: a unit passport is created only when someone needs one, never pre-minted for the whole run.
+
+Separating payer from owner is what makes the common cases expressible in one transaction: a buyer with a wallet mints and owns directly; an issuer's service can mint **to the buyer** rather than to itself; a holder without a wallet mints to the unit address and keeps the bearer model. It also inherits the conflict semantics of §20.9 — whoever presents a valid unit-key signature first names the owner, and a cloned code produces a visible conflict that the protocol surfaces without adjudicating.
 - The unit passport's own `anchors[]` are supplied by whoever mints it and describe **that unit** — the owner's own photographs, its marks, its condition. Inherited edition anchors MUST NOT be presented as unit-level identification.
 
 **Minting a unit passport is a paid action, always borne by the minter (normative).** It is an ordinary mint under §8: a wallet, a transaction, a network fee. This specification defines **no** sponsorship mechanism — no escrow, no per-edition allowance, no expiry, no sponsor role — and an implementation MUST NOT present the unit-passport mint as free, as included with the object, or as covered by the issuer under any protocol guarantee.
