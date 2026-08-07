@@ -9,5 +9,5 @@ Separating payer from owner is the only shape in which all three real situations
 ## Consequences
 
 - The bearer model becomes an option rather than the rule. Interfaces SHOULD default to the unit address when no wallet is connected, so the no-wallet path stays the easy one.
-- Two guards are now required, and neither existed before: at most one unit passport per `(edition, unit index)`, and no mint before the unit is activated.
+- A guard is now required that did not exist before: no mint before the unit is activated. A second guard — at most one unit passport per `(edition, unit index)` — was drafted here and then removed; see [ADR-0003](0003-no-uniqueness-rule-for-unit-passports.md).
 - Ownership inherits the conflict semantics of activation. Whoever presents a valid unit-key signature first names the owner, so a cloned code can name an owner the honest holder did not choose. The protocol surfaces the conflict and does not adjudicate it — consistent with SPEC §20.11 and the v0.6 stance on duplicate passports.

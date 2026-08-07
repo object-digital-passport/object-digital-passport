@@ -1561,6 +1561,7 @@ If the anchor's `data.model` is `NTAG424DNA_TAGTAMPER`:
 | `UNIT_NOT_IN_EDITION` | v0.7 (§20): Merkle proof failed — this key was not in the run at mint time |
 | `UNIT_NOT_ACTIVATED`  | v0.7 (§20): member key with no activation record — the expected state of an unopened unit |
 | `UNIT_ACTIVATED`      | v0.7 (§20): activation record exists; reported **with its timestamp** and **without a verdict** (§20.11) |
+| `UNIT_PASSPORT_CONFLICT` | v0.7 (§20): more than one unit passport exists for the same unit; all are reported, unranked and without a verdict (§20.11) |
 
 
 ### Assurance tiers (normative)
@@ -2218,7 +2219,9 @@ signed by unitKey_i (EIP-191 personal-sign envelope)
 
 - The contract MUST set the initial owner to `ownerAddress` recovered from the signed message, and MUST NOT derive ownership from `msg.sender`. As in §20.9, the submitter is a courier: it pays the fee and gains nothing.
 - `ownerAddress` MUST NOT be the zero address. It MAY be the unit address itself — that is the **bearer** path, for a holder who wants no wallet, and an interface SHOULD offer it as the default when no wallet is connected.
-- **At most one unit passport may exist per (edition, unit index).** A second mint attempt MUST NOT create a second passport and MUST NOT overwrite the owner of the first.
+- **Uniqueness per unit MUST NOT be enforced.** More than one unit passport MAY exist for the same `(edition, unit index)`, each with its own owner and its own anchors. A verifier MUST surface every one of them (§20.11).
+
+  This is deliberate and follows the position this specification already takes on duplicate passports. A uniqueness rule blocks only exact duplication while handing an attacker a first-to-register weapon: whoever mints first — including the holder of a cloned code — would permanently lock the holder of the genuine unit out of ever obtaining a passport for it. Surfacing a conflict is recoverable; a lock-out is not.
 - A unit passport MUST NOT be minted for a unit with no activation record (§20.9). An implementation MAY perform the activation and the mint atomically in one transaction when both signatures are supplied.
 - The owner MAY transfer the unit passport afterwards by the ordinary `transferPassport` path; a bearer-owned passport is transferred by signing with the unit key.
 - Minting is **lazy**: a unit passport is created only when someone needs one, never pre-minted for the whole run.
@@ -2245,13 +2248,18 @@ Level 2D — Unit membership and activation state
 4. Read the activation record for that unit
    None    → UNIT_NOT_ACTIVATED
    Present → UNIT_ACTIVATED, with its timestamp
-5. If a unit seed was supplied, derive the key and confirm the
+5. Enumerate unit passports minted for that (edition, unit index)
+   0        → no unit passport
+   1        → report it
+   2 or more→ UNIT_PASSPORT_CONFLICT — report ALL of them, each with
+              its mint timestamp, owner, and minting profile if any
+6. If a unit seed was supplied, derive the key and confirm the
    recovered address equals the proven unit address
 ```
 
-Steps 1–4 require **no secret** and MUST be available before purchase, from the outer carrier alone.
+Steps 1–5 require **no secret** and MUST be available before purchase, from the outer carrier alone.
 
-**No-verdict rule (normative).** When a unit is already activated, a verifier MUST report the fact and its timestamp and MUST NOT characterize the unit as counterfeit, stolen, or invalid. A prior activation has at least two innocent readings — a cloned code, or a legitimate second-hand purchase — and the protocol can distinguish neither. This is the same position §11 and the v0.6 duplicate-passport model already take: the protocol surfaces the record and leaves judgement to people.
+**No-verdict rule (normative).** When a unit is already activated, **or when more than one unit passport exists for it**, a verifier MUST report the facts — timestamps, owners, minting profiles — and MUST NOT characterize any of them as counterfeit, stolen, or invalid, and MUST NOT rank them by mint order. A prior activation has at least two innocent readings — a cloned code, or a legitimate second-hand purchase — and the protocol can distinguish neither. This is the same position §11 and the v0.6 duplicate-passport model already take: the protocol surfaces the record and leaves judgement to people.
 
 `ODPCounterfeitConcern` (§4) remains a separate institutional mechanism and MUST NOT be raised automatically by an activation conflict.
 
@@ -2260,6 +2268,7 @@ Steps 1–4 require **no secret** and MUST be available before purchase, from th
 - A `unit_key_set` anchor **does not** by itself raise an edition passport above **Base**. It is a distribution mechanism, not evidence about the object.
 - A **unit passport** reaches **Sealed** only if it carries its own §6 seal anchor. Membership in an edition is reported separately (`UNIT_IN_EDITION`), never rendered as a seal.
 - A verifier MUST NOT display activation state as a tier, and MUST NOT print it on any label — the §11 computation rule applies unchanged.
+- An active `UNIT_PASSPORT_CONFLICT` does not remove a tier, but MUST be displayed at least as prominently as the tier itself — the same treatment §11 gives an institutional counterfeit concern.
 
 ### 20.13 Stated limits (normative honesty rules)
 

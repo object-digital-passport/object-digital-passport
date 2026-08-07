@@ -206,7 +206,11 @@ This falls out of the mint being paid (below). An earlier draft made the unit ad
 
 The bearer path therefore survives as an option rather than as the only rule: whoever holds the code holds the passport, which is exactly the physics of a code sitting inside a box that travels with the object. Lose the box, lose the passport — and a transfer to a real wallet later is one signature with the same key.
 
-Two guards come with it: at most one passport per unit, and no mint before the unit is activated.
+One guard comes with it — no mint before the unit is activated — and one that was drafted and then deliberately removed.
+
+**Why there is no "one passport per unit" rule.** It was written in, and it was a mistake worth keeping on the record. Consider a counterfeiter who cloned a real box including its code, and whose buyer mints first. With a uniqueness rule, the holder of the *genuine* unit is not merely shown a conflict — they can never obtain a unit passport at all, permanently, by a single transaction from someone else. That is the "first-to-register weapon" this project already rejected when it declined to enforce global `dataHash` uniqueness in v0.6, and the same reasoning applies here with more force: a surfaced conflict is recoverable by evidence, a lock-out is not.
+
+So competing unit passports are allowed, and the verifier reports all of them — mint time, owner, minting profile — unranked and without a verdict. The cost is honest: the registry can hold two passports for one figure, and a human resolves it from activation timing, issuer identity, and photographs.
 
 **The unit passport mint is always paid by whoever mints it.** It is an ordinary mint: a wallet, a transaction, a network fee.
 
