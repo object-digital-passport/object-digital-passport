@@ -1,6 +1,6 @@
 # Edition passports and unit activation keys
 
-*Design note for the **v0.7** line. **Non-normative** — this document records the decisions and their rationale. Binding rules land in [`SPEC.md`](../SPEC.md) once the model is settled.*
+*Design note for the **v0.7** line. **Non-normative** — this document records the decisions and their rationale. The binding rules are **[`SPEC.md` §20](../SPEC.md#20-edition-passports-and-unit-activation-keys-v07-line-b-profile-only)**; where the two disagree, the spec wins.*
 
 *Status: draft · Author: Andrei Chernikov · RU mirror: [`web/frontend/localization/ru/EDITION_UNIT_KEYS.md`](../web/frontend/localization/ru/EDITION_UNIT_KEYS.md)*
 
@@ -20,7 +20,17 @@ Three things break at that scale:
 
 So the unit of registration has to change: **the passport describes the edition, and each physical unit carries a key that proves membership in it.**
 
-This is a **B-profile** (brand) feature. It does not change anything for C / P / M profiles.
+### B profiles only
+
+This is a **`B`-profile (brand) feature, enforced by the contract** — not a convention. A `C`, `P`, or `M` wallet cannot mint an edition passport or open a unit-key set (`SPEC.md` §20.1). Nothing in §§6–9 changes for those profiles.
+
+Three reasons the gate is in the contract rather than in guidance:
+
+1. The mechanism describes an **industrial production run**. A creator registering their own work and a museum registering holdings are already served by the per-object model and gain nothing here.
+2. Its safety rests on the issuer being able to run a controlled key ceremony (§4) and to print at a secure facility. That is an organizational capability, and `B` is the profile that claims it.
+3. **A mis-issued key set cannot be revoked per unit.** Once 100 000 codes are printed and shipped, the only remedy is revoking the whole edition passport. Restricting who can create one keeps the blast radius with the profile type that has a production process behind it.
+
+Activation and unit-passport minting are **not** gated: they are driven by buyers holding unit keys, who need no ODP profile and no wallet.
 
 ## 2. What the industry does today, and why it is not enough
 
@@ -250,13 +260,14 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 7 | Behaviour on an already-activated code | Show the fact and the date. No verdict |
 | 8 | Master seed custody | SLIP-39 2-of-3, split knowledge + dual control. **ODP never holds a share** |
 | 9 | Code entropy | ≥ 80 bit, because offline verification means no rate limiting exists |
+| 10 | Who may issue an edition? | **`B` profiles only**, enforced by the contract. Activation and unit-passport minting are not gated |
+| 11 | Satellite or core? | **Not a real fork.** v0.7 is a new registry line with a new contract either way, so the split is an implementation choice made when the code is written, not a protocol decision |
 
 ## 11. Open questions
 
-1. **Contract home.** A new satellite (`ODPEditionUnits`) reading the main registry, versus core changes. The satellite pattern and the EIP-170 budget both argue for a satellite — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
-2. **Anchor bitmask bits** for `unit_key_set` and `unit_variant_commit` in `anchorTypesMask`.
-3. **Salt distribution** for the variant commitment: who hands `salt_i` to the buyer, and what happens when the brand is gone.
-4. **Brands without a GTIN.** The GS1 path assumes one; small brands may not have one.
-5. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint.
-6. **Revocation of an edition** — recall, print defect, compromised code batch.
-7. **Localization** of the printed code alphabet and check characters.
+1. **Salt distribution** for the variant commitment. Deriving `salt_i` from the unit key is recommended in §20.4 precisely so the issuer is not in the reveal path — but that needs a concrete derivation and a check that it leaks nothing before opening.
+2. **Brands without a GTIN.** The GS1 path assumes one; small brands may not have one, and the ODP-native fallback loses the EU DPP alignment that made §3.5 worth it.
+3. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
+4. **Revocation of an edition** — recall, print defect, compromised code batch. Today the only remedy is revoking the edition passport, which invalidates every honest unit with it.
+5. **Localization** of the printed code alphabet and check characters.
+6. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
