@@ -142,6 +142,12 @@ This specification uses the following terms in a precise sense:
 | `**dataUrl`**                    | Optional HTTPS URL where the **§15 `.odpass`** ZIP is served (**only** — bare `.json` at this URL is **not** allowed; §8–§9). May be empty on-chain; if empty, verifiers relying on HTTP **cannot** obtain the bundle unless the user provides it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Gas**                          | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution. The **reference (v0.6)** has no additional ODP protocol fee on register/mint.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Verification**                 | The read-only process (§11) that retrieves on-chain data and, when `dataUrl` is set, fetches the `**.odpass`**, extracts `passport.json`, and checks consistency with `dataHash` and other fields. If `dataUrl` is empty, file-based verification still applies when the verifier has a `**.odpass`** or `passport.json`.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Edition Passport** *(v0.7)* | The single passport registering a **production run** as a whole, carrying a `unit_key_set` anchor (§20.2). Its identification anchors describe the run, not any one item. *Avoid:* "series passport", "batch passport", "master passport". |
+| **Unit** *(v0.7)* | One physical item of an edition, identified by its **unit index** within that edition. A unit is not a passport and has no Passport ID unless a **Unit Passport** is minted for it. *Avoid:* "copy", "item", "box", "serial". |
+| **Unit Key** *(v0.7)* | The keypair bound to one unit (§20.5). Its **seed** is the value printed under the tamper-evident layer; the public address is committed in the edition's Merkle root. *Avoid:* "claim code", "secret code", "the object's private key" — those name the carrier or overstate the scope. |
+| **Activation** *(v0.7)* | The one-time public record that a given unit key was used for the first time (§20.9). It is **not** a mint, **not** a verification, and **not** a claim of ownership; it writes one record against an existing edition passport and carries no verdict about the unit. *Avoid:* "claim", "registration", "authentication". |
+| **Unit Passport** *(v0.7)* | An ordinary passport minted for one individual unit, parented to its edition and proven by Merkle proof (§20.10). Always an ordinary **paid** mint, borne by the minter. *Avoid:* "child passport", "sub-passport", "free passport". |
+| **Relayer** *(v0.7)* | Any party that submits someone else's signed activation and pays its network fee. A relayer is a courier: it gains no rights over the unit and needs no agreement with the issuer or with ODP. *Avoid:* "activation server", "gateway", "provider" — all imply a privileged role that does not exist. |
 
 
 ---
@@ -2190,7 +2196,9 @@ Consequences that implementations MAY rely on:
 
 - **Any** relayer may publish: the issuer, a marketplace, a collector's club, any ODP-aware application minting from its own wallet, or the holder's own wallet. No agreement with the issuer or with ODP is required to become an activation point.
 - A signature MAY be produced offline and published arbitrarily later, from any device.
-- The buyer needs no wallet, no tokens, and no account.
+- When a relayer publishes, the holder needs no wallet, no tokens, and no account. That is a property of the relayer's willingness, **not** a guarantee of this specification: where no relayer will publish, the holder publishes from their own wallet and pays the network fee. The resulting record is identical either way.
+
+**Activation is not minting (normative).** Activation writes one record against an existing edition passport. It does not create a passport, and an implementation MUST NOT present activation and unit-passport minting (§20.10) as one action or imply that the cost properties of one apply to the other.
 
 ### 20.10 Unit passports and ownership
 
@@ -2201,7 +2209,9 @@ On or after activation, a **unit passport** MAY be minted for an individual unit
 - Minting is **lazy**: a unit passport is created only when someone needs one, never pre-minted for the whole run.
 - The unit passport's own `anchors[]` are supplied by whoever mints it and describe **that unit** — the owner's own photographs, its marks, its condition. Inherited edition anchors MUST NOT be presented as unit-level identification.
 
-Who pays the mint fee is outside this specification.
+**Minting a unit passport is a paid action, always borne by the minter (normative).** It is an ordinary mint under §8: a wallet, a transaction, a network fee. This specification defines **no** sponsorship mechanism — no escrow, no per-edition allowance, no expiry, no sponsor role — and an implementation MUST NOT present the unit-passport mint as free, as included with the object, or as covered by the issuer under any protocol guarantee.
+
+An issuer that chooses to absorb the cost does so only by operating its own minting service and paying from its own wallet. That is a commercial arrangement of that issuer, revocable at its discretion, and it MUST NOT be described as a property of the protocol.
 
 ### 20.11 Verification
 

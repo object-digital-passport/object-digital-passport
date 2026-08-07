@@ -184,9 +184,11 @@ Rules:
 - **Anyone may publish**: the brand's server, a marketplace, a collector's club, any ODP-aware application minting from its own wallet, or the buyer's own wallet as the last-resort path.
 - **A signature can be held and published later** — offline for a year, from someone else's phone, after the brand is gone.
 - **Recorded once.** The first valid activation is written with its block timestamp; later submissions are no-ops returning the existing record.
-- **Gasless for the buyer.** No wallet, no tokens, no account.
+- **Gasless for the holder when a relayer publishes it** — no wallet, no tokens, no account in that path. If nobody will relay, the holder publishes from their own wallet and the record is identical. "Free" is therefore a property of *someone choosing to relay*, not a guarantee the protocol makes.
 
 Because the message is fully specified by the spec, no agreement with anyone — brand or ODP — is required to become an activation point. This is what keeps the promise "the passports survive us" true for this feature and not only for the registry.
+
+**Activation is not minting.** It writes one small record against an already-minted edition passport. Creating a passport for the individual unit (§6) is a separate action with separate economics — see below. Nothing in this section makes that one free.
 
 ## 6. Ownership: the bearer model
 
@@ -196,7 +198,11 @@ On activation, a **unit passport may be lazily minted** — created only when so
 
 **Later, one tap moves it to a real wallet**: the holder signs a transfer with the same unit key. No barrier at the entrance; a real custodial guarantee for whoever wants one.
 
-Who pays for the lazy mint is a commercial decision, not a protocol one. The workable default: the brand covers it during the first year after the drop as a marketing cost, after which the owner does.
+**The unit passport mint is always paid by whoever mints it.** It is an ordinary mint: a wallet, a transaction, a network fee.
+
+An earlier draft of this note suggested the brand could cover it "for the first year after the drop". That was wrong, and worth recording as a mistake rather than quietly deleting: **there is no way to express it.** The protocol has no escrow, no per-edition allowance, no expiry, and no notion of a sponsor. Any such arrangement would live entirely off-chain, in a service the brand runs at its own discretion and can switch off without notice — which is exactly the dependency this whole design exists to remove. Writing it into the specification as a "default" would have promised something no verifier could check and no buyer could rely on.
+
+A brand that wants to absorb the cost has exactly one honest route: run its own minting service and pay from its own wallet. That is a commercial offer by that brand, not a protocol feature, and it must never be described as one.
 
 ## 7. When the code was already activated
 
