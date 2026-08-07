@@ -226,6 +226,22 @@ This follows the position v0.6 already takes on duplicate passports: the protoco
 
 `ODPCounterfeitConcern` remains available as a separate, general-purpose mechanism. It is deliberately **not** wired into this flow.
 
+## 7a. Recall: removed, and what replaced it
+
+An edition passport is immutable like any other, and v0.6's only remedy for a wrong immutable card is revoke + re-mint. On a run of 100 000 units that remedy is a weapon: revocation strips the assurance tier entirely and blocks further events, so one transaction — by the issuer, or by `governance` — would wipe the record of every honest holder at once. That is the same locked door we refused for unit passports, with the key handed to the brand.
+
+So recall is gone, and two mechanisms take its place.
+
+**A revocation window that closes on facts, not dates.** An edition may be revoked only while *both* remain true: no unit has been activated, and the issuer has not declared shipment. Either one closes the door permanently, for every caller including `governance`. Inside the window a typo caught in the warehouse is fixed the ordinary way and nobody is harmed; outside it, no one can erase anything.
+
+The gate deliberately does **not** use the `shippingDate` from the anchor. That field is a plan declared at mint, and anchors are immutable — so a two-month production delay would either slam the door while nothing had shipped, or leave it open while boxes sat on shelves, and the only fix would be re-minting the edition because logistics slipped. A plan is not a fact. The facts are: someone scratched a code, or the issuer said "we are shipping."
+
+**Shipment is the issuer's own irreversible statement**, posted when shipment actually happens. Delay just means posting later. And "simply never post it" is not a loophole worth much: the first buyer to scratch closes the door anyway, and until then every verification shows the window is open — a brand whose goods are in shops while the registry advertises a live right to erase its customers' records is displaying that fact to those customers.
+
+**Edition notices replace recall afterwards.** After the window closes, the issuer can still say something went wrong — superseded by a corrected edition, key set leaked, safety recall — as an append-only notice that destroys nothing. The critical part: a notice must be shown on the edition **and on every unit passport under it**. A warning that only appears on the parent record is invisible to the person holding one figure.
+
+A notice is never a verdict on an individual unit. "This edition's key set leaked" says something about the run, not about the object in someone's hands.
+
 ## 8. Honest limits
 
 None of the following is fixed by this design, and none should be implied in product copy.
@@ -282,12 +298,15 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 9 | Code entropy | ≥ 80 bit, because offline verification means no rate limiting exists |
 | 10 | Who may issue an edition? | **`B` profiles only**, enforced by the contract. Activation and unit-passport minting are not gated |
 | 11 | Satellite or core? | **Not a real fork.** v0.7 is a new registry line with a new contract either way, so the split is an implementation choice made when the code is written, not a protocol decision |
+| 12 | Recall of an edition | **Removed.** Revocation survives only inside a window that closes on the first activation or the issuer's shipment notice — permanently, for every caller, `governance` included |
+| 13 | What closes that window | Observable facts, never the declared `shippingDate`: an immutable anchor cannot follow a production date that moved |
+| 14 | Saying something went wrong afterwards | An append-only edition notice, surfaced on the edition **and** on every unit passport under it, never a verdict on an individual unit |
 
 ## 11. Open questions
 
 1. **Salt distribution** for the variant commitment. Deriving `salt_i` from the unit key is recommended in §20.4 precisely so the issuer is not in the reveal path — but that needs a concrete derivation and a check that it leaks nothing before opening.
 2. **Brands without a GTIN.** The GS1 path assumes one; small brands may not have one, and the ODP-native fallback loses the EU DPP alignment that made §3.5 worth it.
 3. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
-4. **Revocation of an edition** — recall, print defect, compromised code batch. Today the only remedy is revoking the edition passport, which invalidates every honest unit with it.
-5. **Localization** of the printed code alphabet and check characters.
-6. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
+4. **Localization** of the printed code alphabet and check characters.
+5. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
+6. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
