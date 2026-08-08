@@ -60,7 +60,7 @@ flowchart TB
     end
     subgraph act["On first use — optional, buyer-driven"]
         SIG["Signature by the unit key"] --> REL["Any relayer"] --> CHAIN["Activation record<br/><i>public, timestamped, once</i>"]
-        CHAIN -.->|optional| LAZY["Lazily minted unit passport<br/><i>owner = unit key</i>"]
+        CHAIN -.->|optional| LAZY["Lazily minted unit passport<br/><i>owner named by the key</i>"]
     end
     ED --> OUT
     KEYS --> SCR
@@ -81,7 +81,7 @@ It gains one new anchor type:
 | `unitCount` | yes | Number of units in the run |
 | `leafFormat` | yes | How a leaf is built (see below) |
 | `hashAlg` | yes | `sha256` in the first version |
-| `shippingDate` | recommended | Declared first-shipment date — see §8.3 |
+| `shippingDate` | optional | A **declared plan**, used only for the §8.3 anomaly check. It is deliberately not the gate for anything — see §7a |
 
 **Leaf format:** `leaf_i = SHA-256( uint32be(i) ‖ unitAddress_i )`
 
@@ -97,7 +97,13 @@ For blind-box products, the packer knows which SKU went into which box. Publishi
 
 **`unit_variant_commit`** — a second Merkle root over `SHA-256( uint32be(i) ‖ variant_i ‖ salt_i )`.
 
-After opening, the buyer receives `salt_i`, and the chain confirms that box #48 231 was officially recorded as containing the chase variant. On a secondary market where chase figures resell at 10–50× and rarity claims rest on the seller's word, this is the feature brands will actually pay for — **provable rarity**, not abstract anti-counterfeiting.
+The salt is printed on a card **inside** the sealed package. Opening the box yields it; the chain then confirms that box #48 231 was officially recorded as containing the chase variant. On a secondary market where chase figures resell at 10–50× and rarity claims rest on the seller's word, this is the feature brands will actually pay for — **provable rarity**, not abstract anti-counterfeiting.
+
+**Why the salt is inside the box and not derived from the unit key.** An earlier draft recommended deriving it from the unit key, so that opening the unit would yield the salt and the brand would be out of the reveal path. That was a serious break, and it is worth keeping visible. A blind-box series has perhaps thirteen possible variants, so the commitment is protected by the secrecy of the salt and by nothing else — anyone holding the salt just computes the commitment for all thirteen candidates and reads off the answer. And the scratch layer is on the *outside* of the package: a reseller could scratch the label without opening the box, derive the salt, learn what is inside, keep the chase units, and sell the rest as "sealed, never opened". The blind box would stop being blind.
+
+Putting the salt inside the package protects the variant with the same cardboard that protects the surprise, and keeps the brand out of the reveal path for real — nothing has to be requested from it, and rarity is still provable after it is gone.
+
+Three properties follow. A mismatched card is **fail-safe**: it cannot prove a variant the unit does not have, only fail to prove the one it does. A **lost card means rarity is unprovable forever**, since the salt is not recoverable — a brand may keep copies as a courtesy, but nothing may depend on it. And it does nothing against the packer, who knows the contents by definition, or against weighing and candling, which are pre-existing problems of blind boxes and not ours.
 
 ### 3.3 Unit keys
 
@@ -304,9 +310,8 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 
 ## 11. Open questions
 
-1. **Salt distribution** for the variant commitment. Deriving `salt_i` from the unit key is recommended in §20.4 precisely so the issuer is not in the reveal path — but that needs a concrete derivation and a check that it leaks nothing before opening.
-2. **Brands without a GTIN.** The GS1 path assumes one; small brands may not have one, and the ODP-native fallback loses the EU DPP alignment that made §3.5 worth it.
-3. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
-4. **Localization** of the printed code alphabet and check characters.
-5. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
-6. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
+1. **Brands without a GTIN.** The GS1 path assumes one; small brands may not have one, and the ODP-native fallback loses the EU DPP alignment that made §3.5 worth it.
+2. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
+3. **Localization** of the printed code alphabet and check characters.
+4. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
+5. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
