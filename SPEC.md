@@ -2131,30 +2131,58 @@ This makes rarity claims (chase variants, short runs) checkable by a buyer again
 
 ### 20.5 Unit key derivation
 
+Derivation has two halves, and the split matters: the **issuer** derives from a master seed it alone holds, while a **holder** must be able to reach the same key from the printed code alone, with no access to anything the issuer keeps.
+
+**Issuer side — producing the printed secrets:**
+
 ```
 masterSeed     = ≥ 256 bits from a CSPRNG, generated offline
 editionContext = utf8(chainId) || 0x00 || utf8(editionPassportId)
-unitSeed_i     = HKDF-SHA256(ikm = masterSeed, salt = "", info = editionContext || uint32be(i), L = 32)
-unitKey_i      = secp256k1 private key from unitSeed_i   (regenerate at i-collision with the curve order)
+unitSecret_i   = HKDF-SHA256(ikm = masterSeed, salt = "", info = editionContext || uint32be(i), L = 32)
+printedSeed_i  = the leading 100 bits of unitSecret_i          ← this is what gets printed (§20.6)
+```
+
+**Either side — from the printed secret to the key:**
+
+```
+unitKey_i      = secp256k1 private key from
+                 SHA-256( utf8("ODP-UNIT-KEY-v1") || printedSeed_i || editionContext )
+                 (on the negligible chance of a value ≥ the curve order, rehash the result)
 unitAddress_i  = address of unitKey_i
 ```
+
+The second step takes only the printed 100 bits plus values a verifier already has, so a buyer holding nothing but the scratched code reaches exactly the address committed in the Merkle root.
 
 Requirements:
 
 - `editionContext` MUST bind the derivation to one edition on one chain, so keys never collide across drops.
-- The issuer MUST store the master seed only as split shares (§20.8), never as a plaintext list of unit keys.
+- The issuer MUST store the master seed only as split shares (§20.8), never as a plaintext list of unit keys or printed secrets.
 - Derivation MUST happen on a machine with no network path.
+- The entropy of `printedSeed_i` is the entropy of the whole scheme. It MUST satisfy the floor in §20.6.
 
 ### 20.6 Unit code encoding
 
-The printed secret is the **unit seed**, not the private key.
+The printed secret is `printedSeed_i` (§20.5), never the private key.
 
 | Property | Rule |
 | --- | --- |
-| Payload | 20 characters, Crockford Base32, alphabet excluding `O`, `I`, `L`, `U` |
-| Check characters | 5 characters, computed over the payload |
+| Payload | 20 characters, Crockford Base32, alphabet excluding `I`, `L`, `O`, `U` — carries the 100 bits of `printedSeed_i`, most significant bit first |
+| Check characters | 5 characters, defined below |
 | Grouping | 5 groups of 5, hyphen-separated, e.g. `7KM2-9XQF-3BTR-8WNP-5HJD` |
 | Entropy | **MUST be ≥ 80 bits**; the encoding above carries 100 |
+
+**Normalization (normative).** Before any use — checksum computation or verification — an implementation MUST normalize input: uppercase it, remove hyphens and whitespace, then apply the Crockford substitutions `I` → `1`, `L` → `1`, `O` → `0`. Normalization happens **before** hashing, so a reader who transcribes a `0` as `O` still produces a valid code.
+
+**Check characters (normative).**
+
+```
+check = the leading 25 bits of SHA-256( ascii(normalized 20-character payload) ),
+        rendered as 5 Crockford Base32 characters, most significant bit first
+```
+
+SHA-256 is chosen because it is already a hard dependency of this protocol (`dataHash`, `anchorsHash`, the Merkle trees of §20.3), so verifying a typed code introduces no new primitive and no lookup table. Twenty-five bits reject a mistyped code with probability about 1 in 33 million.
+
+**One global alphabet (normative).** The alphabet and the check construction are fixed for all issuers, markets, and languages. They MUST NOT be localized. The primary carrier is the DataMatrix of §20.7 — the text form exists for damaged symbols and is the minority path — whereas a per-market alphabet would force every verifier, forever, to guess which alphabet a given string was written in, and would let one string mean different things in different places.
 
 **Entropy floor (normative rationale).** In a server-mediated authentication system a short code is safe because the server rate-limits guessing. **ODP has no such server:** the address list is public and verification is offline and permissionless, so an attacker can test candidate codes locally, in parallel, unobserved. An implementation MUST NOT reduce the code length on usability grounds; the length is a security parameter, and it cannot be changed after labels are printed.
 

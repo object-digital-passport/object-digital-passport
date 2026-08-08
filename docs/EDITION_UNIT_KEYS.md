@@ -109,11 +109,17 @@ Three properties follow. A mismatched card is **fail-safe**: it cannot prove a v
 Keys are **derived, not stored**:
 
 ```
-masterSeed        = 256 random bits, generated offline
-unitSeed_i        = HKDF-SHA256(masterSeed, info = editionContext ‖ uint32be(i))
-unitKey_i         = secp256k1 private key from unitSeed_i
-unitAddress_i     = corresponding address
+issuer side:
+  masterSeed     = 256 random bits, generated offline
+  unitSecret_i   = HKDF-SHA256(masterSeed, info = editionContext ‖ uint32be(i))
+  printedSeed_i  = leading 100 bits of unitSecret_i      ← this is what gets printed
+
+either side, from the printed code alone:
+  unitKey_i      = secp256k1 key from SHA-256("ODP-UNIT-KEY-v1" ‖ printedSeed_i ‖ editionContext)
+  unitAddress_i  = corresponding address
 ```
+
+The split matters. The issuer derives everything from one master seed; the buyer, holding nothing but 20 scratched characters, reaches the same address without needing anything the issuer kept. An earlier draft had the printed value and the derived key at different sizes and never bridged them — the buyer could not actually have got to the key.
 
 `editionContext` binds the derivation to one edition so that seeds never collide across drops.
 
@@ -125,8 +131,13 @@ Consequence: the brand stores **one seed**, not a hundred thousand secrets.
 |---|---|
 | Primary carrier | **DataMatrix under the scratch layer** — scratch, point camera, done |
 | Fallback | 25 characters of text for damaged or smudged symbols |
-| Text format | 20 payload characters (~100 bit) + 5 check characters, Crockford Base32 (no `O/0`, `I/1`, `L`) |
+| Text format | 20 payload characters (~100 bit) + 5 check characters, Crockford Base32 (no `O/0`, `I/1`, `L`, `U`) |
+| Check characters | first 25 bits of `SHA-256(payload)` |
 | Entropy floor | **≥ 80 bit — hard requirement** |
+
+**The checksum reuses SHA-256 on purpose.** An earlier draft said only "5 check characters computed over the payload" and never named an algorithm — by that text two implementations would compute different check characters and reject each other's valid codes. SHA-256 is already a hard dependency everywhere in ODP, so this adds no library and no lookup table, and 25 bits reject a typo about 33 million times out of 33 million and one.
+
+**The alphabet is global and is not localized.** The text form is the minority path — most people scratch and scan — while a per-market alphabet would make every verifier guess, forever, which alphabet a string was written in, and would let the same string mean different things in different countries. Normalization is specified instead: uppercase, drop hyphens, map `O`→`0` and `I`/`L`→`1` before hashing, so transcription slips still produce a valid code.
 
 The entropy floor is a direct consequence of decentralization and is easy to get wrong. In a server-based system an 8-character code is safe because the server rate-limits guessing. **ODP has no server.** The address list is public and verification runs offline, so an attacker can grind candidate codes locally at millions per second with nobody watching. Short codes are not an option here, and this cannot be fixed after the labels are printed.
 
@@ -311,10 +322,10 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 13 | What closes that window | One observable fact — the first activation. A declared ship date cannot: an immutable anchor cannot follow a production date that moved. An issuer-declared shipment event was specified and dropped as a second mechanism earning too little |
 | 14 | Outer carrier format | The spec fixes what must be **recoverable** (edition id + unit index, also in text), not the encoding. GS1 Digital Link is a documented future step, adoptable per print run at zero protocol cost |
 | 15 | Saying something went wrong afterwards | An append-only edition notice, surfaced on the edition **and** on every unit passport under it, never a verdict on an individual unit |
+| 16 | Code checksum and alphabet | First 25 bits of `SHA-256(payload)`; one global alphabet, never localized, with normalization specified before hashing |
 
 ## 11. Open questions
 
 1. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
-2. **Localization** of the printed code alphabet and check characters.
-3. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
-4. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
+2. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
+3. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
