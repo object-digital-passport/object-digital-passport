@@ -312,6 +312,22 @@ At edition level the code identifies a **box**. What is inside becomes bound onl
 
 A naming note worth deciding early: this project is **Object** Digital Passport while the EU regulation creates the **Product** Digital Passport. That collision is both a risk of confusion and an open door — a single GS1-conformant carrier that serves both is the reason a brand does not have to choose between ODP and its compliance obligations.
 
+## 9a. Implementation shape
+
+Not a protocol decision, but it stopped being a free choice once the existing contract was read. Full reasoning in [ADR-0008](adr/0008-unit-surface-is-a-satellite-with-three-core-hooks.md).
+
+**Almost everything is a satellite, `ODPEditionUnits`:** opening an edition's key set, activation, minting unit passports through the core's mint path, and all reads. Three reasons, in order of weight: `freeze()` blocks every write on the main registry but leaves satellites alone — with activation in the core, freezing an abandoned experimental registry would freeze activation for goods already in buyers' hands; the activation surface is the exposed one, permissionless and sponsored, and should not share storage with the immutable passport core; and a satellite can be replaced, while a core redeploy is a new registry that leaves every existing passport behind.
+
+**Three things cannot be satellites:**
+
+1. **An explicit initial owner at mint.** The current mint hardcodes `owner: principalWallet`, and `transferPassport` is owner-only — so a satellite would have to mint to itself, briefly own a stranger's passport, then transfer. Two writes and a window nobody should have. The v0.7 mint takes an `initialOwner`.
+2. **A one-way revocation lock.** The window closes on first activation, but activation lives in the satellite; the satellite sets an irreversible flag the core checks. The direction is deliberately safe — the flag can only be set, so even a hostile satellite pointer can block revocation, never enable it.
+3. **Event kind 9**, for edition notices.
+
+All three are small. The v0.6 core is 13 309 bytes against the 24 576 limit, so bytes were never the constraint.
+
+One detail worth knowing early: the Merkle root has to be registered on-chain as a plain value. `anchorsHash` commits the whole anchors array as a single hash, which no contract can verify a proof against. So the root exists twice — in the anchor and in the satellite — and a verifier compares them.
+
 ## 10. Decisions on record
 
 | # | Question | Decision |
@@ -334,7 +350,9 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 16 | Code checksum and alphabet | First 25 bits of `SHA-256(payload)`; one global alphabet, never localized, with normalization specified before hashing |
 | 17 | Who pays for activation, and how | An **on-chain paymaster** (ERC-4337) with a funded deposit, carried by the public bundler network — not a brand server whose policy nobody can inspect. A duplicate submission reverts so no sponsor can be drained by replay |
 | 18 | Pointer from a superseded edition to its replacement | **Prose only.** No structured field: a successor governs later production and does not invalidate units already in the field, and a machine-readable pointer would be rendered as exactly that verdict |
+| 19 | Where the code lives | A satellite for everything except three core hooks: explicit `initialOwner` at mint, a one-way revocation lock, and event kind 9. Not free-form — the current mint hardcodes the owner |
 
 ## 11. Open questions
 
-1. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
+None at the protocol level. What remains is code: implementing the satellite and the three core hooks above, then relabelling §§1–19 of `SPEC.md` from v0.6 to v0.7 once a contract exists and its addresses are real.
+
