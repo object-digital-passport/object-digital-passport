@@ -2346,6 +2346,9 @@ After the window closes, the issuer's only remaining way to say that something w
 - A verifier MUST surface an active edition notice **on the edition passport and on every unit passport parented to that edition** (§20.11). A notice that only appears on the parent is useless to the person holding one figure.
 - It does **not** remove an assurance tier, and MUST be displayed at least as prominently as the tier (§20.12) — the treatment §11 gives an institutional counterfeit concern.
 - It MUST NOT be presented as a verdict on any individual unit. "This edition's key set leaked" is a statement about the run, not proof that the object in the reader's hands is fake.
+- **A notice is prose, and stays prose.** Where it points at a corrected edition it does so in words. This specification defines **no** structured supersession field, and a verifier MUST NOT derive a machine-readable "superseded by" relation from a notice, mark the edition obsolete or invalid, or rank it below its successor.
+
+**Why supersession is deliberately unstructured.** Minting a corrected edition does not rescue units already in the field: their keys are committed in the *old* edition's Merkle root, verify against it, and always will. A successor edition carries its own key set and governs later production only. So the units of a superseded edition are neither obsolete nor invalid — the object in someone's hands is genuine, its code is honest, and its verification passes. A structured "superseded by" field would be rendered by interfaces as exactly the verdict this section, §20.11, and the v0.6 duplicate model all refuse to make.
 
 ### 20.14 Stated limits (normative honesty rules)
 

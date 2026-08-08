@@ -267,6 +267,10 @@ An issuer-declared "we have shipped" event was specified and then removed. It cl
 
 A notice is never a verdict on an individual unit. "This edition's key set leaked" says something about the run, not about the object in someone's hands.
 
+**And a notice stays prose — there is no "superseded by" field.** This looks like an omission and is not one. Minting a corrected edition does not rescue units already in shops: their keys sit in the *old* edition's Merkle root, verify against it, and always will. A successor edition has its own key set and governs later production only.
+
+So the units of a superseded edition are neither obsolete nor invalid — the figure in someone's hands is genuine, its code is honest, its verification passes. A structured pointer would be rendered by every interface as "your edition is out of date", which is precisely the verdict we removed from conflicting passports, from mint order, and from notices themselves. Prose says the true thing — "the author's name is misspelled in this edition's card; the corrected one is ODP-…" — and a machine cannot turn it into a sentence.
+
 ## 8. Honest limits
 
 None of the following is fixed by this design, and none should be implied in product copy.
@@ -329,8 +333,8 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 15 | Saying something went wrong afterwards | An append-only edition notice, surfaced on the edition **and** on every unit passport under it, never a verdict on an individual unit |
 | 16 | Code checksum and alphabet | First 25 bits of `SHA-256(payload)`; one global alphabet, never localized, with normalization specified before hashing |
 | 17 | Who pays for activation, and how | An **on-chain paymaster** (ERC-4337) with a funded deposit, carried by the public bundler network — not a brand server whose policy nobody can inspect. A duplicate submission reverts so no sponsor can be drained by replay |
+| 18 | Pointer from a superseded edition to its replacement | **Prose only.** No structured field: a successor governs later production and does not invalidate units already in the field, and a machine-readable pointer would be rendered as exactly that verdict |
 
 ## 11. Open questions
 
 1. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
-2. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
