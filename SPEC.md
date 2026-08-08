@@ -148,8 +148,7 @@ This specification uses the following terms in a precise sense:
 | **Activation** *(v0.7)* | The one-time public record that a given unit key was used for the first time (§20.9). It is **not** a mint, **not** a verification, and **not** a claim of ownership; it writes one record against an existing edition passport and carries no verdict about the unit. *Avoid:* "claim", "registration", "authentication". |
 | **Unit Passport** *(v0.7)* | An ordinary passport minted for one individual unit, parented to its edition and proven by Merkle proof (§20.10). Always an ordinary **paid** mint, borne by the minter. *Avoid:* "child passport", "sub-passport", "free passport". |
 | **Relayer** *(v0.7)* | Any party that submits someone else's signed activation and pays its network fee. A relayer is a courier: it gains no rights over the unit and needs no agreement with the issuer or with ODP. *Avoid:* "activation server", "gateway", "provider" — all imply a privileged role that does not exist. |
-| **Revocation window** *(v0.7)* | The bounded period in which an edition passport may still be revoked: before any unit is activated and before the issuer posts a shipment-start notice (§20.13). It closes permanently for every caller, `governance` included. *Avoid:* "grace period", "recall window". |
-| **Shipment-start notice** *(v0.7)* | The issuer's irreversible append-only declaration that distribution of an edition has begun (`recordPassportEvent` kind 8). Posted when shipment actually happens, so a delayed production schedule needs no re-mint. *Avoid:* "ship date" — that is the declared plan in `unit_key_set`, not this. |
+| **Revocation window** *(v0.7)* | The period in which an edition passport may still be revoked: before any unit of it has been activated (§20.13). It closes permanently for every caller, `governance` included. *Avoid:* "grace period", "recall window". |
 | **Edition notice** *(v0.7)* | An append-only statement by the issuer that something is wrong with an edition — superseded, key set compromised, safety recall (`recordPassportEvent` kind 9). It destroys nothing and is never a verdict on an individual unit. *Avoid:* "recall", "revocation", "invalidation". |
 
 
@@ -1565,7 +1564,7 @@ If the anchor's `data.model` is `NTAG424DNA_TAGTAMPER`:
 | `UNIT_NOT_ACTIVATED`  | v0.7 (§20): member key with no activation record — the expected state of an unopened unit |
 | `UNIT_ACTIVATED`      | v0.7 (§20): activation record exists; reported **with its timestamp** and **without a verdict** (§20.11) |
 | `UNIT_PASSPORT_CONFLICT` | v0.7 (§20): more than one unit passport exists for the same unit; all are reported, unranked and without a verdict (§20.11) |
-| `EDITION_REVOCABLE`   | v0.7 (§20.13): the edition has no activation and no shipment-start notice, so the issuer's revocation right is still live — MUST be visible to a buyer |
+| `EDITION_REVOCABLE`   | v0.7 (§20.13): no unit of the edition has been activated, so the issuer's revocation right is still live — MUST be visible to a buyer |
 | `EDITION_NOTICE`      | v0.7 (§20.13): the issuer recorded an append-only edition notice (superseded, compromised key set, recall); shown on the edition **and** on every unit passport under it, never as a verdict on an individual unit |
 
 
@@ -2083,8 +2082,7 @@ An edition passport is an ordinary passport under §§8–9, minted by a `B` pro
     "hashAlg": "sha256",
     "leafFormat": "sha256(uint32be(index) || address20)",
     "addressListUrl": "https://…/units.bin",
-    "addressListHash": "sha256:…",
-    "shippingDate": "2026-11-14"
+    "addressListHash": "sha256:…"
   }
 }
 ```
@@ -2097,7 +2095,6 @@ An edition passport is an ordinary passport under §§8–9, minted by a `B` pro
 | `leafFormat` | yes | Identifier of the leaf construction; `sha256(uint32be(index) || address20)` in this revision |
 | `addressListUrl` | recommended | Public location of the full unit-address list |
 | `addressListHash` | yes when `addressListUrl` is set | SHA-256 of the list bytes |
-| `shippingDate` | optional | **A declared plan, not a fact.** The issuer's intended first-shipment date, UTC `YYYY-MM-DD`, used only for the anomaly check in §20.14. It MUST NOT gate revocation or any other right (§20.13): production dates move, and an immutable anchor cannot follow them. |
 
 **Leaf construction (normative):**
 
@@ -2262,10 +2259,10 @@ Level 2D — Unit membership and activation state
    2 or more→ UNIT_PASSPORT_CONFLICT — report ALL of them, each with
               its mint timestamp, owner, and minting profile if any
 6. Read edition-level state from the edition passport
-   No activation and no shipment notice → EDITION_REVOCABLE
-   Any kind-9 edition notice present    → EDITION_NOTICE, shown on
-                                          this unit too, without a
-                                          verdict about it (§20.13)
+   No activation anywhere in the edition → EDITION_REVOCABLE
+   Any kind-9 edition notice present     → EDITION_NOTICE, shown on
+                                           this unit too, without a
+                                           verdict about it (§20.13)
 7. If a unit seed was supplied, derive the key and confirm the
    recovered address equals the proven unit address
 ```
@@ -2289,27 +2286,13 @@ An edition passport is immutable like any other (§8), and its only remedy for a
 
 #### The revocation window
 
-`revokePassport` on an **edition passport** MUST revert once **either** of the following has happened, and the closure is permanent:
-
-1. **any unit of the edition has an activation record** (§20.9), or
-2. **the issuer has recorded a shipment-start notice** (below).
-
-The closure applies to **every** caller, including `governance`. No party retains a path to revoke an edition once real holders can exist.
+`revokePassport` on an **edition passport** MUST revert once **any unit of the edition has an activation record** (§20.9). The closure is permanent and applies to **every** caller, including `governance`: no party retains a path to revoke an edition once a holder has demonstrably appeared.
 
 Inside the window the ordinary v0.6 rule stands: a typo caught before anything reached a buyer is fixed by revoke + re-mint, and nobody is harmed.
 
-`shippingDate` (§20.3) MUST NOT be used as this gate. It is a plan declared at mint, an immutable anchor cannot track a delayed production schedule, and re-minting an edition because logistics slipped is not an acceptable requirement.
+Until the window closes, a verifier MUST make it visible (`EDITION_REVOCABLE`, §11) — an issuer's live right to erase its buyers' records belongs in front of a buyer.
 
-#### Shipment-start notice
-
-An append-only event, recorded by the edition's issuer, declaring that distribution has begun.
-
-- Recorded via `recordPassportEvent` on the edition passport with `kind = 8`; `value` MUST be 0.
-- **Irreversible.** There is no un-shipping; a later event cannot retract it.
-- It is posted when shipment actually happens, so a production delay needs no re-mint — only a later post.
-- Only the edition's issuer (creator) MAY post it.
-
-Until either lock has engaged, a verifier MUST make the open window visible (`EDITION_REVOCABLE`, §11). An issuer whose goods are on shelves while the registry still shows an open revocation window is displaying a live right to erase its buyers' records, and that fact belongs in front of a buyer.
+The gate is a single observable fact, deliberately. A declared shipping date cannot serve: it is fixed in an immutable anchor at mint, production schedules move, and re-minting an edition because logistics slipped is not an acceptable requirement. An issuer-declared "we have shipped" event was specified and then removed — it bought a narrower window at the cost of a second mechanism, a second event kind, and a second thing an issuer can decline to do. The residual exposure it covered is the gap between goods reaching shelves and the first buyer scratching a label, which in practice is short and closes itself.
 
 #### Edition notice
 
@@ -2327,7 +2310,7 @@ An implementation MUST NOT claim, in interface copy or marketing, any assurance 
 
 1. **The issuer knows every unit key at generation.** Unless the master seed is destroyed after printing — which no outside party can verify — the issuer can activate units itself. §20.8 constrains storage, not knowledge.
 2. **The print vendor necessarily sees the codes.** Printing a code requires knowing it. This is controlled physically (§20.7, ISO 14298), never cryptographically, and seed splitting does not address it.
-3. **Pre-shipment activation is observable, not prevented.** Every activation carries a public timestamp, and both the declared `shippingDate` (§20.3) and the shipment-start notice (§20.13) are on-chain, so activations before shipment are visible to anyone. The protocol does not block them, and an issuer that never posts a shipment notice is not forced to.
+3. **Anyone who knows the codes can activate units they do not hold.** An insider could activate a whole run before it ships, after which honest buyers scratch their labels and find the units already activated. The protocol cannot prevent this — the codes are known inside the issuer by construction — and it does not try. Every activation carries a public timestamp; whether that timestamp is plausible for the object in someone's hands is a human judgement, and an issuer whose run was poisoned can say so with an edition notice (§20.13).
 4. **An activation conflict is surfaced, not adjudicated** (§20.11).
 5. **A sealed counterfeit carrying a cloned code is indistinguishable before the layer is removed.** The outer carrier's activation state is the only pre-purchase signal.
 6. **A unit key binds the package, not the object inside it.** Object-level binding exists only through §20.4 and through a unit passport carrying the owner's own anchors (§20.10).

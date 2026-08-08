@@ -81,7 +81,6 @@ It gains one new anchor type:
 | `unitCount` | yes | Number of units in the run |
 | `leafFormat` | yes | How a leaf is built (see below) |
 | `hashAlg` | yes | `sha256` in the first version |
-| `shippingDate` | optional | A **declared plan**, used only for the §8.3 anomaly check. It is deliberately not the gate for anything — see §7a |
 
 **Leaf format:** `leaf_i = SHA-256( uint32be(i) ‖ unitAddress_i )`
 
@@ -238,11 +237,11 @@ An edition passport is immutable like any other, and v0.6's only remedy for a wr
 
 So recall is gone, and two mechanisms take its place.
 
-**A revocation window that closes on facts, not dates.** An edition may be revoked only while *both* remain true: no unit has been activated, and the issuer has not declared shipment. Either one closes the door permanently, for every caller including `governance`. Inside the window a typo caught in the warehouse is fixed the ordinary way and nobody is harmed; outside it, no one can erase anything.
+**A revocation window that closes on one fact.** An edition may be revoked only until the first unit of it is activated. That single event closes the door permanently, for every caller including `governance`. Inside the window a typo caught in the warehouse is fixed the ordinary way and nobody is harmed; after it, no one can erase anything.
 
-The gate deliberately does **not** use the `shippingDate` from the anchor. That field is a plan declared at mint, and anchors are immutable — so a two-month production delay would either slam the door while nothing had shipped, or leave it open while boxes sat on shelves, and the only fix would be re-minting the edition because logistics slipped. A plan is not a fact. The facts are: someone scratched a code, or the issuer said "we are shipping."
+The gate is deliberately not a date. A declared shipping date is fixed in an immutable anchor at mint, and production schedules move — so a two-month delay would either slam the door while nothing had shipped, or leave it open while boxes sat on shelves, and the only fix would be re-minting the edition because logistics slipped. A plan is not a fact.
 
-**Shipment is the issuer's own irreversible statement**, posted when shipment actually happens. Delay just means posting later. And "simply never post it" is not a loophole worth much: the first buyer to scratch closes the door anyway, and until then every verification shows the window is open — a brand whose goods are in shops while the registry advertises a live right to erase its customers' records is displaying that fact to those customers.
+An issuer-declared "we have shipped" event was specified and then removed. It closed the window earlier, but it cost a second mechanism, a second event kind, and a second thing an issuer could simply decline to do — and it only covered the gap between goods reaching shelves and the first buyer scratching a label, which is short and closes itself. One rule beat two.
 
 **Edition notices replace recall afterwards.** After the window closes, the issuer can still say something went wrong — superseded by a corrected edition, key set leaked, safety recall — as an append-only notice that destroys nothing. The critical part: a notice must be shown on the edition **and on every unit passport under it**. A warning that only appears on the parent record is invisible to the person holding one figure.
 
@@ -260,9 +259,9 @@ It can silently activate codes itself. Unless the seed is destroyed after printi
 
 To print a code you must know it. No cryptography avoids this. The control is physical — a certified facility, waste accounting, destruction of spoilage — which is why §4 names ISO 14298 rather than a cleverer key scheme. **Splitting the seed does not address this threat**; it addresses only later regeneration from stored material (§4).
 
-### 8.3 The brand could pre-activate before shipping
+### 8.3 Anyone who knows the codes can activate units they do not hold
 
-Not preventable, but **observable**: the edition passport declares `shippingDate`, and every activation carries a public block timestamp. A cluster of activations before the declared ship date is a red flag visible to everyone. Pop Mart's equivalent log is private and this check is impossible there.
+An insider could activate a whole run before it ships, after which honest buyers scratch their labels and find their units already activated — no forgery involved, and the edition looks second-hand. This is not preventable: the codes are known inside the issuer by construction (§8.1, §8.2). Every activation carries a public block timestamp, so whether the timing is plausible for the object in someone's hands is a human judgement, and a poisoned run can be declared with an edition notice (§7a). Pop Mart's equivalent log is private, so there the same attack is not even inspectable.
 
 ### 8.4 A conflict is visible but not adjudicated
 
@@ -304,8 +303,8 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 9 | Code entropy | ≥ 80 bit, because offline verification means no rate limiting exists |
 | 10 | Who may issue an edition? | **`B` profiles only**, enforced by the contract. Activation and unit-passport minting are not gated |
 | 11 | Satellite or core? | **Not a real fork.** v0.7 is a new registry line with a new contract either way, so the split is an implementation choice made when the code is written, not a protocol decision |
-| 12 | Recall of an edition | **Removed.** Revocation survives only inside a window that closes on the first activation or the issuer's shipment notice — permanently, for every caller, `governance` included |
-| 13 | What closes that window | Observable facts, never the declared `shippingDate`: an immutable anchor cannot follow a production date that moved |
+| 12 | Recall of an edition | **Removed.** Revocation survives only until the first unit is activated — then permanently closed, for every caller, `governance` included |
+| 13 | What closes that window | One observable fact — the first activation. A declared ship date cannot: an immutable anchor cannot follow a production date that moved. An issuer-declared shipment event was specified and dropped as a second mechanism earning too little |
 | 14 | Saying something went wrong afterwards | An append-only edition notice, surfaced on the edition **and** on every unit passport under it, never a verdict on an individual unit |
 
 ## 11. Open questions
