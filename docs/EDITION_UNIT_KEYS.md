@@ -55,7 +55,7 @@ flowchart TB
         ROOT --> ED["Edition passport<br/><i>anchors[] · unit_key_set</i>"]
     end
     subgraph unit["Per physical unit — printed"]
-        OUT["Outside: GS1 Digital Link QR<br/><i>GTIN + serial + ODP id</i>"]
+        OUT["Outside: ODP QR + text<br/><i>edition id + unit index</i>"]
         SCR["Under scratch: DataMatrix<br/><i>unit key</i>"]
     end
     subgraph act["On first use — optional, buyer-driven"]
@@ -132,9 +132,13 @@ The entropy floor is a direct consequence of decentralization and is easy to get
 
 ### 3.5 The label
 
-**Outside, open** — a **GS1 Digital Link** QR carrying the brand's GTIN and the unit serial, with the ODP identifiers attached as additional link parameters.
+**Outside, open** — the ordinary ODP verification label, extended with the unit index: a QR carrying the edition passport ID and the unit index, plus both values in **human-readable text**.
 
-One symbol serves three readers: retail scanners see a familiar GTIN, the ODP verifier sees its passport ID and unit index, and an EU DPP resolver sees what it expects. The alternative — a proprietary ODP-only QR — forces the brand to choose between ODP and the compliance carrier it will need anyway under ESPR (batteries from February 2027, textiles and furniture 2027–2028, electronics through 2030). It will choose compliance.
+The spec fixes *what must be recoverable*, not the encoding. The text line is the part that matters most: carrier formats change over the life of a protocol, and a pair of values a human can type is what keeps a unit verifiable when they do.
+
+**GS1 Digital Link is the documented next step, not a requirement.** A brand holding a GTIN can encode a GS1 Digital Link URI instead, so one symbol serves retail scanners, ODP verification, and EU DPP resolution under ESPR (batteries from February 2027, textiles and furniture 2027–2028, electronics through 2030) — and then the brand never has to choose between ODP and the compliance carrier it will need anyway.
+
+It is deliberately not mandatory now, because it costs nothing to adopt later. The carrier is off-chain packaging chosen per print run: a later run can switch encoding without touching the contract, the registry, or any minted passport, labels already printed keep working, and one brand can even run both formats across different drops. Requiring GTIN today would have excluded every studio that never sells through a retail scanner, in exchange for a benefit that waits patiently.
 
 **Under the scratch layer** — the DataMatrix from §3.4.
 
@@ -305,12 +309,12 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 11 | Satellite or core? | **Not a real fork.** v0.7 is a new registry line with a new contract either way, so the split is an implementation choice made when the code is written, not a protocol decision |
 | 12 | Recall of an edition | **Removed.** Revocation survives only until the first unit is activated — then permanently closed, for every caller, `governance` included |
 | 13 | What closes that window | One observable fact — the first activation. A declared ship date cannot: an immutable anchor cannot follow a production date that moved. An issuer-declared shipment event was specified and dropped as a second mechanism earning too little |
-| 14 | Saying something went wrong afterwards | An append-only edition notice, surfaced on the edition **and** on every unit passport under it, never a verdict on an individual unit |
+| 14 | Outer carrier format | The spec fixes what must be **recoverable** (edition id + unit index, also in text), not the encoding. GS1 Digital Link is a documented future step, adoptable per print run at zero protocol cost |
+| 15 | Saying something went wrong afterwards | An append-only edition notice, surfaced on the edition **and** on every unit passport under it, never a verdict on an individual unit |
 
 ## 11. Open questions
 
-1. **Brands without a GTIN.** The GS1 path assumes one; small brands may not have one, and the ODP-native fallback loses the EU DPP alignment that made §3.5 worth it.
-2. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
-3. **Localization** of the printed code alphabet and check characters.
-4. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
-5. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
+1. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
+2. **Localization** of the printed code alphabet and check characters.
+3. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
+4. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.

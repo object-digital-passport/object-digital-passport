@@ -2160,9 +2160,18 @@ The printed secret is the **unit seed**, not the private key.
 
 ### 20.7 Carriers
 
-**Outer carrier (open, scannable before purchase).** A QR code SHOULD encode a **GS1 Digital Link** URI carrying the issuer's GTIN and the unit serial, with the ODP edition passport ID and unit index as additional link parameters. A single symbol then serves retail scanning, ODP verification, and EU DPP resolution. Where the issuer has no GTIN, an ODP-native URI (§12, §19) MAY be used instead.
+**Outer carrier (open, scannable before purchase).** This specification constrains **what must be recoverable**, not how it is encoded. The outer carrier MUST make two values available to a verifier:
+
+1. the **edition passport ID**, and
+2. the **unit index**.
+
+Both MUST **also** be printed in human-readable text, following the §5 label rules. A carrier format is a packaging decision that will change over the life of a protocol; a printed pair of values a human can type is what guarantees a unit stays verifiable when it does.
+
+The reference form is the §5 verification label extended with the unit index: a QR encoding the `odp://` URI (§12, §19) plus the unit index, and the same values as text.
 
 The outer carrier MUST NOT contain the unit seed or any value derived from it.
+
+*Informative — GS1 Digital Link.* An issuer holding a GTIN MAY encode a **GS1 Digital Link** URI instead, carrying the GTIN and unit serial with the ODP values as additional link parameters, so that one symbol serves retail scanning, ODP verification, and EU DPP resolution under ESPR. This specification does not require it and does not depend on it. Adopting it later costs nothing at the protocol level: the carrier is off-chain packaging chosen per print run, so a later run may change encoding without touching the contract, the registry, or any already-minted passport, and labels already printed keep verifying unchanged. Only verifiers need to learn the additional encoding — which is exactly what the mandatory human-readable pair above insures against.
 
 **Inner carrier (under a tamper-evident layer).** The unit seed SHOULD be carried as a DataMatrix (ISO/IEC 16022) under a scratch-off or equivalent opaque layer, with the §20.6 text form printed alongside as a fallback for damaged symbols.
 
