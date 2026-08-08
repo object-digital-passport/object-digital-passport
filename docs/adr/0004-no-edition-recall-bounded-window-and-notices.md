@@ -13,5 +13,5 @@ The second draft added an issuer-declared shipment-start event as a second lock.
 - A typo in an edition card is fixable only before the first activation. After that it is permanent, and the remedy is a corrected edition plus a notice pointing at it.
 - `governance` loses any path to revoke an edition once a holder has appeared. This is deliberate: the protocol should not hold a switch over a brand's production run either.
 - Residual exposure, accepted: between goods reaching buyers and the first label being scratched, the issuer's revoke right is still live. Verifiers report this as `EDITION_REVOCABLE` so it is at least visible.
-- One new event kind on the edition passport, `kind = 9` (edition notice), and two verification states, `EDITION_REVOCABLE` and `EDITION_NOTICE`.
+- One new event kind on the edition passport, `kind = 8` (edition notice), and two verification states, `EDITION_REVOCABLE` and `EDITION_NOTICE`.
 - A notice is never a verdict on an individual unit, and verifiers must not render it as one — consistent with [ADR-0003](0003-no-uniqueness-rule-for-unit-passports.md) and SPEC §20.11.

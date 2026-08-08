@@ -93,10 +93,10 @@ contract ObjectDigitalPassport {
     // On-chain spec line (variant: two uint8s, human-readable as major.minor).
     // Not `public` — each public constant adds a getter (~bytecode budget, EIP-170). Use `CONTRACT_VERSION` / 16 and % 16.
     uint8 internal constant SPEC_MAJOR = 0;
-    uint8 internal constant SPEC_MINOR = 6;
+    uint8 internal constant SPEC_MINOR = 7;
 
     /// Packed byte in `Passport.contractVersion`: `SPEC_MAJOR * 16 + SPEC_MINOR` (each < 16).
-    /// The reference line (spec 0.6) uses packed byte **6**.
+    /// The reference line (spec 0.7) uses packed byte **7**.
     uint8 public constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     // Anti-spam: per-wallet, per-calendar-month mint caps (no protocol fee). Tier follows profile ID prefix (C/B/P/M).
@@ -229,6 +229,13 @@ contract ObjectDigitalPassport {
     /// Irreversible. PLANNED FOR REMOVAL IN STABLE v1 (see docs/IDEAS_V1.md).
     bool public frozen;
 
+    /// SPEC 0.7 §20.13 — paired `ODPEditionUnits` satellite, set by governance.
+    address public editionUnits;
+
+    /// SPEC 0.7 §20.13 — one-way: set on the first activation of any unit of an edition,
+    /// never cleared. Only ever *blocks* revocation, so a mis-wired satellite cannot enable it.
+    mapping(string => bool) private _revocationLocked;
+
     /// Optional satellite for P-affiliation, mint-agent delegation, and creator publishing delegation.
     address private relationsSatellite;
     /// Optional trusted router for extension mints; when calling through it, `_resolveMintPrincipal` uses `tx.origin`.
@@ -340,6 +347,28 @@ contract ObjectDigitalPassport {
         extensionRouter = router;
     }
 
+    /// SPEC 0.7 §20.13 — pair the `ODPEditionUnits` satellite. Governance only.
+    function setEditionUnits(address units) external {
+        if (!(msg.sender == governance)) revert EC(56);
+        editionUnits = units;
+    }
+
+    /**
+     * SPEC 0.7 §20.13 — close an edition's revocation window, permanently.
+     * Called by the paired units satellite on the first activation of any unit.
+     * One-way by construction: there is no unlock, for any caller, `governance` included.
+     */
+    function lockEditionRevocation(string calldata passportId) external {
+        if (!(editionUnits != address(0) && msg.sender == editionUnits)) revert EC(117);
+        if (!(_passports[passportId].creator != address(0))) revert EC(12);
+        _revocationLocked[passportId] = true;
+    }
+
+    /// SPEC 0.7 §20.13 — true once the edition's revocation window has closed.
+    function isRevocationLocked(string calldata passportId) external view returns (bool) {
+        return _revocationLocked[passportId];
+    }
+
     // ─── Creator Registry ─────────────────────────────────────────────────────
 
     /**
@@ -426,7 +455,7 @@ contract ObjectDigitalPassport {
             passportId: passportId,
             contractVersion: CONTRACT_VERSION,
             creator: principalWallet,
-            owner: principalWallet,
+            owner: m.initialOwner == address(0) ? principalWallet : m.initialOwner,
             creatorId: creatorId,
             year: m.core.year,
             month: m.core.month,
@@ -631,6 +660,7 @@ contract ObjectDigitalPassport {
         if (!(p.creator != address(0))) revert EC(12);
         if (!(!p.revoked)) revert EC(18);
         if (!(msg.sender == p.creator || msg.sender == governance)) revert EC(17);
+        if (_revocationLocked[passportId]) revert EC(116);
         if (!(reasonHash != bytes32(0))) revert EC(16);
         p.revoked = true;
         p.revokedAt = block.timestamp;

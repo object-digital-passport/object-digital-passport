@@ -149,7 +149,7 @@ This specification uses the following terms in a precise sense:
 | **Unit Passport** *(v0.7)* | An ordinary passport minted for one individual unit, parented to its edition and proven by Merkle proof (§20.10). Always an ordinary **paid** mint, borne by the minter. *Avoid:* "child passport", "sub-passport", "free passport". |
 | **Relayer** *(v0.7)* | Any party that carries someone else's signed activation to the chain. A courier: it gains no rights over the unit and needs no agreement with the issuer or with ODP. Who *pays* is the **sponsor** — an on-chain paymaster, not a server policy (§20.9). *Avoid:* "activation server", "gateway", "provider" — all imply a privileged role that does not exist. |
 | **Revocation window** *(v0.7)* | The period in which an edition passport may still be revoked: before any unit of it has been activated (§20.13). It closes permanently for every caller, `governance` included. *Avoid:* "grace period", "recall window". |
-| **Edition notice** *(v0.7)* | An append-only statement by the issuer that something is wrong with an edition — superseded, key set compromised, safety recall (`recordPassportEvent` kind 9). It destroys nothing and is never a verdict on an individual unit. *Avoid:* "recall", "revocation", "invalidation". |
+| **Edition notice** *(v0.7)* | An append-only statement by the issuer that something is wrong with an edition — superseded, key set compromised, safety recall (`recordPassportEvent` kind 8). It destroys nothing and is never a verdict on an individual unit. *Avoid:* "recall", "revocation", "invalidation". |
 
 
 ---
@@ -2303,7 +2303,7 @@ Level 2D — Unit membership and activation state
               its mint timestamp, owner, and minting profile if any
 6. Read edition-level state from the edition passport
    No activation anywhere in the edition → EDITION_REVOCABLE
-   Any kind-9 edition notice present     → EDITION_NOTICE, shown on
+   Any kind-8 edition notice present     → EDITION_NOTICE, shown on
                                            this unit too, without a
                                            verdict about it (§20.13)
 7. If a unit seed was supplied, derive the key and confirm the
@@ -2341,7 +2341,7 @@ The gate is a single observable fact, deliberately. A declared shipping date can
 
 After the window closes, the issuer's only remaining way to say that something went wrong is an **edition notice** — an append-only statement that destroys nothing.
 
-- Recorded via `recordPassportEvent` on the edition passport with `kind = 9`; `note` carries a short human-readable reason and `attachmentHash` MAY anchor a fuller document.
+- Recorded via `recordPassportEvent` on the edition passport with `kind = 8`; `note` carries a short human-readable reason and `attachmentHash` MAY anchor a fuller document.
 - Suitable for: superseded by a corrected edition, compromised key set or leaked master seed, safety recall, discontinued line.
 - A verifier MUST surface an active edition notice **on the edition passport and on every unit passport parented to that edition** (§20.11). A notice that only appears on the parent is useless to the person holding one figure.
 - It does **not** remove an assurance tier, and MUST be displayed at least as prominently as the tier (§20.12) — the treatment §11 gives an institutional counterfeit concern.

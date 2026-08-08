@@ -9,9 +9,9 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
     export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint] & {year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint }
   
 
-    export type PassportMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, fileHash: BytesLike, anchorsHash: BytesLike, anchorTypesMask: BigNumberish}
+    export type PassportMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, fileHash: BytesLike, anchorsHash: BytesLike, anchorTypesMask: BigNumberish, initialOwner: AddressLike}
 
-    export type PassportMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint }
+    export type PassportMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint, initialOwner: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint, initialOwner: string }
   
 
 export declare namespace ObjectDigitalPassport {
@@ -43,12 +43,13 @@ export declare namespace ObjectDigitalPassport {
     }
 
   export interface ObjectDigitalPassportInterface extends Interface {
-    getFunction(nameOrSignature: "CONTRACT_VERSION" | "deployer" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "mintDigital" | "mintMixed" | "mintPhysical" | "recordPassportEvent" | "registerCreator" | "revokePassport" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
+    getFunction(nameOrSignature: "CONTRACT_VERSION" | "deployer" | "editionUnits" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "isRevocationLocked" | "lockEditionRevocation" | "mintDigital" | "mintMixed" | "mintPhysical" | "recordPassportEvent" | "registerCreator" | "revokePassport" | "setEditionUnits" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "CreatorRegistered" | "PassportEventRecorded" | "PassportMinted" | "PassportRevoked" | "PassportTransferred" | "PassportUrlsUpdated" | "RegistryFrozen"): EventFragment;
 
     encodeFunctionData(functionFragment: 'CONTRACT_VERSION', values?: undefined): string;
 encodeFunctionData(functionFragment: 'deployer', values?: undefined): string;
+encodeFunctionData(functionFragment: 'editionUnits', values?: undefined): string;
 encodeFunctionData(functionFragment: 'freeze', values?: undefined): string;
 encodeFunctionData(functionFragment: 'frozen', values?: undefined): string;
 encodeFunctionData(functionFragment: 'getCreator', values: [string]): string;
@@ -59,12 +60,15 @@ encodeFunctionData(functionFragment: 'getPassportHeader', values: [string]): str
 encodeFunctionData(functionFragment: 'getPassportMedia', values: [string]): string;
 encodeFunctionData(functionFragment: 'getPassportsByCreatorPaged', values: [AddressLike, BigNumberish, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'governance', values?: undefined): string;
+encodeFunctionData(functionFragment: 'isRevocationLocked', values: [string]): string;
+encodeFunctionData(functionFragment: 'lockEditionRevocation', values: [string]): string;
 encodeFunctionData(functionFragment: 'mintDigital', values: [PassportMintInputsStruct, boolean, string]): string;
 encodeFunctionData(functionFragment: 'mintMixed', values: [PassportMintInputsStruct, boolean, string]): string;
 encodeFunctionData(functionFragment: 'mintPhysical', values: [PassportMintInputsStruct, boolean, string]): string;
 encodeFunctionData(functionFragment: 'recordPassportEvent', values: [string, BigNumberish, BigNumberish, string, BytesLike, string]): string;
 encodeFunctionData(functionFragment: 'registerCreator', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'revokePassport', values: [string, BytesLike]): string;
+encodeFunctionData(functionFragment: 'setEditionUnits', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'setExtensionRouter', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'setRelationsSatellite', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'transferGovernance', values: [AddressLike]): string;
@@ -73,6 +77,7 @@ encodeFunctionData(functionFragment: 'updatePassportUrls', values: [string, stri
 
     decodeFunctionResult(functionFragment: 'CONTRACT_VERSION', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'deployer', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'editionUnits', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'freeze', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'frozen', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getCreator', data: BytesLike): Result;
@@ -83,12 +88,15 @@ decodeFunctionResult(functionFragment: 'getPassportHeader', data: BytesLike): Re
 decodeFunctionResult(functionFragment: 'getPassportMedia', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getPassportsByCreatorPaged', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'governance', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'isRevocationLocked', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'lockEditionRevocation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintDigital', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintMixed', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintPhysical', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'recordPassportEvent', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'registerCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'revokePassport', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'setEditionUnits', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setExtensionRouter', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setRelationsSatellite', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'transferGovernance', data: BytesLike): Result;
@@ -231,6 +239,14 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
+    editionUnits: TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >
+    
+
+    
     freeze: TypedContractMethod<
       [],
       [void],
@@ -311,6 +327,22 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
+    isRevocationLocked: TypedContractMethod<
+      [passportId: string, ],
+      [boolean],
+      'view'
+    >
+    
+
+    
+    lockEditionRevocation: TypedContractMethod<
+      [passportId: string, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
     mintDigital: TypedContractMethod<
       [m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
@@ -353,6 +385,14 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
     revokePassport: TypedContractMethod<
       [passportId: string, reasonHash: BytesLike, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
+    setEditionUnits: TypedContractMethod<
+      [units: AddressLike, ],
       [void],
       'nonpayable'
     >
@@ -411,6 +451,11 @@ getFunction(nameOrSignature: 'deployer'): TypedContractMethod<
       [string],
       'view'
     >;
+getFunction(nameOrSignature: 'editionUnits'): TypedContractMethod<
+      [],
+      [string],
+      'view'
+    >;
 getFunction(nameOrSignature: 'freeze'): TypedContractMethod<
       [],
       [void],
@@ -461,6 +506,16 @@ getFunction(nameOrSignature: 'governance'): TypedContractMethod<
       [string],
       'view'
     >;
+getFunction(nameOrSignature: 'isRevocationLocked'): TypedContractMethod<
+      [passportId: string, ],
+      [boolean],
+      'view'
+    >;
+getFunction(nameOrSignature: 'lockEditionRevocation'): TypedContractMethod<
+      [passportId: string, ],
+      [void],
+      'nonpayable'
+    >;
 getFunction(nameOrSignature: 'mintDigital'): TypedContractMethod<
       [m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
       [string],
@@ -488,6 +543,11 @@ getFunction(nameOrSignature: 'registerCreator'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'revokePassport'): TypedContractMethod<
       [passportId: string, reasonHash: BytesLike, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'setEditionUnits'): TypedContractMethod<
+      [units: AddressLike, ],
       [void],
       'nonpayable'
     >;

@@ -104,7 +104,7 @@ library ODPPassportLib {
         bytes32 attachmentHash,
         string memory attachmentUrl
     ) public pure {
-        if (!(kind >= ODPEventKinds.STATUS && kind <= ODPEventKinds.CUSTOM)) revert EC(108);
+        if (!(kind >= ODPEventKinds.STATUS && kind <= ODPEventKinds.EDITION_NOTICE)) revert EC(108);
         if (kind == ODPEventKinds.STATUS) {
             validateLifecycleStatus(value);
         } else {

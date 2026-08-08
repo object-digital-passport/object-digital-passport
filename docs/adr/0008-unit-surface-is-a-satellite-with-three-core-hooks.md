@@ -6,13 +6,15 @@ The open question asked whether the §20 unit surface belongs in the v0.7 core o
 
 1. **An explicit initial owner at mint.** `_passports[passportId] = Passport({… creator: principalWallet, owner: principalWallet …})` hardcodes the owner to the minting principal, and `transferPassport` is owner-only. SPEC §20.10 requires the owner to be named in the unit key's signature, which a satellite cannot deliver: it would have to mint to itself, briefly *be* the owner of a stranger's passport, and then transfer — two writes and a window nobody should have. The v0.7 mint path takes an `initialOwner`, defaulting to the principal when zero.
 2. **A one-way revocation lock.** SPEC §20.13 closes the revocation window on the first activation, but activation state lives in the satellite. Rather than have `revokePassport` call out to a satellite, the satellite calls `lockEditionRevocation(passportId)` once, setting an irreversible flag the core checks. This is deliberately the safe direction: the flag can only ever be set, so even a mis-wired or hostile satellite pointer can block revocation, never enable it.
-3. **Event kind 9** accepted by `recordPassportEvent`, for edition notices.
+3. **Event kind 8** accepted by `recordPassportEvent`, for edition notices.
 
 All three are small; the v0.6 core compiles to 13,309 bytes against the 24,576-byte EIP-170 limit, so headroom is not the constraint here.
 
 ## What belongs in the satellite
 
-Opening an edition's key set (`openEdition(passportId, merkleRoot, unitCount)`, restricted to the edition's `B` creator via the registry, as `ODPCounterfeitConcern` already does for `P`/`M`), activation, unit-passport minting routed into the core mint the way `ODPExtensionMintRouter` already routes, and all the reads.
+Opening an edition's key set (`openEdition(passportId, merkleRoot, unitCount)`, restricted to the edition's `B` creator via the registry, as `ODPCounterfeitConcern` already does for `P`/`M`), activation, and all the reads.
+
+This paragraph originally also listed the lazy unit-passport mint, routed into the core the way `ODPExtensionMintRouter` routes. Implementation showed that does not work — see [ADR-0009](0009-unit-passport-minting-needs-a-fourth-core-hook.md).
 
 Note that the Merkle root must be registered on-chain explicitly. `anchorsHash` commits the whole anchors array as one hash, which is not something a contract can verify a proof against; the root has to exist as a plain value. Off-chain verifiers check that the registered root matches the `unit_key_set` anchor.
 

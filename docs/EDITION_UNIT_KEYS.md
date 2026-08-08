@@ -322,9 +322,11 @@ Not a protocol decision, but it stopped being a free choice once the existing co
 
 1. **An explicit initial owner at mint.** The current mint hardcodes `owner: principalWallet`, and `transferPassport` is owner-only — so a satellite would have to mint to itself, briefly own a stranger's passport, then transfer. Two writes and a window nobody should have. The v0.7 mint takes an `initialOwner`.
 2. **A one-way revocation lock.** The window closes on first activation, but activation lives in the satellite; the satellite sets an irreversible flag the core checks. The direction is deliberately safe — the flag can only be set, so even a hostile satellite pointer can block revocation, never enable it.
-3. **Event kind 9**, for edition notices.
+3. **Event kind 8**, for edition notices.
 
 All three are small. The v0.6 core is 13 309 bytes against the 24 576 limit, so bytes were never the constraint.
+
+**Reference implementation status.** `chain/contracts/ODPEditionUnits.sol` implements `openEdition`, `activate`, and the reads; the three core hooks are in `ObjectDigitalPassport.sol`, which now mints `CONTRACT_VERSION = 7`. The lazy unit-passport mint of §6 is **specified but not implemented**: the core resolves a minting principal from a registered profile, and a unit-key signature is not one, so it needs a fourth hook — a mint whose authority is a signature over `(edition, unit index, owner)` verified against the edition's root. [ADR-0009](adr/0009-unit-passport-minting-needs-a-fourth-core-hook.md) records why the extension-router precedent did not carry over. Everything a buyer needs before purchase works without it.
 
 One detail worth knowing early: the Merkle root has to be registered on-chain as a plain value. `anchorsHash` commits the whole anchors array as a single hash, which no contract can verify a proof against. So the root exists twice — in the anchor and in the satellite — and a verifier compares them.
 
@@ -350,7 +352,7 @@ One detail worth knowing early: the Merkle root has to be registered on-chain as
 | 16 | Code checksum and alphabet | First 25 bits of `SHA-256(payload)`; one global alphabet, never localized, with normalization specified before hashing |
 | 17 | Who pays for activation, and how | An **on-chain paymaster** (ERC-4337) with a funded deposit, carried by the public bundler network — not a brand server whose policy nobody can inspect. A duplicate submission reverts so no sponsor can be drained by replay |
 | 18 | Pointer from a superseded edition to its replacement | **Prose only.** No structured field: a successor governs later production and does not invalidate units already in the field, and a machine-readable pointer would be rendered as exactly that verdict |
-| 19 | Where the code lives | A satellite for everything except three core hooks: explicit `initialOwner` at mint, a one-way revocation lock, and event kind 9. Not free-form — the current mint hardcodes the owner |
+| 19 | Where the code lives | A satellite for everything except three core hooks: explicit `initialOwner` at mint, a one-way revocation lock, and event kind 8. Not free-form — the current mint hardcodes the owner |
 
 ## 11. Open questions
 
