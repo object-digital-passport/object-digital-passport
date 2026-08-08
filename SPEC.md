@@ -147,7 +147,7 @@ This specification uses the following terms in a precise sense:
 | **Unit Key** *(v0.7)* | The keypair bound to one unit (§20.5). Its **seed** is the value printed under the tamper-evident layer; the public address is committed in the edition's Merkle root. *Avoid:* "claim code", "secret code", "the object's private key" — those name the carrier or overstate the scope. |
 | **Activation** *(v0.7)* | The one-time public record that a given unit key was used for the first time (§20.9). It is **not** a mint, **not** a verification, and **not** a claim of ownership; it writes one record against an existing edition passport and carries no verdict about the unit. *Avoid:* "claim", "registration", "authentication". |
 | **Unit Passport** *(v0.7)* | An ordinary passport minted for one individual unit, parented to its edition and proven by Merkle proof (§20.10). Always an ordinary **paid** mint, borne by the minter. *Avoid:* "child passport", "sub-passport", "free passport". |
-| **Relayer** *(v0.7)* | Any party that submits someone else's signed activation and pays its network fee. A relayer is a courier: it gains no rights over the unit and needs no agreement with the issuer or with ODP. *Avoid:* "activation server", "gateway", "provider" — all imply a privileged role that does not exist. |
+| **Relayer** *(v0.7)* | Any party that carries someone else's signed activation to the chain. A courier: it gains no rights over the unit and needs no agreement with the issuer or with ODP. Who *pays* is the **sponsor** — an on-chain paymaster, not a server policy (§20.9). *Avoid:* "activation server", "gateway", "provider" — all imply a privileged role that does not exist. |
 | **Revocation window** *(v0.7)* | The period in which an edition passport may still be revoked: before any unit of it has been activated (§20.13). It closes permanently for every caller, `governance` included. *Avoid:* "grace period", "recall window". |
 | **Edition notice** *(v0.7)* | An append-only statement by the issuer that something is wrong with an edition — superseded, key set compromised, safety recall (`recordPassportEvent` kind 9). It destroys nothing and is never a verdict on an individual unit. *Avoid:* "recall", "revocation", "invalidation". |
 
@@ -2231,15 +2231,21 @@ signed by unitKey_i (EIP-191 personal-sign envelope)
 Contract rules (normative):
 
 1. The activation function MUST be **permissionless**: it authenticates the recovered signer against the unit address proven by the Merkle proof, and MUST NOT derive any right from `msg.sender`. The submitter is a courier.
-2. A valid activation MUST be recorded **once**, with the block timestamp and the recovered unit address. Later submissions for the same unit MUST NOT overwrite it and MUST NOT revert the caller into a failure state that hides the existing record; they return it.
+2. A valid activation MUST be recorded **once**, with the block timestamp and the recovered unit address. A later submission for the same unit MUST NOT overwrite it and MUST **revert with a distinct error code**. Reading the existing record is a `view` call, never a side effect of a write.
+
+   This is a spam defence, not pedantry. If a duplicate submission succeeded as a no-op, anyone holding a single genuine code could replay one valid signature indefinitely and drain whoever is paying — the record would never change and the fee would be charged every time. Reverting makes the duplicate visible in a dry run, so a sponsor's simulation rejects it **before** any fee is spent, and even a naively written sponsor cannot be drained this way.
 3. The submitted signature MUST be replayable only for the unit it names: the message binds chain, contract, edition, and index.
 4. A rejected Merkle proof MUST produce `UNIT_NOT_IN_EDITION` (§11), not a generic failure.
 
-Consequences that implementations MAY rely on:
+#### Sponsorship belongs on-chain
 
-- **Any** relayer may publish: the issuer, a marketplace, a collector's club, any ODP-aware application minting from its own wallet, or the holder's own wallet. No agreement with the issuer or with ODP is required to become an activation point.
+A blockchain cannot broadcast its own transactions: something off-chain must sign and send. What this specification *can* constrain is where the **rules** live and who is allowed to carry the message.
+
+- **The sponsorship rule MUST be a contract, not a server policy.** An issuer that wants to cover activation fees SHOULD do so through an on-chain paymaster (**ERC-4337**) funded by an on-chain deposit, so that who gets sponsored is public, auditable bytecode. A server-side policy is invisible: it can quietly refuse a holder, favour some units over others, or vanish, and nobody outside can tell which happened.
+- **Transport SHOULD be a public permissionless network**, not one issuer's endpoint. With ERC-4337, any bundler in the public network can include the operation; the issuer funds the deposit but does not stand between the holder and the chain. An issuer-run submission endpoint is permitted but is the weaker arrangement, and MUST NOT be presented as the only route.
+- **Any** party may publish regardless: the issuer, a marketplace, a collector's club, any ODP-aware application submitting from its own wallet, or the holder's own wallet. Becoming an activation point requires no agreement with the issuer or with ODP.
 - A signature MAY be produced offline and published arbitrarily later, from any device.
-- When a relayer publishes, the holder needs no wallet, no tokens, and no account. That is a property of the relayer's willingness, **not** a guarantee of this specification: where no relayer will publish, the holder publishes from their own wallet and pays the network fee. The resulting record is identical either way.
+- When a sponsor pays, the holder needs no wallet, no tokens, and no account. That is a property of a funded deposit, **not** a guarantee of this specification: when the deposit runs dry or no one will carry the message, the holder publishes from their own wallet and pays the fee. The resulting record is identical either way.
 
 **Activation is not minting (normative).** Activation writes one record against an existing edition passport. It does not create a passport, and an implementation MUST NOT present activation and unit-passport minting (§20.10) as one action or imply that the cost properties of one apply to the other.
 

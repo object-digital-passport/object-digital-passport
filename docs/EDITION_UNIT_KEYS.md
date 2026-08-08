@@ -204,7 +204,12 @@ Rules:
 - **Anyone may publish**: the brand's server, a marketplace, a collector's club, any ODP-aware application minting from its own wallet, or the buyer's own wallet as the last-resort path.
 - **A signature can be held and published later** — offline for a year, from someone else's phone, after the brand is gone.
 - **Recorded once.** The first valid activation is written with its block timestamp; later submissions are no-ops returning the existing record.
-- **Gasless for the holder when a relayer publishes it** — no wallet, no tokens, no account in that path. If nobody will relay, the holder publishes from their own wallet and the record is identical. "Free" is therefore a property of *someone choosing to relay*, not a guarantee the protocol makes.
+- **Gasless for the holder when a sponsor pays** — no wallet, no tokens, no account in that path. If nobody will carry it, the holder publishes from their own wallet and the record is identical. "Free" is a property of a funded deposit, not a guarantee the protocol makes.
+- **A duplicate submission reverts.** Otherwise anyone holding one genuine code could replay the same valid signature forever: the record would never change and the fee would be charged every time, draining whoever pays. Reverting makes the duplicate fail in a dry run, before any money moves.
+
+**Sponsorship lives on-chain, not on a server.** A blockchain cannot send its own transactions — something off-chain has to sign and broadcast, and no design changes that. What can be decided is where the *rules* live.
+
+If an issuer covers activation fees through a server, the policy is invisible: it can quietly refuse one holder, favour some units, or simply disappear, and nobody outside can tell which happened. If it covers them through an on-chain **paymaster** (ERC-4337) funded by an on-chain deposit, the policy is public bytecode anyone can read, and the transport is the public bundler network rather than the brand's endpoint — the issuer funds the deposit but never stands between a holder and the chain. When the deposit runs dry, holders self-publish and nothing breaks.
 
 Because the message is fully specified by the spec, no agreement with anyone — brand or ODP — is required to become an activation point. This is what keeps the promise "the passports survive us" true for this feature and not only for the registry.
 
@@ -323,9 +328,9 @@ A naming note worth deciding early: this project is **Object** Digital Passport 
 | 14 | Outer carrier format | The spec fixes what must be **recoverable** (edition id + unit index, also in text), not the encoding. GS1 Digital Link is a documented future step, adoptable per print run at zero protocol cost |
 | 15 | Saying something went wrong afterwards | An append-only edition notice, surfaced on the edition **and** on every unit passport under it, never a verdict on an individual unit |
 | 16 | Code checksum and alphabet | First 25 bits of `SHA-256(payload)`; one global alphabet, never localized, with normalization specified before hashing |
+| 17 | Who pays for activation, and how | An **on-chain paymaster** (ERC-4337) with a funded deposit, carried by the public bundler network — not a brand server whose policy nobody can inspect. A duplicate submission reverts so no sponsor can be drained by replay |
 
 ## 11. Open questions
 
-1. **Relayer economics** — spam and griefing on a permissionless, gasless activation endpoint. Whoever runs a relayer pays for whatever it is asked to publish.
-2. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
-3. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
+1. **Contract shape** (implementation, not protocol): whether the unit surface lives in the v0.7 core or in a paired satellite, given the EIP-170 budget — see [`EIP170_STRATEGY.md`](EIP170_STRATEGY.md).
+2. **A corrected edition's link back to the flawed one.** §7a says the remedy after the window closes is a new edition plus a notice pointing at it. Whether that pointer should be a structured field rather than free text in the notice is unsettled.
