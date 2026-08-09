@@ -45,6 +45,17 @@ jobs:
           -s schema/passport-0.7.schema.json
           -d "schema/examples/0.7/*.json"
 
+  frontend-js:
+    name: web/backend JS unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: SPEC 0.7 read-layer tests
+        run: node web/backend/test/odp-contract-0.7.test.mjs
+
   slither:
     # crytic-compile cannot parse Hardhat 3 build-info (split output files),
     # so we compile straight through solc per entry contract instead.

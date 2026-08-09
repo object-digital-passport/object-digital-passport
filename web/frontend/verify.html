@@ -326,6 +326,61 @@ async function verifyMergeCounterfeitConcern(readContract, humanId, target) {
   } catch (e) {}
 }
 
+/**
+ * SPEC 0.7 §20.11 — edition and unit state, read from the paired ODPEditionUnits satellite.
+ *
+ * Facts only. Nothing here decides whether an object is genuine: an already-activated unit
+ * has two innocent readings (a cloned code, or an honest second-hand purchase), competing
+ * unit passports are reported unranked, and mint order is explicitly not a ranking.
+ *
+ * Mutates `target` with `unitState` and `unitKeySetRootStatus` when the passport carries a
+ * `unit_key_set` anchor; leaves `target` untouched on any pre-0.7 line.
+ */
+async function verifyMergeEditionUnits(readContract, humanId, passport, target) {
+  if (!readContract || !humanId || !target || typeof target !== "object") return;
+  try {
+    var gen = typeof odpContractGeneration === "number" ? odpContractGeneration : 0;
+    if (typeof odpEditionUnitsReadContract !== "function") return;
+    var units = odpEditionUnitsReadContract(readContract, NET, gen, readContract.provider || readContract.signer);
+    if (!units) return;
+
+    var unitIndex = verifyRequestedUnitIndex();
+    var state = await odpReadUnitState(units, humanId, unitIndex == null ? 0 : unitIndex);
+    if (!state || !state.open) return;
+
+    target.unitState = state;
+    target.unitIndexRequested = unitIndex;
+
+    // §20.3 — the root exists in the anchor and on-chain; a verifier MUST compare them.
+    var anchorRoot = null;
+    var list = passport && Array.isArray(passport.anchors) ? passport.anchors : [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].type === "unit_key_set" && list[i].data) {
+        anchorRoot = list[i].data.merkleRoot;
+        break;
+      }
+    }
+    target.unitKeySetRootStatus =
+      typeof odpCompareUnitKeySetRoot === "function"
+        ? odpCompareUnitKeySetRoot(anchorRoot, state.merkleRoot)
+        : "unknown";
+  } catch (e) {}
+}
+
+/** Unit index from the outer carrier (`?unit=` / `&u=`), or null when the page was opened without one. */
+function verifyRequestedUnitIndex() {
+  try {
+    var q = new URLSearchParams(window.location.search);
+    var raw = q.get("unit");
+    if (raw == null) raw = q.get("u");
+    if (raw == null) return null;
+    var n = Number(raw);
+    return Number.isInteger(n) && n >= 0 && n <= 4294967295 ? n : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 const DOC_ATTEST_WRITE_ABI = [
   {
     name: "attestExternalDocument",
@@ -1475,6 +1530,7 @@ async function verifyFromOdpBundleQuick(file) {
 
     let quickOpts = { odpFileName: file.name, odpBundleFile: file };
     await verifyMergeCounterfeitConcern(readContract, humanId, quickOpts);
+    await verifyMergeEditionUnits(readContract, humanId, p, quickOpts);
     Object.assign(quickOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
     render(humanId, rec, creator, p, proofs, dataStatus, readContract.address, quickOpts);
     queueMicrotask(() => {
@@ -1694,6 +1750,7 @@ async function verify() {
     }
 
     await verifyMergeCounterfeitConcern(readContract, humanId, verifyRenderOpts);
+    await verifyMergeEditionUnits(readContract, humanId, passport, verifyRenderOpts);
 
     Object.assign(verifyRenderOpts, await verifyFetchDelegationOpts(readContract, rec.creator));
     render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOn, verifyRenderOpts);
@@ -2377,6 +2434,47 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             ? `<div class="err-box" style="margin:0 0 14px;font-size:13px;line-height:1.55"><strong>Institutional authenticity concern</strong> — profile <span class="mono">${esc(String(renderOpts.counterfeitProver || ""))}</span> (P or M) raised a counterfeit-related flag. This is an institutional opinion, not a legal ruling.</div>`
             : ""
         }
+        ${(() => {
+          // SPEC 0.7 §20.11 — edition and unit state. Facts and timestamps only; no verdict,
+          // and the conflict box must be at least as prominent as any tier (§20.12).
+          const us = renderOpts && renderOpts.unitState;
+          if (!us || !us.open) return "";
+          const idx = renderOpts.unitIndexRequested;
+          const rootStatus = renderOpts.unitKeySetRootStatus;
+          const rows = [];
+
+          rows.push(`<div><strong>Production edition</strong> — ${esc(String(us.unitCount))} units in the registered key set.</div>`);
+
+          if (rootStatus === "mismatch") {
+            rows.push(`<div class="vbadge bad" style="margin-top:6px">Merkle root mismatch — the root in the passport does not match the one registered on-chain. Treat this edition as tampered or misconfigured.</div>`);
+          } else if (rootStatus === "match") {
+            rows.push(`<div style="margin-top:4px">Key-set root matches the passport anchor.</div>`);
+          } else if (rootStatus === "unregistered") {
+            rows.push(`<div style="margin-top:4px">No key set registered on-chain for this edition yet.</div>`);
+          }
+
+          if (us.editionRevocable) {
+            rows.push(`<div class="vbadge warn" style="margin-top:6px">No unit of this edition has been activated yet, so the issuer can still revoke the edition passport. That right closes permanently on the first activation.</div>`);
+          }
+
+          if (idx == null) {
+            rows.push(`<div style="margin-top:6px;opacity:.8">Open this page from a unit's own carrier (with <span class="mono">?unit=</span>) to see that unit's activation state.</div>`);
+          } else {
+            rows.push(`<div style="margin-top:8px"><strong>Unit #${esc(String(idx))}</strong></div>`);
+            if (us.activatedAt > 0) {
+              rows.push(`<div style="margin-top:4px">Activated ${esc(odpFormatDateTimeUtcDDMMYYYY(new Date(us.activatedAt * 1000)))}. A prior activation has more than one innocent reading — a copied code, or an honest second-hand purchase. This page reports the record; it does not judge the object.</div>`);
+            } else {
+              rows.push(`<div style="margin-top:4px">Not activated. This is the expected state of a unit whose protective layer is intact.</div>`);
+            }
+            if (us.passportConflict) {
+              rows.push(`<div class="err-box" style="margin:8px 0 0;font-size:13px;line-height:1.55"><strong>${esc(String(us.unitPassports.length))} passports exist for this unit.</strong> They are listed in mint order, which is <em>not</em> a ranking: ${us.unitPassports.map((x) => `<span class="mono">${esc(String(x))}</span>`).join(", ")}. The protocol surfaces the conflict and does not decide it.</div>`);
+            } else if (us.unitPassports.length === 1) {
+              rows.push(`<div style="margin-top:4px">Unit passport: <span class="mono">${esc(String(us.unitPassports[0]))}</span></div>`);
+            }
+          }
+
+          return `<div class="info neutral" style="font-size:12px;margin:0 0 14px;line-height:1.55;border-left:3px solid var(--accent);padding-left:10px">${rows.join("")}</div>`;
+        })()}
         ${(() => {
           const at = odpComputeAssuranceTier(rec, proofs, dataStatus, renderOpts);
           if (!at) return "";

@@ -140,6 +140,87 @@
     return new global.ethers.Contract(sat, odpCounterfeitConcernAbiFragments(), signer);
   }
 
+  // ── SPEC 0.7 §20 — edition unit keys ───────────────────────────────────────
+
+  function odpEditionUnitsAbiFragments() {
+    return [
+      {
+        name: "getEdition", type: "function", stateMutability: "view",
+        inputs: [{ name: "editionPassportId", type: "string" }],
+        outputs: [
+          { name: "merkleRoot", type: "bytes32" },
+          { name: "unitCount", type: "uint32" },
+          { name: "open", type: "bool" },
+          { name: "windowClosed", type: "bool" },
+        ],
+      },
+      {
+        name: "getActivation", type: "function", stateMutability: "view",
+        inputs: [{ name: "editionPassportId", type: "string" }, { name: "unitIndex", type: "uint32" }],
+        outputs: [{ name: "timestamp", type: "uint256" }, { name: "unitAddress", type: "address" }],
+      },
+      {
+        name: "getUnitPassports", type: "function", stateMutability: "view",
+        inputs: [{ name: "editionPassportId", type: "string" }, { name: "unitIndex", type: "uint32" }],
+        outputs: [{ name: "", type: "string[]" }],
+      },
+    ];
+  }
+
+  /** Read-only handle on the paired ODPEditionUnits satellite, or null when the line predates it. */
+  function odpEditionUnitsReadContract(mainContract, net, generation, providerOrSigner) {
+    if (!mainContract) return null;
+    if (typeof odpSupportsV07 === "function" && !odpSupportsV07(generation)) return null;
+    var sat = odpSatelliteAddress(net, "editionUnits");
+    if (!sat || !odpRegistryAddressesMatch(net.contract, mainContract.address)) return null;
+    if (!providerOrSigner || typeof global.ethers === "undefined") return null;
+    return new global.ethers.Contract(sat, odpEditionUnitsAbiFragments(), providerOrSigner);
+  }
+
+  /**
+   * SPEC §20.3 — the Merkle root exists twice: inside the `unit_key_set` anchor and
+   * registered on-chain. A verifier MUST compare them; a mismatch is a tampered or
+   * misconfigured edition, not a detail.
+   */
+  function odpCompareUnitKeySetRoot(anchorRoot, onChainRoot) {
+    if (!anchorRoot || !onChainRoot) return "unknown";
+    var a = String(anchorRoot).replace(/^sha256:/i, "").replace(/^0x/i, "").toLowerCase();
+    var b = String(onChainRoot).replace(/^0x/i, "").toLowerCase();
+    if (/^0+$/.test(b)) return "unregistered";
+    return a === b ? "match" : "mismatch";
+  }
+
+  /**
+   * SPEC §20.11 — the state a buyer can read before purchase, from the outer carrier alone.
+   * Reports facts only: no verdict, and mint order is not a ranking (§20.10, §20.11).
+   */
+  async function odpReadUnitState(unitsContract, editionPassportId, unitIndex) {
+    if (!unitsContract || editionPassportId == null || unitIndex == null) return null;
+    var ed = await unitsContract.getEdition(editionPassportId);
+    var out = {
+      merkleRoot: ed[0],
+      unitCount: Number(ed[1]),
+      open: !!ed[2],
+      windowClosed: !!ed[3],
+      // §20.13 — no unit activated yet, so the issuer may still revoke the edition.
+      editionRevocable: !!ed[2] && !ed[3],
+      activatedAt: 0,
+      unitAddress: null,
+      unitPassports: [],
+    };
+    if (!out.open) return out;
+    var act = await unitsContract.getActivation(editionPassportId, unitIndex);
+    out.activatedAt = Number(act[0]);
+    out.unitAddress = out.activatedAt > 0 ? act[1] : null;
+    try {
+      out.unitPassports = Array.from(await unitsContract.getUnitPassports(editionPassportId, unitIndex));
+    } catch (e) {
+      out.unitPassports = [];
+    }
+    out.passportConflict = out.unitPassports.length > 1;
+    return out;
+  }
+
   function odpSatelliteAddress(net, key) {
     if (!net || net[key] == null) return null;
     var d = String(net[key]).trim();
@@ -3553,6 +3634,10 @@
   global.odpSupportsContentClass = odpSupportsContentClass;
   global.odpSupportsV06 = odpSupportsV06;
   global.odpSupportsV07 = odpSupportsV07;
+  global.odpEditionUnitsAbiFragments = odpEditionUnitsAbiFragments;
+  global.odpEditionUnitsReadContract = odpEditionUnitsReadContract;
+  global.odpCompareUnitKeySetRoot = odpCompareUnitKeySetRoot;
+  global.odpReadUnitState = odpReadUnitState;
   global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;
