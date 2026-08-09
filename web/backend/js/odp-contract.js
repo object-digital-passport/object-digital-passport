@@ -44,6 +44,11 @@
     return generation >= 6;
   }
 
+  /** v0.7 line: the mint tuple gains `initialOwner` (SPEC 0.7 §20.10). */
+  function odpSupportsV07(generation) {
+    return generation >= 7;
+  }
+
   /**
    * Known Polygon mainnet v0.4 deployment whose ABI still used `humanId` (before redeploy with `passportId`).
    * New registry at another address with the same packed `CONTRACT_VERSION` uses `passportId`.
@@ -1126,20 +1131,22 @@
         { name: "verificationMethod", type: "uint8" },
         { name: "editionModel", type: "uint8" },
       ];
-      var v06MintTuple = {
-        name: "m",
-        type: "tuple",
-        components: [
-          { name: "core", type: "tuple", components: v06Core },
-          { name: "dataHash", type: "bytes32" },
-          { name: "dataUrl", type: "string" },
-          { name: "imageHash", type: "bytes32" },
-          { name: "imageUrl", type: "string" },
-          { name: "fileHash", type: "bytes32" },
-          { name: "anchorsHash", type: "bytes32" },
-          { name: "anchorTypesMask", type: "uint32" },
-        ],
-      };
+      var v06MintComponents = [
+        { name: "core", type: "tuple", components: v06Core },
+        { name: "dataHash", type: "bytes32" },
+        { name: "dataUrl", type: "string" },
+        { name: "imageHash", type: "bytes32" },
+        { name: "imageUrl", type: "string" },
+        { name: "fileHash", type: "bytes32" },
+        { name: "anchorsHash", type: "bytes32" },
+        { name: "anchorTypesMask", type: "uint32" },
+      ];
+      // SPEC 0.7 §20.10 — the initial owner is a mint input, so a mint can name
+      // someone other than the minting principal. `0x0` keeps the 0.6 behaviour.
+      if (odpSupportsV07(generation)) {
+        v06MintComponents = v06MintComponents.concat([{ name: "initialOwner", type: "address" }]);
+      }
+      var v06MintTuple = { name: "m", type: "tuple", components: v06MintComponents };
       var v06Suffix = [
         { name: "dataUrlIsFolderBase", type: "bool" },
         { name: "mintOnBehalfOfCreatorId", type: "string" },
@@ -3545,6 +3552,7 @@
   global.odpSupportsV03 = odpSupportsV03;
   global.odpSupportsContentClass = odpSupportsContentClass;
   global.odpSupportsV06 = odpSupportsV06;
+  global.odpSupportsV07 = odpSupportsV07;
   global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;

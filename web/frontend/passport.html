@@ -140,6 +140,9 @@ const ODP_ANCHOR_BITS = {
   numbered_seal: 512,
   fingerprint: 1024,
   dna: 2048,
+  // SPEC 0.7 §20.3/§20.4 — B profiles only; registered through ODPEditionUnits, not here.
+  unit_key_set: 4096,
+  unit_variant_commit: 8192,
 };
 
 
@@ -4302,6 +4305,11 @@ async function executeMint() {
       anchorsHash: anchorsHash_,
       anchorTypesMask: anchorTypesMask_,
     };
+    // SPEC 0.7 §20.10 — the mint tuple carries the initial owner on generation 7+.
+    // Zero keeps the 0.6 meaning: the minting principal owns what it mints.
+    if (typeof odpSupportsV07 === "function" && odpSupportsV07(odpContractGeneration)) {
+      v06Inputs.initialOwner = "0x0000000000000000000000000000000000000000";
+    }
     const mintFn =
       objType === "physical" ? contract.mintPhysical : objType === "mixed" ? contract.mintMixed : contract.mintDigital;
     const tx = await mintFn(v06Inputs, dataUrlIsFolderBase, "", mintTxOpts());
