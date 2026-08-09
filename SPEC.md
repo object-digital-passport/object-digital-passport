@@ -1329,12 +1329,46 @@ to appear as TAMPERED on other implementations.
 dataHash = SHA-256( minified passport.json bytes )
 ```
 
-1. Normalize all string values to Unicode NFC
+1. Normalize all string **values** to Unicode NFC. Keys are left as written
 2. Construct `passport.json` with all fields
-3. Sort all keys alphabetically at every nesting level
+3. Sort all keys at every nesting level, by UTF-16 code unit
 4. Minify: no whitespace outside string values
-5. Encode as UTF-8 bytes
-6. Compute SHA-256 → store as `bytes32`
+5. Serialize per the rules below
+6. Encode as UTF-8 bytes
+7. Compute SHA-256 → store as `bytes32`
+
+#### Serialization rules (normative)
+
+Steps 1–4 leave two things open that implementations do in fact disagree on:
+how a string is escaped, and how a number is rendered. Both change the bytes and
+therefore the hash, which is anchored on chain and immutable (§8) — so a
+disagreement here produces passports another implementation can never verify,
+with no way to correct them after the mint.
+
+The rules are those of ECMAScript `JSON.stringify`, which is what the reference
+verifier (`web/frontend/verify.html`) applies:
+
+- **Strings** escape only `"`, `\` and the C0 controls — `\b` `\t` `\n` `\f`
+  `\r`, and `\u00XX` for the rest. `/` is **not** escaped. Non-ASCII travels as
+  literal UTF-8 and is **never** written as `\uXXXX`.
+- **Numbers** use the ECMAScript `Number::toString` form: the shortest
+  representation that round-trips, no trailing `.0` on an integral value, no `+`
+  on a positive exponent. An integer is written as an integer.
+- **Key order** is by UTF-16 code unit — the order ECMAScript
+  `Array.prototype.sort` gives the key strings, not a locale-aware collation.
+
+Two consequences worth stating outright, because both have produced
+non-verifiable passports in practice:
+
+- A title such as `Портрет 1/25` must hash with a bare `/`. Foundation's
+  `JSONSerialization` writes `\/` and will not reproduce the hash.
+- A dimension of `0.1` must serialize as `0.1`. A serializer that emits 17
+  significant digits renders it `0.10000000000000001`.
+
+Conformance vectors — an input document, its exact canonical bytes and the
+resulting hashes — are in [`schema/vectors/`](schema/vectors/README.md). Compare
+bytes before comparing hashes: a byte diff localizes the fault, a hash mismatch
+only reports that there is one.
 
 ### `anchorsHash`
 
