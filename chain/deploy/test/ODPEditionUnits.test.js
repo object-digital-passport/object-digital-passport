@@ -361,6 +361,150 @@ describe("ODPEditionUnits — SPEC 0.7 §20", function () {
     });
   });
 
+  describe("unit passports (§20.10)", function () {
+    async function activatedUnit(index = 0, count = 4) {
+      const ctx = await openedEdition(count);
+      const sig = await sign(ctx.units, ctx.wallets[index], ctx.editionId, index);
+      await (await ctx.units.activate(ctx.editionId, index, proofFor(ctx.ed.levels, index), sig)).wait();
+      return ctx;
+    }
+
+    async function signMint(units, wallet, editionId, index, owner) {
+      const payload = await units.mintPayloadHash(editionId, index, owner);
+      return wallet.signMessage(ethers.getBytes(payload));
+    }
+
+    async function mintFor(ctx, index, owner, payer, n = 50) {
+      const sig = await signMint(ctx.units, ctx.wallets[index], ctx.editionId, index, owner);
+      const tx = await ctx.units
+        .connect(payer)
+        .mintUnitPassport(
+          ctx.editionId,
+          index,
+          owner,
+          proofFor(ctx.ed.levels, index),
+          sig,
+          await physicalInputs(n),
+          false,
+        );
+      await tx.wait();
+      const ids = await ctx.units.getUnitPassports(ctx.editionId, index);
+      return ids[ids.length - 1];
+    }
+
+    it("the key names the owner and anyone may pay", async function () {
+      const ctx = await activatedUnit(0);
+      const buyer = ctx.stranger;
+      const id = await mintFor(ctx, 0, buyer.address, ctx.sponsor);
+
+      const header = await ctx.reg.getPassportHeader(id);
+      expect(header.owner).to.equal(buyer.address);        // named in the signature
+      expect(header.creator).to.equal(ctx.brand.address);  // the edition's issuer
+      expect(header.owner).to.not.equal(ctx.sponsor.address); // the payer got nothing
+    });
+
+    it("a holder with no wallet can name the unit address itself (bearer path)", async function () {
+      const ctx = await activatedUnit(1);
+      const id = await mintFor(ctx, 1, ctx.wallets[1].address, ctx.sponsor);
+      const header = await ctx.reg.getPassportHeader(id);
+      expect(header.owner).to.equal(ctx.wallets[1].address);
+    });
+
+    it("rejects a unit that was never activated (EC 128)", async function () {
+      const ctx = await openedEdition(3);
+      const sig = await signMint(ctx.units, ctx.wallets[2], ctx.editionId, 2, ctx.stranger.address);
+      await expect(
+        ctx.units.mintUnitPassport(
+          ctx.editionId, 2, ctx.stranger.address, proofFor(ctx.ed.levels, 2), sig, await physicalInputs(60), false,
+        ),
+      )
+        .to.be.revertedWithCustomError(ctx.units, "EC")
+        .withArgs(128n);
+    });
+
+    it("blocks a repeat for the same owner (EC 129) but allows a competing one", async function () {
+      const ctx = await activatedUnit(0);
+      const first = await mintFor(ctx, 0, ctx.stranger.address, ctx.sponsor, 61);
+
+      const sig = await signMint(ctx.units, ctx.wallets[0], ctx.editionId, 0, ctx.stranger.address);
+      await expect(
+        ctx.units.mintUnitPassport(
+          ctx.editionId, 0, ctx.stranger.address, proofFor(ctx.ed.levels, 0), sig, await physicalInputs(62), false,
+        ),
+      )
+        .to.be.revertedWithCustomError(ctx.units, "EC")
+        .withArgs(129n);
+
+      // ADR-0003: a second owner is allowed — no lock-out of the genuine holder.
+      const second = await mintFor(ctx, 0, ctx.sponsor.address, ctx.sponsor, 63);
+      expect(second).to.not.equal(first);
+      const all = await ctx.units.getUnitPassports(ctx.editionId, 0);
+      expect(all.length).to.equal(2);
+      expect(await ctx.units.hasUnitPassportFor(ctx.editionId, 0, ctx.stranger.address)).to.equal(true);
+    });
+
+    it("a signature for one owner cannot mint to another (EC 123)", async function () {
+      const ctx = await activatedUnit(0);
+      const sig = await signMint(ctx.units, ctx.wallets[0], ctx.editionId, 0, ctx.stranger.address);
+      await expect(
+        ctx.units.mintUnitPassport(
+          ctx.editionId, 0, ctx.sponsor.address, proofFor(ctx.ed.levels, 0), sig, await physicalInputs(64), false,
+        ),
+      )
+        .to.be.revertedWithCustomError(ctx.units, "EC")
+        .withArgs(123n);
+    });
+
+    it("rejects a key outside the run (EC 123) and a zero owner (EC 130)", async function () {
+      const ctx = await activatedUnit(0);
+      const outsider = new ethers.Wallet(ethers.keccak256(ethers.toUtf8Bytes("outsider-mint")));
+      const badSig = await signMint(ctx.units, outsider, ctx.editionId, 0, ctx.stranger.address);
+      await expect(
+        ctx.units.mintUnitPassport(
+          ctx.editionId, 0, ctx.stranger.address, proofFor(ctx.ed.levels, 0), badSig, await physicalInputs(65), false,
+        ),
+      )
+        .to.be.revertedWithCustomError(ctx.units, "EC")
+        .withArgs(123n);
+
+      const zeroSig = await signMint(ctx.units, ctx.wallets[0], ctx.editionId, 0, ethers.ZeroAddress);
+      await expect(
+        ctx.units.mintUnitPassport(
+          ctx.editionId, 0, ethers.ZeroAddress, proofFor(ctx.ed.levels, 0), zeroSig, await physicalInputs(66), false,
+        ),
+      )
+        .to.be.revertedWithCustomError(ctx.units, "EC")
+        .withArgs(130n);
+    });
+
+    it("only the paired satellite may reach the core mint (EC 117)", async function () {
+      const ctx = await activatedUnit(0);
+      await expect(
+        ctx.reg
+          .connect(ctx.brand)
+          .mintUnitPassport(await physicalInputs(67), ctx.editionId, ctx.stranger.address, false),
+      )
+        .to.be.revertedWithCustomError(ctx.reg, "EC")
+        .withArgs(117n);
+    });
+
+    it("the unit passport carries the minter's own anchors, not the edition's", async function () {
+      const ctx = await activatedUnit(0);
+      const own = await physicalInputs(68, { anchorsHash: seededHash("my-own-unit", 1) });
+      const sig = await signMint(ctx.units, ctx.wallets[0], ctx.editionId, 0, ctx.stranger.address);
+      await (
+        await ctx.units.mintUnitPassport(
+          ctx.editionId, 0, ctx.stranger.address, proofFor(ctx.ed.levels, 0), sig, own, false,
+        )
+      ).wait();
+      const ids = await ctx.units.getUnitPassports(ctx.editionId, 0);
+      const media = await ctx.reg.getPassportMedia(ids[0]);
+      expect(media.anchorsHash).to.equal(seededHash("my-own-unit", 1));
+      const editionMedia = await ctx.reg.getPassportMedia(ctx.editionId);
+      expect(media.anchorsHash).to.not.equal(editionMedia.anchorsHash);
+    });
+  });
+
   describe("the tree itself", function () {
     it("the contract's leaf matches the off-chain construction", async function () {
       const { units, wallets } = await openedEdition(2);

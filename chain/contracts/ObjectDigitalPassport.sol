@@ -369,6 +369,46 @@ contract ObjectDigitalPassport {
         return _revocationLocked[passportId];
     }
 
+    /**
+     * SPEC 0.7 §20.10 — mint a passport for one unit of an edition.
+     *
+     * The fourth core hook, and the only mint path whose authority is **not** a registered
+     * profile. `_resolveMintPrincipal` resolves a principal from `msg.sender` (or `tx.origin`
+     * behind the extension router) and requires it to be a creator or a confirmed mint agent;
+     * a unit-key signature is neither, and the sender here is deliberately a courier that
+     * gains nothing (§20.9). So the units satellite vouches instead: it has already verified
+     * a signature over `(edition, unitIndex, unitOwner)` against the edition's Merkle root
+     * before calling.
+     *
+     * `creator` becomes the edition's issuer, `owner` the address the unit key named.
+     *
+     * Monthly mint caps are deliberately **not** applied. They exist to stop a wallet
+     * spraying arbitrary records; here every mint costs the caller a distinct printed secret
+     * from a committed set, which is the tighter bound, and charging a popular drop against
+     * its issuer's cap would let buyers exhaust the issuer's own ability to mint.
+     */
+    function mintUnitPassport(
+        PassportMintInputs calldata m,
+        string calldata editionPassportId,
+        address unitOwner,
+        bool dataUrlIsFolderBase
+    ) external returns (string memory passportId) {
+        if (!(editionUnits != address(0) && msg.sender == editionUnits)) revert EC(117);
+        if (frozen) revert EC(58);
+        if (!(unitOwner != address(0))) revert EC(22);
+
+        Passport storage ed = _passports[editionPassportId];
+        if (!(ed.creator != address(0))) revert EC(12);
+        if (!(!ed.revoked)) revert EC(11);
+
+        ODPPassportLib.validatePhysicalMintInputs(m);
+        _requireUtcYearMonth(m.core.year, m.core.month);
+
+        PassportMintInputs memory mm = m;
+        mm.initialOwner = unitOwner;
+        return _mintCommit(ed.creatorId, OBJECT_PHYSICAL, mm, dataUrlIsFolderBase, ed.creator, address(0));
+    }
+
     // ─── Creator Registry ─────────────────────────────────────────────────────
 
     /**

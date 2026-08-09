@@ -1,5 +1,7 @@
 # Unit-passport minting needs a fourth core hook, and is deferred
 
+*Resolved by [ADR-0010](0010-the-fourth-hook-and-uniqueness-per-unit-owner.md) — the hook now exists.*
+
 [ADR-0008](0008-unit-surface-is-a-satellite-with-three-core-hooks.md) listed the lazy unit-passport mint (SPEC §20.10) among the things the satellite would handle, "routed into the core mint the way `ODPExtensionMintRouter` already routes". Implementing `ODPEditionUnits` showed that is wrong. The satellite ships without it; §20.10 remains normative and unimplemented, and closing the gap needs a fourth core hook designed on its own terms.
 
 ## Why the router pattern does not carry over

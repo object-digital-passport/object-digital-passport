@@ -326,7 +326,7 @@ Not a protocol decision, but it stopped being a free choice once the existing co
 
 All three are small. The v0.6 core is 13 309 bytes against the 24 576 limit, so bytes were never the constraint.
 
-**Reference implementation status.** `chain/contracts/ODPEditionUnits.sol` implements `openEdition`, `activate`, and the reads; the three core hooks are in `ObjectDigitalPassport.sol`, which now mints `CONTRACT_VERSION = 7`. The lazy unit-passport mint of §6 is **specified but not implemented**: the core resolves a minting principal from a registered profile, and a unit-key signature is not one, so it needs a fourth hook — a mint whose authority is a signature over `(edition, unit index, owner)` verified against the edition's root. [ADR-0009](adr/0009-unit-passport-minting-needs-a-fourth-core-hook.md) records why the extension-router precedent did not carry over. Everything a buyer needs before purchase works without it.
+**Reference implementation status.** `chain/contracts/ODPEditionUnits.sol` implements `openEdition`, `activate`, `mintUnitPassport`, and the reads; `ObjectDigitalPassport.sol` carries four hooks and mints `CONTRACT_VERSION = 7`. The fourth — a mint whose authority is a unit-key signature rather than a registered profile — is what ADR-0008 got wrong and [ADR-0010](adr/0010-the-fourth-hook-and-uniqueness-per-unit-owner.md) settles. 89 tests pass; the registry is 16 194 bytes of the 24 576 limit, the satellite 6 642.
 
 One detail worth knowing early: the Merkle root has to be registered on-chain as a plain value. `anchorsHash` commits the whole anchors array as a single hash, which no contract can verify a proof against. So the root exists twice — in the anchor and in the satellite — and a verifier compares them.
 
@@ -353,6 +353,7 @@ One detail worth knowing early: the Merkle root has to be registered on-chain as
 | 17 | Who pays for activation, and how | An **on-chain paymaster** (ERC-4337) with a funded deposit, carried by the public bundler network — not a brand server whose policy nobody can inspect. A duplicate submission reverts so no sponsor can be drained by replay |
 | 18 | Pointer from a superseded edition to its replacement | **Prose only.** No structured field: a successor governs later production and does not invalidate units already in the field, and a machine-readable pointer would be rendered as exactly that verdict |
 | 19 | Where the code lives | A satellite for everything except three core hooks: explicit `initialOwner` at mint, a one-way revocation lock, and event kind 8. Not free-form — the current mint hardcodes the owner |
+| 20 | Bounding repeat unit-passport mints | Uniqueness per `(unit, owner)`, never per unit. Blocks a repeat for an owner that already has one; a genuine holder names their own address, so nobody is locked out. Monthly caps do not apply to this path |
 
 ## 11. Open questions
 

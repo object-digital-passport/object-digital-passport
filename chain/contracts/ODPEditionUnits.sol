@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "./ODPErrors.sol";
+import { PassportMintInputs } from "./ODPPassportTypes.sol";
 
 /**
  * Satellite: edition unit keys and activation — SPEC 0.7 §20.
@@ -46,6 +47,12 @@ interface IODPRegistryForUnits {
     function getPassportHeader(string calldata passportId) external view returns (PassportHeaderView memory);
     function getCreator(string calldata creatorId) external view returns (CreatorRecord memory);
     function lockEditionRevocation(string calldata passportId) external;
+    function mintUnitPassport(
+        PassportMintInputs calldata m,
+        string calldata editionPassportId,
+        address unitOwner,
+        bool dataUrlIsFolderBase
+    ) external returns (string memory passportId);
 }
 
 contract ODPEditionUnits {
@@ -71,8 +78,19 @@ contract ODPEditionUnits {
     mapping(string => Edition) private _editions;
     mapping(bytes32 => Activation) private _activations;
 
+    /// keccak(edition, unitIndex, owner) — one unit passport per owner, not one per unit.
+    mapping(bytes32 => bool) private _mintedForOwner;
+    /// keccak(edition, unitIndex) — every unit passport minted for that unit, in mint order.
+    mapping(bytes32 => string[]) private _unitPassports;
+
     event EditionOpened(string editionPassportId, bytes32 merkleRoot, uint32 unitCount, address indexed issuer);
     event UnitActivated(string editionPassportId, uint32 indexed unitIndex, address indexed unitAddress, uint256 timestamp);
+    event UnitPassportMinted(
+        string editionPassportId,
+        uint32 indexed unitIndex,
+        address indexed unitOwner,
+        string passportId
+    );
 
     constructor(address registry_) {
         odpRegistry = IODPRegistryForUnits(registry_);
@@ -141,7 +159,7 @@ contract ODPEditionUnits {
         bytes32 slot = _slot(editionPassportId, unitIndex);
         if (_activations[slot].timestamp != 0) revert EC(124);
 
-        address unitAddress = _recoverUnitAddress(editionPassportId, unitIndex, signature);
+        address unitAddress = _recoverSigner(activationPayloadHash(editionPassportId, unitIndex), signature);
         if (!_proves(ed.merkleRoot, proof, unitIndex, unitAddress)) revert EC(123);
 
         _activations[slot] = Activation({ timestamp: uint64(block.timestamp), unitAddress: unitAddress });
@@ -153,6 +171,55 @@ contract ODPEditionUnits {
         }
 
         emit UnitActivated(editionPassportId, unitIndex, unitAddress, block.timestamp);
+    }
+
+    // ─── Unit passports (§20.10) ──────────────────────────────────────────────
+
+    /**
+     * SPEC §20.10 — lazily mint a passport for one unit, owned by whoever the unit key names.
+     *
+     * The key names the owner and anyone may pay: the owner address is inside the signed
+     * message, so a buyer with a wallet mints to themselves, an issuer's service mints to the
+     * buyer rather than to itself, and a holder with no wallet names the unit address and
+     * keeps the bearer model. `msg.sender` confers nothing.
+     *
+     * Uniqueness is per `(unit, owner)`, never per unit. A rule of one-passport-per-unit
+     * would hand whoever mints first — including the holder of a cloned code — the power to
+     * lock the genuine holder out permanently, so competing passports are allowed and
+     * surfaced instead (§20.11). What is blocked is only re-minting for the same owner.
+     */
+    function mintUnitPassport(
+        string calldata editionPassportId,
+        uint32 unitIndex,
+        address unitOwner,
+        bytes32[] calldata proof,
+        bytes calldata signature,
+        PassportMintInputs calldata m,
+        bool dataUrlIsFolderBase
+    ) external returns (string memory passportId) {
+        Edition storage ed = _editions[editionPassportId];
+        if (!ed.open) revert EC(118);
+        if (!(unitIndex < ed.unitCount)) revert EC(122);
+        if (!(unitOwner != address(0))) revert EC(130);
+
+        // §20.10 — a unit passport presupposes a first use; there is no minting an unopened unit.
+        if (_activations[_slot(editionPassportId, unitIndex)].timestamp == 0) revert EC(128);
+
+        bytes32 ownerSlot = keccak256(abi.encodePacked(editionPassportId, unitIndex, unitOwner));
+        if (_mintedForOwner[ownerSlot]) revert EC(129);
+
+        address unitAddress = _recoverSigner(
+            mintPayloadHash(editionPassportId, unitIndex, unitOwner),
+            signature
+        );
+        if (!_proves(ed.merkleRoot, proof, unitIndex, unitAddress)) revert EC(123);
+
+        passportId = odpRegistry.mintUnitPassport(m, editionPassportId, unitOwner, dataUrlIsFolderBase);
+
+        _mintedForOwner[ownerSlot] = true;
+        _unitPassports[_slot(editionPassportId, unitIndex)].push(passportId);
+
+        emit UnitPassportMinted(editionPassportId, unitIndex, unitOwner, passportId);
     }
 
     // ─── Reads ────────────────────────────────────────────────────────────────
@@ -176,6 +243,23 @@ contract ODPEditionUnits {
         return _activations[_slot(editionPassportId, unitIndex)].timestamp != 0;
     }
 
+    /**
+     * Every unit passport minted for this unit, in mint order. More than one is not an error
+     * (§20.11): a verifier reports them all, unranked and without a verdict, and mint order
+     * is explicitly not a ranking.
+     */
+    function getUnitPassports(string calldata editionPassportId, uint32 unitIndex)
+        external view returns (string[] memory)
+    {
+        return _unitPassports[_slot(editionPassportId, unitIndex)];
+    }
+
+    function hasUnitPassportFor(string calldata editionPassportId, uint32 unitIndex, address unitOwner)
+        external view returns (bool)
+    {
+        return _mintedForOwner[keccak256(abi.encodePacked(editionPassportId, unitIndex, unitOwner))];
+    }
+
     /// The message a unit key signs (§20.9), exposed so wallets and tools agree byte-for-byte.
     function activationPayloadHash(string calldata editionPassportId, uint32 unitIndex)
         public view returns (bytes32)
@@ -191,6 +275,23 @@ contract ODPEditionUnits {
         );
     }
 
+    /// The message a unit key signs to authorize a mint (§20.10); `unitOwner` is inside it,
+    /// which is what lets the payer and the owner be different parties.
+    function mintPayloadHash(string calldata editionPassportId, uint32 unitIndex, address unitOwner)
+        public view returns (bytes32)
+    {
+        return keccak256(
+            abi.encodePacked(
+                "ODP-UNIT-MINT-v1",
+                uint256(block.chainid),
+                address(this),
+                editionPassportId,
+                unitIndex,
+                unitOwner
+            )
+        );
+    }
+
     /// SPEC §20.3 leaf: `SHA-256( uint32be(index) || address20 )`.
     function unitLeaf(uint32 unitIndex, address unitAddress) public pure returns (bytes32) {
         return sha256(abi.encodePacked(unitIndex, unitAddress));
@@ -202,11 +303,7 @@ contract ODPEditionUnits {
         return keccak256(abi.encodePacked(editionPassportId, unitIndex));
     }
 
-    function _recoverUnitAddress(
-        string calldata editionPassportId,
-        uint32 unitIndex,
-        bytes calldata signature
-    ) private view returns (address) {
+    function _recoverSigner(bytes32 payloadHash, bytes calldata signature) private pure returns (address) {
         if (!(signature.length == 65)) revert EC(125);
         bytes32 r;
         bytes32 s;
@@ -221,9 +318,7 @@ contract ODPEditionUnits {
         if (v < 27) v += 27;
         if (!(v == 27 || v == 28)) revert EC(125);
 
-        bytes32 digest = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", activationPayloadHash(editionPassportId, unitIndex))
-        );
+        bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", payloadHash));
         address signer = ecrecover(digest, v, r, s);
         if (!(signer != address(0))) revert EC(125);
         return signer;

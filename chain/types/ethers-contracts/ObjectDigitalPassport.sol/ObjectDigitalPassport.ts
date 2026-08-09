@@ -43,7 +43,7 @@ export declare namespace ObjectDigitalPassport {
     }
 
   export interface ObjectDigitalPassportInterface extends Interface {
-    getFunction(nameOrSignature: "CONTRACT_VERSION" | "deployer" | "editionUnits" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "isRevocationLocked" | "lockEditionRevocation" | "mintDigital" | "mintMixed" | "mintPhysical" | "recordPassportEvent" | "registerCreator" | "revokePassport" | "setEditionUnits" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
+    getFunction(nameOrSignature: "CONTRACT_VERSION" | "deployer" | "editionUnits" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "isRevocationLocked" | "lockEditionRevocation" | "mintDigital" | "mintMixed" | "mintPhysical" | "mintUnitPassport" | "recordPassportEvent" | "registerCreator" | "revokePassport" | "setEditionUnits" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
 
     getEvent(nameOrSignatureOrTopic: "CreatorRegistered" | "PassportEventRecorded" | "PassportMinted" | "PassportRevoked" | "PassportTransferred" | "PassportUrlsUpdated" | "RegistryFrozen"): EventFragment;
 
@@ -65,6 +65,7 @@ encodeFunctionData(functionFragment: 'lockEditionRevocation', values: [string]):
 encodeFunctionData(functionFragment: 'mintDigital', values: [PassportMintInputsStruct, boolean, string]): string;
 encodeFunctionData(functionFragment: 'mintMixed', values: [PassportMintInputsStruct, boolean, string]): string;
 encodeFunctionData(functionFragment: 'mintPhysical', values: [PassportMintInputsStruct, boolean, string]): string;
+encodeFunctionData(functionFragment: 'mintUnitPassport', values: [PassportMintInputsStruct, string, AddressLike, boolean]): string;
 encodeFunctionData(functionFragment: 'recordPassportEvent', values: [string, BigNumberish, BigNumberish, string, BytesLike, string]): string;
 encodeFunctionData(functionFragment: 'registerCreator', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'revokePassport', values: [string, BytesLike]): string;
@@ -93,6 +94,7 @@ decodeFunctionResult(functionFragment: 'lockEditionRevocation', data: BytesLike)
 decodeFunctionResult(functionFragment: 'mintDigital', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintMixed', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintPhysical', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'mintUnitPassport', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'recordPassportEvent', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'registerCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'revokePassport', data: BytesLike): Result;
@@ -367,6 +369,14 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
+    mintUnitPassport: TypedContractMethod<
+      [m: PassportMintInputsStruct, editionPassportId: string, unitOwner: AddressLike, dataUrlIsFolderBase: boolean, ],
+      [string],
+      'nonpayable'
+    >
+    
+
+    
     recordPassportEvent: TypedContractMethod<
       [passportId: string, kind: BigNumberish, value: BigNumberish, note: string, attachmentHash: BytesLike, attachmentUrl: string, ],
       [void],
@@ -528,6 +538,11 @@ getFunction(nameOrSignature: 'mintMixed'): TypedContractMethod<
     >;
 getFunction(nameOrSignature: 'mintPhysical'): TypedContractMethod<
       [m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, mintOnBehalfOfCreatorId: string, ],
+      [string],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'mintUnitPassport'): TypedContractMethod<
+      [m: PassportMintInputsStruct, editionPassportId: string, unitOwner: AddressLike, dataUrlIsFolderBase: boolean, ],
       [string],
       'nonpayable'
     >;

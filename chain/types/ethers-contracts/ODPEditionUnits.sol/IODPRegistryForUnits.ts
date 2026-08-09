@@ -4,6 +4,16 @@
 import type { BaseContract, BigNumberish, BytesLike, FunctionFragment, Result, Interface, AddressLike, ContractRunner, ContractMethod, Listener } from "ethers"
 import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, TypedListener, TypedContractMethod } from "../common.js"
   
+    export type PassportCoreMintInputsStruct = {year: BigNumberish, month: BigNumberish, title: string, authorName: string, shortDescription: string, domain: string, contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish}
+
+    export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint] & {year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint }
+  
+
+    export type PassportMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, fileHash: BytesLike, anchorsHash: BytesLike, anchorTypesMask: BigNumberish, initialOwner: AddressLike}
+
+    export type PassportMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint, initialOwner: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint, initialOwner: string }
+  
+
 export declare namespace IODPRegistryForUnits {
       
     export type CreatorRecordStruct = {creatorId: string, wallet: AddressLike, typePrefix: BytesLike, timestamp: BigNumberish}
@@ -18,17 +28,19 @@ export declare namespace IODPRegistryForUnits {
     }
 
   export interface IODPRegistryForUnitsInterface extends Interface {
-    getFunction(nameOrSignature: "getCreator" | "getPassportHeader" | "lockEditionRevocation"): FunctionFragment;
+    getFunction(nameOrSignature: "getCreator" | "getPassportHeader" | "lockEditionRevocation" | "mintUnitPassport"): FunctionFragment;
 
     
 
     encodeFunctionData(functionFragment: 'getCreator', values: [string]): string;
 encodeFunctionData(functionFragment: 'getPassportHeader', values: [string]): string;
 encodeFunctionData(functionFragment: 'lockEditionRevocation', values: [string]): string;
+encodeFunctionData(functionFragment: 'mintUnitPassport', values: [PassportMintInputsStruct, string, AddressLike, boolean]): string;
 
     decodeFunctionResult(functionFragment: 'getCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getPassportHeader', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'lockEditionRevocation', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'mintUnitPassport', data: BytesLike): Result;
   }
 
   
@@ -90,6 +102,14 @@ decodeFunctionResult(functionFragment: 'lockEditionRevocation', data: BytesLike)
     >
     
 
+    
+    mintUnitPassport: TypedContractMethod<
+      [m: PassportMintInputsStruct, editionPassportId: string, unitOwner: AddressLike, dataUrlIsFolderBase: boolean, ],
+      [string],
+      'nonpayable'
+    >
+    
+
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
@@ -106,6 +126,11 @@ getFunction(nameOrSignature: 'getPassportHeader'): TypedContractMethod<
 getFunction(nameOrSignature: 'lockEditionRevocation'): TypedContractMethod<
       [passportId: string, ],
       [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'mintUnitPassport'): TypedContractMethod<
+      [m: PassportMintInputsStruct, editionPassportId: string, unitOwner: AddressLike, dataUrlIsFolderBase: boolean, ],
+      [string],
       'nonpayable'
     >;
 

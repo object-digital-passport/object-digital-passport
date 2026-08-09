@@ -2266,13 +2266,17 @@ signed by unitKey_i (EIP-191 personal-sign envelope)
 ```
 
 - The contract MUST set the initial owner to `ownerAddress` recovered from the signed message, and MUST NOT derive ownership from `msg.sender`. As in §20.9, the submitter is a courier: it pays the fee and gains nothing.
+- The mint MUST be authorized by the unit-key signature and by a Merkle proof for the same index, exactly as activation is. The authority is possession of the printed secret, never a registered profile.
+- **Monthly mint caps MUST NOT be applied to this path.** Caps exist to stop a wallet spraying arbitrary records; here every mint costs the caller a distinct printed secret from a committed set, which binds abuse more tightly, and charging a drop against its issuer's cap would let buyers exhaust the issuer's own ability to mint.
 - `ownerAddress` MUST NOT be the zero address. It MAY be the unit address itself — that is the **bearer** path, for a holder who wants no wallet, and an interface SHOULD offer it as the default when no wallet is connected.
 - **Uniqueness per unit MUST NOT be enforced.** More than one unit passport MAY exist for the same `(edition, unit index)`, each with its own owner and its own anchors. A verifier MUST surface every one of them (§20.11).
+- **Uniqueness per `(edition, unit index, ownerAddress)` MUST be enforced.** A repeat mint naming an owner that already holds a unit passport for that unit MUST revert. This bounds re-minting without locking anyone out: the genuine holder names their own address, which no competing minter has claimed.
 
   This is deliberate and follows the position this specification already takes on duplicate passports. A uniqueness rule blocks only exact duplication while handing an attacker a first-to-register weapon: whoever mints first — including the holder of a cloned code — would permanently lock the holder of the genuine unit out of ever obtaining a passport for it. Surfacing a conflict is recoverable; a lock-out is not.
 - A unit passport MUST NOT be minted for a unit with no activation record (§20.9). An implementation MAY perform the activation and the mint atomically in one transaction when both signatures are supplied.
 - The owner MAY transfer the unit passport afterwards by the ordinary `transferPassport` path; a bearer-owned passport is transferred by signing with the unit key.
 - Minting is **lazy**: a unit passport is created only when someone needs one, never pre-minted for the whole run.
+- A unit passport MUST be a `physical` passport in this revision; the object it identifies is one item of a production run.
 
 Separating payer from owner is what makes the common cases expressible in one transaction: a buyer with a wallet mints and owns directly; an issuer's service can mint **to the buyer** rather than to itself; a holder without a wallet mints to the unit address and keeps the bearer model. It also inherits the conflict semantics of §20.9 — whoever presents a valid unit-key signature first names the owner, and a cloned code produces a visible conflict that the protocol surfaces without adjudicating.
 - The unit passport's own `anchors[]` are supplied by whoever mints it and describe **that unit** — the owner's own photographs, its marks, its condition. Inherited edition anchors MUST NOT be presented as unit-level identification.

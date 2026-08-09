@@ -4,17 +4,30 @@
 import type { BaseContract, BigNumberish, BytesLike, FunctionFragment, Result, Interface, EventFragment, AddressLike, ContractRunner, ContractMethod, Listener } from "ethers"
 import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, TypedLogDescription, TypedListener, TypedContractMethod } from "../common.js"
   
+    export type PassportCoreMintInputsStruct = {year: BigNumberish, month: BigNumberish, title: string, authorName: string, shortDescription: string, domain: string, contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish}
+
+    export type PassportCoreMintInputsStructOutput = [year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint] & {year: bigint, month: bigint, title: string, authorName: string, shortDescription: string, domain: string, contentClass: bigint, lifecycleStatus: bigint, aiStatus: bigint, verificationMethod: bigint, editionModel: bigint }
+  
+
+    export type PassportMintInputsStruct = {core: PassportCoreMintInputsStruct, dataHash: BytesLike, dataUrl: string, imageHash: BytesLike, imageUrl: string, fileHash: BytesLike, anchorsHash: BytesLike, anchorTypesMask: BigNumberish, initialOwner: AddressLike}
+
+    export type PassportMintInputsStructOutput = [core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint, initialOwner: string] & {core: PassportCoreMintInputsStructOutput, dataHash: string, dataUrl: string, imageHash: string, imageUrl: string, fileHash: string, anchorsHash: string, anchorTypesMask: bigint, initialOwner: string }
+  
 
   export interface ODPEditionUnitsInterface extends Interface {
-    getFunction(nameOrSignature: "activate" | "activationPayloadHash" | "getActivation" | "getEdition" | "isActivated" | "odpRegistry" | "openEdition" | "unitLeaf"): FunctionFragment;
+    getFunction(nameOrSignature: "activate" | "activationPayloadHash" | "getActivation" | "getEdition" | "getUnitPassports" | "hasUnitPassportFor" | "isActivated" | "mintPayloadHash" | "mintUnitPassport" | "odpRegistry" | "openEdition" | "unitLeaf"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "EditionOpened" | "UnitActivated"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "EditionOpened" | "UnitActivated" | "UnitPassportMinted"): EventFragment;
 
     encodeFunctionData(functionFragment: 'activate', values: [string, BigNumberish, BytesLike[], BytesLike]): string;
 encodeFunctionData(functionFragment: 'activationPayloadHash', values: [string, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'getActivation', values: [string, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'getEdition', values: [string]): string;
+encodeFunctionData(functionFragment: 'getUnitPassports', values: [string, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'hasUnitPassportFor', values: [string, BigNumberish, AddressLike]): string;
 encodeFunctionData(functionFragment: 'isActivated', values: [string, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'mintPayloadHash', values: [string, BigNumberish, AddressLike]): string;
+encodeFunctionData(functionFragment: 'mintUnitPassport', values: [string, BigNumberish, AddressLike, BytesLike[], BytesLike, PassportMintInputsStruct, boolean]): string;
 encodeFunctionData(functionFragment: 'odpRegistry', values?: undefined): string;
 encodeFunctionData(functionFragment: 'openEdition', values: [string, BytesLike, BigNumberish]): string;
 encodeFunctionData(functionFragment: 'unitLeaf', values: [BigNumberish, AddressLike]): string;
@@ -23,7 +36,11 @@ encodeFunctionData(functionFragment: 'unitLeaf', values: [BigNumberish, AddressL
 decodeFunctionResult(functionFragment: 'activationPayloadHash', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getActivation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getEdition', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getUnitPassports', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'hasUnitPassportFor', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'isActivated', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'mintPayloadHash', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'mintUnitPassport', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'odpRegistry', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'openEdition', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'unitLeaf', data: BytesLike): Result;
@@ -46,6 +63,18 @@ decodeFunctionResult(functionFragment: 'unitLeaf', data: BytesLike): Result;
       export type InputTuple = [editionPassportId: string, unitIndex: BigNumberish, unitAddress: AddressLike, timestamp: BigNumberish];
       export type OutputTuple = [editionPassportId: string, unitIndex: bigint, unitAddress: string, timestamp: bigint];
       export interface OutputObject {editionPassportId: string, unitIndex: bigint, unitAddress: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace UnitPassportMintedEvent {
+      export type InputTuple = [editionPassportId: string, unitIndex: BigNumberish, unitOwner: AddressLike, passportId: string];
+      export type OutputTuple = [editionPassportId: string, unitIndex: bigint, unitOwner: string, passportId: string];
+      export interface OutputObject {editionPassportId: string, unitIndex: bigint, unitOwner: string, passportId: string };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -120,10 +149,42 @@ decodeFunctionResult(functionFragment: 'unitLeaf', data: BytesLike): Result;
     
 
     
+    getUnitPassports: TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, ],
+      [string[]],
+      'view'
+    >
+    
+
+    
+    hasUnitPassportFor: TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, unitOwner: AddressLike, ],
+      [boolean],
+      'view'
+    >
+    
+
+    
     isActivated: TypedContractMethod<
       [editionPassportId: string, unitIndex: BigNumberish, ],
       [boolean],
       'view'
+    >
+    
+
+    
+    mintPayloadHash: TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, unitOwner: AddressLike, ],
+      [string],
+      'view'
+    >
+    
+
+    
+    mintUnitPassport: TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, unitOwner: AddressLike, proof: BytesLike[], signature: BytesLike, m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, ],
+      [string],
+      'nonpayable'
     >
     
 
@@ -174,10 +235,30 @@ getFunction(nameOrSignature: 'getEdition'): TypedContractMethod<
       [[string, bigint, boolean, boolean] & {merkleRoot: string, unitCount: bigint, open: boolean, windowClosed: boolean }],
       'view'
     >;
+getFunction(nameOrSignature: 'getUnitPassports'): TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, ],
+      [string[]],
+      'view'
+    >;
+getFunction(nameOrSignature: 'hasUnitPassportFor'): TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, unitOwner: AddressLike, ],
+      [boolean],
+      'view'
+    >;
 getFunction(nameOrSignature: 'isActivated'): TypedContractMethod<
       [editionPassportId: string, unitIndex: BigNumberish, ],
       [boolean],
       'view'
+    >;
+getFunction(nameOrSignature: 'mintPayloadHash'): TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, unitOwner: AddressLike, ],
+      [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'mintUnitPassport'): TypedContractMethod<
+      [editionPassportId: string, unitIndex: BigNumberish, unitOwner: AddressLike, proof: BytesLike[], signature: BytesLike, m: PassportMintInputsStruct, dataUrlIsFolderBase: boolean, ],
+      [string],
+      'nonpayable'
     >;
 getFunction(nameOrSignature: 'odpRegistry'): TypedContractMethod<
       [],
@@ -197,6 +278,7 @@ getFunction(nameOrSignature: 'unitLeaf'): TypedContractMethod<
 
     getEvent(key: 'EditionOpened'): TypedContractEvent<EditionOpenedEvent.InputTuple, EditionOpenedEvent.OutputTuple, EditionOpenedEvent.OutputObject>;
 getEvent(key: 'UnitActivated'): TypedContractEvent<UnitActivatedEvent.InputTuple, UnitActivatedEvent.OutputTuple, UnitActivatedEvent.OutputObject>;
+getEvent(key: 'UnitPassportMinted'): TypedContractEvent<UnitPassportMintedEvent.InputTuple, UnitPassportMintedEvent.OutputTuple, UnitPassportMintedEvent.OutputObject>;
 
     filters: {
       
@@ -206,6 +288,10 @@ getEvent(key: 'UnitActivated'): TypedContractEvent<UnitActivatedEvent.InputTuple
 
       'UnitActivated(string,uint32,address,uint256)': TypedContractEvent<UnitActivatedEvent.InputTuple, UnitActivatedEvent.OutputTuple, UnitActivatedEvent.OutputObject>;
       UnitActivated: TypedContractEvent<UnitActivatedEvent.InputTuple, UnitActivatedEvent.OutputTuple, UnitActivatedEvent.OutputObject>;
+    
+
+      'UnitPassportMinted(string,uint32,address,string)': TypedContractEvent<UnitPassportMintedEvent.InputTuple, UnitPassportMintedEvent.OutputTuple, UnitPassportMintedEvent.OutputObject>;
+      UnitPassportMinted: TypedContractEvent<UnitPassportMintedEvent.InputTuple, UnitPassportMintedEvent.OutputTuple, UnitPassportMintedEvent.OutputObject>;
     
     };
   }
