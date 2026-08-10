@@ -141,12 +141,13 @@ describe("ODPEditionUnits — SPEC 0.7 §20", function () {
   async function openedEdition(count = 5) {
     const { reg, units } = await deployAll();
     const [brand, stranger, sponsor] = await ethers.getSigners();
+    const labelSigner = new ethers.Wallet(ethers.keccak256(ethers.toUtf8Bytes("label-signer")));
     await (await reg.connect(brand).registerCreator(TYPE_B)).wait();
     const editionId = await mintEdition(reg, brand, 1);
     const wallets = unitWallets(count);
     const ed = makeEdition(wallets);
-    await (await units.connect(brand).openEdition(editionId, ed.root, ed.unitCount)).wait();
-    return { reg, units, brand, stranger, sponsor, editionId, wallets, ed };
+    await (await units.connect(brand).openEdition(editionId, ed.root, ed.unitCount, labelSigner.address)).wait();
+    return { reg, units, brand, stranger, sponsor, editionId, wallets, ed, labelSigner };
   }
 
   describe("opening an edition (§20.1, §20.3)", function () {
@@ -165,30 +166,72 @@ describe("ODPEditionUnits — SPEC 0.7 §20", function () {
       await (await reg.connect(creator).registerCreator(TYPE_C)).wait();
       const id = await mintEdition(reg, creator, 2);
       const ed = makeEdition(unitWallets(2));
-      await expect(units.connect(creator).openEdition(id, ed.root, 2))
+      await expect(units.connect(creator).openEdition(id, ed.root, 2, ethers.ZeroAddress))
         .to.be.revertedWithCustomError(units, "EC")
         .withArgs(121n);
     });
 
     it("rejects anyone but the edition's own creator (EC 120)", async function () {
       const { units, stranger, editionId, ed } = await openedEdition(2);
-      await expect(units.connect(stranger).openEdition(editionId, ed.root, 2))
+      await expect(units.connect(stranger).openEdition(editionId, ed.root, 2, ethers.ZeroAddress))
         .to.be.revertedWithCustomError(units, "EC")
         .withArgs(119n); // already open — checked before authorship
       const { reg: reg2, units: units2 } = await deployAll();
       const [brand, other] = await ethers.getSigners();
       await (await reg2.connect(brand).registerCreator(TYPE_B)).wait();
       const id2 = await mintEdition(reg2, brand, 3);
-      await expect(units2.connect(other).openEdition(id2, ed.root, 2))
+      await expect(units2.connect(other).openEdition(id2, ed.root, 2, ethers.ZeroAddress))
         .to.be.revertedWithCustomError(units2, "EC")
         .withArgs(120n);
     });
 
     it("is write-once — a second run needs its own edition passport (EC 119)", async function () {
       const { units, brand, editionId, ed } = await openedEdition(2);
-      await expect(units.connect(brand).openEdition(editionId, ed.root, 2))
+      await expect(units.connect(brand).openEdition(editionId, ed.root, 2, ethers.ZeroAddress))
         .to.be.revertedWithCustomError(units, "EC")
         .withArgs(119n);
+    });
+  });
+
+  describe("signed outer labels (§20.7)", function () {
+    it("publishes the label signer with the edition", async function () {
+      const { units, editionId, labelSigner } = await openedEdition(3);
+      const view = await units.getEdition(editionId);
+      expect(view[4]).to.equal(labelSigner.address);
+    });
+
+    it("a label signature verifies offline against the published key", async function () {
+      const { units, editionId, labelSigner } = await openedEdition(3);
+      const payload = await units.labelPayloadHash(editionId, 2);
+      const sig = await labelSigner.signMessage(ethers.getBytes(payload));
+      // exactly what a shop-floor reader does: recover, compare with the on-chain key
+      const recovered = ethers.verifyMessage(ethers.getBytes(payload), sig);
+      expect(recovered).to.equal((await units.getEdition(editionId))[4]);
+    });
+
+    it("a fabricated label fails — a forger has no signer key", async function () {
+      const { units, editionId, labelSigner } = await openedEdition(3);
+      const forger = new ethers.Wallet(ethers.keccak256(ethers.toUtf8Bytes("counterfeit-printer")));
+      const payload = await units.labelPayloadHash(editionId, 2);
+      const sig = await forger.signMessage(ethers.getBytes(payload));
+      expect(ethers.verifyMessage(ethers.getBytes(payload), sig)).to.not.equal(labelSigner.address);
+    });
+
+    it("a label cannot be moved to another unit — the index is signed", async function () {
+      const { units, editionId, labelSigner } = await openedEdition(4);
+      const sig = await labelSigner.signMessage(ethers.getBytes(await units.labelPayloadHash(editionId, 1)));
+      const otherPayload = await units.labelPayloadHash(editionId, 2);
+      expect(ethers.verifyMessage(ethers.getBytes(otherPayload), sig)).to.not.equal(labelSigner.address);
+    });
+
+    it("an edition may print plain labels — signer is optional", async function () {
+      const { reg, units } = await deployAll();
+      const [brand] = await ethers.getSigners();
+      await (await reg.connect(brand).registerCreator(TYPE_B)).wait();
+      const id = await mintEdition(reg, brand, 90);
+      const ed = makeEdition(unitWallets(2));
+      await (await units.connect(brand).openEdition(id, ed.root, 2, ethers.ZeroAddress)).wait();
+      expect((await units.getEdition(id))[4]).to.equal(ethers.ZeroAddress);
     });
   });
 

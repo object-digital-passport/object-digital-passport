@@ -2116,7 +2116,8 @@ An edition passport is an ordinary passport under §§8–9, minted by a `B` pro
     "hashAlg": "sha256",
     "leafFormat": "sha256(uint32be(index) || address20)",
     "addressListUrl": "https://…/units.bin",
-    "addressListHash": "sha256:…"
+    "addressListHash": "sha256:…",
+    "labelSignerKey": "0x…"
   }
 }
 ```
@@ -2129,6 +2130,7 @@ An edition passport is an ordinary passport under §§8–9, minted by a `B` pro
 | `leafFormat` | yes | Identifier of the leaf construction; `sha256(uint32be(index) || address20)` in this revision |
 | `addressListUrl` | recommended | Public location of the full unit-address list |
 | `addressListHash` | **yes** | SHA-256 of the list bytes, whether or not a URL is given |
+| `labelSignerKey` | optional | 20-byte address whose signature an offline reader checks a signed outer label against (§20.7). Absent or zero = this edition prints plain labels |
 
 **Leaf construction (normative):**
 
@@ -2246,6 +2248,21 @@ Both MUST **also** be printed in human-readable text, following the §5 label ru
 The reference form is the §5 verification label extended with the unit index: a QR encoding the `odp://` URI (§12, §19) plus the unit index, and the same values as text.
 
 The outer carrier MUST NOT contain the unit seed or any value derived from it.
+
+**Signed labels (optional, normative when used).** An outer carrier MAY additionally carry a signature over
+
+```
+"ODP-UNIT-LABEL-v1" || uint256be(chainId) || contractAddress20
+                    || utf8(editionPassportId) || uint32be(unitIndex) || merkleRoot
+```
+
+made by the key published as `labelSignerKey` (§20.3). This follows the idea of **ISO/IEC 20248** — a compact signature inside the barcode, verifiable **offline** — while taking the signer's key from the edition passport rather than from a PKI or a DNS record. That is not a deviation to apologise for: 20248 explicitly leaves cryptographic and key-management methods out of scope, and an on-chain key removes the last thing in §20 that would have depended on the issuer's domain still resolving.
+
+What it buys: a reader with the edition's `.odpass` bundle can check, **in a shop, with no network**, that a label was printed by the issuer. Without it the outer carrier is plaintext anyone can print, and a fabricated label pointing at a real edition looks correct until someone goes online.
+
+What it does not buy, and MUST NOT be claimed: signing prevents labels being **fabricated**, not **copied**. A photograph of a genuine label reproduces a valid signature. Duplication is caught by activation (§20.9), never by the signature.
+
+A verifier MUST NOT treat a valid label signature as an authenticity verdict about the object, and MUST NOT downgrade an edition that prints plain labels — `labelSignerKey` is optional, and most issuers will not use it.
 
 *Informative — GS1 Digital Link.* An issuer holding a GTIN MAY encode a **GS1 Digital Link** URI instead, carrying the GTIN and unit serial with the ODP values as additional link parameters, so that one symbol serves retail scanning, ODP verification, and EU DPP resolution under ESPR. This specification does not require it and does not depend on it. Adopting it later costs nothing at the protocol level: the carrier is off-chain packaging chosen per print run, so a later run may change encoding without touching the contract, the registry, or any already-minted passport, and labels already printed keep verifying unchanged. Only verifiers need to learn the additional encoding — which is exactly what the mandatory human-readable pair above insures against.
 

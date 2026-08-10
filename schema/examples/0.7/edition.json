@@ -79,7 +79,8 @@
         "hashAlg": "sha256",
         "leafFormat": "sha256(uint32be(index) || address20)",
         "addressListUrl": "https://example.com/editions/series-one/units.bin",
-        "addressListHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "addressListHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "labelSignerKey": "0x1111111111111111111111111111111111111111"
       },
       "verification": "Rebuild the tree from the published address list and compare with the root registered in ODPEditionUnits."
     },

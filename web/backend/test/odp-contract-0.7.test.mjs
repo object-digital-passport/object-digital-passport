@@ -22,8 +22,9 @@ assert.equal(v07(6), false);
 assert.equal(v07(7), true);
 
 // state shape, against a stub satellite
-const stub = (edOpen, windowClosed, activatedAt, passports) => ({
-  getEdition: async () => ["0x" + R, 100000n, edOpen, windowClosed],
+const SIGNER = "0x" + "1".repeat(40);
+const stub = (edOpen, windowClosed, activatedAt, passports, signer = SIGNER) => ({
+  getEdition: async () => ["0x" + R, 100000n, edOpen, windowClosed, signer],
   getActivation: async () => [BigInt(activatedAt), "0x" + "1".repeat(40)],
   getUnitPassports: async () => passports,
 });
@@ -43,4 +44,10 @@ assert.equal(s.passportConflict, true, "competing passports are surfaced, not hi
 s = await readState(stub(false, false, 0, []), "ODP-unknown", 0);
 assert.equal(s.open, false, "an edition with no key set stops early");
 
-console.log("odp-contract 0.7 read layer: 14 assertions passed");
+// §20.7 — the published label signer, and the plain-label case
+s = await readState(stub(true, false, 0, []), "ODP-2026-08-000000001", 7);
+assert.equal(s.labelSigner, SIGNER, "signed-label editions expose the key");
+s = await readState(stub(true, false, 0, [], "0x" + "0".repeat(40)), "ODP-2026-08-000000001", 7);
+assert.equal(s.labelSigner, null, "a plain-label edition reports no signer, not a zero address");
+
+console.log("odp-contract 0.7 read layer: 16 assertions passed");

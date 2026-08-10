@@ -68,6 +68,9 @@ contract ODPEditionUnits {
         uint32 unitCount;
         bool open;
         bool windowClosed; // revocation window already locked on the registry
+        // SPEC §20.7 — the key an offline reader checks a signed outer label against.
+        // address(0) = this edition prints plain labels. Immutable with the edition.
+        address labelSigner;
     }
 
     struct Activation {
@@ -83,7 +86,13 @@ contract ODPEditionUnits {
     /// keccak(edition, unitIndex) — every unit passport minted for that unit, in mint order.
     mapping(bytes32 => string[]) private _unitPassports;
 
-    event EditionOpened(string editionPassportId, bytes32 merkleRoot, uint32 unitCount, address indexed issuer);
+    event EditionOpened(
+        string editionPassportId,
+        bytes32 merkleRoot,
+        uint32 unitCount,
+        address labelSigner,
+        address indexed issuer
+    );
     event UnitActivated(string editionPassportId, uint32 indexed unitIndex, address indexed unitAddress, uint256 timestamp);
     event UnitPassportMinted(
         string editionPassportId,
@@ -112,7 +121,8 @@ contract ODPEditionUnits {
     function openEdition(
         string calldata editionPassportId,
         bytes32 merkleRoot,
-        uint32 unitCount
+        uint32 unitCount,
+        address labelSigner
     ) external {
         if (_editions[editionPassportId].open) revert EC(119);
         if (!(merkleRoot != bytes32(0))) revert EC(118);
@@ -126,10 +136,11 @@ contract ODPEditionUnits {
             merkleRoot: merkleRoot,
             unitCount: unitCount,
             open: true,
-            windowClosed: false
+            windowClosed: false,
+            labelSigner: labelSigner
         });
 
-        emit EditionOpened(editionPassportId, merkleRoot, unitCount, msg.sender);
+        emit EditionOpened(editionPassportId, merkleRoot, unitCount, labelSigner, msg.sender);
     }
 
     // ─── Activation ───────────────────────────────────────────────────────────
@@ -225,10 +236,34 @@ contract ODPEditionUnits {
     // ─── Reads ────────────────────────────────────────────────────────────────
 
     function getEdition(string calldata editionPassportId)
-        external view returns (bytes32 merkleRoot, uint32 unitCount, bool open, bool windowClosed)
+        external view returns (bytes32 merkleRoot, uint32 unitCount, bool open, bool windowClosed, address labelSigner)
     {
         Edition storage ed = _editions[editionPassportId];
-        return (ed.merkleRoot, ed.unitCount, ed.open, ed.windowClosed);
+        return (ed.merkleRoot, ed.unitCount, ed.open, ed.windowClosed, ed.labelSigner);
+    }
+
+    /**
+     * SPEC §20.7 — the message a signed outer label carries.
+     *
+     * Verified **off-chain and offline**: a reader with the edition's `.odpass` bundle can
+     * check a label in a shop with no network at all. The contract publishes the key and
+     * never verifies a label itself — signing stops labels being *fabricated*, and nothing
+     * stops a genuine label being *photocopied*. Duplication is what activation catches.
+     */
+    function labelPayloadHash(string calldata editionPassportId, uint32 unitIndex)
+        public view returns (bytes32)
+    {
+        Edition storage ed = _editions[editionPassportId];
+        return keccak256(
+            abi.encodePacked(
+                "ODP-UNIT-LABEL-v1",
+                uint256(block.chainid),
+                address(this),
+                editionPassportId,
+                unitIndex,
+                ed.merkleRoot
+            )
+        );
     }
 
     /// Returns `(0, address(0))` when the unit has never been activated.

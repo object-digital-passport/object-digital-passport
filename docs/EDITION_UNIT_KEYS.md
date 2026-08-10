@@ -153,6 +153,12 @@ The spec fixes *what must be recoverable*, not the encoding. The text line is th
 
 It is deliberately not mandatory now, because it costs nothing to adopt later. The carrier is off-chain packaging chosen per print run: a later run can switch encoding without touching the contract, the registry, or any minted passport, labels already printed keep working, and one brand can even run both formats across different drops. Requiring GTIN today would have excluded every studio that never sells through a retail scanner, in exchange for a benefit that waits patiently.
 
+**Optionally signed.** An edition can print a signature into the outer QR, checkable against a key published in the passport and on-chain. A reader in a shop, with no network, then knows the label was printed by the brand. Without it the outer label is plaintext anyone can print — and a counterfeiter who prints one can also host the page that says it is genuine, which is a thing that already exists (§2).
+
+This is the idea of ISO/IEC 20248, with the signer's key taken from the edition passport instead of a PKI or a DNS record. The standard leaves key management out of scope, so this fills a slot rather than bending a rule — and it avoids reintroducing the issuer-domain dependency the address-list rule exists to remove. Full reasoning in [ADR-0011](adr/0011-signed-outer-labels-with-an-on-chain-signer-key.md).
+
+It stops labels being **invented**, not **copied**: a photo of a real label reproduces a valid signature. Copying is what activation catches. Signing is optional and most editions will not use it, so a plain label is not a worse label.
+
 **Under the scratch layer** — the DataMatrix from §3.4.
 
 **Physical requirement:** the label must be applied across the package seam so that removing it is visibly destructive. This is the *only* physical binding in the whole scheme; everything cryptographic sits on top of it.
@@ -359,6 +365,7 @@ One detail worth knowing early: the Merkle root has to be registered on-chain as
 | 21 | Code entropy floor | **Per-target**: `≥ 80 + ceil(log2(unitCount))` bits, never below 80. A flat floor divides by the run size, since any valid code at any index forges a unit |
 | 22 | Where the unit address list lives | **In the `.odpass` bundle**, with its hash in the anchor; a URL is a mirror. Without the list there is no proof and no activation at all |
 | 23 | Index assignment | Independent of cartons, regions and waves — sequential indices would leak regional sell-through through the public activation log |
+| 24 | Signed outer labels | Optional, with the signer key in the passport and on-chain rather than in a PKI or DNS — offline pre-purchase check without re-adding a domain dependency. Stops fabrication, not copying |
 
 ## 11. Open questions
 

@@ -152,6 +152,7 @@
           { name: "unitCount", type: "uint32" },
           { name: "open", type: "bool" },
           { name: "windowClosed", type: "bool" },
+          { name: "labelSigner", type: "address" },
         ],
       },
       {
@@ -202,6 +203,8 @@
       unitCount: Number(ed[1]),
       open: !!ed[2],
       windowClosed: !!ed[3],
+      // SPEC §20.7 — zero means this edition prints plain labels, which is not a downgrade.
+      labelSigner: ed[4] && !/^0x0+$/i.test(String(ed[4])) ? ed[4] : null,
       // §20.13 — no unit activated yet, so the issuer may still revoke the edition.
       editionRevocable: !!ed[2] && !ed[3],
       activatedAt: 0,
