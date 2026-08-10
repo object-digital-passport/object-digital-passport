@@ -2128,7 +2128,7 @@ An edition passport is an ordinary passport under §§8–9, minted by a `B` pro
 | `hashAlg` | yes | `sha256` in this revision; other values are reserved |
 | `leafFormat` | yes | Identifier of the leaf construction; `sha256(uint32be(index) || address20)` in this revision |
 | `addressListUrl` | recommended | Public location of the full unit-address list |
-| `addressListHash` | yes when `addressListUrl` is set | SHA-256 of the list bytes |
+| `addressListHash` | **yes** | SHA-256 of the list bytes, whether or not a URL is given |
 
 **Leaf construction (normative):**
 
@@ -2138,9 +2138,19 @@ leaf_i = SHA-256( uint32be(i) || unitAddress_i )        i = 0 … unitCount−1
 
 `unitAddress_i` is the 20-byte address of the unit key. The index MUST be inside the leaf: this binds serial numbers to addresses before printing, so a code issued for one unit cannot later be presented as another.
 
+**Index assignment (normative).** Indices MUST be assigned independently of cartons, regions, distribution batches, and release waves. Activations are public (§20.9), so indices that follow the packing order let anyone read regional sell-through off the chain by watching which ranges activate where. Shuffling at labelling time removes that inference and costs nothing.
+
 **Tree construction (normative):** binary Merkle tree, interior node = `SHA-256(left || right)`. When a level has an odd number of nodes, the last node is **duplicated**. Proof verification recomputes the root from the leaf and the sibling path.
 
-**Address list.** The list of unit addresses is public and contains no secrets. Publishing it (`addressListUrl`) is RECOMMENDED so any verifier can rebuild the tree and any proof independently. A carrier (§20.7) therefore does not need to hold a Merkle proof.
+**Address list (normative).** The list of unit addresses is public and contains no secrets, and **nothing in §20 works without it**: a verifier cannot build the Merkle proof §20.11 step 2 requires, and `activate` (§20.9) cannot be called at all.
+
+It MUST therefore be obtainable without the issuer staying online:
+
+- the list **MUST** be carried in the edition's `.odpass` bundle (§15) — that is the copy that outlives the issuer;
+- `addressListHash` **MUST** be present in this anchor, so any copy of the list can be checked against the passport;
+- `addressListUrl` is RECOMMENDED as a convenience mirror, never as the source of truth.
+
+An edition whose list exists only at a URL is one expired domain away from being unverifiable and unactivatable — which would make "the passports outlive the project" false for exactly the objects this section serves. A carrier (§20.7) still does not need to hold a proof: anyone holding the list can rebuild it.
 
 **On-chain cost.** The whole set costs one 32-byte root regardless of `unitCount`.
 
@@ -2203,7 +2213,7 @@ The printed secret is `printedSeed_i` (§20.5), never the private key.
 | Payload | 20 characters, Crockford Base32, alphabet excluding `I`, `L`, `O`, `U` — carries the 100 bits of `printedSeed_i`, most significant bit first |
 | Check characters | 5 characters, defined below |
 | Grouping | 5 groups of 5, hyphen-separated, e.g. `7KM2-9XQF-3BTR-8WNP-5HJD` |
-| Entropy | **MUST be ≥ 80 bits**; the encoding above carries 100 |
+| Entropy | **MUST be ≥ `80 + ceil(log2(unitCount))` bits**, and never below 80; the encoding above carries 100 |
 
 **Normalization (normative).** Before any use — checksum computation or verification — an implementation MUST normalize input: uppercase it, remove hyphens and whitespace, then apply the Crockford substitutions `I` → `1`, `L` → `1`, `O` → `0`. Normalization happens **before** hashing, so a reader who transcribes a `0` as `O` still produces a valid code.
 
@@ -2218,7 +2228,11 @@ SHA-256 is chosen because it is already a hard dependency of this protocol (`dat
 
 **One global alphabet (normative).** The alphabet and the check construction are fixed for all issuers, markets, and languages. They MUST NOT be localized. The primary carrier is the DataMatrix of §20.7 — the text form exists for damaged symbols and is the minority path — whereas a per-market alphabet would force every verifier, forever, to guess which alphabet a given string was written in, and would let one string mean different things in different places.
 
-**Entropy floor (normative rationale).** In a server-mediated authentication system a short code is safe because the server rate-limits guessing. **ODP has no such server:** the address list is public and verification is offline and permissionless, so an attacker can test candidate codes locally, in parallel, unobserved. An implementation MUST NOT reduce the code length on usability grounds; the length is a security parameter, and it cannot be changed after labels are printed.
+**Entropy floor (normative rationale).** In a server-mediated authentication system a short code is safe because the server rate-limits guessing. **ODP has no such server:** the address list is public and verification is offline and permissionless, so an attacker can test candidate codes locally, in parallel, unobserved.
+
+The floor is **per-target**, and that is not a formality. An attacker forging a unit does not need a *particular* code — any code that verifies at any index will do. With `unitCount` valid secrets and a public address list to check guesses against, expected work is `2^entropy / unitCount`, so every doubling of the run size costs one bit. A flat 80-bit rule, read against this specification's own `unitCount` ceiling of `2^32 − 1`, leaves about 2^48 operations — hours on rented hardware. Hence `80 + ceil(log2(unitCount))`: at 100 000 units that is 97 bits, which the 20-character encoding above already exceeds.
+
+An implementation MUST NOT reduce the code length on usability grounds; the length is a security parameter, and it cannot be changed after labels are printed.
 
 ### 20.7 Carriers
 
@@ -2398,6 +2412,7 @@ An implementation MUST NOT claim, in interface copy or marketing, any assurance 
 4. **An activation conflict is surfaced, not adjudicated** (§20.11).
 5. **A sealed counterfeit carrying a cloned code is indistinguishable before the layer is removed.** The outer carrier's activation state is the only pre-purchase signal.
 6. **A unit key binds the package, not the object inside it.** Object-level binding exists only through §20.4 and through a unit passport carrying the owner's own anchors (§20.10).
+7. **The activation log is public commercial data.** `unitCount` is on-chain and every activation is a timestamped public event, so anyone — a competitor, an analyst, a marketplace — can reconstruct the run size and a live sell-through curve. This is the same data incumbent vendors sell back to brands privately; here it is free to everyone. It cannot be hidden without destroying the pre-purchase signal the mechanism exists to give a buyer, so it is stated rather than mitigated. An issuer MUST be told before it commits a drop. §20.3's index-assignment rule keeps the leak to totals rather than regions; the totals themselves are irreducible.
 
 ---
 

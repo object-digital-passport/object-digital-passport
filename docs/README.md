@@ -32,6 +32,7 @@
 | [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md) | v0.4.1 patch notes. RU: [`web/frontend/localization/ru/RELEASE_v0.4.1.md`](../web/frontend/localization/ru/RELEASE_v0.4.1.md). |
 | [`archive/DOCS_REVIEW_PLAN_v0.5.md`](archive/DOCS_REVIEW_PLAN_v0.5.md) | Completed planning note (README/SPEC/docs pass). |
 | [`ANDROID_VERIFIER_MVP.md`](ANDROID_VERIFIER_MVP.md) | Short MVP scope; [`ANDROID_COMPANION_APP.md`](ANDROID_COMPANION_APP.md) redirects to companion repo. |
+| [`research/UNIT_CODE_AUTHENTICATION_LANDSCAPE.md`](research/UNIT_CODE_AUTHENTICATION_LANDSCAPE.md) | How mass-market unit codes actually work (Pop Mart and peers), how v0.7 §20 compares, and what to change. Primary sources; unverified claims marked in place. |
 | [`EDITION_UNIT_KEYS.md`](EDITION_UNIT_KEYS.md) | **v0.7 draft** — edition passports + per-unit activation keys for mass-produced series (B profile). RU: [`web/frontend/localization/ru/EDITION_UNIT_KEYS.md`](../web/frontend/localization/ru/EDITION_UNIT_KEYS.md). |
 | [`IDEAS_V1.md`](IDEAS_V1.md) | Informal v1 directions (not spec). |
 | [`community/discussion-passport-ui-v0.4-EN.md`](community/discussion-passport-ui-v0.4-EN.md) | Draft GitHub Discussion (EN). |

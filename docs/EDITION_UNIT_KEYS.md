@@ -39,7 +39,7 @@ The dominant mechanism for mass-produced authentication — used by Pop Mart and
 The mechanism is sound. Its foundations are not:
 
 1. **The brand is the judge.** "Genuine" means only "the brand's server said so today". The server can be switched off, the company sold, the database rewritten.
-2. **Database dumps leak.** Pop Mart warns publicly that counterfeiters clone codes taken from stolen database entries. An insider at the brand or the print vendor sees every code before a single box ships.
+2. **The verification page is the attack surface.** A live clone of Pop Mart's checker sits at a lookalike domain and answers *every* code with "Genuine. First Time Verification" — so a buyer following a QR from a counterfeit box gets a green tick from a page that never queried anything. There is nothing a diligent buyer can check: the answer comes from whichever server the code sent them to. Separately, an insider at the brand or the print vendor sees every code before a single box ships. (An earlier draft of this note claimed Pop Mart publicly warns about codes cloned from stolen database dumps; no first-party statement to that effect could be found, and the clone site is the stronger and directly observable point.)
 3. **The first-check log is private.** The buyer cannot verify it — only trust the screen.
 4. **"No record" proves nothing**, and "record found" proves nothing either.
 
@@ -146,6 +146,8 @@ The entropy floor is a direct consequence of decentralization and is easy to get
 **Outside, open** — the ordinary ODP verification label, extended with the unit index: a QR carrying the edition passport ID and the unit index, plus both values in **human-readable text**.
 
 The spec fixes *what must be recoverable*, not the encoding. The text line is the part that matters most: carrier formats change over the life of a protocol, and a pair of values a human can type is what keeps a unit verifiable when they do.
+
+**The stronger EU argument is not the carrier — it is the back-up clause.** Regulation (EU) 2024/1781 requires that a product passport be backed up through a digital product passport service provider that is an independent third party, so that the record survives the economic operator that issued it. That is not a format ODP happens to share; it is the property ODP delivers structurally, because the registry is a public chain and the verifier is anyone. A compliance officer already has a budget line for it.
 
 **GS1 Digital Link is the documented next step, not a requirement.** A brand holding a GTIN can encode a GS1 Digital Link URI instead, so one symbol serves retail scanners, ODP verification, and EU DPP resolution under ESPR (batteries from February 2027, textiles and furniture 2027–2028, electronics through 2030) — and then the brand never has to choose between ODP and the compliance carrier it will need anyway.
 
@@ -354,6 +356,9 @@ One detail worth knowing early: the Merkle root has to be registered on-chain as
 | 18 | Pointer from a superseded edition to its replacement | **Prose only.** No structured field: a successor governs later production and does not invalidate units already in the field, and a machine-readable pointer would be rendered as exactly that verdict |
 | 19 | Where the code lives | A satellite for everything except three core hooks: explicit `initialOwner` at mint, a one-way revocation lock, and event kind 8. Not free-form — the current mint hardcodes the owner |
 | 20 | Bounding repeat unit-passport mints | Uniqueness per `(unit, owner)`, never per unit. Blocks a repeat for an owner that already has one; a genuine holder names their own address, so nobody is locked out. Monthly caps do not apply to this path |
+| 21 | Code entropy floor | **Per-target**: `≥ 80 + ceil(log2(unitCount))` bits, never below 80. A flat floor divides by the run size, since any valid code at any index forges a unit |
+| 22 | Where the unit address list lives | **In the `.odpass` bundle**, with its hash in the anchor; a URL is a mirror. Without the list there is no proof and no activation at all |
+| 23 | Index assignment | Independent of cartons, regions and waves — sequential indices would leak regional sell-through through the public activation log |
 
 ## 11. Open questions
 
