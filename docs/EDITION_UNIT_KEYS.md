@@ -369,5 +369,5 @@ One detail worth knowing early: the Merkle root has to be registered on-chain as
 
 ## 11. Open questions
 
-None at the protocol level. What remains is code: implementing the satellite and the three core hooks above, then relabelling §§1–19 of `SPEC.md` from v0.6 to v0.7 once a contract exists and its addresses are real.
+None at the protocol level, and the contracts are done. What remains is that **nobody can use §20 yet** — there is no issuer tool and no buyer activation page, so every call so far has come from tests. The issuer side is specified for implementation in [`EDITION_ISSUER_TOOL.md`](EDITION_ISSUER_TOOL.md); buyer activation follows it, since until an edition is opened there is nothing to activate. Relabelling §§1–19 of `SPEC.md` from v0.6 to v0.7 waits for a deployment with real addresses.
 

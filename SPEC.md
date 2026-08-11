@@ -2185,7 +2185,9 @@ Derivation has two halves, and the split matters: the **issuer** derives from a 
 masterSeed     = ≥ 256 bits from a CSPRNG, generated offline
 editionContext = utf8(chainId) || 0x00 || utf8(editionPassportId)
 unitSecret_i   = HKDF-SHA256(ikm = masterSeed, salt = "", info = editionContext || uint32be(i), L = 32)
-printedSeed_i  = the leading 100 bits of unitSecret_i          ← this is what gets printed (§20.6)
+printedSeed_i  = the leading 100 bits of unitSecret_i, as 13 bytes:
+                 bytes 0..11 verbatim, byte 12 = high nibble of byte 12, low nibble zero
+                                                               ← this is what gets printed (§20.6)
 ```
 
 **Either side — from the printed secret to the key:**
@@ -2198,6 +2200,8 @@ unitAddress_i  = address of unitKey_i
 ```
 
 The second step takes only the printed 100 bits plus values a verifier already has, so a buyer holding nothing but the scratched code reaches exactly the address committed in the Merkle root.
+
+**The 13-byte form is normative.** `printedSeed_i` is hashed, and 100 bits is not a whole number of bytes, so the padding has to be pinned or two conforming implementations derive different keys from the same printed code. The rule is: take the leading 13 bytes of `unitSecret_i` and clear the low 4 bits of the last one. The 20-character encoding of §20.6 carries exactly those 100 bits, so the code text and the 13-byte form are two views of one value.
 
 Requirements:
 
