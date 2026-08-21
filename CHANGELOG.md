@@ -44,7 +44,7 @@ On-chain generation 6, deployed to Polygon mainnet. The storage-model redesign. 
 - **Breaking:** packed `CONTRACT_VERSION` = **6**. A separate registry from v0.5 — passports do not migrate, and both the ABI and the `passport.json` schema changed.
 - **`documentHash` / `documentUrl`** field naming on Proof records (was `noteHash` / `noteUrl` in v0.5).
 - **`docs/SECURITY.md`** (and the Russian mirror) rewritten for the v0.6 threat model, including a static-analysis (Slither) findings triage table.
-- **Russian `SPEC.md` translation** (`web/frontend/localization/ru/SPEC.md`) fully retranslated section-by-section to track the v0.6 English `SPEC.md` (was stuck at the v0.5 shape).
+- **Russian `SPEC.md` translation** (`docs/ru/SPEC.md`) fully retranslated section-by-section to track the v0.6 English `SPEC.md` (was stuck at the v0.5 shape).
 
 ### Deprecated
 

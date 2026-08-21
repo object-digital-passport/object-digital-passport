@@ -82,7 +82,7 @@ This document describes the threat model, known limitations, and recommendations
 ### Optional satellite: `ODPCounterfeitConcern`
 
 - Deployed **separately** from the main registry; constructor **pins one** `ObjectDigitalPassport` address. Static pages use **`NET.counterfeitConcern`** — a **wrong address** means **wrong or empty** reads.
-- **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`web/frontend/localization/ru/RELEASE_v0.4.md`](../web/frontend/localization/ru/RELEASE_v0.4.md)**).
+- **Only P and M** profiles may **`raiseCounterfeitConcern`** / **`clearCounterfeitConcern`** for a given `passportId`. Only the **same prover** profile that raised a flag may clear it (see custom errors **80–82** in **[`ru/RELEASE_v0.4.md`](ru/RELEASE_v0.4.md)**).
 - The chain stores **`reasonHash`** (and optional audit fields per deployment), **not** the full free-text reason. Treat as **institutional opinion** bound to that registry and timestamp, not as universal truth.
 
 ---

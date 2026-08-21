@@ -36,14 +36,14 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 
 ## Quality & localization
 
-- `**web/frontend/localization/ru/SPEC.md`:** markdown link formatting clean-up (no functional spec change).
+- `**ru/SPEC.md`:** markdown link formatting clean-up (no functional spec change).
 - `**web/frontend/verify.html`:** minor brace formatting in `**init()`**.
 
 ---
 
 ## See also
 
-- **v0.4 narrative (RU):** `[../web/frontend/localization/ru/RELEASE_v0.4.md](../web/frontend/localization/ru/RELEASE_v0.4.md)`
+- **v0.4 narrative (RU):** `[ru/RELEASE_v0.4.md](ru/RELEASE_v0.4.md)`
 - **v0.4 pointer (EN):** `[V0.4.md](V0.4.md)`
 - **Versioning & tags:** `[VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)`
 

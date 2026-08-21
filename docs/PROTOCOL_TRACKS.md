@@ -9,7 +9,7 @@
 
 ## Track A — After-audit backlog (documentation and future bytecode)
 
-- **SECURITY model:** [`SECURITY.md`](SECURITY.md) describes the **v0.4** reference line (`CONTRACT_VERSION` **4**, optional **`ODPCounterfeitConcern`**, UTC prefix rules). Revisit when adding satellites or changing trust boundaries; Russian mirror: [`web/frontend/localization/ru/SECURITY.md`](../web/frontend/localization/ru/SECURITY.md).
+- **SECURITY model:** [`SECURITY.md`](SECURITY.md) describes the **v0.4** reference line (`CONTRACT_VERSION` **4**, optional **`ODPCounterfeitConcern`**, UTC prefix rules). Revisit when adding satellites or changing trust boundaries; Russian mirror: [`ru/SECURITY.md`](ru/SECURITY.md).
 - **Verifier copy:** M/P profile trust warning in `verify.html` (on-chain ID ≠ verified institution name).
 - **Optional protocol (not in current `ObjectDigitalPassport.sol`):**
   - Global uniqueness of passport `dataHash` (product decision; would be a contract change).

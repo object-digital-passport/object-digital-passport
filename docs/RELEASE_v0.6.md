@@ -47,7 +47,7 @@ The author-attestation satellite's EIP-712 domain separator is `0x6ad8954a8660de
 
 - **`schema/passport-0.6.schema.json`** replaces the v0.5 schema as the one CI validates against; examples rewritten to the v0.6 shape (card fields + `anchors[]`), with `allOf`/`contains` rules enforcing the same hard identification minimum the contract enforces.
 - **`docs/SECURITY.md`** (and the Russian mirror) rewritten for the v0.6 threat model, including a static-analysis (Slither) findings triage table.
-- **`web/frontend/localization/ru/SPEC.md`** fully retranslated, section by section, to track the v0.6 English `SPEC.md` — it had been stuck describing the v0.5 shape.
+- **`ru/SPEC.md`** fully retranslated, section by section, to track the v0.6 English `SPEC.md` — it had been stuck describing the v0.5 shape.
 - **`CHANGELOG.md`** added at the repository root (Keep a Changelog format), covering every tagged release plus this line.
 
 ## What moved where (v0.5 → v0.6)

@@ -254,7 +254,7 @@ Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAE
 
 **Previous line — v0.5 (superseded).** The earlier registry [`0x413aEeBB…2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) (generation **5**) is no longer the target of the reference UI. It stays **readable** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) still resolves v0.5 passports via `previousContracts` — but is not where new passports are issued. It is **not frozen**: the **v0.5 line dropped the deployer `freeze()`** that earlier lines carried (removed to fit the EIP-170 bytecode limit when the registry surfaces were split), so this particular registry has no on-chain way to stop writes — retirement here is by convention and by the UI pointing forward. `freeze()` was present through **v0.4** (earlier registries could be, and were, frozen at their cutovers) and is **restored in v0.6**, so from v0.6 on a registry can again be frozen by its deployer.
 
-**Release notes:** [docs/V0.6.md](V0.6.md) (narrative) · [docs/RELEASE_v0.6.md](RELEASE_v0.6.md) (addresses, bytecode, changelog-style) · historical [docs/V0.5.md](V0.5.md) / [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · **Earlier line (v0.3 vs v0.2):** [web/frontend/localization/ru/RELEASE_v0.3.md](../web/frontend/localization/ru/RELEASE_v0.3.md).
+**Release notes:** [docs/V0.6.md](V0.6.md) (narrative) · [docs/RELEASE_v0.6.md](RELEASE_v0.6.md) (addresses, bytecode, changelog-style) · historical [docs/V0.5.md](V0.5.md) / [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · **Earlier line (v0.3 vs v0.2):** [ru/RELEASE_v0.3.md](ru/RELEASE_v0.3.md).
 
 ## Terms You Need
 
@@ -277,7 +277,7 @@ Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAE
 
 For threat model and trust boundaries:
 
-- [SECURITY.md](SECURITY.md) · Russian: [web/frontend/localization/ru/SECURITY.md](../web/frontend/localization/ru/SECURITY.md)
+- [SECURITY.md](SECURITY.md) · Russian: [ru/SECURITY.md](ru/SECURITY.md)
 
 Verification basics:
 
@@ -317,14 +317,14 @@ Pointers:
 
 - [docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)
 - [docs/V0.6.md](V0.6.md) · [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md)
-- Historical: [docs/V0.5.md](V0.5.md) · [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [web/frontend/localization/ru/RELEASE_v0.4.md](../web/frontend/localization/ru/RELEASE_v0.4.md) / [web/frontend/localization/ru/RELEASE_v0.4.1.md](../web/frontend/localization/ru/RELEASE_v0.4.1.md) (deployed Polygon addresses are listed in [Current Release](#current-release))
+- Historical: [docs/V0.5.md](V0.5.md) · [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [ru/RELEASE_v0.4.md](ru/RELEASE_v0.4.md) / [ru/RELEASE_v0.4.1.md](ru/RELEASE_v0.4.1.md) (deployed Polygon addresses are listed in [Current Release](#current-release))
 
 ## Contributing
 
 - Guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - Docs index: [docs/README.md](README.md)
-- Russian: [web/frontend/localization/ru/CONTRIBUTING.md](../web/frontend/localization/ru/CONTRIBUTING.md), [web/frontend/localization/ru/CODE_OF_CONDUCT.md](../web/frontend/localization/ru/CODE_OF_CONDUCT.md), [web/frontend/localization/ru/docs/README.md](../web/frontend/localization/ru/docs/README.md)
+- Russian: [ru/CONTRIBUTING.md](ru/CONTRIBUTING.md), [ru/CODE_OF_CONDUCT.md](ru/CODE_OF_CONDUCT.md), [ru/README-docs.md](ru/README-docs.md)
 
 Contributions are welcome **across the whole project**: protocol and spec review, smart-contract and tooling work, UX and visual design, **editing and translation**, accessibility, and documentation. The project is built openly with AI-assisted development ("vibecoding") steered by product vision — which is exactly why experienced eyes on every layer matter. The goal is broad participation — not only code — so ODP can converge on a trustworthy, understandable standard by the **January 2027** stability milestone.
 
