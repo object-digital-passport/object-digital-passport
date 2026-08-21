@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/). Versioning here follows the project's own model rather than plain SemVer: each `v0.x` is a **separate on-chain registry generation** (packed `CONTRACT_VERSION`), not backward compatible with the previous one — see [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md) and `SPEC.md`. Patch tags (e.g. `v0.4.1`) are reserved for tooling/docs-only fixes that do not change the deployed registry.
+The format is based on [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/) — the six change types only, with the optional per-release summary that 2.0.0 introduced. Versioning here follows the project's own model rather than plain SemVer: each `v0.x` is a **separate on-chain registry generation** (packed `CONTRACT_VERSION`), not backward compatible with the previous one — see [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md) and `SPEC.md`. Patch tags (e.g. `v0.4.1`) are reserved for tooling/docs-only fixes that do not change the deployed registry.
 
 This file is drafted from commit history and existing release notes; entries are curated, not auto-generated — corrections welcome.
 
@@ -65,7 +65,9 @@ On-chain generation 5, deployed to Polygon mainnet and **never tagged**. Registr
 [`0x413aEeBB2ac437483Bc68791EaAab492C2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346).
 The date is when the address was first recorded in this repository; the deployment itself is not
 dated anywhere. No GitHub Release was published because the mutable current-state model below
-was already scheduled for removal — see [the release note](docs/releases/v0.5.md).
+was already scheduled for removal: every current-state field it added was replaced by
+append-only events in 0.6, since a record that can be overwritten is worth what its last writer
+says it is. See [the release note](docs/releases/v0.5.md).
 
 ### Added
 
@@ -76,10 +78,6 @@ was already scheduled for removal — see [the release note](docs/releases/v0.5.
 ### Removed
 
 - **`freeze()`**, the deployer-only irreversible write-stop, dropped to fit the registry inside the EIP-170 bytecode limit after the surfaces were split. It existed through v0.4 and is restored in v0.6, so the v0.5 registry is the only line with no on-chain way to stop writes.
-
-### Superseded by 0.6
-
-- Every mutable current-state field above was replaced by append-only events. A record that can be overwritten is worth what its last writer says it is; that is the reason this line was not released.
 
 ## [0.4.1] - 2026-04-05
 
