@@ -38,10 +38,10 @@ The v0.6 line is a storage-model redesign ([full notes](V0.6.md)):
 |                            |                                                        |
 | -------------------------- | ------------------------------------------------------ |
 | 🇬🇧 **English**           | See the [root README](../README.md) for a short entry point; this page is the detailed guide.                       |
-| 🇷🇺 **Russian / Русский** | [web/frontend/localization/ru/README.md](../web/frontend/localization/ru/README.md) |
+| 🇷🇺 **Russian / Русский** | [web/frontend/localization/ru/README.md](ru/GUIDE.md) |
 
 
-**We welcome README and UI translations in any language.** Add files under `web/frontend/localization/<language-code>/` (see the [web/frontend/localization/ru/](../web/frontend/localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)** (editing, localization, and how to propose changes). **Issues and PRs on GitHub are in English** so the whole community can participate in the same threads.
+**We welcome README and UI translations in any language.** Add files under `web/frontend/localization/<language-code>/` (see the [web/frontend/localization/ru/](../web/frontend/localization/ru) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)** (editing, localization, and how to propose changes). **Issues and PRs on GitHub are in English** so the whole community can participate in the same threads.
 
 **Help us:** translate, share the **[project link](https://github.com/object-digital-passport/object-digital-passport)**, or tell communities who might care about open provenance for objects.
 
@@ -212,7 +212,7 @@ Pages:
 
 ## Android companion app
 
-Reference NFC verifier: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (separate repository). Integration in this repo: [docs/ANDROID.md](ANDROID.md), handoff in [web/frontend/js/odp-android-companion.js](../web/frontend/js/odp-android-companion.js). Chip workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
+Reference NFC verifier: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (separate repository). Integration in this repo: [docs/ANDROID.md](../web/docs/ANDROID.md), handoff in [web/frontend/js/odp-android-companion.js](../web/frontend/js/odp-android-companion.js). Chip workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
 
 The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap target. `odp://...` remains normative in [SPEC.md](../SPEC.md) for stable v1 once resolver context exists.
 

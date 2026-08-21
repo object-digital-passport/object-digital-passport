@@ -27,10 +27,6 @@ export type { IODPRegistryForAuthor } from './ODPAuthorAttestation.sol/IODPRegis
 export { IODPRegistryForAuthor__factory } from './factories/ODPAuthorAttestation.sol/IODPRegistryForAuthor__factory.js';
 export type { ODPAuthorAttestation } from './ODPAuthorAttestation.sol/ODPAuthorAttestation.js';
 export { ODPAuthorAttestation__factory } from './factories/ODPAuthorAttestation.sol/ODPAuthorAttestation__factory.js';
-export type { IODPRegistryForExtensionMint } from './ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint.js';
-export { IODPRegistryForExtensionMint__factory } from './factories/ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint__factory.js';
-export type { ODPExtensionMintRouter } from './ODPExtensionMintRouter.sol/ODPExtensionMintRouter.js';
-export { ODPExtensionMintRouter__factory } from './factories/ODPExtensionMintRouter.sol/ODPExtensionMintRouter__factory.js';
 export type { IODPRegistryForCounterfeit } from './ODPCounterfeitConcern.sol/IODPRegistryForCounterfeit.js';
 export { IODPRegistryForCounterfeit__factory } from './factories/ODPCounterfeitConcern.sol/IODPRegistryForCounterfeit__factory.js';
 export type { ODPCounterfeitConcern } from './ODPCounterfeitConcern.sol/ODPCounterfeitConcern.js';
@@ -40,6 +36,10 @@ export { IODPRegistryForUnits__factory } from './factories/ODPEditionUnits.sol/I
 export type { ODPEditionUnits } from './ODPEditionUnits.sol/ODPEditionUnits.js';
 export { ODPEditionUnits__factory } from './factories/ODPEditionUnits.sol/ODPEditionUnits__factory.js';
 export { ODPPassportLib__factory } from './factories/ODPPassportLib__factory.js';
+export type { IODPRegistryForExtensionMint } from './ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint.js';
+export { IODPRegistryForExtensionMint__factory } from './factories/ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint__factory.js';
+export type { ODPExtensionMintRouter } from './ODPExtensionMintRouter.sol/ODPExtensionMintRouter.js';
+export { ODPExtensionMintRouter__factory } from './factories/ODPExtensionMintRouter.sol/ODPExtensionMintRouter__factory.js';
 export type { IODPRegistryForProofs } from './ODPPassportProofRegistry.sol/IODPRegistryForProofs.js';
 export { IODPRegistryForProofs__factory } from './factories/ODPPassportProofRegistry.sol/IODPRegistryForProofs__factory.js';
 export type { ODPPassportProofRegistry } from './ODPPassportProofRegistry.sol/ODPPassportProofRegistry.js';
@@ -56,7 +56,7 @@ export type { IODPRelationsLookup } from './ObjectDigitalPassport.sol/IODPRelati
 export { IODPRelationsLookup__factory } from './factories/ObjectDigitalPassport.sol/IODPRelationsLookup__factory.js';
 export type { ObjectDigitalPassport } from './ObjectDigitalPassport.sol/ObjectDigitalPassport.js';
 export { ObjectDigitalPassport__factory } from './factories/ObjectDigitalPassport.sol/ObjectDigitalPassport__factory.js';
-export type { ODPPassThroughPhysicalExtension } from './examples/ODPPassThroughPhysicalExtension.js';
-export { ODPPassThroughPhysicalExtension__factory } from './factories/examples/ODPPassThroughPhysicalExtension__factory.js';
 export type { ODPPassThroughDigitalExtension } from './examples/ODPPassThroughDigitalExtension.js';
 export { ODPPassThroughDigitalExtension__factory } from './factories/examples/ODPPassThroughDigitalExtension__factory.js';
+export type { ODPPassThroughPhysicalExtension } from './examples/ODPPassThroughPhysicalExtension.js';
+export { ODPPassThroughPhysicalExtension__factory } from './factories/examples/ODPPassThroughPhysicalExtension__factory.js';

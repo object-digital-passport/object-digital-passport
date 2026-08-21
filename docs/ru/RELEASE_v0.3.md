@@ -12,7 +12,7 @@
 
 **Без изменений относительно v0.2 (напоминание):** **платы протокола нет** — только **газ сети**. **Управление** — по-прежнему **один** `address` (может указывать на мультисиг/Safe вне цепи; отдельного институционального мультиcига **внутри** байткода нет).
 
-**Эталонный деплой Polygon:** в **`../../../chain/deploy/deployments/polygon.json`** есть **`walletDocumentAnchorAddress`** рядом с основным реестром — таблица **«Текущий релиз»** в [`../../../README.md`](../../README.md) и [`README.md`](../../web/frontend/localization/ru/README.md#текущий-релиз). Если **`ObjectDigitalPassport`** уже задеплоен без якоря — **[`../../../chain/deploy/scripts/deploy-doc-anchor-only.js`](../../chain/deploy/scripts/deploy-doc-anchor-only.js)** (см. **`../../../chain/deploy/README.md`**) и **`NET.docAnchor`** в **`../../../web/verify.html`**.
+**Эталонный деплой Polygon:** в **`../../../chain/deploy/deployments/polygon.json`** есть **`walletDocumentAnchorAddress`** рядом с основным реестром — таблица **«Текущий релиз»** в [`../../../README.md`](../../README.md) и [`README.md`](GUIDE.md#текущий-релиз). Если **`ObjectDigitalPassport`** уже задеплоен без якоря — **[`../../../chain/deploy/scripts/deploy-doc-anchor-only.js`](../../chain/deploy/scripts/deploy-doc-anchor-only.js)** (см. **`../../../chain/deploy/README.md`**) и **`NET.docAnchor`** в **`../../../web/verify.html`**.
 
 ## Новая или изменённая поверхность контракта (vs реестр v0.2)
 

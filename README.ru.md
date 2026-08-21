@@ -177,7 +177,7 @@ cd chain/deploy && npm ci && npm test
 |---|---|
 | [**Вики**](https://github.com/object-digital-passport/object-digital-passport/wiki/Home-ru) | Дружелюбные гайды: быстрый старт, как работает проверка, NFC-пломбы, Object ID, FAQ — 🇬🇧/🇷🇺 |
 | [`SPEC.md`](SPEC.md) | Полная спецификация протокола (нормативная, англ.) |
-| [`docs/GUIDE.md`](docs/GUIDE.md) | Подробный длинный гайд ([русская версия](web/frontend/localization/ru/README.md)) |
+| [`docs/GUIDE.md`](docs/GUIDE.md) | Подробный длинный гайд ([русская версия](docs/ru/GUIDE.md)) |
 | [`docs/V0.6.md`](docs/V0.6.md) | Что нового в v0.6 ([по-русски](docs/ru/RELEASE_v0.6.md)) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Заметные изменения по линиям протокола (англ.) |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Модель угроз ([по-русски](docs/ru/SECURITY.md)) |

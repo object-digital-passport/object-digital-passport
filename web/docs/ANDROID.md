@@ -12,9 +12,9 @@ This repo keeps protocol rules, the web UI, and the handoff bridge only.
 
 | Layer | Where |
 |-------|--------|
-| Registry, hashes, SPEC | This repo — [SPEC.md](../SPEC.md) |
-| Verify / Passport web UI | [web/frontend/verify.html](../web/frontend/verify.html), [web/frontend/passport.html](../web/frontend/passport.html) |
-| Web → Android handoff | [web/frontend/js/odp-android-companion.js](../web/frontend/js/odp-android-companion.js) |
+| Registry, hashes, SPEC | This repo — [SPEC.md](../../SPEC.md) |
+| Verify / Passport web UI | [web/frontend/verify.html](../frontend/verify.html), [web/frontend/passport.html](../frontend/passport.html) |
+| Web → Android handoff | [web/frontend/js/odp-android-companion.js](../frontend/js/odp-android-companion.js) |
 | NFC runtime on device | [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion) |
 
 The companion does **not** replace on-chain verification in the browser. It adds NFC carrier read/write, EV2/TagTamper evidence, and honest separate result rows.
@@ -31,7 +31,7 @@ Delivery:
 - **Deep link:** `odpcompanion://import?handoff=<url-encoded-json>`
 - **Share / copy** — same JSON as plain text
 
-Implementation: [`web/frontend/js/odp-android-companion.js`](../web/frontend/js/odp-android-companion.js) (`buildAndroidCompanionHandoff`, `openAndroidCompanionImport`).
+Implementation: [`web/frontend/js/odp-android-companion.js`](../frontend/js/odp-android-companion.js) (`buildAndroidCompanionHandoff`, `openAndroidCompanionImport`).
 
 ## Carrier shape (reference)
 
@@ -49,8 +49,8 @@ First-link target remains Verify Pages until `odp://` resolver context exists (S
 5. Canonical `.odpass` / `dataHash`  
 
 Normative NFC wording: **SPEC** (issuer order, `highAssuranceSeal` for TagTamper).  
-Practical chip + TagWriter workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).  
-MVP scope checklist: [ANDROID_VERIFIER_MVP.md](ANDROID_VERIFIER_MVP.md).
+Practical chip + TagWriter workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](../../docs/ANDROID_NTAG424DNA_TAGTAMPER.md).  
+MVP scope checklist: [ANDROID_VERIFIER_MVP.md](../../docs/ANDROID_VERIFIER_MVP.md).
 
 ## Install (pilot)
 
