@@ -355,10 +355,12 @@ async function verifyMergeEditionUnits(readContract, humanId, passport, target) 
 
     // §20.3 — the root exists in the anchor and on-chain; a verifier MUST compare them.
     var anchorRoot = null;
+    var anchorData = null;
     var list = passport && Array.isArray(passport.anchors) ? passport.anchors : [];
     for (var i = 0; i < list.length; i++) {
       if (list[i] && list[i].type === "unit_key_set" && list[i].data) {
-        anchorRoot = list[i].data.merkleRoot;
+        anchorData = list[i].data;
+        anchorRoot = anchorData.merkleRoot;
         break;
       }
     }
@@ -366,6 +368,12 @@ async function verifyMergeEditionUnits(readContract, humanId, passport, target) 
       typeof odpCompareUnitKeySetRoot === "function"
         ? odpCompareUnitKeySetRoot(anchorRoot, state.merkleRoot)
         : "unknown";
+
+    // SPEC §20.11 step 2 — does the issuer's published address list build the committed root?
+    // Fetched only when the anchor names one; a missing list is reported, never guessed at.
+    if (anchorData && anchorData.addressListUrl && typeof odpCheckUnitList === "function") {
+      target.unitListStatus = await verifyFetchAndCheckUnitList(anchorData, state, unitIndex);
+    }
 
     // SPEC §20.7 — a signed outer label, checked against the key the edition published.
     target.labelStatus =
@@ -381,6 +389,29 @@ async function verifyMergeEditionUnits(readContract, humanId, passport, target) 
           })
         : "unknown";
   } catch (e) {}
+}
+
+/**
+ * Fetch the published unit-address list and check it against the on-chain root.
+ *
+ * A 100 000-unit list is 2 MB, so this runs only when the anchor names a URL, and a failure
+ * to fetch is reported as "unavailable" rather than as a failed check — an unreachable file
+ * says nothing about the object.
+ */
+async function verifyFetchAndCheckUnitList(anchorData, state, unitIndex) {
+  try {
+    const resp = await fetch(String(anchorData.addressListUrl), { redirect: "follow" });
+    if (!resp.ok) return { status: "list_unavailable", address: null };
+    const bytes = new Uint8Array(await resp.arrayBuffer());
+    return await odpCheckUnitList(bytes, {
+      unitCount: state.unitCount,
+      onChainRoot: state.merkleRoot,
+      expectedListHash: anchorData.addressListHash || null,
+      unitIndex: unitIndex,
+    });
+  } catch (e) {
+    return { status: "list_unavailable", address: null };
+  }
 }
 
 /** Label signature from the outer carrier (`?lsig=`), or null. 65 bytes hex when present. */
@@ -2477,6 +2508,20 @@ function render(humanId, rec, creator, passport, proofs, dataStatus, resolvedOnA
             rows.push(`<div style="margin-top:4px">Key-set root matches the passport anchor.</div>`);
           } else if (rootStatus === "unregistered") {
             rows.push(`<div style="margin-top:4px">No key set registered on-chain for this edition yet.</div>`);
+          }
+
+          // §20.11 step 2 — the published list against the committed root. This is a statement
+          // about the edition, not about this box: any index below unitCount is in the tree by
+          // construction, so the copy must not read as "your unit is genuine".
+          const uls = renderOpts.unitListStatus && renderOpts.unitListStatus.status;
+          if (uls === "mismatch") {
+            rows.push(`<div class="vbadge bad" style="margin-top:6px">The issuer's published address list does not rebuild the root committed on-chain. Someone replaced the file, or the edition was misconfigured.</div>`);
+          } else if (uls === "list_tampered") {
+            rows.push(`<div class="vbadge bad" style="margin-top:6px">The published address list does not match the hash in the passport. Treat the file as replaced.</div>`);
+          } else if (uls === "match") {
+            rows.push(`<div style="margin-top:4px">Published address list rebuilds the on-chain root. This checks the edition's key set, not the object in your hands.</div>`);
+          } else if (uls === "list_unavailable") {
+            rows.push(`<div style="margin-top:4px;opacity:.8">Address list not reachable, so it could not be checked against the root. The copy inside the <span class="mono">.odpass</span> bundle works offline.</div>`);
           }
 
           // §20.7 — a plain-label edition is not a worse edition, so "unsigned_edition" is silent.

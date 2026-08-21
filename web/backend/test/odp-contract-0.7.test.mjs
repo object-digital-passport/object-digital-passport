@@ -4,6 +4,7 @@
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import nodeCrypto from "node:crypto";
 const src = fs.readFileSync("web/backend/js/odp-contract.js", "utf8");
 // the module is an IIFE bound to `window || globalThis`; in node that is globalThis.
 new Function(src)();
@@ -69,4 +70,38 @@ assert.equal(verifyLabel({ ...base, signature: SIG, merkleRoot: null }), "unknow
   "no root means no decision, not a guess");
 assert.equal(verifyLabel({}), "unsigned_edition", "empty input does not throw");
 
-console.log("odp-contract 0.7 read layer: 20 assertions passed");
+// §20.11 step 2 — the address-list check, driven by the committed known-answer vectors.
+// These are the same values chain/deploy/test/ODPEditionVectors.test.js asserts against
+// Solidity, so agreeing with them is agreeing with the contract.
+const { odpCheckUnitList: checkList, odpUnitTreeRoot: treeRoot } = globalThis;
+const V = JSON.parse(fs.readFileSync(new URL("../../../schema/vectors/edition-units.json", import.meta.url)));
+
+const list = Buffer.concat(V.units.map((u) => Buffer.from(u.unitAddress.slice(2), "hex")));
+const listBytes = new Uint8Array(list);
+const listHash = "sha256:" + nodeCrypto.createHash("sha256").update(list).digest("hex");
+
+const rootHex =
+  "0x" + Buffer.from(await treeRoot(listBytes, V.inputs.unitCount)).toString("hex");
+assert.equal(rootHex, V.merkleRoot, "the page rebuilds the vectors' root from the address list");
+
+const listOpts = { unitCount: V.inputs.unitCount, onChainRoot: V.merkleRoot, expectedListHash: listHash, unitIndex: 2 };
+let r = await checkList(listBytes, listOpts);
+assert.equal(r.status, "match");
+assert.equal(r.address, V.units[2].unitAddress.toLowerCase(),
+  "and reads the right address out of it — lowercase, since checksum casing needs ethers");
+
+r = await checkList(listBytes, { ...listOpts, expectedListHash: "sha256:" + "0".repeat(64) });
+assert.equal(r.status, "list_tampered", "a list that does not match its hash is rejected");
+
+const doctored = new Uint8Array(listBytes);
+doctored[0] ^= 0xff; // swap one byte of one address
+r = await checkList(doctored, { ...listOpts, expectedListHash: null });
+assert.equal(r.status, "mismatch", "a doctored list no longer builds the committed root");
+
+r = await checkList(listBytes, { ...listOpts, unitIndex: V.inputs.unitCount });
+assert.equal(r.status, "index_out_of_range");
+
+r = await checkList(new Uint8Array(0), listOpts);
+assert.equal(r.status, "list_unavailable", "no list is not a failed check");
+
+console.log("odp-contract 0.7 read layer: 27 assertions passed");

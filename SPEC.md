@@ -2387,6 +2387,8 @@ Level 2D — Unit membership and activation state
 
 Steps 1–5 require **no secret** and MUST be available before purchase, from the outer carrier alone.
 
+**What step 2 does and does not prove (normative).** Rebuilding the root from the published address list checks the **edition**: that the list an issuer published is the one committed on-chain. It says nothing about the unit in front of the reader, because every index below `unitCount` is in the tree by construction. A verifier MUST NOT present a successful membership check as evidence that a particular object is genuine. What it catches is a replaced or doctored list — including one replaced by the issuer.
+
 **No-verdict rule (normative).** When a unit is already activated, **or when more than one unit passport exists for it**, a verifier MUST report the facts — timestamps, owners, minting profiles — and MUST NOT characterize any of them as counterfeit, stolen, or invalid, and MUST NOT rank them by mint order. A prior activation has at least two innocent readings — a cloned code, or a legitimate second-hand purchase — and the protocol can distinguish neither. This is the same position §11 and the v0.6 duplicate-passport model already take: the protocol surfaces the record and leaves judgement to people.
 
 `ODPCounterfeitConcern` (§4) remains a separate institutional mechanism and MUST NOT be raised automatically by an activation conflict.

@@ -270,6 +270,95 @@
     }
   }
 
+  // ── SPEC §20.11 step 2 — Merkle membership, checked in the page ────────────
+
+  function odpSubtle() {
+    var c = global.crypto || (typeof globalThis !== "undefined" ? globalThis.crypto : null);
+    return c && c.subtle ? c.subtle : null;
+  }
+
+  function odpBytesToHex(bytes) {
+    var out = "0x";
+    for (var i = 0; i < bytes.length; i++) out += bytes[i].toString(16).padStart(2, "0");
+    return out;
+  }
+
+  async function odpSha256Concat(parts) {
+    var subtle = odpSubtle();
+    if (!subtle) return null;
+    var total = 0, i;
+    for (i = 0; i < parts.length; i++) total += parts[i].length;
+    var buf = new Uint8Array(total), off = 0;
+    for (i = 0; i < parts.length; i++) { buf.set(parts[i], off); off += parts[i].length; }
+    return new Uint8Array(await subtle.digest("SHA-256", buf));
+  }
+
+  function odpU32be(n) {
+    return new Uint8Array([(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255]);
+  }
+
+  /** SPEC §20.3 — leaf = SHA-256(uint32be(index) || address20). */
+  async function odpUnitLeaf(index, address20) {
+    return odpSha256Concat([odpU32be(index), address20]);
+  }
+
+  /**
+   * SPEC §20.3 — rebuild the root from the published address list.
+   *
+   * Binary tree, interior = SHA-256(left || right), last node duplicated on an odd level.
+   * SHA-256 rather than keccak, which is the usual place an EVM-shaped implementation slips.
+   */
+  async function odpUnitTreeRoot(listBytes, unitCount) {
+    if (!odpSubtle() || !listBytes || listBytes.length < unitCount * 20) return null;
+    var level = [], i;
+    for (i = 0; i < unitCount; i++) level.push(await odpUnitLeaf(i, listBytes.subarray(i * 20, i * 20 + 20)));
+    while (level.length > 1) {
+      var next = [];
+      for (i = 0; i < level.length; i += 2) {
+        next.push(await odpSha256Concat([level[i], i + 1 < level.length ? level[i + 1] : level[i]]));
+      }
+      level = next;
+    }
+    return level[0] || null;
+  }
+
+  /**
+   * SPEC §20.11 step 2 — does the issuer's published address list actually agree with the
+   * root committed on-chain?
+   *
+   * This is a statement about the **edition**, not about the box in someone's hands: any
+   * index below `unitCount` is in the tree by construction, so membership of an index alone
+   * proves nothing about a unit. What it catches is a doctored list — an issuer, or anyone
+   * who replaced the file, publishing addresses that do not build the committed root.
+   *
+   * Returns { status, address } where status is one of:
+   *   "list_unavailable" | "list_tampered" | "index_out_of_range" | "match" | "mismatch" | "unknown"
+   */
+  async function odpCheckUnitList(listBytes, opts) {
+    var o = opts || {};
+    if (!listBytes || !listBytes.length) return { status: "list_unavailable", address: null };
+    if (!odpSubtle()) return { status: "unknown", address: null };
+
+    if (o.expectedListHash) {
+      var got = odpBytesToHex(await odpSha256Concat([listBytes]));
+      var want = String(o.expectedListHash).replace(/^sha256:/i, "").replace(/^0x/i, "").toLowerCase();
+      if (got.slice(2) !== want) return { status: "list_tampered", address: null };
+    }
+
+    var count = Number(o.unitCount || 0);
+    if (!count || listBytes.length < count * 20) return { status: "list_tampered", address: null };
+
+    var root = await odpUnitTreeRoot(listBytes, count);
+    if (!root) return { status: "unknown", address: null };
+    if (odpBytesToHex(root).toLowerCase() !== String(o.onChainRoot || "").toLowerCase()) {
+      return { status: "mismatch", address: null };
+    }
+
+    var idx = Number(o.unitIndex);
+    if (!Number.isInteger(idx) || idx < 0 || idx >= count) return { status: "index_out_of_range", address: null };
+    return { status: "match", address: odpBytesToHex(listBytes.subarray(idx * 20, idx * 20 + 20)) };
+  }
+
   function odpSatelliteAddress(net, key) {
     if (!net || net[key] == null) return null;
     var d = String(net[key]).trim();
@@ -3689,6 +3778,9 @@
   global.odpReadUnitState = odpReadUnitState;
   global.odpLabelPayloadHash = odpLabelPayloadHash;
   global.odpVerifyLabelSignature = odpVerifyLabelSignature;
+  global.odpUnitLeaf = odpUnitLeaf;
+  global.odpUnitTreeRoot = odpUnitTreeRoot;
+  global.odpCheckUnitList = odpCheckUnitList;
   global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;
