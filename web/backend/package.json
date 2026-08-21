@@ -16,5 +16,8 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.0"
+  },
+  "overrides": {
+    "axios": "^1.18.0"
   }
 }
