@@ -1,5 +1,7 @@
 # Object Digital Passport — release notes · v0.6
 
+*Plain-language summary of this version: [**v0.6 release note**](releases/v0.6.md). This page is the long-form detail behind it.*
+
 *Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**, packed `CONTRACT_VERSION` = **6**). Deployed on **Polygon mainnet** (`chainId` 137) on **2026-07-24**. Narrative summary: [`V0.6.md`](V0.6.md); design rationale: [`REQUIREMENTS_FIELDS_V0.6.md`](REQUIREMENTS_FIELDS_V0.6.md); full rules: `**[SPEC.md](../SPEC.md)`**.*
 
 ## Summary

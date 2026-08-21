@@ -27,7 +27,7 @@
 
 The v0.6 line is a storage-model redesign ([full notes](V0.6.md)):
 
-- **On-chain card.** Every passport carries `title`, `authorName`, and `shortDescription` directly on-chain — the object is legible even without its file. The card is written once and can never be edited (a typo means revoke + re-issue), and it must match the passport file byte-for-byte.
+- **On-chain card.** Every passport carries `title`, `authorName`, `shortDescription`, and `domain` directly on-chain — the object is legible even without its file. The card is written once and can never be edited (a typo means revoke + re-issue), and it must match the passport file byte-for-byte.
 - **One identification block: `anchors[]`.** Photos, dimensions, materials, distinguishing features, marks, seals, file hashes — all live in a single extensible array, fingerprinted on-chain (`anchorsHash`). A **hard minimum is enforced at issue time**: a physical object won't mint without a photo, dimensions, materials, and distinguishing features; a digital object won't mint without its exact file hash.
 - **Append-only history.** Status, location, condition, damage, restoration are **events**: they can be added, never rewritten. The current value is simply the latest event; nothing is ever lost.
 - **Seals are optional.** An NFC crypto chip or numbered seal is now an *additional* anchor on top of the mandatory identification minimum, not a requirement.
@@ -227,7 +227,7 @@ The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Source**              | Branch `main` in this repository — reference **v0.6** stack (contracts + static web).                                                                                                                                     |
 | **On-chain generation** | `CONTRACT_VERSION` = **6** (deployed public registry: **6**).                                                                                                                                                                                  |
-| **New vs v0.5 line**    | On-chain card (`title` / `authorName` / `shortDescription`), `anchors[]` + `anchorsHash` with a hard identification minimum, append-only `recordPassportEvent` history, optional seals — see [docs/V0.6.md](V0.6.md). |
+| **New vs v0.5 line**    | On-chain card (`title` / `authorName` / `shortDescription` / `domain`), `anchors[]` + `anchorsHash` with a hard identification minimum, append-only `recordPassportEvent` history, optional seals — see [docs/V0.6.md](V0.6.md). |
 | **Deploy order**        | `ODPPassportLib` → `ObjectDigitalPassport` → `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` / `ODPRegistryRelations` / `ODPPassportProofRegistry` / `ODPExtensionMintRouter` (+ wiring) — [chain/deploy/README.md](../chain/deploy/README.md). |
 
 
@@ -265,7 +265,7 @@ Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAE
 | Issue / mint    | Create a new passport record on-chain (user-facing "issue"; ABI may say *mint*) |
 | Passport ID     | Human-readable object id (`ODP-...`)                                            |
 | Profile ID      | Issuer identity (`C/B/P/M-...`)                                                 |
-| Card            | The readable on-chain trio: `title`, `authorName`, `shortDescription` — immutable after issue |
+| Card            | The four readable on-chain fields: `title`, `authorName`, `shortDescription`, `domain` — immutable after issue |
 | Anchors         | The `anchors[]` identification block (photos, dimensions, materials, features, marks, seals, hashes), fingerprinted on-chain as `anchorsHash` |
 | Passport events | Append-only history records (status / location / condition / damage / restoration …) — added, never rewritten |
 | `passport.json` | Canonical off-chain object document                                             |
@@ -310,7 +310,7 @@ Exact fee amounts fluctuate with network load; there is no separate ODP markup.
 
 ## Roadmap
 
-- **0.x:** expect iterative changes; gather feedback on the standard and tooling. Next steps for the v0.6 line: public testnet/mainnet deployment, the Russian SPEC mirror, optional author attestation.
+- **0.x:** expect iterative changes; gather feedback on the standard and tooling. The v0.6 line is deployed on Polygon mainnet, the Russian SPEC mirror exists, and author attestation shipped as a satellite. Work in progress is the **v0.7** line — edition passports and per-unit activation keys for production runs (`docs/EDITION_UNIT_KEYS.md`).
 - **Stable target:** aim for a **stable v1-class release by January 2027**, shaped by community review (protocol text, security, UX, localization).
 
 Pointers:

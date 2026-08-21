@@ -56,6 +56,17 @@ jobs:
       - name: SPEC 0.7 read-layer tests
         run: node web/backend/test/odp-contract-0.7.test.mjs
 
+  release-notes:
+    name: release note style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check docs/releases against the template
+        run: node chain/tools/lint_release_notes.mjs
+
   slither:
     # crytic-compile cannot parse Hardhat 3 build-info (split output files),
     # so we compile straight through solc per entry contract instead.

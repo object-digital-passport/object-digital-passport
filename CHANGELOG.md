@@ -6,9 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/).
 
 This file is drafted from commit history and existing release notes; entries are curated, not auto-generated — corrections welcome.
 
-## [Unreleased]
+## [0.7] - Unreleased
 
-Two protocol generations have shipped since the last tagged release (`v0.4.1`) without a GitHub Release: **v0.5** (deployed to Polygon mainnet, no tag published) and **v0.6** (deployed to Polygon mainnet, current reference line). This section covers both; see [`docs/V0.5.md`](docs/V0.5.md) and [`docs/V0.6.md`](docs/V0.6.md) for the narrative version of each.
+Edition passports and per-unit activation keys — one passport for a production run of up to
+millions of items, with a key under a scratch layer on each one. Contracts and tests are done;
+no issuer tooling or buyer-facing activation page exists yet. Decisions are recorded in
+[`docs/EDITION_UNIT_KEYS.md`](docs/EDITION_UNIT_KEYS.md) §10 and eleven ADRs under
+[`docs/adr/`](docs/adr/); normative rules are `SPEC.md` §20.
+
+### Added
+
+- **Edition passports** (`B` profiles only): one passport per production run carrying a Merkle root over every unit's key, so 100 000 units cost 32 bytes on-chain.
+- **`ODPEditionUnits` satellite**: `openEdition`, permissionless `activate` authenticated by a unit-key signature rather than `msg.sender`, and `mintUnitPassport` for a lazily minted per-unit passport.
+- **Four core hooks**: explicit `initialOwner` at mint, a one-way revocation lock the satellite sets on first activation, event kind 8 (edition notice), and a mint path authorised by a unit-key signature.
+- **Optional signed outer labels** with the signer key published on-chain, verifiable offline.
+- **Known-answer vectors** (`schema/vectors/edition-units.json`) asserted against Solidity, plus `schema/passport-0.7.schema.json`.
+
+### Changed
+
+- Packed `CONTRACT_VERSION` = **7**; `PassportMintInputs` gains `initialOwner`.
+- Code entropy floor is per-target: `≥ 80 + ceil(log2(unitCount))` bits.
+- The unit address list must travel in the `.odpass` bundle, not only at a URL.
+
+## [0.6] - 2026-07-24
+
+On-chain generation 6, deployed to Polygon mainnet. The storage-model redesign. Friendly summary: [release note](docs/releases/v0.6.md).
 
 ### Added
 
@@ -37,6 +59,28 @@ Two protocol generations have shipped since the last tagged release (`v0.4.1`) w
 - v0.5 `auxCommitment*` → attestation `documentHash`, or a document anchor.
 - v0.5 `ndppCommitment*` / the compact `odpOffline` payload → offline carriers now verify directly against `dataHash` / `anchorsHash`.
 
+## [0.5] - 2026-05-12
+
+On-chain generation 5, deployed to Polygon mainnet and **never tagged**. Registry
+[`0x413aEeBB2ac437483Bc68791EaAab492C2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346).
+The date is when the address was first recorded in this repository; the deployment itself is not
+dated anywhere. No GitHub Release was published because the mutable current-state model below
+was already scheduled for removal — see [the release note](docs/releases/v0.5.md).
+
+### Added
+
+- Mutable on-chain current-state fields — status, location, rights note, condition note, damage-history pointer — updatable after mint without re-minting.
+- Object model built around `physical` / `digital` / `mixed`, with `objectType`, `contentClass`, and refinement tags.
+- Compact offline payload (`ndppCommitment*`, `odpOffline`) for printed and NFC carriers.
+
+### Removed
+
+- **`freeze()`**, the deployer-only irreversible write-stop, dropped to fit the registry inside the EIP-170 bytecode limit after the surfaces were split. It existed through v0.4 and is restored in v0.6, so the v0.5 registry is the only line with no on-chain way to stop writes.
+
+### Superseded by 0.6
+
+- Every mutable current-state field above was replaced by append-only events. A record that can be overwritten is worth what its last writer says it is; that is the reason this line was not released.
+
 ## [0.4.1] - 2026-04-05
 
 Patch release: tooling and community-workflow fixes, no protocol change (still packed `CONTRACT_VERSION = 4`). Full notes: [GitHub Release](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.4.1).
@@ -50,7 +94,7 @@ Patch release: tooling and community-workflow fixes, no protocol change (still p
 - **Subresource Integrity (SRI)** on third-party CDN scripts (`ethers`, QR libraries, `html2canvas`, `jszip`, `jsQR`) on the creator, passport, and verify pages.
 - On-chain error text rendered via `textContent`, not concatenated into `innerHTML`.
 - Root `package.json`: Hardhat 3.x, `@nomicfoundation/hardhat-toolbox-mocha-ethers`, dotenv 17.x, npm overrides for known transitive advisories.
-- `types/ethers-contracts/`: committed generated TypeScript typings and factories.
+- `chain/types/ethers-contracts/`: committed generated TypeScript typings and factories.
 
 ### Removed
 
@@ -124,7 +168,9 @@ First tagged release of the reference implementation: specification, Solidity co
 - Static web UI: `creator.html`, `passport.html`, `verify.html`.
 - Hardhat deploy scripts and CLI minting tool.
 
-[Unreleased]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4.1...main
+[0.7]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.6...v0.7
+[0.6]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4.1...v0.6
+[0.5]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4.1...v0.6
 [0.4.1]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4...v0.4.1
 [0.4]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.3...v0.4
 [0.3]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.2...v0.3

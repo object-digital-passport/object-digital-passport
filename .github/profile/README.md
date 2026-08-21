@@ -41,7 +41,7 @@ The **v0.6** line is live on Polygon mainnet (generation 6). The earlier v0.5 re
 | **Chain** | Polygon PoS (137) |
 | **Main registry (v0.6, deployed)** | [`0x012aC6393464A73EC16131D701ff2e000695b91b`](https://polygonscan.com/address/0x012aC6393464A73EC16131D701ff2e000695b91b) |
 
-Full satellite addresses: [`docs/GUIDE.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md#current-release) · [`docs/V0.6.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/V0.6.md)
+Full satellite addresses: [`docs/GUIDE.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md#current-release)
 
 ---
 

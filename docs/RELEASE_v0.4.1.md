@@ -1,5 +1,7 @@
 # Object Digital Passport — release notes · v0.4.1
 
+*Plain-language summary of this version: [**v0.4.1 release note**](releases/v0.4.1.md). This page is the long-form detail behind it.*
+
 *Reference implementation snapshot · protocol line remains **v0.4** (on-chain generation **4**, packed `CONTRACT_VERSION` = **4**). This tag documents the **repository / static UI / tooling** line; it does **not** change the deployed registry ABI by itself.*
 
 ## Summary
@@ -19,7 +21,7 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 ## Community & GitHub
 
 - New issue template **Standard gap** — propose what is missing or unclear in `**SPEC.md`**.
-- `**[CONTRIBUTING.md](../CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[web/frontend/localization/](../localization/)**` copies are informational.
+- `**[CONTRIBUTING.md](CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[web/frontend/localization/](../web/frontend/localization/)**` copies are informational.
 - Pull request template: reminder to use **English** for title and description.
 - Optional **rulesets** guidance: `**[.github/BRANCH_PROTECTION.md](../.github/BRANCH_PROTECTION.md)`** (local `rulesets/` path is gitignored — templates for import only).
 
@@ -41,7 +43,7 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 
 ## See also
 
-- **v0.4 narrative (RU):** `[../localization/ru/RELEASE_v0.4.md](../localization/ru/RELEASE_v0.4.md)`
+- **v0.4 narrative (RU):** `[../web/frontend/localization/ru/RELEASE_v0.4.md](../web/frontend/localization/ru/RELEASE_v0.4.md)`
 - **v0.4 pointer (EN):** `[V0.4.md](V0.4.md)`
 - **Versioning & tags:** `[VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)`
 

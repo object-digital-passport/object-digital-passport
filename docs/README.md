@@ -9,6 +9,7 @@
 | Document | Purpose |
 |----------|---------|
 | **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `docs/`, `web/frontend/`, and `chain/` live in the repo. |
+| **[`releases/`](releases/)** | **Start here for “what changed and does it affect me”** — one short, jargon-free note per version. Written to [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md). |
 | **[`GUIDE.md`](GUIDE.md)** | Long-form overview: quick start, live demo, costs, deployment table, glossary. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |
 | **[`V0.6.md`](V0.6.md)** | Current v0.6 line (on-chain generation **6**, deployed on Polygon mainnet): on-chain card, `anchors[]`, append-only events. RU: [`web/frontend/localization/ru/RELEASE_v0.6.md`](../web/frontend/localization/ru/RELEASE_v0.6.md). |
@@ -26,7 +27,7 @@
 
 | Document | Purpose |
 |----------|---------|
-| [`V0.5.md`](V0.5.md) | Historical v0.5 line (on-chain generation **5** — the currently deployed Polygon registry). |
+| [`V0.5.md`](V0.5.md) | Historical v0.5 line (on-chain generation **5**) — deployed to Polygon mainnet, never tagged, superseded by v0.6. See [`releases/v0.5.md`](releases/v0.5.md). |
 | [`V0.3.md`](V0.3.md) | v0.3 vs v0.2; RU release: [`web/frontend/localization/ru/RELEASE_v0.3.md`](../web/frontend/localization/ru/RELEASE_v0.3.md). |
 | [`V0.4.md`](V0.4.md) | Historical v0.4 line notes. |
 | [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md) | v0.4.1 patch notes. RU: [`web/frontend/localization/ru/RELEASE_v0.4.1.md`](../web/frontend/localization/ru/RELEASE_v0.4.1.md). |
