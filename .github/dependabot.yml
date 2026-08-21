@@ -27,9 +27,9 @@ updates:
     open-pull-requests-limit: 10
     labels: ["dependencies"]
 
-  # Static-site build for GitHub Pages.
+  # Specification site builder.
   - package-ecosystem: "npm"
-    directory: "/web/pages"
+    directory: "/tools"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5

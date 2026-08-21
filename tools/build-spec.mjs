@@ -11,7 +11,7 @@ import { Marked } from "marked";
 import { gfmHeadingId } from "marked-gfm-heading-id";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..", "..");
+const repoRoot = path.resolve(__dirname, "..");
 const outDir = process.argv[2];
 if (!outDir) {
   console.error("Usage: node build-spec.mjs <output-dir>");
@@ -41,7 +41,8 @@ const NAV = [
   ["objectid-profile.html", "Object ID Profile"],
   ["security.html", "Security Model"],
   ["schema/passport-0.6.schema.json", "JSON Schema"],
-  ["../demo/", "Live demo →"],
+  // Absolute: the demo is a separate deployment, and will be a separate repository.
+  ["https://object-digital-passport.github.io/object-digital-passport/demo/", "Live demo →"],
 ];
 
 const CSS = `
@@ -143,10 +144,12 @@ function rewriteHref(href, srcDir) {
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.mkdirSync(path.join(outDir, "schema"), { recursive: true });
-fs.copyFileSync(
-  path.join(repoRoot, "schema", "passport-0.6.schema.json"),
-  path.join(outDir, "schema", "passport-0.6.schema.json"),
-);
+// Publish every schema, not just the current one: each carries an $id pointing here, and an
+// $id that 404s is worse than no $id at all.
+for (const f of fs.readdirSync(path.join(repoRoot, "schema")).filter((n) => n.endsWith(".schema.json"))) {
+  fs.copyFileSync(path.join(repoRoot, "schema", f), path.join(outDir, "schema", f));
+  console.log(`spec: schema/${f}`);
+}
 
 for (const page of PAGES) {
   const srcPath = path.join(repoRoot, page.src);

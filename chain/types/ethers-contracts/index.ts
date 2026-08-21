@@ -35,11 +35,11 @@ export type { IODPRegistryForUnits } from './ODPEditionUnits.sol/IODPRegistryFor
 export { IODPRegistryForUnits__factory } from './factories/ODPEditionUnits.sol/IODPRegistryForUnits__factory.js';
 export type { ODPEditionUnits } from './ODPEditionUnits.sol/ODPEditionUnits.js';
 export { ODPEditionUnits__factory } from './factories/ODPEditionUnits.sol/ODPEditionUnits__factory.js';
-export { ODPPassportLib__factory } from './factories/ODPPassportLib__factory.js';
 export type { IODPRegistryForExtensionMint } from './ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint.js';
 export { IODPRegistryForExtensionMint__factory } from './factories/ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint__factory.js';
 export type { ODPExtensionMintRouter } from './ODPExtensionMintRouter.sol/ODPExtensionMintRouter.js';
 export { ODPExtensionMintRouter__factory } from './factories/ODPExtensionMintRouter.sol/ODPExtensionMintRouter__factory.js';
+export { ODPPassportLib__factory } from './factories/ODPPassportLib__factory.js';
 export type { IODPRegistryForProofs } from './ODPPassportProofRegistry.sol/IODPRegistryForProofs.js';
 export { IODPRegistryForProofs__factory } from './factories/ODPPassportProofRegistry.sol/IODPRegistryForProofs__factory.js';
 export type { ODPPassportProofRegistry } from './ODPPassportProofRegistry.sol/ODPPassportProofRegistry.js';

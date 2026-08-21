@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://object-digital-passport.github.io/schema/passport-0.5.schema.json",
+  "$id": "https://object-digital-passport.github.io/object-digital-passport/spec/schema/passport-0.5.schema.json",
   "title": "Object Digital Passport — passport.json v0.5",
   "description": "Machine-readable schema for the canonical v0.5 passport.json (SPEC.md §9). The minified, NFC-normalized, key-sorted bytes of this document anchor the on-chain dataHash. Additional properties are allowed: SPEC permits optional namespaces (identifiers, iiif, sustainability, compliance) and additionalMetadata.",
   "type": "object",

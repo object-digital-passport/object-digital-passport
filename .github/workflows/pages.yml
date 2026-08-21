@@ -1,6 +1,6 @@
 # Deploys the split site to GitHub Pages:
 #   /       — landing (web/pages/index.html): choose Specification or Demo
-#   /spec/  — SPEC.md + profile docs rendered to HTML (web/pages/build-spec.mjs)
+#   /spec/  — SPEC.md + profile docs rendered to HTML (tools/build-spec.mjs)
 #   /demo/  — reference web UI (web/frontend + web/backend)
 # Legacy root/*.html and /web/*.html URLs get redirect stubs to /demo/.
 # Requires: Repo Settings → Pages → Source: GitHub Actions.
@@ -34,8 +34,8 @@ jobs:
           node-version: 22
       - name: Build /spec/ from markdown
         run: |
-          npm install --prefix web/pages --no-audit --no-fund
-          node web/pages/build-spec.mjs _site/spec
+          npm install --prefix tools --no-audit --no-fund
+          node tools/build-spec.mjs _site/spec
       - name: Stage landing and /demo/
         env:
           ODP_CONTRACT_ADDRESS: ${{ secrets.ODP_CONTRACT_ADDRESS || vars.ODP_CONTRACT_ADDRESS }}
