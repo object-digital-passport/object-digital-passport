@@ -15,6 +15,21 @@ There are two layers, and nothing lives in both:
 
 The release note never repeats the changelog. It links to it.
 
+**The changelog is the source.** Keep a Changelog 2.0.0 covers this directly — *"A changelog is
+the complete, ongoing record… Release notes are an announcement for a single release"*, and
+*"the changelog is the source; release notes are drawn from it and shaped for the
+announcement."* So write the changelog entry first, then write the note from it. If the two
+disagree about a fact, the changelog is right and the note is wrong.
+
+**One deliberate deviation.** 2.0.0 suggests copying the version's changelog section into the
+release and expanding it. We do not: our changelog is written for someone who wants every
+detail and uses the vocabulary that comes with it, and copying that across would produce exactly
+the wall of jargon these notes exist to avoid. The note is written fresh, from the same facts.
+
+Both layers live in this repository rather than only in GitHub's database — which is the risk
+2.0.0 warns about: *"everything is stored in the host's database, not your repository… your
+changelog goes where your code goes."*
+
 ---
 
 ## The skeleton
