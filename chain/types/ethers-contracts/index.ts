@@ -25,14 +25,14 @@ export type { IODPRegistryForAuthor } from './ODPAuthorAttestation.sol/IODPRegis
 export { IODPRegistryForAuthor__factory } from './factories/ODPAuthorAttestation.sol/IODPRegistryForAuthor__factory.js';
 export type { ODPAuthorAttestation } from './ODPAuthorAttestation.sol/ODPAuthorAttestation.js';
 export { ODPAuthorAttestation__factory } from './factories/ODPAuthorAttestation.sol/ODPAuthorAttestation__factory.js';
-export type { IODPRegistryForCounterfeit } from './ODPCounterfeitConcern.sol/IODPRegistryForCounterfeit.js';
-export { IODPRegistryForCounterfeit__factory } from './factories/ODPCounterfeitConcern.sol/IODPRegistryForCounterfeit__factory.js';
-export type { ODPCounterfeitConcern } from './ODPCounterfeitConcern.sol/ODPCounterfeitConcern.js';
-export { ODPCounterfeitConcern__factory } from './factories/ODPCounterfeitConcern.sol/ODPCounterfeitConcern__factory.js';
 export type { IODPRegistryForExtensionMint } from './ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint.js';
 export { IODPRegistryForExtensionMint__factory } from './factories/ODPExtensionMintRouter.sol/IODPRegistryForExtensionMint__factory.js';
 export type { ODPExtensionMintRouter } from './ODPExtensionMintRouter.sol/ODPExtensionMintRouter.js';
 export { ODPExtensionMintRouter__factory } from './factories/ODPExtensionMintRouter.sol/ODPExtensionMintRouter__factory.js';
+export type { IODPRegistryForCounterfeit } from './ODPCounterfeitConcern.sol/IODPRegistryForCounterfeit.js';
+export { IODPRegistryForCounterfeit__factory } from './factories/ODPCounterfeitConcern.sol/IODPRegistryForCounterfeit__factory.js';
+export type { ODPCounterfeitConcern } from './ODPCounterfeitConcern.sol/ODPCounterfeitConcern.js';
+export { ODPCounterfeitConcern__factory } from './factories/ODPCounterfeitConcern.sol/ODPCounterfeitConcern__factory.js';
 export { ODPPassportLib__factory } from './factories/ODPPassportLib__factory.js';
 export type { IODPRegistryForProofs } from './ODPPassportProofRegistry.sol/IODPRegistryForProofs.js';
 export { IODPRegistryForProofs__factory } from './factories/ODPPassportProofRegistry.sol/IODPRegistryForProofs__factory.js';
