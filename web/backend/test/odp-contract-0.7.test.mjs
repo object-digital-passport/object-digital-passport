@@ -50,4 +50,23 @@ assert.equal(s.labelSigner, SIGNER, "signed-label editions expose the key");
 s = await readState(stub(true, false, 0, [], "0x" + "0".repeat(40)), "ODP-2026-08-000000001", 7);
 assert.equal(s.labelSigner, null, "a plain-label edition reports no signer, not a zero address");
 
-console.log("odp-contract 0.7 read layer: 16 assertions passed");
+// §20.7 — the decisions that need no crypto. The payload bytes and the accept/reject
+// crypto are proven against Solidity in chain/deploy/test/ODPEditionLabel.test.js,
+// because ethers is not installed on this side.
+const { odpVerifyLabelSignature: verifyLabel } = globalThis;
+const SIG = "0x" + "11".repeat(65);
+const base = {
+  chainId: 80002, unitsAddress: "0x" + "2".repeat(40),
+  editionPassportId: "ODP-2026-08-000000001", unitIndex: 0,
+  merkleRoot: "0x" + R, labelSigner: SIGNER,
+};
+
+assert.equal(verifyLabel({ ...base, labelSigner: null, signature: SIG }), "unsigned_edition",
+  "a plain-label edition is reported as such, never as a failure");
+assert.equal(verifyLabel({ ...base, signature: null }), "absent",
+  "signed edition, unsigned carrier");
+assert.equal(verifyLabel({ ...base, signature: SIG, merkleRoot: null }), "unknown",
+  "no root means no decision, not a guess");
+assert.equal(verifyLabel({}), "unsigned_edition", "empty input does not throw");
+
+console.log("odp-contract 0.7 read layer: 20 assertions passed");

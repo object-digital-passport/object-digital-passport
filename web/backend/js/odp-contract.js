@@ -224,6 +224,52 @@
     return out;
   }
 
+  /**
+   * SPEC §20.7 — the message a signed outer label carries. Must match
+   * ODPEditionUnits.labelPayloadHash byte for byte, so it is asserted against Solidity in
+   * chain/deploy/test/ODPEditionLabel.test.js rather than trusted.
+   */
+  function odpLabelPayloadHash(chainId, unitsAddress, editionPassportId, unitIndex, merkleRoot) {
+    if (typeof global.ethers === "undefined") return null;
+    var e = global.ethers;
+    return e.keccak256(
+      e.solidityPacked(
+        ["string", "uint256", "address", "string", "uint32", "bytes32"],
+        ["ODP-UNIT-LABEL-v1", BigInt(chainId), unitsAddress, editionPassportId, unitIndex, merkleRoot],
+      ),
+    );
+  }
+
+  /**
+   * SPEC §20.7 — check a signed outer label against the key the edition published.
+   *
+   * Returns one of:
+   *   "unsigned_edition" — this edition prints plain labels. NOT a downgrade: signing is
+   *                        optional and a verifier MUST NOT rank a plain edition lower.
+   *   "absent"           — signed edition, but this carrier presented no signature.
+   *   "valid"            — the label was printed by the issuer.
+   *   "invalid"          — the signature does not come from the published key.
+   *   "unknown"          — not enough data to decide (no crypto available, missing root).
+   *
+   * A "valid" label says the label is genuine, never that the object is: a photograph of a
+   * real label reproduces a valid signature. Copying is caught by activation, not here.
+   */
+  function odpVerifyLabelSignature(opts) {
+    var o = opts || {};
+    if (!o.labelSigner) return "unsigned_edition";
+    if (!o.signature) return "absent";
+    if (!o.merkleRoot || o.unitIndex == null || !o.unitsAddress || o.chainId == null) return "unknown";
+    if (typeof global.ethers === "undefined") return "unknown";
+    try {
+      var digest = odpLabelPayloadHash(o.chainId, o.unitsAddress, o.editionPassportId, o.unitIndex, o.merkleRoot);
+      if (!digest) return "unknown";
+      var recovered = global.ethers.verifyMessage(global.ethers.getBytes(digest), o.signature);
+      return String(recovered).toLowerCase() === String(o.labelSigner).toLowerCase() ? "valid" : "invalid";
+    } catch (e) {
+      return "invalid";
+    }
+  }
+
   function odpSatelliteAddress(net, key) {
     if (!net || net[key] == null) return null;
     var d = String(net[key]).trim();
@@ -3641,6 +3687,8 @@
   global.odpEditionUnitsReadContract = odpEditionUnitsReadContract;
   global.odpCompareUnitKeySetRoot = odpCompareUnitKeySetRoot;
   global.odpReadUnitState = odpReadUnitState;
+  global.odpLabelPayloadHash = odpLabelPayloadHash;
+  global.odpVerifyLabelSignature = odpVerifyLabelSignature;
   global.odpPassportIdAbiName = odpPassportIdAbiName;
   global.odpCounterfeitConcernAbiFragments = odpCounterfeitConcernAbiFragments;
   global.odpCounterfeitReadContract = odpCounterfeitReadContract;

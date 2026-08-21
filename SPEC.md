@@ -2251,6 +2251,8 @@ Both MUST **also** be printed in human-readable text, following the §5 label ru
 
 The reference form is the §5 verification label extended with the unit index: a QR encoding the `odp://` URI (§12, §19) plus the unit index, and the same values as text.
 
+**Reference web parameters.** A verifier page reachable from the carrier reads the unit index as `unit` (or `u`) and, for a signed label, the signature as `lsig` — 65 bytes, `0x`-prefixed hex. A malformed value MUST be treated as no value rather than as a failed check: a smudged carrier is not evidence about the object.
+
 The outer carrier MUST NOT contain the unit seed or any value derived from it.
 
 **Signed labels (optional, normative when used).** An outer carrier MAY additionally carry a signature over
