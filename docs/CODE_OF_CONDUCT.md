@@ -40,7 +40,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 All community leaders are obligated to respect the privacy and security of the reporter of any incident.
 
-For **security vulnerabilities in the software**, use **[`SECURITY.md`](docs/SECURITY.md)** (Russian: [`web/frontend/localization/ru/SECURITY.md`](web/frontend/localization/ru/SECURITY.md)) instead of public issues.
+For **security vulnerabilities in the software**, use **[`SECURITY.md`](SECURITY.md)** (Russian: [`web/frontend/localization/ru/SECURITY.md`](../web/frontend/localization/ru/SECURITY.md)) instead of public issues.
 
 ## Enforcement guidelines
 

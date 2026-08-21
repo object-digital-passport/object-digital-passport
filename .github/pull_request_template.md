@@ -1,4 +1,4 @@
-<!-- Use **English** for the PR title and description so everyone in the community can follow (see [CONTRIBUTING.md](CONTRIBUTING.md#language-github-and-the-community)). -->
+<!-- Use **English** for the PR title and description so everyone in the community can follow (see [CONTRIBUTING.md](../docs/CONTRIBUTING.md#language-github-and-the-community)). -->
 
 ## Summary
 
@@ -14,9 +14,9 @@
 
 ## Checklist
 
-- [ ] I have read [`CONTRIBUTING.md`](docs/CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](docs/CODE_OF_CONDUCT.md).
+- [ ] I have read [`CONTRIBUTING.md`](../docs/CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](../docs/CODE_OF_CONDUCT.md).
 - [ ] For **spec** changes: there is an issue or discussion agreed with maintainers (or this PR is tiny/clarification-only).
-- [ ] For **security-sensitive** changes: reported per [`SECURITY.md`](docs/SECURITY.md), not only in this PR description.
+- [ ] For **security-sensitive** changes: reported per [`SECURITY.md`](../docs/SECURITY.md), not only in this PR description.
 
 ## Notes for reviewers
 
