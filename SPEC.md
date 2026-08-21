@@ -1645,7 +1645,14 @@ odp://P-482-930-174-005
 
 - Error correction: **Q** (25%) minimum
 - Encoding: UTF-8
-- Fallback HTTPS landing page (implementation-defined): e.g. `https://verify.example.com/?id=…`
+
+**No hostname is printed (normative).** What goes onto an object is the `odp://` URI and the
+human-readable Passport ID (§5) — never the address of a website. A printed hostname is a
+promise about a server, made permanent on an object that will outlive it: the domain lapses, the
+organisation is sold, the path is restructured, and the carrier now points at nothing or at
+somebody else. The URI names the passport; §12.3 says how a client turns that into a registry
+read. An implementation MAY offer an HTTPS page as a convenience for a phone that has no ODP
+handler, but MUST NOT print or encode that address as the identifier of the object.
 
 Hierarchical paths (`/passports`, `/proofs`) and query parameters beyond a future normative definition are **reserved / experimental** — implementations **MUST NOT** rely on them for interoperability until specified.
 

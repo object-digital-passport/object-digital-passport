@@ -147,15 +147,22 @@ Use this when the main goal is: "tap the object and open ODP verification."
 
 Recommended pattern:
 
-1. keep a standard URL / URI record first
-2. for the current reference deployment, point it to the GitHub-hosted ODP Verify URL, for example:
+1. write the `odp://` URI as the first record — it names the passport and nothing else:
 
 ```text
-https://object-digital-passport.github.io/object-digital-passport/verify.html?id=ODP-...
+odp://ODP-2026-03-004829301
 ```
 
-3. if you want the ODP offline payload on the same carrier, write the exported ODP `.ndef` file instead
-4. keep `odp://...` as the later stable-v1 first-link target, once resolver / app context is ready
+2. if you want the ODP offline payload on the same carrier, write the exported `.ndef` file instead
+3. add an HTTPS record only if you have decided to accept what it costs — see below
+
+**Do not write a hostname unless you mean it permanently.** `SPEC.md` §12.2 is explicit that no
+hostname is printed: a URL on a tag is a promise about a server, fixed onto an object that will
+outlive it. This documentation used to recommend writing the project's GitHub Pages URL here.
+That was wrong, and any tag written that way keeps pointing wherever that address ends up.
+
+An HTTPS record is a real convenience — a phone with no ODP handler opens something instead of
+nothing — so it stays available. It is a choice with a consequence, not a default.
 
 Practical notes:
 
