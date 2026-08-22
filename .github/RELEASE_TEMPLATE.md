@@ -134,7 +134,21 @@ somewhere that explains it.
 
 ## Publishing
 
+**Never type a release body into the GitHub form.** Publish from the file, always:
+
 ```bash
 gh release create vX.Y --title "ODP vX.Y" --notes-file docs/releases/vX.Y.md
 gh release edit   vX.Y --notes-file docs/releases/vX.Y.md   # for an existing release
 ```
+
+Editing a note in the repository does not change what is published. Re-run `gh release edit`
+after every change, and check the whole set with:
+
+```bash
+node chain/tools/check_published_releases.mjs
+```
+
+This is not a hypothetical. v0.6 spent a month published as a draft written before this
+template existed — its title was an `##`, so that one release rendered in a visibly smaller
+font than every other, and nobody could see why from the repository, because the file was
+correct all along.
