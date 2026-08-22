@@ -13,7 +13,19 @@ its own history; what is recorded here from now on is the protocol.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- The **advanced CodeQL workflow is removed again**. It has failed on every run since it was added — GitHub rejects the upload when Default code scanning is enabled, so the job ran the full analysis and produced no alerts, on `main` as well as on pull requests. The same workflow was removed for the same reason in v0.4.1; the `paths-ignore` that justified reintroducing it pointed at a bundle that left with the website. Code scanning runs from Default setup, which covers JavaScript/TypeScript, Python **and** GitHub Actions. Recorded in [`docs/SECURITY.md`](docs/SECURITY.md#code-scanning-codeql) so it does not return a third time.
+
+### Changed
+
+- The **organization profile README** is rewritten against the repository as it is, and its repository-relative links are checked by CI — it described the pre-0.7 layout, listed two of four repositories, and linked a file that does not exist.
+- **Branch protection is committed configuration** rather than a description of what to click: two importable rulesets under [`.github/rulesets/`](.github/rulesets/).
+- CI checkouts no longer persist the job token into `.git/config`.
+
+### Added
+
+- [`docs/ORG_NAMING_AND_SITE.md`](docs/ORG_NAMING_AND_SITE.md) — a proposal, applied nowhere: repository names in the c2pa-org style, what each rename would break, and why `odp.github.io` cannot be obtained.
 
 ## [0.7] - 2026-08-22 — pre-release
 

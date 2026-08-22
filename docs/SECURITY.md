@@ -196,6 +196,34 @@ Treat **formal verification**, **timelocks** for governance (off-chain multisig 
 
 ---
 
+## Code scanning (CodeQL)
+
+**CodeQL runs from GitHub's Default setup**, configured under *Settings → Code security → Code
+scanning*. There is deliberately **no CodeQL workflow in this repository**, and one must not be
+added back without first switching that setting to Advanced.
+
+The two are mutually exclusive, and the failure is silent in the way that matters: an Advanced
+workflow runs the full analysis, then GitHub rejects the upload with *"CodeQL analyses from
+advanced configurations cannot be processed when the default setup is enabled."* The job burns its
+runtime and produces **no alerts at all**, while looking like a configured security control.
+
+This repository has made that mistake twice. An Advanced workflow was added, removed in **v0.4.1**
+for exactly this reason, then re-added in the 0.7 line on the assumption that the UI switch would
+follow. It did not, and the workflow failed on **every one of its runs** — on `main` as well as on
+pull requests — for four months, unnoticed because code scanning is not a required check.
+
+The one thing Advanced setup offered was a `paths-ignore` for the generated WalletConnect bundle,
+which is the whole reason it was reintroduced. That bundle left with the reference website in the
+0.7 line, so the reason went with it.
+
+Default setup covers **JavaScript/TypeScript, Python and GitHub Actions** — more than the workflow
+it replaced, which analysed only the first two. Solidity is not a CodeQL language and is covered by
+Slither, above.
+
+**If an exclusion is ever needed again**, that is the moment to switch the UI setting to Advanced
+*first*, then add the workflow and its config in the same change — and to confirm the upload
+succeeds, not merely that the job appears.
+
 ## Reporting security issues
 
 Open an issue at:

@@ -42,9 +42,10 @@ The non-strict ruleset requires these five, named exactly as the jobs in
 **Renaming a CI job silently un-requires it** — a required check that never reports is treated as
 not applicable, not as failing. Rename a job, and this list needs the same edit in the same commit.
 
-CodeQL is deliberately not in the list. It runs on pull requests and weekly on a schedule, but
-requiring it would block merges on an analysis whose runtime is unrelated to whether the change is
-correct.
+CodeQL is not in the list, and there is no CodeQL workflow in this repository — code scanning runs
+from GitHub's Default setup. See [Code scanning](../docs/SECURITY.md#code-scanning-codeql) in the
+security model for why an Advanced workflow must not be added back without flipping the UI setting
+first.
 
 ## Tags
 
