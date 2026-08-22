@@ -2,7 +2,12 @@
 
 Minimum useful dedicated verifier for **ODP + NTAG 424 DNA TagTamper**: NFC runtime, separate trust rows (carrier, offline payload, chip session, `nfcPublicKey` binding, canonical `dataHash`), without becoming a full issuer workstation.
 
-**Implementation:** [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion) — guided app, EV2, mirror profile, registry key fetch.  
+> **Status: this scope was never delivered.** The Android verifier it describes was started
+> and abandoned; no public implementation of the `nfc` anchor exists on any platform. The
+> reference implementation is now in development as the ODP app for iOS — see
+> [GUIDE.md](GUIDE.md#reading-an-nfc-seal). This document is kept because the scope
+> boundary it draws is still the right one, and the next attempt should start from it.
+
 **Integration:** [docs/ANDROID.md](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md) · **Chip pilot:** [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
 
 The browser already verifies registry + `dataHash`; it cannot run EV2 or TagTamper. TagWriter writes carriers only; Tag TrustLink can authenticate the chip but not bind to an ODP passport without comparing to on-chain `nfcPublicKey`.

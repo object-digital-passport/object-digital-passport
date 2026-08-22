@@ -210,9 +210,17 @@ Pages:
 
 *The live pages talk to the deployed **v0.6** registry (see [Current Release](#current-release)) and detect the on-chain generation automatically; the earlier v0.5 registry stays readable through `previousContracts` in Verify.*
 
-## Android companion app
+## Reading an NFC seal
 
-Reference NFC verifier: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (separate repository). Integration: [`docs/ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md), handoff in [`frontend/js/odp-android-companion.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/js/odp-android-companion.js) — both in the website repository. Chip workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
+A browser cannot reach an NFC chip, so this is the one part of verification the website cannot do. It needs an app on a device with an NFC reader.
+
+**Status: there is no public implementation yet, on any platform.** Of every anchor type in [SPEC.md](../SPEC.md) §9, `nfc` is the only one you cannot check today with something you can install. If you are deciding whether to buy NTAG 424 DNA tags for a run, weigh that before you order.
+
+The reference implementation is in development as the **ODP app for iOS**. It scans on iPhone. No Mac has NFC hardware, so on macOS the app receives an already-verified result from the phone instead of scanning — a transfer, not a scan.
+
+What a verifier must do is specified without reference to any of this: the EV2 challenge-response, the TagTamper conditions and the high-assurance profile are in [SPEC.md](../SPEC.md) §6, and anyone can implement them.
+
+Groundwork that does exist in the website repository: the web-to-app handoff in [`frontend/js/odp-android-companion.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/js/odp-android-companion.js) and its [`docs/ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md), plus the chip workflow in [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md). They were written for an Android verifier that was never finished, and are kept because the handoff shape is worth reusing.
 
 The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap target. `odp://...` remains normative in [SPEC.md](../SPEC.md) for stable v1 once resolver context exists.
 

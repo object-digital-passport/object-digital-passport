@@ -208,11 +208,19 @@ ODP **не заменяет** человеческую экспертизу, и�
 - Профиль (кошелёк + комиссии сети): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
 - Паспорт (кошелёк + комиссии сети): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
 
-*Живые страницы сейчас работают с задеплоенным реестром **v0.5** (см. [Текущий релиз](#текущий-релиз)); интерфейс в этом репозитории уже поддерживает линию v0.6 и переключится автоматически по on-chain поколению, когда реестр v0.6 будет задеплоен и настроен.*
+*Живые страницы работают с задеплоенным реестром **v0.6** (см. [Текущий релиз](#текущий-релиз)) и определяют поколение в цепи автоматически; прежний реестр v0.5 остаётся читаемым через `previousContracts` в Verify.*
 
-## Android-приложение-компаньон
+## Как читают NFC-пломбу
 
-Эталонный NFC-верификатор: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (отдельный репозиторий). Интеграция в этом репозитории: [docs/ANDROID.md](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md), handoff в [`frontend/js/odp-android-companion.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/js/odp-android-companion.js). Работа с чипом: [ANDROID_NTAG424DNA_TAGTAMPER.md](../ANDROID_NTAG424DNA_TAGTAMPER.md).
+Браузер не может достучаться до NFC-чипа, поэтому это единственная часть проверки, которую сайт сделать не в состоянии. Нужно приложение на устройстве с NFC-считывателем.
+
+**Состояние: публичной реализации нет ни на одной платформе.** Из всех типов якорей в [SPEC.md](../../SPEC.md) §9 `nfc` — единственный, который сегодня нечем проверить: нет программы, которую можно поставить. Если вы решаете, закупать ли метки NTAG 424 DNA под тираж, взвесьте это до заказа.
+
+Эталонная реализация разрабатывается как **приложение ODP для iOS**. Сканирует iPhone. NFC-считывателя нет ни в одном Mac, поэтому на macOS приложение принимает уже проверенный результат с телефона, а не сканирует само — это передача, а не скан.
+
+Что обязан делать верификатор, задано безотносительно ко всему этому: EV2 challenge-response, условия TagTamper и профиль высокой достоверности описаны в [SPEC.md](../../SPEC.md) §6, и реализовать их может кто угодно.
+
+Задел, который в репозитории сайта действительно есть: передача из веба в приложение — [`frontend/js/odp-android-companion.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/js/odp-android-companion.js) и [`docs/ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md) к нему, плюс работа с чипом в [ANDROID_NTAG424DNA_TAGTAMPER.md](../ANDROID_NTAG424DNA_TAGTAMPER.md). Они писались под Android-верификатор, который так и не доделали, и оставлены потому, что форма передачи пригодится.
 
 В сценарии носителя/экспорта первой ссылкой остаётся **страница Verify на GitHub**. `odp://...` остаётся нормативным в [SPEC.md](../../SPEC.md) для стабильной v1, когда появится контекст резолвера.
 
