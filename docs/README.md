@@ -44,8 +44,8 @@
 
 - **Format:** ZIP **`.odpass`**; required `passport.json` + `manifest.json`; sidecar bytes under `originals/` — **SPEC §15**.
 - **Reference manifest:** **SPEC §15.1.1** (`format: odp-bundle`, `bundleVersion: "0.1"`).
-- **Implementations:** `createPassportOdpBlob` in **`web/frontend/passport.html`** and **`chain/tools/mint.py`**.
-- **Hosting:** public `dataUrl` must serve the §15 ZIP (HTTPS); **`web/frontend/verify.html`** rejects bare `.json` URLs — **SPEC §9**, **§11** step 5.
+- **Implementations:** `createPassportOdpBlob` in [`frontend/passport.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/passport.html) (website repository) and `chain/tools/mint.py` (here).
+- **Hosting:** public `dataUrl` must serve the §15 ZIP (HTTPS); [`frontend/verify.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/verify.html) rejects bare `.json` URLs — **SPEC §9**, **§11** step 5.
 
 ---
 

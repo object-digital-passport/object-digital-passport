@@ -1346,7 +1346,8 @@ disagreement here produces passports another implementation can never verify,
 with no way to correct them after the mint.
 
 The rules are those of ECMAScript `JSON.stringify`, which is what the reference
-verifier (`web/frontend/verify.html`) applies:
+verifier ([`frontend/verify.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/verify.html), in the website
+repository) applies:
 
 - **Strings** escape only `"`, `\` and the C0 controls — `\b` `\t` `\n` `\f`
   `\r`, and `\u00XX` for the rest. `/` is **not** escaped. Non-ASCII travels as
@@ -1834,7 +1835,7 @@ Expected ZIP entries:
 
 #### 15.1.1 Reference `manifest.json` shape (implementations)
 
-Reference tooling in this repository (`web/frontend/passport.html`, `chain/tools/mint.py`) writes `manifest.json` as UTF-8 JSON with at least:
+Reference tooling writes `manifest.json` as UTF-8 JSON with at least — [`frontend/passport.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/passport.html) in the website repository, and `chain/tools/mint.py` here:
 
 - `format`: `"odpass-bundle"` (legacy bundles MAY use `"odp-bundle"`)
 - `bundleVersion`: string for the bundle layout exported by reference tooling (older manifest layout strings may still read)
@@ -1903,7 +1904,7 @@ The **reference static pages** in this repository (`**passport.html`**, `**creat
 
 WalletConnect relies on **relay** infrastructure and a wallet app (QR scan or deep link); **availability, privacy, and trust** of that channel are between the user, the wallet vendor, and WalletConnect — **not** specified here. On-chain semantics are unchanged: `**msg.sender`**, creator wallet, and `**chainId`** remain authoritative.
 
-For **repository wiring** (Reown Cloud Project ID, lazy-loaded bundle, session restore after reload), see `**web/odp-wc-config.js`**, `**web/odp-wallet-wc-loader.js`**, and `**[docs/V0.4.md](docs/V0.4.md)**`.
+For **repository wiring** (Reown Cloud Project ID, lazy-loaded bundle, session restore after reload), see [`backend/config/odp-wc-config.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/config/odp-wc-config.js) and [`backend/js/odp-wallet-wc-loader.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/js/odp-wallet-wc-loader.js) in the website repository, and [`docs/V0.4.md`](docs/V0.4.md) here.
 
 ### Key generation principle
 
