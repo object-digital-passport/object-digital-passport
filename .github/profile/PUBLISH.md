@@ -1,9 +1,39 @@
 # Organization profile README — how to publish
 
-GitHub shows a custom **organization overview** only from a **dedicated repository** on that organization:
+GitHub renders the organization overview at <https://github.com/object-digital-passport> from a
+**dedicated repository** named `.github`, out of the file `profile/README.md`. That repository
+[already exists](https://github.com/object-digital-passport/.github) and is public.
 
-1. On GitHub, under **object-digital-passport**, create a **new public** repository named **`.github`** (exactly this name).
-2. Add the file **`profile/README.md`** — copy the contents from this folder’s **`README.md`** in the same directory as this file.
-3. Commit to **`main`**. The org’s profile page (https://github.com/object-digital-passport) will render that README at the top.
+The source of truth is the copy in **this** repository, `.github/profile/README.md`, so the text is
+edited alongside the docs it links to and the links can be checked in CI. Publishing means copying
+that one file across.
 
-Keeping a copy of `profile/README.md` in the main application repo **`object-digital-passport/object-digital-passport`** (here) lets you edit the text in one place and paste or sync into the org’s **`.github`** repo when you update the org page.
+## Sync it
+
+```bash
+# from a checkout of this repository
+gh repo clone object-digital-passport/.github /tmp/odp-dot-github
+mkdir -p /tmp/odp-dot-github/profile
+cp .github/profile/README.md /tmp/odp-dot-github/profile/README.md
+git -C /tmp/odp-dot-github add profile/README.md
+git -C /tmp/odp-dot-github commit -m "Update the organization profile"
+git -C /tmp/odp-dot-github push
+```
+
+Or paste the file through the web UI: **`.github` repo → `profile/README.md` → edit → commit to
+`main`**. The org page picks it up on the next page load.
+
+## Two things the org page needs besides this file
+
+- **Pinned repositories.** The overview lists whatever is pinned, in pin order. Pin
+  `object-digital-passport` first, then `object-digital-passport.github.io`. Private repositories
+  cannot be pinned on a public org page — they show to members only.
+- **Organization display name, avatar, and URL** live in **Settings → Profile**, not in this file.
+  The website field should point at <https://object-digital-passport.github.io/>.
+
+## When you change it
+
+The README hard-codes the deployed registry address, the version table, and the docs links. Anything
+that moves those — a new deployment, a renamed doc, a repository rename — needs this file updated in
+the same change, then re-synced. Repository-relative links are checked by the `profile-links` job in
+[`ci.yml`](../workflows/ci.yml); external links and the org page itself are not.

@@ -3,10 +3,13 @@
 # This only takes effect under **Advanced** code scanning setup. GitHub's Default setup ignores
 # config files entirely — which is why an earlier copy of this file sat unused in chain/ while
 # thirteen alerts accumulated against a file nobody can edit.
+#
+# There is nothing excluded here any more. The one `paths-ignore` entry this file used to carry
+# pointed at web/backend/js/odp-wallet-wc.bundle.js — esbuild output that left with the website in
+# the 0.7 line. If that bundle needs excluding again, it needs excluding in the website's own
+# repository, not in this one.
+#
+# The file is kept rather than deleted so the workflow's `config-file:` stays valid and the next
+# exclusion has an obvious home.
 
-paths-ignore:
-  # esbuild output: the WalletConnect provider bundled for the browser, committed because
-  # GitHub Pages serves static files with no build step. Every finding CodeQL reports here is
-  # in third-party code, and the next `npm run build:wc` overwrites any edit made to it.
-  # The hand-written source that produces it — js/odp-wallet-wc.entry.js — is still scanned.
-  - web/backend/js/odp-wallet-wc.bundle.js
+name: "Object Digital Passport"
