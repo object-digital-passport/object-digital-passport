@@ -27,7 +27,7 @@
 
 The v0.6 line is a storage-model redesign ([full notes](V0.6.md)):
 
-- **On-chain card.** Every passport carries `title`, `authorName`, and `shortDescription` directly on-chain — the object is legible even without its file. The card is written once and can never be edited (a typo means revoke + re-issue), and it must match the passport file byte-for-byte.
+- **On-chain card.** Every passport carries `title`, `authorName`, `shortDescription`, and `domain` directly on-chain — the object is legible even without its file. The card is written once and can never be edited (a typo means revoke + re-issue), and it must match the passport file byte-for-byte.
 - **One identification block: `anchors[]`.** Photos, dimensions, materials, distinguishing features, marks, seals, file hashes — all live in a single extensible array, fingerprinted on-chain (`anchorsHash`). A **hard minimum is enforced at issue time**: a physical object won't mint without a photo, dimensions, materials, and distinguishing features; a digital object won't mint without its exact file hash.
 - **Append-only history.** Status, location, condition, damage, restoration are **events**: they can be added, never rewritten. The current value is simply the latest event; nothing is ever lost.
 - **Seals are optional.** An NFC crypto chip or numbered seal is now an *additional* anchor on top of the mandatory identification minimum, not a requirement.
@@ -38,10 +38,10 @@ The v0.6 line is a storage-model redesign ([full notes](V0.6.md)):
 |                            |                                                        |
 | -------------------------- | ------------------------------------------------------ |
 | 🇬🇧 **English**           | See the [root README](../README.md) for a short entry point; this page is the detailed guide.                       |
-| 🇷🇺 **Russian / Русский** | [web/frontend/localization/ru/README.md](../web/frontend/localization/ru/README.md) |
+| 🇷🇺 **Russian / Русский** | [web/frontend/localization/ru/README.md](ru/GUIDE.md) |
 
 
-**We welcome README and UI translations in any language.** Add files under `web/frontend/localization/<language-code>/` (see the [web/frontend/localization/ru/](../web/frontend/localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)** (editing, localization, and how to propose changes). **Issues and PRs on GitHub are in English** so the whole community can participate in the same threads.
+**We welcome README and UI translations in any language.** Add files under `web/frontend/localization/<language-code>/` (see the [web/frontend/localization/ru/](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization/ru) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](CONTRIBUTING.md)** (editing, localization, and how to propose changes). **Issues and PRs on GitHub are in English** so the whole community can participate in the same threads.
 
 **Help us:** translate, share the **[project link](https://github.com/object-digital-passport/object-digital-passport)**, or tell communities who might care about open provenance for objects.
 
@@ -134,7 +134,7 @@ You **do not** need deep blockchain expertise to try the **[live demo pages](#li
 
 If you are new, follow this order:
 
-1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments — not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to "connect", pause: that is normal for these pages, but scammers use the same trick — read **your** wallet's help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee** — see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings — see [web/backend/config/odp-wc-config.js](../web/backend/config/odp-wc-config.js) and [docs/V0.6.md](V0.6.md).
+1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments — not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to "connect", pause: that is normal for these pages, but scammers use the same trick — read **your** wallet's help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/object-digital-passport/creator.html)** and **[Passport](https://object-digital-passport.github.io/object-digital-passport/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee** — see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings — see [web/backend/config/odp-wc-config.js](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/config/odp-wc-config.js) and [docs/V0.6.md](V0.6.md).
 2. **This guide.** Read it through for a practical "how to use" picture — no code required. For gentler explanations, the [Wiki](https://github.com/object-digital-passport/object-digital-passport/wiki) covers verification, seals, and the Object ID principle in plain words.
 3. **Rules in full.** The normative protocol text is [SPEC.md](../SPEC.md).
 4. **Going deeper.** What is new in this line: [docs/V0.6.md](V0.6.md) and [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md). Historical notes: [docs/V0.5.md](V0.5.md), [docs/V0.4.md](V0.4.md), [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md). To **deploy your own** registry (for developers): [chain/deploy/README.md](../chain/deploy/README.md).
@@ -212,7 +212,7 @@ Pages:
 
 ## Android companion app
 
-Reference NFC verifier: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (separate repository). Integration in this repo: [docs/ANDROID.md](ANDROID.md), handoff in [web/frontend/js/odp-android-companion.js](../web/frontend/js/odp-android-companion.js). Chip workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
+Reference NFC verifier: **[odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)** (separate repository). Integration in this repo: [docs/ANDROID.md](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md), handoff in [web/frontend/js/odp-android-companion.js](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/js/odp-android-companion.js). Chip workflow: [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md).
 
 The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap target. `odp://...` remains normative in [SPEC.md](../SPEC.md) for stable v1 once resolver context exists.
 
@@ -227,7 +227,7 @@ The carrier/export flow keeps the **GitHub-hosted Verify page** as the first tap
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Source**              | Branch `main` in this repository — reference **v0.6** stack (contracts + static web).                                                                                                                                     |
 | **On-chain generation** | `CONTRACT_VERSION` = **6** (deployed public registry: **6**).                                                                                                                                                                                  |
-| **New vs v0.5 line**    | On-chain card (`title` / `authorName` / `shortDescription`), `anchors[]` + `anchorsHash` with a hard identification minimum, append-only `recordPassportEvent` history, optional seals — see [docs/V0.6.md](V0.6.md). |
+| **New vs v0.5 line**    | On-chain card (`title` / `authorName` / `shortDescription` / `domain`), `anchors[]` + `anchorsHash` with a hard identification minimum, append-only `recordPassportEvent` history, optional seals — see [docs/V0.6.md](V0.6.md). |
 | **Deploy order**        | `ODPPassportLib` → `ObjectDigitalPassport` → `ODPWalletDocumentAnchor` / `ODPCounterfeitConcern` / `ODPRegistryRelations` / `ODPPassportProofRegistry` / `ODPExtensionMintRouter` (+ wiring) — [chain/deploy/README.md](../chain/deploy/README.md). |
 
 
@@ -254,7 +254,7 @@ Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAE
 
 **Previous line — v0.5 (superseded).** The earlier registry [`0x413aEeBB…2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) (generation **5**) is no longer the target of the reference UI. It stays **readable** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) still resolves v0.5 passports via `previousContracts` — but is not where new passports are issued. It is **not frozen**: the **v0.5 line dropped the deployer `freeze()`** that earlier lines carried (removed to fit the EIP-170 bytecode limit when the registry surfaces were split), so this particular registry has no on-chain way to stop writes — retirement here is by convention and by the UI pointing forward. `freeze()` was present through **v0.4** (earlier registries could be, and were, frozen at their cutovers) and is **restored in v0.6**, so from v0.6 on a registry can again be frozen by its deployer.
 
-**Release notes:** [docs/V0.6.md](V0.6.md) (narrative) · [docs/RELEASE_v0.6.md](RELEASE_v0.6.md) (addresses, bytecode, changelog-style) · historical [docs/V0.5.md](V0.5.md) / [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · **Earlier line (v0.3 vs v0.2):** [web/frontend/localization/ru/RELEASE_v0.3.md](../web/frontend/localization/ru/RELEASE_v0.3.md).
+**Release notes:** [docs/V0.6.md](V0.6.md) (narrative) · [docs/RELEASE_v0.6.md](RELEASE_v0.6.md) (addresses, bytecode, changelog-style) · historical [docs/V0.5.md](V0.5.md) / [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · **Earlier line (v0.3 vs v0.2):** [ru/RELEASE_v0.3.md](ru/RELEASE_v0.3.md).
 
 ## Terms You Need
 
@@ -265,7 +265,7 @@ Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAE
 | Issue / mint    | Create a new passport record on-chain (user-facing "issue"; ABI may say *mint*) |
 | Passport ID     | Human-readable object id (`ODP-...`)                                            |
 | Profile ID      | Issuer identity (`C/B/P/M-...`)                                                 |
-| Card            | The readable on-chain trio: `title`, `authorName`, `shortDescription` — immutable after issue |
+| Card            | The four readable on-chain fields: `title`, `authorName`, `shortDescription`, `domain` — immutable after issue |
 | Anchors         | The `anchors[]` identification block (photos, dimensions, materials, features, marks, seals, hashes), fingerprinted on-chain as `anchorsHash` |
 | Passport events | Append-only history records (status / location / condition / damage / restoration …) — added, never rewritten |
 | `passport.json` | Canonical off-chain object document                                             |
@@ -277,7 +277,7 @@ Deployed at `chainId` 137 on 2026-07-24 (deployer `0xefB9f9Fa39965Ab1df3D244ecAE
 
 For threat model and trust boundaries:
 
-- [SECURITY.md](SECURITY.md) · Russian: [web/frontend/localization/ru/SECURITY.md](../web/frontend/localization/ru/SECURITY.md)
+- [SECURITY.md](SECURITY.md) · Russian: [ru/SECURITY.md](ru/SECURITY.md)
 
 Verification basics:
 
@@ -310,21 +310,21 @@ Exact fee amounts fluctuate with network load; there is no separate ODP markup.
 
 ## Roadmap
 
-- **0.x:** expect iterative changes; gather feedback on the standard and tooling. Next steps for the v0.6 line: public testnet/mainnet deployment, the Russian SPEC mirror, optional author attestation.
+- **0.x:** expect iterative changes; gather feedback on the standard and tooling. The v0.6 line is deployed on Polygon mainnet, the Russian SPEC mirror exists, and author attestation shipped as a satellite. Work in progress is the **v0.7** line — edition passports and per-unit activation keys for production runs (`docs/EDITION_UNIT_KEYS.md`).
 - **Stable target:** aim for a **stable v1-class release by January 2027**, shaped by community review (protocol text, security, UX, localization).
 
 Pointers:
 
 - [docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)
 - [docs/V0.6.md](V0.6.md) · [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md)
-- Historical: [docs/V0.5.md](V0.5.md) · [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [web/frontend/localization/ru/RELEASE_v0.4.md](../web/frontend/localization/ru/RELEASE_v0.4.md) / [web/frontend/localization/ru/RELEASE_v0.4.1.md](../web/frontend/localization/ru/RELEASE_v0.4.1.md) (deployed Polygon addresses are listed in [Current Release](#current-release))
+- Historical: [docs/V0.5.md](V0.5.md) · [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [ru/RELEASE_v0.4.md](ru/RELEASE_v0.4.md) / [ru/RELEASE_v0.4.1.md](ru/RELEASE_v0.4.1.md) (deployed Polygon addresses are listed in [Current Release](#current-release))
 
 ## Contributing
 
 - Guide: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Code of Conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 - Docs index: [docs/README.md](README.md)
-- Russian: [web/frontend/localization/ru/CONTRIBUTING.md](../web/frontend/localization/ru/CONTRIBUTING.md), [web/frontend/localization/ru/CODE_OF_CONDUCT.md](../web/frontend/localization/ru/CODE_OF_CONDUCT.md), [web/frontend/localization/ru/docs/README.md](../web/frontend/localization/ru/docs/README.md)
+- Russian: [ru/CONTRIBUTING.md](ru/CONTRIBUTING.md), [ru/CODE_OF_CONDUCT.md](ru/CODE_OF_CONDUCT.md), [ru/README-docs.md](ru/README-docs.md)
 
 Contributions are welcome **across the whole project**: protocol and spec review, smart-contract and tooling work, UX and visual design, **editing and translation**, accessibility, and documentation. The project is built openly with AI-assisted development ("vibecoding") steered by product vision — which is exactly why experienced eyes on every layer matter. The goal is broad participation — not only code — so ODP can converge on a trustworthy, understandable standard by the **January 2027** stability milestone.
 

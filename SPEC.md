@@ -13,10 +13,10 @@
 |                            |                                                          |
 | -------------------------- | -------------------------------------------------------- |
 | 🇬🇧 **English**           | You are reading the normative specification (`SPEC.md`). |
-| 🇷🇺 **Russian / Русский** | [web/frontend/localization/ru/SPEC.md](web/frontend/localization/ru/SPEC.md)       |
+| 🇷🇺 **Russian / Русский** | [docs/ru/SPEC.md](docs/ru/SPEC.md)       |
 
 
-**We welcome specification translations in any language.** Add files under `web/frontend/localization/<language-code>/` (see the [web/frontend/localization/ru/](web/frontend/localization/ru/) layout). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](docs/CONTRIBUTING.md)**. **Community discussion on GitHub (issues and PRs) is in English** so all participants can follow the same threads.
+**We welcome specification translations in any language.** Add files under `docs/<language-code>/` (see the [docs/ru/](docs/ru/) layout — translations of the specification live with the specification, not with the reference website). Open a **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** or an **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — maintainers will review. Guidelines: **[CONTRIBUTING.md](docs/CONTRIBUTING.md)**. **Community discussion on GitHub (issues and PRs) is in English** so all participants can follow the same threads.
 
 **Normative source:** English `SPEC.md` (this file) is the only normative specification in this repository. Translations are provided for convenience and can contain mistakes; treat them as **informational only**.
 
@@ -43,6 +43,7 @@
 - [17. Wallet & Key Management](#17-wallet--key-management)
 - [18. Interop, positioning, and DID (informative)](#18-interop-positioning-and-did-informative)
 - [19. URI scheme and optional resolvers (informative)](#19-uri-scheme-and-optional-resolvers-informative)
+- [20. Edition passports and unit activation keys (v0.7 line, B profile only)](#20-edition-passports-and-unit-activation-keys-v07-line-b-profile-only)
 
 ## IMPORTANT: 0.x deployments, the reference v0.6 line, and alignment toward v1
 
@@ -91,7 +92,7 @@ The following describes the **reference stack in this repository (v0.6)**. At mi
 - **P-affiliation audit**: `**getPAffiliationAudit`**, `**detachPAffiliation`** (parent P); timestamps for join / detach
 - **Compact reverts**: failures use `**error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference `**ObjectDigitalPassport`** is deployed **with a linked library** `**ODPPassportLib`** (shared `**error EC`**) so the registry creation bytecode stays within the 24 KiB (EIP-170) limit; deploy library first, then the registry (see repository deploy scripts). Local Hardhat tests may use `**allowUnlimitedContractSize`**; verify `**[ODP] EIP-170:`** output after compile before mainnet deploy.
 
-**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`web/frontend/localization/ru/RELEASE_v0.4.md`](web/frontend/localization/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
+**Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`docs/ru/RELEASE_v0.4.md`](docs/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
 
 > **Deployable v0.6 split-line note:** the deployable reference line in this repository keeps the **main registry** focused on creator records, the immutable passport core (card + hashes), minting, transfer, revocation, and append-only passport events. To stay within `EIP-170`, several optional surfaces are served by **paired satellites** instead of the main registry ABI:
 > - `**ODPRegistryRelations`** — P-affiliation, mint-agent delegation, creator publishing delegation
@@ -141,6 +142,14 @@ This specification uses the following terms in a precise sense:
 | `**dataUrl`**                    | Optional HTTPS URL where the **§15 `.odpass`** ZIP is served (**only** — bare `.json` at this URL is **not** allowed; §8–§9). May be empty on-chain; if empty, verifiers relying on HTTP **cannot** obtain the bundle unless the user provides it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | **Gas**                          | Native-token cost (POL on Polygon PoS) paid to the network for transaction execution. The **reference (v0.6)** has no additional ODP protocol fee on register/mint.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **Verification**                 | The read-only process (§11) that retrieves on-chain data and, when `dataUrl` is set, fetches the `**.odpass`**, extracts `passport.json`, and checks consistency with `dataHash` and other fields. If `dataUrl` is empty, file-based verification still applies when the verifier has a `**.odpass`** or `passport.json`.                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| **Edition Passport** *(v0.7)* | The single passport registering a **production run** as a whole, carrying a `unit_key_set` anchor (§20.2). Its identification anchors describe the run, not any one item. *Avoid:* "series passport", "batch passport", "master passport". |
+| **Unit** *(v0.7)* | One physical item of an edition, identified by its **unit index** within that edition. A unit is not a passport and has no Passport ID unless a **Unit Passport** is minted for it. *Avoid:* "copy", "item", "box", "serial". |
+| **Unit Key** *(v0.7)* | The keypair bound to one unit (§20.5). Its **seed** is the value printed under the tamper-evident layer; the public address is committed in the edition's Merkle root. *Avoid:* "claim code", "secret code", "the object's private key" — those name the carrier or overstate the scope. |
+| **Activation** *(v0.7)* | The one-time public record that a given unit key was used for the first time (§20.9). It is **not** a mint, **not** a verification, and **not** a claim of ownership; it writes one record against an existing edition passport and carries no verdict about the unit. *Avoid:* "claim", "registration", "authentication". |
+| **Unit Passport** *(v0.7)* | An ordinary passport minted for one individual unit, parented to its edition and proven by Merkle proof (§20.10). Always an ordinary **paid** mint, borne by the minter. *Avoid:* "child passport", "sub-passport", "free passport". |
+| **Relayer** *(v0.7)* | Any party that carries someone else's signed activation to the chain. A courier: it gains no rights over the unit and needs no agreement with the issuer or with ODP. Who *pays* is the **sponsor** — an on-chain paymaster, not a server policy (§20.9). *Avoid:* "activation server", "gateway", "provider" — all imply a privileged role that does not exist. |
+| **Revocation window** *(v0.7)* | The period in which an edition passport may still be revoked: before any unit of it has been activated (§20.13). It closes permanently for every caller, `governance` included. *Avoid:* "grace period", "recall window". |
+| **Edition notice** *(v0.7)* | An append-only statement by the issuer that something is wrong with an edition — superseded, key set compromised, safety recall (`recordPassportEvent` kind 8). It destroys nothing and is never a verdict on an individual unit. *Avoid:* "recall", "revocation", "invalidation". |
 
 
 ---
@@ -254,6 +263,8 @@ The reference `ObjectDigitalPassport` deployment (**v0.6**) limits **new passpor
 | `P`  | No limit (`getRemainingMints` returns `2^32−1` in the reference implementation) |
 | `M`  | No limit (same as `P`)                                                          |
 
+
+**Profile-gated features.** Some protocol surfaces are restricted to one profile type by the contract, not by convention. In the **v0.7** line, **edition passports and unit activation keys (§20) are available to `B` profiles only** — a `C`, `P`, or `M` wallet cannot mint an edition passport or open a unit-key set. The rationale and the full model are in §20.1.
 
 **Museums and large inventories** digitizing collection holdings should register as `**M`** (museum/collection), **not `B` and not `C`**. The `**P**` prefix is for institutions whose **primary** role in the protocol is cross-cutting **proof** attestations; `**M`** signals custodial / collection issuance. Very large throughput may still use **multiple wallets** if policy allows.
 
@@ -644,6 +655,10 @@ This method provides physical reference, not cryptographic proof.
 
 Seal anchors have no dedicated on-chain fields. Their integrity is bound by `**dataHash`** (whole document) and `**anchorsHash`** (the `anchors` array alone), and their presence is visible in `**anchorTypesMask`** (bits `nfc` = 256, `numbered_seal` = 512 — §9).
 
+### Seals at production scale (pointer)
+
+Both methods above are priced and shaped for **one object at a time**. A mass-produced edition — thousands to hundreds of thousands of identical units — cannot carry a per-unit chip, and its identification anchors are identical across the whole run, so a per-unit passport carries no per-unit information. The **v0.7** line addresses that case with a separate mechanism: one **edition passport** plus a per-unit keypair printed under a scratch layer, with a public one-time activation record. See **§20**. It is a `B`-profile feature and does not change §6 for `C` / `P` / `M`.
+
 
 ### Informative — other NFC / tag technologies
 
@@ -927,9 +942,13 @@ An **anchor** is a verifiable property that binds the passport to the specific o
 | 512 | `numbered_seal` | — | numbered seal (§6): `number`, `type`, optional `color` / `size` / `notes` |
 | 1024 | `fingerprint` | — | measurable object fingerprint: `method` + `dataHash` + methodology reference |
 | 2048 | `dna` | — | synthetic DNA tag / microdot marking |
+| 4096 | `unit_key_set` | — | **v0.7, `B` only** — Merkle root over the unit keys of a production edition (§20.3) |
+| 8192 | `unit_variant_commit` | — | **v0.7, `B` only** — Merkle root over per-unit variant commitments for blind-box products (§20.4) |
 | 2^31 | `custom` | — | anchor outside the registry; actual type in `data.customType` |
 
-Bits 12–30 are **reserved** for future SPEC revisions; new types are added by a SPEC update without changing the schema shape.
+Bits 14–30 are **reserved** for future SPEC revisions; new types are added by a SPEC update without changing the schema shape.
+
+`unit_key_set` and `unit_variant_commit` are **not** part of the hard identification minimum and never substitute for it: an edition passport MUST still carry `photo` + `dimensions` + `materials` + `distinguishing_features` describing the edition.
 
 **Hard identification minimum (enforced by the contract via `anchorTypesMask`):**
 
@@ -1310,12 +1329,46 @@ to appear as TAMPERED on other implementations.
 dataHash = SHA-256( minified passport.json bytes )
 ```
 
-1. Normalize all string values to Unicode NFC
+1. Normalize all string **values** to Unicode NFC. Keys are left as written
 2. Construct `passport.json` with all fields
-3. Sort all keys alphabetically at every nesting level
+3. Sort all keys at every nesting level, by UTF-16 code unit
 4. Minify: no whitespace outside string values
-5. Encode as UTF-8 bytes
-6. Compute SHA-256 → store as `bytes32`
+5. Serialize per the rules below
+6. Encode as UTF-8 bytes
+7. Compute SHA-256 → store as `bytes32`
+
+#### Serialization rules (normative)
+
+Steps 1–4 leave two things open that implementations do in fact disagree on:
+how a string is escaped, and how a number is rendered. Both change the bytes and
+therefore the hash, which is anchored on chain and immutable (§8) — so a
+disagreement here produces passports another implementation can never verify,
+with no way to correct them after the mint.
+
+The rules are those of ECMAScript `JSON.stringify`, which is what the reference
+verifier (`web/frontend/verify.html`) applies:
+
+- **Strings** escape only `"`, `\` and the C0 controls — `\b` `\t` `\n` `\f`
+  `\r`, and `\u00XX` for the rest. `/` is **not** escaped. Non-ASCII travels as
+  literal UTF-8 and is **never** written as `\uXXXX`.
+- **Numbers** use the ECMAScript `Number::toString` form: the shortest
+  representation that round-trips, no trailing `.0` on an integral value, no `+`
+  on a positive exponent. An integer is written as an integer.
+- **Key order** is by UTF-16 code unit — the order ECMAScript
+  `Array.prototype.sort` gives the key strings, not a locale-aware collation.
+
+Two consequences worth stating outright, because both have produced
+non-verifiable passports in practice:
+
+- A title such as `Портрет 1/25` must hash with a bare `/`. Foundation's
+  `JSONSerialization` writes `\/` and will not reproduce the hash.
+- A dimension of `0.1` must serialize as `0.1`. A serializer that emits 17
+  significant digits renders it `0.10000000000000001`.
+
+Conformance vectors — an input document, its exact canonical bytes and the
+resulting hashes — are in [`schema/vectors/`](schema/vectors/README.md). Compare
+bytes before comparing hashes: a byte diff localizes the fault, a hash mismatch
+only reports that there is one.
 
 ### `anchorsHash`
 
@@ -1540,6 +1593,13 @@ If the anchor's `data.model` is `NTAG424DNA_TAGTAMPER`:
 | `IMAGE_AUTHENTIC`     | Image hash matches                                  |
 | `IMAGE_REPLACED`      | Image hash mismatch                                 |
 | `NO_IMAGE_REGISTERED` | No image hash on record                             |
+| `UNIT_IN_EDITION`     | v0.7 (§20): unit key proven to be a member of the edition's `unit_key_set` |
+| `UNIT_NOT_IN_EDITION` | v0.7 (§20): Merkle proof failed — this key was not in the run at mint time |
+| `UNIT_NOT_ACTIVATED`  | v0.7 (§20): member key with no activation record — the expected state of an unopened unit |
+| `UNIT_ACTIVATED`      | v0.7 (§20): activation record exists; reported **with its timestamp** and **without a verdict** (§20.11) |
+| `UNIT_PASSPORT_CONFLICT` | v0.7 (§20): more than one unit passport exists for the same unit; all are reported, unranked and without a verdict (§20.11) |
+| `EDITION_REVOCABLE`   | v0.7 (§20.13): no unit of the edition has been activated, so the issuer's revocation right is still live — MUST be visible to a buyer |
+| `EDITION_NOTICE`      | v0.7 (§20.13): the issuer recorded an append-only edition notice (superseded, compromised key set, recall); shown on the edition **and** on every unit passport under it, never as a verdict on an individual unit |
 
 
 ### Assurance tiers (normative)
@@ -1585,7 +1645,14 @@ odp://P-482-930-174-005
 
 - Error correction: **Q** (25%) minimum
 - Encoding: UTF-8
-- Fallback HTTPS landing page (implementation-defined): e.g. `https://verify.example.com/?id=…`
+
+**No hostname is printed (normative).** What goes onto an object is the `odp://` URI and the
+human-readable Passport ID (§5) — never the address of a website. A printed hostname is a
+promise about a server, made permanent on an object that will outlive it: the domain lapses, the
+organisation is sold, the path is restructured, and the carrier now points at nothing or at
+somebody else. The URI names the passport; §12.3 says how a client turns that into a registry
+read. An implementation MAY offer an HTTPS page as a convenience for a phone that has no ODP
+handler, but MUST NOT print or encode that address as the identifier of the object.
 
 Hierarchical paths (`/passports`, `/proofs`) and query parameters beyond a future normative definition are **reserved / experimental** — implementations **MUST NOT** rely on them for interoperability until specified.
 
@@ -2015,6 +2082,369 @@ The reference registry **does not** define a canonical on-chain index **SHA-256(
 | HTTP resolver                                               | Convenience; for security-sensitive verification, **confirm** against the chain |
 | Bare `odp://` link with **no** registry metadata            | **Insufficient** to identify which registry to query                            |
 
+
+---
+
+## 20. Edition passports and unit activation keys (v0.7 line, B profile only)
+
+> **Line scope.** This section is **normative for the v0.7 registry line** and has no effect on deployed v0.6 registries. Sections 1–19 above still describe the v0.6 reference line; a v0.7 deployment mints packed `**CONTRACT_VERSION` = 7** and is a separate registry under the 0.x rules stated at the top of this document. Design rationale, threat discussion, and the decision log are in [`docs/EDITION_UNIT_KEYS.md`](docs/EDITION_UNIT_KEYS.md) (RU: [`docs/ru/EDITION_UNIT_KEYS.md`](docs/ru/EDITION_UNIT_KEYS.md)).
+
+### 20.1 Scope and eligibility
+
+The per-object model of §§6–9 assumes one passport per object. For a mass-produced edition — thousands to hundreds of thousands of units off one production run — that model fails in three ways: identification anchors are identical across the entire run, one mint per unit is wasteful for records nobody will read, and per-unit cryptographic seals (§6) are priced for single high-value objects.
+
+This section defines an alternative registration unit: **one passport for the edition, plus one keypair per physical unit**, committed in bulk and activated individually.
+
+**Eligibility (normative):**
+
+- Only a wallet holding a registered **`B` (Brand)** profile MAY mint an edition passport carrying a `unit_key_set` anchor, or open, extend, or operate a unit-key set. The contract MUST reject the attempt from `C`, `P`, and `M` profiles and from unregistered wallets.
+- A **mint agent** (§ *On-chain capabilities*) acting for a `B` principal MAY mint on the principal's behalf; the eligibility check applies to the **principal's** profile, and mint caps count against the principal wallet as elsewhere.
+- Activation (§20.9) and unit-passport minting (§20.10) are **not** profile-gated: they are driven by unit keys held by buyers, who are not required to hold any ODP profile or wallet.
+
+The restriction is deliberate. The mechanism describes industrial production runs, its safety depends on an issuer able to run a controlled key ceremony (§20.8) and secure printing, and a mis-issued edition set is not revocable per unit. `M` profiles registering collection holdings, and `C` profiles registering their own work, are covered by §§6–9 and gain nothing here.
+
+### 20.2 The edition passport
+
+An edition passport is an ordinary passport under §§8–9, minted by a `B` profile, with these additional rules:
+
+- Its `anchors[]` MUST satisfy the hard identification minimum of §9 (`photo` + `dimensions` + `materials` + `distinguishing_features`). These anchors describe the **edition**, not any individual unit.
+- `edition.model` in `passport.json` MUST be `limited` or `open`, and `edition.total` MUST equal `unit_key_set.unitCount` when `edition.model` is `limited`.
+- It MUST carry exactly one `unit_key_set` anchor (§20.3) and MAY carry at most one `unit_variant_commit` anchor (§20.4).
+- The card, hashes, and both anchors are immutable after mint, as everywhere else. A production run cannot be extended in place: a second run is a second edition passport with its own key set.
+
+### 20.3 The `unit_key_set` anchor
+
+```json
+{
+  "type": "unit_key_set",
+  "data": {
+    "merkleRoot": "sha256:…",
+    "unitCount": 100000,
+    "hashAlg": "sha256",
+    "leafFormat": "sha256(uint32be(index) || address20)",
+    "addressListUrl": "https://…/units.bin",
+    "addressListHash": "sha256:…",
+    "labelSignerKey": "0x…"
+  }
+}
+```
+
+| Field | Required | Rules |
+| --- | --- | --- |
+| `merkleRoot` | yes | Root of the Merkle tree over all unit leaves |
+| `unitCount` | yes | Number of units; `1 ≤ unitCount ≤ 2^32 − 1` |
+| `hashAlg` | yes | `sha256` in this revision; other values are reserved |
+| `leafFormat` | yes | Identifier of the leaf construction; `sha256(uint32be(index) || address20)` in this revision |
+| `addressListUrl` | recommended | Public location of the full unit-address list |
+| `addressListHash` | **yes** | SHA-256 of the list bytes, whether or not a URL is given |
+| `labelSignerKey` | optional | 20-byte address whose signature an offline reader checks a signed outer label against (§20.7). Absent or zero = this edition prints plain labels |
+
+**Leaf construction (normative):**
+
+```
+leaf_i = SHA-256( uint32be(i) || unitAddress_i )        i = 0 … unitCount−1
+```
+
+`unitAddress_i` is the 20-byte address of the unit key. The index MUST be inside the leaf: this binds serial numbers to addresses before printing, so a code issued for one unit cannot later be presented as another.
+
+**Index assignment (normative).** Indices MUST be assigned independently of cartons, regions, distribution batches, and release waves. Activations are public (§20.9), so indices that follow the packing order let anyone read regional sell-through off the chain by watching which ranges activate where. Shuffling at labelling time removes that inference and costs nothing.
+
+**Tree construction (normative):** binary Merkle tree, interior node = `SHA-256(left || right)`. When a level has an odd number of nodes, the last node is **duplicated**. Proof verification recomputes the root from the leaf and the sibling path.
+
+**Address list (normative).** The list of unit addresses is public and contains no secrets, and **nothing in §20 works without it**: a verifier cannot build the Merkle proof §20.11 step 2 requires, and `activate` (§20.9) cannot be called at all.
+
+It MUST therefore be obtainable without the issuer staying online:
+
+- the list **MUST** be carried in the edition's `.odpass` bundle (§15) — that is the copy that outlives the issuer;
+- `addressListHash` **MUST** be present in this anchor, so any copy of the list can be checked against the passport;
+- `addressListUrl` is RECOMMENDED as a convenience mirror, never as the source of truth.
+
+An edition whose list exists only at a URL is one expired domain away from being unverifiable and unactivatable — which would make "the passports outlive the project" false for exactly the objects this section serves. A carrier (§20.7) still does not need to hold a proof: anyone holding the list can rebuild it.
+
+**On-chain cost.** The whole set costs one 32-byte root regardless of `unitCount`.
+
+### 20.4 The `unit_variant_commit` anchor (optional)
+
+For blind-box products, the packer knows which variant went into which unit. Disclosing that at mint destroys the product; committing to it does not.
+
+```
+commitment_i = SHA-256( uint32be(i) || utf8(variant_i) || salt_i )
+```
+
+with `salt_i` at least 128 bits, unique per unit. The anchor carries a second Merkle root over these commitments, with the same tree rules as §20.3.
+
+- The issuer MUST NOT publish `salt_i` before the unit is opened.
+- **`salt_i` MUST NOT be derivable from the unit key, from the unit index, or from anything readable without opening the sealed package.** The variant vocabulary of a blind-box product is tiny — a dozen figures plus a chase — so the commitment is protected by the secrecy of the salt and by nothing else. Anyone holding the salt can compute the commitment for every candidate variant and learn the contents in microseconds. Since the tamper-evident layer (§20.7) sits on the *outside* of the package, deriving the salt from the unit key would let a reseller scratch the label, learn what is inside without opening the box, keep the rare units, and sell the rest as sealed.
+- **`salt_i` MUST be carried inside the sealed package** — for example printed on a card enclosed with the object. The secrecy of the variant is then protected by the same physical barrier that protects the surprise itself, and the issuer is not in the reveal path at all: nothing needs to be requested from it, and rarity stays provable after the issuer is gone.
+- A mismatched or substituted salt card is **fail-safe**: the commitment simply does not verify. It cannot be used to prove a variant the unit does not have, only to fail to prove the one it does.
+- An issuer MAY retain its salts as an optional recovery path for buyers who lose the card. This MUST remain optional — no part of the mechanism may depend on the issuer being reachable.
+- A verifier that receives `variant_i` and `salt_i` recomputes the commitment and its Merkle proof; success proves the variant was recorded at mint, not chosen afterwards.
+
+This makes rarity claims (chase variants, short runs) checkable by a buyer against the chain rather than against the seller's word.
+
+### 20.5 Unit key derivation
+
+Derivation has two halves, and the split matters: the **issuer** derives from a master seed it alone holds, while a **holder** must be able to reach the same key from the printed code alone, with no access to anything the issuer keeps.
+
+**Issuer side — producing the printed secrets:**
+
+```
+masterSeed     = ≥ 256 bits from a CSPRNG, generated offline
+editionContext = utf8(chainId) || 0x00 || utf8(editionPassportId)
+unitSecret_i   = HKDF-SHA256(ikm = masterSeed, salt = "", info = editionContext || uint32be(i), L = 32)
+printedSeed_i  = the leading 100 bits of unitSecret_i, as 13 bytes:
+                 bytes 0..11 verbatim, byte 12 = high nibble of byte 12, low nibble zero
+                                                               ← this is what gets printed (§20.6)
+```
+
+**Either side — from the printed secret to the key:**
+
+```
+unitKey_i      = secp256k1 private key from
+                 SHA-256( utf8("ODP-UNIT-KEY-v1") || printedSeed_i || editionContext )
+                 (on the negligible chance of a value ≥ the curve order, rehash the result)
+unitAddress_i  = address of unitKey_i
+```
+
+The second step takes only the printed 100 bits plus values a verifier already has, so a buyer holding nothing but the scratched code reaches exactly the address committed in the Merkle root.
+
+**The 13-byte form is normative.** `printedSeed_i` is hashed, and 100 bits is not a whole number of bytes, so the padding has to be pinned or two conforming implementations derive different keys from the same printed code. The rule is: take the leading 13 bytes of `unitSecret_i` and clear the low 4 bits of the last one. The 20-character encoding of §20.6 carries exactly those 100 bits, so the code text and the 13-byte form are two views of one value.
+
+Requirements:
+
+- `editionContext` MUST bind the derivation to one edition on one chain, so keys never collide across drops.
+- The issuer MUST store the master seed only as split shares (§20.8), never as a plaintext list of unit keys or printed secrets.
+- Derivation MUST happen on a machine with no network path.
+- The entropy of `printedSeed_i` is the entropy of the whole scheme. It MUST satisfy the floor in §20.6.
+
+### 20.6 Unit code encoding
+
+The printed secret is `printedSeed_i` (§20.5), never the private key.
+
+| Property | Rule |
+| --- | --- |
+| Payload | 20 characters, Crockford Base32, alphabet excluding `I`, `L`, `O`, `U` — carries the 100 bits of `printedSeed_i`, most significant bit first |
+| Check characters | 5 characters, defined below |
+| Grouping | 5 groups of 5, hyphen-separated, e.g. `7KM2-9XQF-3BTR-8WNP-5HJD` |
+| Entropy | **MUST be ≥ `80 + ceil(log2(unitCount))` bits**, and never below 80; the encoding above carries 100 |
+
+**Normalization (normative).** Before any use — checksum computation or verification — an implementation MUST normalize input: uppercase it, remove hyphens and whitespace, then apply the Crockford substitutions `I` → `1`, `L` → `1`, `O` → `0`. Normalization happens **before** hashing, so a reader who transcribes a `0` as `O` still produces a valid code.
+
+**Check characters (normative).**
+
+```
+check = the leading 25 bits of SHA-256( ascii(normalized 20-character payload) ),
+        rendered as 5 Crockford Base32 characters, most significant bit first
+```
+
+SHA-256 is chosen because it is already a hard dependency of this protocol (`dataHash`, `anchorsHash`, the Merkle trees of §20.3), so verifying a typed code introduces no new primitive and no lookup table. Twenty-five bits reject a mistyped code with probability about 1 in 33 million.
+
+**One global alphabet (normative).** The alphabet and the check construction are fixed for all issuers, markets, and languages. They MUST NOT be localized. The primary carrier is the DataMatrix of §20.7 — the text form exists for damaged symbols and is the minority path — whereas a per-market alphabet would force every verifier, forever, to guess which alphabet a given string was written in, and would let one string mean different things in different places.
+
+**Entropy floor (normative rationale).** In a server-mediated authentication system a short code is safe because the server rate-limits guessing. **ODP has no such server:** the address list is public and verification is offline and permissionless, so an attacker can test candidate codes locally, in parallel, unobserved.
+
+The floor is **per-target**, and that is not a formality. An attacker forging a unit does not need a *particular* code — any code that verifies at any index will do. With `unitCount` valid secrets and a public address list to check guesses against, expected work is `2^entropy / unitCount`, so every doubling of the run size costs one bit. A flat 80-bit rule, read against this specification's own `unitCount` ceiling of `2^32 − 1`, leaves about 2^48 operations — hours on rented hardware. Hence `80 + ceil(log2(unitCount))`: at 100 000 units that is 97 bits, which the 20-character encoding above already exceeds.
+
+An implementation MUST NOT reduce the code length on usability grounds; the length is a security parameter, and it cannot be changed after labels are printed.
+
+### 20.7 Carriers
+
+**Outer carrier (open, scannable before purchase).** This specification constrains **what must be recoverable**, not how it is encoded. The outer carrier MUST make two values available to a verifier:
+
+1. the **edition passport ID**, and
+2. the **unit index**.
+
+Both MUST **also** be printed in human-readable text, following the §5 label rules. A carrier format is a packaging decision that will change over the life of a protocol; a printed pair of values a human can type is what guarantees a unit stays verifiable when it does.
+
+The reference form is the §5 verification label extended with the unit index: a QR encoding the `odp://` URI (§12, §19) plus the unit index, and the same values as text.
+
+**Reference web parameters.** A verifier page reachable from the carrier reads the unit index as `unit` (or `u`) and, for a signed label, the signature as `lsig` — 65 bytes, `0x`-prefixed hex. A malformed value MUST be treated as no value rather than as a failed check: a smudged carrier is not evidence about the object.
+
+The outer carrier MUST NOT contain the unit seed or any value derived from it.
+
+**Signed labels (optional, normative when used).** An outer carrier MAY additionally carry a signature over
+
+```
+"ODP-UNIT-LABEL-v1" || uint256be(chainId) || contractAddress20
+                    || utf8(editionPassportId) || uint32be(unitIndex) || merkleRoot
+```
+
+made by the key published as `labelSignerKey` (§20.3). This follows the idea of **ISO/IEC 20248** — a compact signature inside the barcode, verifiable **offline** — while taking the signer's key from the edition passport rather than from a PKI or a DNS record. That is not a deviation to apologise for: 20248 explicitly leaves cryptographic and key-management methods out of scope, and an on-chain key removes the last thing in §20 that would have depended on the issuer's domain still resolving.
+
+What it buys: a reader with the edition's `.odpass` bundle can check, **in a shop, with no network**, that a label was printed by the issuer. Without it the outer carrier is plaintext anyone can print, and a fabricated label pointing at a real edition looks correct until someone goes online.
+
+What it does not buy, and MUST NOT be claimed: signing prevents labels being **fabricated**, not **copied**. A photograph of a genuine label reproduces a valid signature. Duplication is caught by activation (§20.9), never by the signature.
+
+A verifier MUST NOT treat a valid label signature as an authenticity verdict about the object, and MUST NOT downgrade an edition that prints plain labels — `labelSignerKey` is optional, and most issuers will not use it.
+
+*Informative — GS1 Digital Link.* An issuer holding a GTIN MAY encode a **GS1 Digital Link** URI instead, carrying the GTIN and unit serial with the ODP values as additional link parameters, so that one symbol serves retail scanning, ODP verification, and EU DPP resolution under ESPR. This specification does not require it and does not depend on it. Adopting it later costs nothing at the protocol level: the carrier is off-chain packaging chosen per print run, so a later run may change encoding without touching the contract, the registry, or any already-minted passport, and labels already printed keep verifying unchanged. Only verifiers need to learn the additional encoding — which is exactly what the mandatory human-readable pair above insures against.
+
+**Inner carrier (under a tamper-evident layer).** The unit seed SHOULD be carried as a DataMatrix (ISO/IEC 16022) under a scratch-off or equivalent opaque layer, with the §20.6 text form printed alongside as a fallback for damaged symbols.
+
+**Physical requirement (normative).** The label MUST be applied so that removing or relocating it is visibly destructive — across a package seam, or otherwise retained per §5. This is the **only** physical binding in the mechanism; every cryptographic property below sits on top of it and none of them replace it.
+
+### 20.8 Key ceremony
+
+The master seed MUST be split with a threshold scheme — **SLIP-39** (Shamir) in a **2-of-3** configuration is the reference profile — such that no single holder can reconstruct it and a single lost share does not lose the run. Shares SHOULD be held by three mutually independent parties (for example: issuer security, a separate issuer department, and notarial or bank escrow). This is the **split knowledge** and **dual control** pattern of NIST SP 800-57 Part 2 and PCI PIN Security.
+
+Printing SHOULD take place at a facility operating a security-print management system (ISO 14298).
+
+**A witness MAY attest the ceremony** using existing mechanisms: a `P` profile publishes an ordinary `submitProof` against the edition passport on the paired proof registry, describing the ceremony performed. No new contract surface is required, and the edition reaches the existing **Attested** tier (§11).
+
+**ODP MUST NOT be a party (normative).** No ODP-operated service, repository, or maintainer may hold a master seed, a share, or a unit key for any edition. The protocol's guarantee that passports outlive the project fails the moment the project custodies third-party production secrets. ODP's role is limited to this specification, the ceremony profile document, and a reference offline tool that stores nothing.
+
+### 20.9 Activation
+
+Activation is a signature, not a service call.
+
+```
+message = "ODP-UNIT-ACTIVATE-v1"
+        || uint256be(chainId)
+        || contractAddress20
+        || utf8(editionPassportId)
+        || uint32be(unitIndex)
+signed by unitKey_i (EIP-191 personal-sign envelope)
+```
+
+Contract rules (normative):
+
+1. The activation function MUST be **permissionless**: it authenticates the recovered signer against the unit address proven by the Merkle proof, and MUST NOT derive any right from `msg.sender`. The submitter is a courier.
+2. A valid activation MUST be recorded **once**, with the block timestamp and the recovered unit address. A later submission for the same unit MUST NOT overwrite it and MUST **revert with a distinct error code**. Reading the existing record is a `view` call, never a side effect of a write.
+
+   This is a spam defence, not pedantry. If a duplicate submission succeeded as a no-op, anyone holding a single genuine code could replay one valid signature indefinitely and drain whoever is paying — the record would never change and the fee would be charged every time. Reverting makes the duplicate visible in a dry run, so a sponsor's simulation rejects it **before** any fee is spent, and even a naively written sponsor cannot be drained this way.
+3. The submitted signature MUST be replayable only for the unit it names: the message binds chain, contract, edition, and index.
+4. A rejected Merkle proof MUST produce `UNIT_NOT_IN_EDITION` (§11), not a generic failure.
+
+#### Sponsorship belongs on-chain
+
+A blockchain cannot broadcast its own transactions: something off-chain must sign and send. What this specification *can* constrain is where the **rules** live and who is allowed to carry the message.
+
+- **The sponsorship rule MUST be a contract, not a server policy.** An issuer that wants to cover activation fees SHOULD do so through an on-chain paymaster (**ERC-4337**) funded by an on-chain deposit, so that who gets sponsored is public, auditable bytecode. A server-side policy is invisible: it can quietly refuse a holder, favour some units over others, or vanish, and nobody outside can tell which happened.
+- **Transport SHOULD be a public permissionless network**, not one issuer's endpoint. With ERC-4337, any bundler in the public network can include the operation; the issuer funds the deposit but does not stand between the holder and the chain. An issuer-run submission endpoint is permitted but is the weaker arrangement, and MUST NOT be presented as the only route.
+- **Any** party may publish regardless: the issuer, a marketplace, a collector's club, any ODP-aware application submitting from its own wallet, or the holder's own wallet. Becoming an activation point requires no agreement with the issuer or with ODP.
+- A signature MAY be produced offline and published arbitrarily later, from any device.
+- When a sponsor pays, the holder needs no wallet, no tokens, and no account. That is a property of a funded deposit, **not** a guarantee of this specification: when the deposit runs dry or no one will carry the message, the holder publishes from their own wallet and pays the fee. The resulting record is identical either way.
+
+**Activation is not minting (normative).** Activation writes one record against an existing edition passport. It does not create a passport, and an implementation MUST NOT present activation and unit-passport minting (§20.10) as one action or imply that the cost properties of one apply to the other.
+
+### 20.10 Unit passports and ownership
+
+On or after activation, a **unit passport** MAY be minted for an individual unit. It is a normal passport with two additions: it names its edition passport as parent, and its membership is proven by the §20.3 Merkle proof at mint.
+
+**The unit key names the initial owner (normative).** Minting is authorized by a second signed message, which carries the owner address explicitly:
+
+```
+message = "ODP-UNIT-MINT-v1"
+        || uint256be(chainId)
+        || contractAddress20
+        || utf8(editionPassportId)
+        || uint32be(unitIndex)
+        || ownerAddress20
+signed by unitKey_i (EIP-191 personal-sign envelope)
+```
+
+- The contract MUST set the initial owner to `ownerAddress` recovered from the signed message, and MUST NOT derive ownership from `msg.sender`. As in §20.9, the submitter is a courier: it pays the fee and gains nothing.
+- The mint MUST be authorized by the unit-key signature and by a Merkle proof for the same index, exactly as activation is. The authority is possession of the printed secret, never a registered profile.
+- **Monthly mint caps MUST NOT be applied to this path.** Caps exist to stop a wallet spraying arbitrary records; here every mint costs the caller a distinct printed secret from a committed set, which binds abuse more tightly, and charging a drop against its issuer's cap would let buyers exhaust the issuer's own ability to mint.
+- `ownerAddress` MUST NOT be the zero address. It MAY be the unit address itself — that is the **bearer** path, for a holder who wants no wallet, and an interface SHOULD offer it as the default when no wallet is connected.
+- **Uniqueness per unit MUST NOT be enforced.** More than one unit passport MAY exist for the same `(edition, unit index)`, each with its own owner and its own anchors. A verifier MUST surface every one of them (§20.11).
+- **Uniqueness per `(edition, unit index, ownerAddress)` MUST be enforced.** A repeat mint naming an owner that already holds a unit passport for that unit MUST revert. This bounds re-minting without locking anyone out: the genuine holder names their own address, which no competing minter has claimed.
+
+  This is deliberate and follows the position this specification already takes on duplicate passports. A uniqueness rule blocks only exact duplication while handing an attacker a first-to-register weapon: whoever mints first — including the holder of a cloned code — would permanently lock the holder of the genuine unit out of ever obtaining a passport for it. Surfacing a conflict is recoverable; a lock-out is not.
+- A unit passport MUST NOT be minted for a unit with no activation record (§20.9). An implementation MAY perform the activation and the mint atomically in one transaction when both signatures are supplied.
+- The owner MAY transfer the unit passport afterwards by the ordinary `transferPassport` path; a bearer-owned passport is transferred by signing with the unit key.
+- Minting is **lazy**: a unit passport is created only when someone needs one, never pre-minted for the whole run.
+- A unit passport MUST be a `physical` passport in this revision; the object it identifies is one item of a production run.
+
+Separating payer from owner is what makes the common cases expressible in one transaction: a buyer with a wallet mints and owns directly; an issuer's service can mint **to the buyer** rather than to itself; a holder without a wallet mints to the unit address and keeps the bearer model. It also inherits the conflict semantics of §20.9 — whoever presents a valid unit-key signature first names the owner, and a cloned code produces a visible conflict that the protocol surfaces without adjudicating.
+- The unit passport's own `anchors[]` are supplied by whoever mints it and describe **that unit** — the owner's own photographs, its marks, its condition. Inherited edition anchors MUST NOT be presented as unit-level identification.
+
+**Minting a unit passport is a paid action, always borne by the minter (normative).** It is an ordinary mint under §8: a wallet, a transaction, a network fee. This specification defines **no** sponsorship mechanism — no escrow, no per-edition allowance, no expiry, no sponsor role — and an implementation MUST NOT present the unit-passport mint as free, as included with the object, or as covered by the issuer under any protocol guarantee.
+
+An issuer that chooses to absorb the cost does so only by operating its own minting service and paying from its own wallet. That is a commercial arrangement of that issuer, revocable at its discretion, and it MUST NOT be described as a property of the protocol.
+
+### 20.11 Verification
+
+Added to §11 for a passport carrying a `unit_key_set` anchor:
+
+```
+Level 2D — Unit membership and activation state
+
+1. Read unit index and edition passport ID from the carrier
+2. Rebuild or fetch the Merkle proof for that index
+3. Verify the proof against unit_key_set.merkleRoot
+   Fail → UNIT_NOT_IN_EDITION, stop
+   Pass → UNIT_IN_EDITION
+4. Read the activation record for that unit
+   None    → UNIT_NOT_ACTIVATED
+   Present → UNIT_ACTIVATED, with its timestamp
+5. Enumerate unit passports minted for that (edition, unit index)
+   0        → no unit passport
+   1        → report it
+   2 or more→ UNIT_PASSPORT_CONFLICT — report ALL of them, each with
+              its mint timestamp, owner, and minting profile if any
+6. Read edition-level state from the edition passport
+   No activation anywhere in the edition → EDITION_REVOCABLE
+   Any kind-8 edition notice present     → EDITION_NOTICE, shown on
+                                           this unit too, without a
+                                           verdict about it (§20.13)
+7. If a unit seed was supplied, derive the key and confirm the
+   recovered address equals the proven unit address
+```
+
+Steps 1–5 require **no secret** and MUST be available before purchase, from the outer carrier alone.
+
+**What step 2 does and does not prove (normative).** Rebuilding the root from the published address list checks the **edition**: that the list an issuer published is the one committed on-chain. It says nothing about the unit in front of the reader, because every index below `unitCount` is in the tree by construction. A verifier MUST NOT present a successful membership check as evidence that a particular object is genuine. What it catches is a replaced or doctored list — including one replaced by the issuer.
+
+**No-verdict rule (normative).** When a unit is already activated, **or when more than one unit passport exists for it**, a verifier MUST report the facts — timestamps, owners, minting profiles — and MUST NOT characterize any of them as counterfeit, stolen, or invalid, and MUST NOT rank them by mint order. A prior activation has at least two innocent readings — a cloned code, or a legitimate second-hand purchase — and the protocol can distinguish neither. This is the same position §11 and the v0.6 duplicate-passport model already take: the protocol surfaces the record and leaves judgement to people.
+
+`ODPCounterfeitConcern` (§4) remains a separate institutional mechanism and MUST NOT be raised automatically by an activation conflict.
+
+### 20.12 Assurance tiers
+
+- A `unit_key_set` anchor **does not** by itself raise an edition passport above **Base**. It is a distribution mechanism, not evidence about the object.
+- A **unit passport** reaches **Sealed** only if it carries its own §6 seal anchor. Membership in an edition is reported separately (`UNIT_IN_EDITION`), never rendered as a seal.
+- A verifier MUST NOT display activation state as a tier, and MUST NOT print it on any label — the §11 computation rule applies unchanged.
+- An active `UNIT_PASSPORT_CONFLICT` does not remove a tier, but MUST be displayed at least as prominently as the tier itself — the same treatment §11 gives an institutional counterfeit concern.
+
+### 20.13 Edition lifecycle: the revocation window and edition notices
+
+An edition passport is immutable like any other (§8), and its only remedy for a wrong immutable card is `revokePassport` + re-mint. For a run of 100 000 units that remedy is also a weapon: revocation removes the assurance tier entirely and blocks `submitProof` and `recordPassportEvent`, so one transaction by the issuer — or by `governance` — would destroy the record of every honest holder. This subsection bounds the remedy in time and replaces it, afterwards, with something that only adds.
+
+#### The revocation window
+
+`revokePassport` on an **edition passport** MUST revert once **any unit of the edition has an activation record** (§20.9). The closure is permanent and applies to **every** caller, including `governance`: no party retains a path to revoke an edition once a holder has demonstrably appeared.
+
+Inside the window the ordinary v0.6 rule stands: a typo caught before anything reached a buyer is fixed by revoke + re-mint, and nobody is harmed.
+
+Until the window closes, a verifier MUST make it visible (`EDITION_REVOCABLE`, §11) — an issuer's live right to erase its buyers' records belongs in front of a buyer.
+
+The gate is a single observable fact, deliberately. A declared shipping date cannot serve: it is fixed in an immutable anchor at mint, production schedules move, and re-minting an edition because logistics slipped is not an acceptable requirement. An issuer-declared "we have shipped" event was specified and then removed — it bought a narrower window at the cost of a second mechanism, a second event kind, and a second thing an issuer can decline to do. The residual exposure it covered is the gap between goods reaching shelves and the first buyer scratching a label, which in practice is short and closes itself.
+
+#### Edition notice
+
+After the window closes, the issuer's only remaining way to say that something went wrong is an **edition notice** — an append-only statement that destroys nothing.
+
+- Recorded via `recordPassportEvent` on the edition passport with `kind = 8`; `note` carries a short human-readable reason and `attachmentHash` MAY anchor a fuller document.
+- Suitable for: superseded by a corrected edition, compromised key set or leaked master seed, safety recall, discontinued line.
+- A verifier MUST surface an active edition notice **on the edition passport and on every unit passport parented to that edition** (§20.11). A notice that only appears on the parent is useless to the person holding one figure.
+- It does **not** remove an assurance tier, and MUST be displayed at least as prominently as the tier (§20.12) — the treatment §11 gives an institutional counterfeit concern.
+- It MUST NOT be presented as a verdict on any individual unit. "This edition's key set leaked" is a statement about the run, not proof that the object in the reader's hands is fake.
+- **A notice is prose, and stays prose.** Where it points at a corrected edition it does so in words. This specification defines **no** structured supersession field, and a verifier MUST NOT derive a machine-readable "superseded by" relation from a notice, mark the edition obsolete or invalid, or rank it below its successor.
+
+**Why supersession is deliberately unstructured.** Minting a corrected edition does not rescue units already in the field: their keys are committed in the *old* edition's Merkle root, verify against it, and always will. A successor edition carries its own key set and governs later production only. So the units of a superseded edition are neither obsolete nor invalid — the object in someone's hands is genuine, its code is honest, and its verification passes. A structured "superseded by" field would be rendered by interfaces as exactly the verdict this section, §20.11, and the v0.6 duplicate model all refuse to make.
+
+### 20.14 Stated limits (normative honesty rules)
+
+An implementation MUST NOT claim, in interface copy or marketing, any assurance this mechanism does not provide. Specifically:
+
+1. **The issuer knows every unit key at generation.** Unless the master seed is destroyed after printing — which no outside party can verify — the issuer can activate units itself. §20.8 constrains storage, not knowledge.
+2. **The print vendor necessarily sees the codes.** Printing a code requires knowing it. This is controlled physically (§20.7, ISO 14298), never cryptographically, and seed splitting does not address it.
+3. **Anyone who knows the codes can activate units they do not hold.** An insider could activate a whole run before it ships, after which honest buyers scratch their labels and find the units already activated. The protocol cannot prevent this — the codes are known inside the issuer by construction — and it does not try. Every activation carries a public timestamp; whether that timestamp is plausible for the object in someone's hands is a human judgement, and an issuer whose run was poisoned can say so with an edition notice (§20.13).
+4. **An activation conflict is surfaced, not adjudicated** (§20.11).
+5. **A sealed counterfeit carrying a cloned code is indistinguishable before the layer is removed.** The outer carrier's activation state is the only pre-purchase signal.
+6. **A unit key binds the package, not the object inside it.** Object-level binding exists only through §20.4 and through a unit passport carrying the owner's own anchors (§20.10).
+7. **The activation log is public commercial data.** `unitCount` is on-chain and every activation is a timestamped public event, so anyone — a competitor, an analyst, a marketplace — can reconstruct the run size and a live sell-through curve. This is the same data incumbent vendors sell back to brands privately; here it is free to everyone. It cannot be hidden without destroying the pre-purchase signal the mechanism exists to give a buyer, so it is stated rather than mitigated. An issuer MUST be told before it commits a drop. §20.3's index-assignment rule keeps the leak to totals rather than regions; the totals themselves are irreducible.
 
 ---
 

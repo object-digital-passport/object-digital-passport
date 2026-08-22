@@ -28,9 +28,9 @@ const EVENT_STATUS = 1;
 const EVENT_LOCATION = 2;
 const EVENT_DAMAGE = 5;
 
-/** Spec 0.6 unified mint tuple (matches PassportMintInputs in ODPPassportTypes.sol). */
+/** Spec 0.7 unified mint tuple (matches PassportMintInputs in ODPPassportTypes.sol). */
 const MINT_INPUTS_TYPE =
-  "tuple(tuple(uint32 year,uint8 month,string title,string authorName,string shortDescription,string domain,uint8 contentClass,uint8 lifecycleStatus,uint8 aiStatus,uint8 verificationMethod,uint8 editionModel) core,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 fileHash,bytes32 anchorsHash,uint32 anchorTypesMask)";
+  "tuple(tuple(uint32 year,uint8 month,string title,string authorName,string shortDescription,string domain,uint8 contentClass,uint8 lifecycleStatus,uint8 aiStatus,uint8 verificationMethod,uint8 editionModel) core,bytes32 dataHash,string dataUrl,bytes32 imageHash,string imageUrl,bytes32 fileHash,bytes32 anchorsHash,uint32 anchorTypesMask,address initialOwner)";
 
 /** last mint arg — empty string = mint as caller’s registered profile */
 const MINT_SELF = "";
@@ -102,6 +102,7 @@ function digitalInputs(n, overrides = {}) {
     fileHash: nonZeroFileHash(n),
     anchorsHash: nonZeroAnchorsHash(n),
     anchorTypesMask: ANCHOR_FILE_HASH,
+    initialOwner: ethers.ZeroAddress,
     ...Object.fromEntries(Object.entries(overrides).filter(([k]) => k !== "core")),
   };
 }
@@ -117,6 +118,7 @@ function physicalInputs(n, overrides = {}) {
     fileHash: zeroHash(),
     anchorsHash: nonZeroAnchorsHash(n),
     anchorTypesMask: PHYS_MIN,
+    initialOwner: ethers.ZeroAddress,
     ...Object.fromEntries(Object.entries(overrides).filter(([k]) => k !== "core")),
   };
 }
@@ -234,7 +236,7 @@ describe("ObjectDigitalPassport", function () {
     const c = await deployFixture();
     const packed = await c.CONTRACT_VERSION();
     const p = BigInt(packed.toString());
-    expect(Number(packed)).to.equal(6); // reference line spec 0.6: SPEC_MAJOR=0, SPEC_MINOR=6
+    expect(Number(packed)).to.equal(7); // reference line spec 0.7: SPEC_MAJOR=0, SPEC_MINOR=7
     expect(Number(p / 16n) * 16 + Number(p % 16n)).to.equal(Number(packed));
   });
 
@@ -459,7 +461,8 @@ describe("ObjectDigitalPassport", function () {
       await expect(c.connect(w).recordPassportEvent(passportId, 0, 0, "", zeroHash(), ""))
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(108n);
-      await expect(c.connect(w).recordPassportEvent(passportId, 8, 0, "", zeroHash(), ""))
+      // 0.7 §20.13: kind 8 is the edition notice, so the upper bound moved to 9.
+      await expect(c.connect(w).recordPassportEvent(passportId, 9, 0, "", zeroHash(), ""))
         .to.be.revertedWithCustomError(c, "EC")
         .withArgs(108n);
       await expect(c.connect(w).recordPassportEvent(passportId, EVENT_LOCATION, 3, "", zeroHash(), ""))

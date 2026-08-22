@@ -139,6 +139,21 @@ async function main() {
     console.log(`  ⚠️  ODPExtensionMintRouter deploy skipped: ${e && e.message ? e.message : e}`);
   }
 
+  let editionUnitsAddress = null;
+  try {
+    console.log("\n  Deploying ODPEditionUnits (satellite: SPEC 0.7 §20 edition unit keys + activation)...");
+    const UnitsFactory = await ethers.getContractFactory("ODPEditionUnits");
+    const units = await UnitsFactory.deploy(address);
+    await units.waitForDeployment();
+    editionUnitsAddress = await units.getAddress();
+    console.log(`  ✅ Edition units satellite: ${editionUnitsAddress}`);
+    console.log("     Wiring main registry → setEditionUnits(...)");
+    const tx = await contract.setEditionUnits(editionUnitsAddress);
+    await tx.wait();
+  } catch (e) {
+    console.log(`  ⚠️  ODPEditionUnits deploy skipped: ${e && e.message ? e.message : e}`);
+  }
+
   const deployedVersion = await contract.CONTRACT_VERSION();
   const dv = BigInt(deployedVersion.toString());
   const specMajor = dv / 16n;
@@ -149,7 +164,7 @@ async function main() {
   if (network.chainId === 80002n) {
     console.log("\n  Running smoke test on testnet...");
 
-    console.log(`  Packed byte: ${deployedVersion} (v0.6 = 6: on-chain card, anchors[] + anchorsHash, append-only events)`);
+    console.log(`  Packed byte: ${deployedVersion} (v0.7 = 7: v0.6 model + edition unit keys, activation, initialOwner)`);
 
     // 1. Register as Creator type C (bytes1 "C" = 0x43)
     console.log("\n  1. Registering profile (type C)...");
@@ -241,6 +256,7 @@ async function main() {
     relationsAddress,
     proofRegistryAddress,
     extensionRouterAddress,
+    editionUnitsAddress,
     contractVersion:  Number(deployedVersion),
     deployedBy:       deployer.address,
     deployedAt:       new Date().toISOString(),

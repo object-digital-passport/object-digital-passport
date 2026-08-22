@@ -3,6 +3,7 @@
 /* eslint-disable */
 export * as odpAuthorAttestationSol from './ODPAuthorAttestation.sol/index.js';
 export * as odpCounterfeitConcernSol from './ODPCounterfeitConcern.sol/index.js';
+export * as odpEditionUnitsSol from './ODPEditionUnits.sol/index.js';
 export * as odpExtensionMintRouterSol from './ODPExtensionMintRouter.sol/index.js';
 export * as odpPassportProofRegistrySol from './ODPPassportProofRegistry.sol/index.js';
 export * as odpRegistryRelationsSol from './ODPRegistryRelations.sol/index.js';

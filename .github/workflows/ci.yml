@@ -33,11 +33,28 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Validate examples against schema
+      - name: Validate 0.6 examples against the 0.6 schema
         run: >
           npx --yes ajv-cli@5 validate --spec=draft2020
           -s schema/passport-0.6.schema.json
           -d "schema/examples/*.json"
+
+      - name: Validate 0.7 examples against the 0.7 schema
+        run: >
+          npx --yes ajv-cli@5 validate --spec=draft2020
+          -s schema/passport-0.7.schema.json
+          -d "schema/examples/0.7/*.json"
+
+  release-notes:
+    name: release note style
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check docs/releases against the template
+        run: node chain/tools/lint_release_notes.mjs
 
   slither:
     # crytic-compile cannot parse Hardhat 3 build-info (split output files),
