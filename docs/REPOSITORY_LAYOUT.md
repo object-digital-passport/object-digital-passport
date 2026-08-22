@@ -1,19 +1,33 @@
 # Repository layout
 
+This repository is **the protocol**: the specification, the contracts that implement it, and
+the schema and vectors that make it checkable. The reference website is a separate repository.
+
 | Path | Role |
 |------|------|
-| [`SPEC.md`](../SPEC.md) | **Normative** protocol (English, at repo root) |
-| [`docs/`](README.md) | Guides, contributing, security, release notes |
-| [`web/frontend/`](../web/frontend/) | HTML, CSS, UI scripts, i18n |
-| [`web/backend/`](../web/backend/) | Contract/RPC client JS, WalletConnect, registry config |
-| [`chain/`](../chain/) | Solidity, Hardhat, deploy, `mint.py`, contract types |
+| [`SPEC.md`](../SPEC.md) | **Normative** protocol, English, at the repository root |
+| [`schema/`](../schema/) | JSON Schema, conformance examples, and known-answer vectors |
+| [`chain/`](../chain/) | Solidity, Hardhat tests, deploy scripts, `mint.py` |
+| [`docs/`](README.md) | Design notes, decision records, security model, release notes |
+| [`docs/ru/`](ru/) | Russian translations — informational; `SPEC.md` is the normative text |
+| [`tools/`](../tools/) | Renders the specification into the published `/spec/` pages |
 
-**Android NFC app:** [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion) (separate repository).
+## Elsewhere
+
+| | |
+|---|---|
+| **Reference website** | [object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io) — the pages at <https://object-digital-passport.github.io/>, and everything that runs in a browser |
+| **Android NFC app** | [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion) |
+
+The split is deliberate. A standard that ships inside one implementation reads as that
+implementation's documentation, and the two ended up entangled enough that the website's
+deployment was what published the specification. They are separable now, and nothing here
+reaches into the site.
 
 ## Commands
 
 ```bash
-cd chain && npm install && npm run compile && npm test
+cd chain && npm install && npm run compile && npm test   # contracts
+node tools/build-spec.mjs _site/spec                     # render the specification
+node chain/tools/lint_release_notes.mjs                  # release note style
 ```
-
-Serve locally: see [web/README.md](../web/README.md) → `/verify.html`.

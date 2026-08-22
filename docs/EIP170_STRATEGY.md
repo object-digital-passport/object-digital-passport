@@ -5,9 +5,9 @@ The Ethereum **Spurious Dragon** rule caps **contract creation bytecode** at **2
 ## Current situation
 
 - The deployable reference line now uses a **split architecture**:
-  - main registry: [`chain/contracts/ObjectDigitalPassport.sol`](../contracts/ObjectDigitalPassport.sol)
-  - linked library: [`chain/contracts/ODPPassportLib.sol`](../contracts/ODPPassportLib.sol)
-  - satellites: [`chain/contracts/ODPRegistryRelations.sol`](../contracts/ODPRegistryRelations.sol), [`chain/contracts/ODPPassportProofRegistry.sol`](../contracts/ODPPassportProofRegistry.sol), [`chain/contracts/ODPExtensionMintRouter.sol`](../contracts/ODPExtensionMintRouter.sol), plus optional document-anchor / counterfeit satellites
+  - main registry: [`chain/contracts/ObjectDigitalPassport.sol`](../chain/contracts/ObjectDigitalPassport.sol)
+  - linked library: [`chain/contracts/ODPPassportLib.sol`](../chain/contracts/ODPPassportLib.sol)
+  - satellites: [`chain/contracts/ODPRegistryRelations.sol`](../chain/contracts/ODPRegistryRelations.sol), [`chain/contracts/ODPPassportProofRegistry.sol`](../chain/contracts/ODPPassportProofRegistry.sol), [`chain/contracts/ODPExtensionMintRouter.sol`](../chain/contracts/ODPExtensionMintRouter.sol), plus optional document-anchor / counterfeit satellites
 - With optimizer `runs: 1` and `viaIR: true` (see [`hardhat.config.ts`](../chain/hardhat.config.ts)), the **main registry** is intended to stay **≤ 24 KiB**. Run `npm run compile` from the repo root and inspect **`[ODP] EIP-170:`** before public deployment.
 - **Hardhat** network is configured with **`allowUnlimitedContractSize: true`** so local tests can run; this **does not** apply to public chains.
 

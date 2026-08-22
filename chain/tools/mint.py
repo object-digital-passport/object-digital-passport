@@ -151,6 +151,13 @@ CONTRACT_ABI = [
     },
     # Passport — unified 0.6 mint tuple (PassportMintInputs)
     {
+        "name": "CONTRACT_VERSION",
+        "type": "function",
+        "stateMutability": "view",
+        "inputs": [],
+        "outputs": [{"name": "", "type": "uint8"}],
+    },
+    {
         "name": "mintPhysical",
         "type": "function",
         "stateMutability": "nonpayable",
@@ -181,6 +188,8 @@ CONTRACT_ABI = [
                     {"name": "fileHash",  "type": "bytes32"},
                     {"name": "anchorsHash", "type": "bytes32"},
                     {"name": "anchorTypesMask", "type": "uint32"},
+                    # SPEC 0.7 §20.10 — initial owner; zero address = the minting principal.
+                    {"name": "initialOwner", "type": "address"},
                 ],
             },
             {"name": "dataUrlIsFolderBase", "type": "bool"},
@@ -219,6 +228,8 @@ CONTRACT_ABI = [
                     {"name": "fileHash",  "type": "bytes32"},
                     {"name": "anchorsHash", "type": "bytes32"},
                     {"name": "anchorTypesMask", "type": "uint32"},
+                    # SPEC 0.7 §20.10 — initial owner; zero address = the minting principal.
+                    {"name": "initialOwner", "type": "address"},
                 ],
             },
             {"name": "dataUrlIsFolderBase", "type": "bool"},
@@ -906,6 +917,18 @@ def cmd_mint(args):
         print("  Cancelled.")
         sys.exit(0)
 
+    # This ABI is the 0.7 mint tuple; a 0.6 registry would silently mis-encode it.
+    try:
+        onchain_generation = contract.functions.CONTRACT_VERSION().call()
+    except Exception:
+        onchain_generation = None
+    if onchain_generation is not None and onchain_generation < 7:
+        print()
+        print(f"  ERROR: this tool speaks the v0.7 mint tuple, but the registry at")
+        print(f"  {net.get('contract')} reports CONTRACT_VERSION {onchain_generation}.")
+        print("  Point NET.contract at a v0.7 registry, or use a v0.6 build of this tool.")
+        sys.exit(1)
+
     # Send transaction
     print()
     print("  Minting (gas only, no protocol fee)...")
@@ -931,6 +954,9 @@ def cmd_mint(args):
         "fileHash": to_bytes32(file_hash_bytes),
         "anchorsHash": to_bytes32(anchors_hash_bytes),
         "anchorTypesMask": anchor_mask,
+        # SPEC 0.7 §20.10 — zero keeps the 0.6 meaning: the minter owns what it mints.
+        # A mint naming someone else goes through ODPEditionUnits, not this tool.
+        "initialOwner": "0x0000000000000000000000000000000000000000",
     }
 
     mint_fn = contract.functions.mintPhysical if is_physical else contract.functions.mintDigital

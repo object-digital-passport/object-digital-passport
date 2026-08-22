@@ -119,6 +119,11 @@
             "internalType": "uint32",
             "name": "anchorTypesMask",
             "type": "uint32"
+          },
+          {
+            "internalType": "address",
+            "name": "initialOwner",
+            "type": "address"
           }
         ],
         "internalType": "struct PassportMintInputs",
@@ -247,6 +252,11 @@
             "internalType": "uint32",
             "name": "anchorTypesMask",
             "type": "uint32"
+          },
+          {
+            "internalType": "address",
+            "name": "initialOwner",
+            "type": "address"
           }
         ],
         "internalType": "struct PassportMintInputs",

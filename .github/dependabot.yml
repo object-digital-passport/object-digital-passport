@@ -1,35 +1,35 @@
 # Dependabot version updates — https://docs.github.com/code-security/dependabot/dependabot-version-updates
+#
+# One entry per real manifest. The previous version watched /web, / and /e2e — none of which
+# contain a package.json — so npm updates were silently never checked anywhere.
 version: 2
 updates:
+  # Contracts and the Hardhat toolchain.
   - package-ecosystem: "npm"
-    directory: "/web"
+    directory: "/chain"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
+    labels: ["dependencies"]
 
   - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    labels:
-      - "dependencies"
-
-  - package-ecosystem: "npm"
-    directory: "/e2e"
+    directory: "/chain/deploy"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
+    labels: ["dependencies"]
+
+  # Specification site builder.
+  - package-ecosystem: "npm"
+    directory: "/tools"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "github-actions"
+    labels: ["dependencies", "github-actions"]

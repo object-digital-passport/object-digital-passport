@@ -1,5 +1,7 @@
 # Versioning and releases
 
+*How a release **note** is written — sections, jargon rules, publishing commands — is [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md). This page is about tags and branches.*
+
 *Author: Andrei Chernikov*
 
 See also **[`docs/README.md`](README.md)** for an index of all docs in this folder and pointers to **`SPEC.md`**.

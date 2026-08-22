@@ -123,8 +123,9 @@ flowchart TB
 Интерфейс — обычный статический HTML, без сборки и серверного фреймворка:
 
 ```bash
-git clone https://github.com/object-digital-passport/object-digital-passport.git
-cd object-digital-passport/web/frontend
+git clone https://github.com/object-digital-passport/object-digital-passport.github.io.git
+cd object-digital-passport.github.io
+TMP=$(mktemp -d) && cp -r frontend/. "$TMP/" && cp -r backend "$TMP/backend" && cd "$TMP"
 python3 -m http.server 8000    # затем откройте http://localhost:8000/verify.html
 ```
 
@@ -167,7 +168,7 @@ cd chain/deploy && npm ci && npm test
 ~$0.01–0.03 сетевой комиссии Polygon за регистрацию или паспорт. Проверка бесплатна. Сам стандарт комиссию не берёт — принципиально и навсегда.
 
 **Где техническая часть?**
-Начните с [**вики**](https://github.com/object-digital-passport/object-digital-passport/wiki/Home-ru) — там всё человеческим языком, — а затем нормативная база: [`SPEC.md`](SPEC.md) (англ.; [русский перевод](web/frontend/localization/ru/SPEC.md) обновляется до v0.6).
+Начните с [**вики**](https://github.com/object-digital-passport/object-digital-passport/wiki/Home-ru) — там всё человеческим языком, — а затем нормативная база: [`SPEC.md`](SPEC.md) (англ.; [русский перевод](docs/ru/SPEC.md) обновляется до v0.6).
 
 ---
 
@@ -177,14 +178,14 @@ cd chain/deploy && npm ci && npm test
 |---|---|
 | [**Вики**](https://github.com/object-digital-passport/object-digital-passport/wiki/Home-ru) | Дружелюбные гайды: быстрый старт, как работает проверка, NFC-пломбы, Object ID, FAQ — 🇬🇧/🇷🇺 |
 | [`SPEC.md`](SPEC.md) | Полная спецификация протокола (нормативная, англ.) |
-| [`docs/GUIDE.md`](docs/GUIDE.md) | Подробный длинный гайд ([русская версия](web/frontend/localization/ru/README.md)) |
-| [`docs/V0.6.md`](docs/V0.6.md) | Что нового в v0.6 ([по-русски](web/frontend/localization/ru/RELEASE_v0.6.md)) |
+| [`docs/GUIDE.md`](docs/GUIDE.md) | Подробный длинный гайд ([русская версия](docs/ru/GUIDE.md)) |
+| [`docs/V0.6.md`](docs/V0.6.md) | Что нового в v0.6 ([по-русски](docs/ru/RELEASE_v0.6.md)) |
 | [`CHANGELOG.md`](CHANGELOG.md) | Заметные изменения по линиям протокола (англ.) |
-| [`docs/SECURITY.md`](docs/SECURITY.md) | Модель угроз ([по-русски](web/frontend/localization/ru/SECURITY.md)) |
-| [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Как участвовать ([по-русски](web/frontend/localization/ru/CONTRIBUTING.md)) |
+| [`docs/SECURITY.md`](docs/SECURITY.md) | Модель угроз ([по-русски](docs/ru/SECURITY.md)) |
+| [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Как участвовать ([по-русски](docs/ru/CONTRIBUTING.md)) |
 | [Живое демо →](https://object-digital-passport.github.io/object-digital-passport/) | Попробовать всё онлайн |
 
-**Структура репозитория:** [`docs/`](docs/) — документация · [`web/frontend/`](web/frontend/) — интерфейс · [`web/backend/`](web/backend/) — on-chain клиент · [`chain/`](chain/) — контракты и тесты
+**Структура репозитория:** [`SPEC.md`](SPEC.md) — стандарт · [`chain/`](chain/) — контракты и тесты · [`schema/`](schema/) — схема и векторы · [`docs/`](docs/) — документация. Сайт-пример живёт в отдельном репозитории: [object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io).
 
 ---
 

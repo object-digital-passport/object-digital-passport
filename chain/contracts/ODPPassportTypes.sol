@@ -27,6 +27,7 @@ struct PassportMintInputs {
     bytes32 fileHash;        // SHA-256 of the digital original
     bytes32 anchorsHash;     // SHA-256 of the canonical minified `anchors` array
     uint32 anchorTypesMask;  // OR of anchor type bits (see ODPAnchorBits)
+    address initialOwner;    // SPEC 0.7 §20.10 — initial `owner`; address(0) = the minting principal
 }
 
 /// @dev Anchor type bits for `anchorTypesMask`. Bits 12..30 reserved for future SPEC
@@ -44,6 +45,8 @@ library ODPAnchorBits {
     uint32 internal constant NUMBERED_SEAL = 512;
     uint32 internal constant FINGERPRINT = 1024;
     uint32 internal constant DNA = 2048;
+    uint32 internal constant UNIT_KEY_SET = 4096;        // SPEC 0.7 §20.3 (B profiles only)
+    uint32 internal constant UNIT_VARIANT_COMMIT = 8192; // SPEC 0.7 §20.4 (B profiles only)
     uint32 internal constant CUSTOM = 1 << 31;
 
     /// Hard identification minimum: photo + dimensions + materials + distinguishing features.
@@ -60,4 +63,5 @@ library ODPEventKinds {
     uint8 internal constant DAMAGE = 5;
     uint8 internal constant RESTORATION = 6;
     uint8 internal constant CUSTOM = 7;
+    uint8 internal constant EDITION_NOTICE = 8; // SPEC 0.7 §20.13 — append-only, destroys nothing
 }
