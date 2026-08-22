@@ -557,9 +557,12 @@ Recommended for high-value objects, artwork, and collectibles.
 Registration (required order for issuers):
   1. Provision the tag so the EV2 application key you will publish
      is loaded into the chip (typically 16-byte AES key 0x00)
-  2. Scan the live tag with the ODP Android companion ([odp-android-companion](https://github.com/object-digital-passport/odp-android-companion); issuer-chip-setup)
-     and import odp-chip-issuer-setup JSON into passport.html — confirms
-     UID, EV2 key, and TagTamper INTACT before mint
+  2. Before minting, confirm against the live tag: its UID, that the EV2
+     application key from step 1 authenticates, and — for TagTamper models —
+     that the tamper state reads INTACT. A passport whose nfc anchor was
+     never checked against the chip it names is not a seal, only a claim.
+     How the issuing tool performs this check, and how the result reaches
+     the tool that mints, are not specified here
   3. Record chip UID, model, key, and deployment notes in the `nfc`
      anchor inside passport.json anchors[]
   4. Passport is hashed and registered on-chain as usual — the anchor
@@ -589,15 +592,15 @@ Seal intact   → chip reports: INTACT
 Seal removed  → chip reports: TAMPERED (permanent, cannot be reset)
 ```
 
-**High-assurance TagTamper profile (companion verifier):**
+**High-assurance TagTamper profile:**
 
-For `NTAG424DNA_TAGTAMPER`, the reference Android companion ([odp-android-companion](https://github.com/object-digital-passport/odp-android-companion)) treats a scan as **high assurance** only when all of the following hold:
+For `NTAG424DNA_TAGTAMPER`, a verifier treats a scan as **high assurance** only when all of the following hold:
 
 1. **EV2 symmetric challenge-response** against the integrity-anchored key from the `nfc` anchor (16-byte EV2 application key) → `chipKeyMatch = PASS`
 2. **Authenticated TagTamper** after EV2 → `tamperState = INTACT`
 3. **Chip UID match** when `passport.json` / handoff supplies the `nfc` anchor's `data.uid` → authenticated live UID equals expected UID
 
-The companion exposes this as `highAssuranceSeal`. It is **not** checked for plain `NTAG424DNA` passports.
+A verifier reports this outcome as `highAssuranceSeal`. It is **not** checked for plain `NTAG424DNA` passports.
 
 **Honest limits:** No verifier can be perfectly uncheatable. A thief with the original tag and key, a dishonest provisioning step, or a leaked EV2 key still defeats trust. This profile **does** block common cheats: URL-only fake tags, wrong chips with another key, and physically opened TagTamper seals (visible as `TAMPERED`).
 
