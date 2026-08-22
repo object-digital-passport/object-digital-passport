@@ -8,7 +8,8 @@
 
 | Document | Purpose |
 |----------|---------|
-| **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `docs/`, `web/frontend/`, and `chain/` live in the repo. |
+| **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `SPEC.md`, `schema/`, `chain/`, `docs/` and `tools/` live, and what moved out. |
+| **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Proposal: repository names in the c2pa-org style, and how to shorten the published site address. Nothing applied. |
 | **[`releases/`](releases/)** | **Start here for “what changed and does it affect me”** — one short, jargon-free note per version. Written to [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md). |
 | **[`GUIDE.md`](GUIDE.md)** | Long-form overview: quick start, live demo, costs, deployment table, glossary. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |

@@ -1,37 +1,61 @@
-# Branch protection (GitHub) — optional checklist
+# Branch protection
 
-**Status:** documentation only. Nothing here runs automatically. Enable a **ruleset** or **branch protection** in the repo **Settings** when you want stricter workflow (e.g. after v0.1 is tagged and you want PR-only `main`). Until then, skip this file.
+Two rulesets live in [`rulesets/`](rulesets/) next to this file, as JSON that GitHub imports
+directly. They are committed rather than kept on one machine: a rule about how `main` may be
+changed is part of how the repository is built, and reviewing a diff of it beats remembering what
+was clicked.
 
-**Ready-to-import rulesets (local only, not in git):** use a **`rulesets/`** directory in the **repository root** (same level as `package.json`). The path **`rulesets/`** is in **`.gitignore`**, so JSON templates and `README.md` there stay on your machine and are **not committed or pushed**. Populate that folder yourself (or copy from a teammate / [`github/ruleset-recipes`](https://github.com/github/ruleset-recipes)). Official docs: [About rulesets](https://docs.github.com/ru/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets).
+> Applying one is a deliberate act — nothing here configures GitHub on its own.
 
----
+| File | What it does |
+|---|---|
+| [`main-default-branch.json`](rulesets/main-default-branch.json) | **Start here.** Changes to `main` go through a pull request; CI must pass; review threads must be resolved; the branch cannot be deleted or force-pushed. Repository admins can bypass, so a solo owner is never locked out. |
+| [`main-default-branch-strict.json`](rulesets/main-default-branch-strict.json) | The same, plus one required approval, stale approvals dismissed on push, and **no bypass for anyone** — including the owner. Meant for when there are other maintainers. |
 
-Use this if you want **`main`** to accept changes **only via pull requests** (and optionally to block **direct pushes even for administrators**).
+Both target `~DEFAULT_BRANCH` rather than the literal name `main`, so renaming the default branch
+does not silently un-protect it.
 
-> Paths on GitHub: **Settings → Rules → Rulesets** (recommended) or **Settings → Branches → Branch protection rules** (classic).
+## Apply one
 
-## Recommended ruleset for `main`
+**Settings → Rules → Rulesets → New ruleset → Import a ruleset**, then upload the JSON.
 
-1. **Target:** Branch name `main` (or pattern `main`), or import `main-default-branch.json` which uses `~DEFAULT_BRANCH`.
-2. **Require a pull request before merging**  
-   - Optional: require approvals (e.g. 1) — useful when there are collaborators; solo dev can use **0** approvals but still use PRs for discipline (`main-default-branch.json` uses **0**; `main-default-branch-strict.json` uses **1**).
-3. **Restrict deletions** — prevent accidental branch deletion.
-4. **Block force pushes** — keep history on `main` predictable.
+Or through the API:
 
-## If you want *no* direct pushes even as repo owner
+```bash
+gh api --method POST /repos/object-digital-passport/object-digital-passport/rulesets \
+  --input .github/rulesets/main-default-branch.json
+```
 
-- In the ruleset / branch protection, enable restrictions so that **administrators are also subject to the rules** (wording varies: e.g. **“Do not allow bypassing the above settings”** / **“Allow force pushes”** disabled / **“Allow specified actors to bypass”** empty).
-- Then **you also** merge only via PR. You can still **change the rule later** in **Settings** if you are the only owner — so this is **discipline + friction**, not cryptographic enforcement.
+To change one afterwards, edit the JSON here, then `PUT` it to
+`/repos/{owner}/{repo}/rulesets/{id}` — `gh api /repos/{owner}/{repo}/rulesets` lists the ids.
+Editing in the web UI instead leaves this file lying, which is the failure mode committing it was
+meant to prevent.
 
-## Tags (`v0.1`, etc.)
+## Required status checks
 
-- **Tag protection** (GitHub Enterprise / some org features) can limit who creates or updates tags. On free personal repos, rely on **policy**: do not delete or move release tags.
-- After publishing **v0.1**, document in [`docs/VERSIONING_AND_RELEASES.md`](../docs/VERSIONING_AND_RELEASES.md) that the tag is **immutable**.
+The non-strict ruleset requires these five, named exactly as the jobs in
+[`ci.yml`](workflows/ci.yml) name themselves:
 
-## GitHub Actions (if used)
+`Hardhat tests` · `passport.json schema validation` · `release note style` ·
+`Slither static analysis` · `organization profile links`
 
-- If you add required status checks, add them in the ruleset under **Require status checks to pass**.
+**Renaming a CI job silently un-requires it** — a required check that never reports is treated as
+not applicable, not as failing. Rename a job, and this list needs the same edit in the same commit.
 
----
+CodeQL is not in the list, and there is no CodeQL workflow in this repository — code scanning runs
+from GitHub's Default setup. See [Code scanning](../docs/SECURITY.md#code-scanning-codeql) in the
+security model for why an Advanced workflow must not be added back without flipping the UI setting
+first.
 
-*This file is documentation only; it does not configure GitHub by itself.*
+## Tags
+
+Release tags (`v0.6`, `v0.7`, …) are immutable by policy, not by enforcement — see
+[`docs/VERSIONING_AND_RELEASES.md`](../docs/VERSIONING_AND_RELEASES.md). A tag ruleset can enforce
+it: target `refs/tags/v*`, rule `deletion` plus `non_fast_forward`. Worth adding once a tag has
+ever been moved by accident.
+
+## The local scratch directory
+
+`/rulesets/` at the **repository root** stays git-ignored, for templates pulled from elsewhere
+(e.g. [`github/ruleset-recipes`](https://github.com/github/ruleset-recipes)) that are not meant to
+become part of this repository. The committed ones are the two in `.github/rulesets/`.
