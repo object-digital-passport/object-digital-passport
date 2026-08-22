@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const dir = path.join(root, "docs", "releases");
 
-const REQUIRED = ["## What changed", "## Do I need to do anything?", "## Full detail", "## Status"];
+const SECTIONS = ["## What changed", "## Do I need to do anything?", "## Where it lives", "## Full detail", "## Status"];
 
 // Rule 2 of the template. Each entry is [pattern, what to write instead].
 const BANNED = [
@@ -52,8 +52,26 @@ for (const file of files) {
   const text = fs.readFileSync(path.join(dir, file), "utf8");
   const lines = text.split("\n");
 
-  for (const heading of REQUIRED) {
-    if (!lines.some((l) => l.trim() === heading)) note(file, null, `missing section "${heading}"`);
+  // The title carries the whole promise of the note: a version and six words of plain language.
+  const title = /^# ODP (v[\d.]+) — (.+)$/.exec(lines[0] || "");
+  if (!title) {
+    note(file, 1, `title must read "# ODP vX.Y — <plain-language subtitle>"`);
+  } else if (title[2].split(/\s+/).length > 6) {
+    note(file, 1, `subtitle is ${title[2].split(/\s+/).length} words — the template allows six`);
+  }
+
+  const head = lines.slice(0, 8).join("\n");
+  if (!head.includes("ODP is a free, open digital passport for real objects")) {
+    note(file, null, "missing the opening sentence, which is identical in every note");
+  }
+  if (!lines.slice(0, 8).some((l) => l.startsWith("**New here?**"))) {
+    note(file, null, 'missing the "**New here?**" line');
+  }
+
+  // Sections are fixed: not reordered, not renamed, not dropped, and not added to.
+  const found = lines.filter((l) => l.startsWith("## ")).map((l) => l.trim());
+  if (found.join("|") !== SECTIONS.join("|")) {
+    note(file, null, `sections are ${JSON.stringify(found)} — the template fixes them as ${JSON.stringify(SECTIONS)}`);
   }
 
   // fenced blocks are quoting, not prose
