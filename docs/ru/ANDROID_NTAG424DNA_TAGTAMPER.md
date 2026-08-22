@@ -40,7 +40,7 @@ TagWriter нужен, когда вам надо записать carrier, ко�
 Типовой сценарий:
 
 - записать стандартную URL / URI запись, ведущую на ODP Verify
-- или записать экспортированный из `web/passport.html` файл `.ndef`
+- или записать экспортированный из [`frontend/passport.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/passport.html) (репозиторий сайта) файл `.ndef`
 
 TagWriter пишет только carrier / entry layer. Он **не** аутентифицирует чип, **не** читает TagTamper status и **не** проверяет `.odpass` / `dataHash`.
 
@@ -81,7 +81,7 @@ Tag TrustLink — это шаг аутентификации чипа. Сам п
 
 ### 2. Выпустите ODP-паспорт
 
-В `web/passport.html`:
+В [`frontend/passport.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/passport.html) (репозиторий сайта):
 
 1. выберите `physical` или `mixed`
 2. выберите NFC seal (`sealType = 1` или `3`)

@@ -18,7 +18,7 @@
 | 🇷🇺 **Русский** | Вы читаете справочный перевод (этот файл).               |
 
 
-**Мы рады переводам спецификации на любой язык.** Добавьте файлы в `web/localization/<код-языка>/` (ориентир — структура [../ru/](../ru/)). Обсуждение на GitHub (**Pull Request**, **Issue**) ведите **на английском**, чтобы все участники видели одну ветку (см. **[CONTRIBUTING.md](../../docs/CONTRIBUTING.md)**).
+**Мы рады переводам спецификации на любой язык.** Добавьте файлы в `frontend/localization/<код-языка>/` **в [репозитории сайта](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization)** (ориентир — структура [../ru/](../ru/)). Обсуждение на GitHub (**Pull Request**, **Issue**) ведите **на английском**, чтобы все участники видели одну ветку (см. **[CONTRIBUTING.md](../../docs/CONTRIBUTING.md)**).
 
 **Нормативный источник:** только английский [SPEC.md](../../SPEC.md); этот перевод приведён для удобства и может содержать ошибки.
 
@@ -1746,7 +1746,7 @@ On-chain поля остаются криптографическим источ
 
 #### 15.1.1 Эталонная форма `manifest.json` (реализации)
 
-Референсные инструменты в этом репозитории (`web/frontend/passport.html`, `chain/tools/mint.py`) пишут `manifest.json` как UTF-8 JSON минимум с:
+Референсные инструменты — [`frontend/passport.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/passport.html) в репозитории сайта и `chain/tools/mint.py` здесь — пишут `manifest.json` как UTF-8 JSON минимум с:
 
 - `format`: `"odpass-bundle"` (legacy-бандлы МОГУТ использовать `"odp-bundle"`)
 - `bundleVersion`: строка layout'а бандла, который экспортируют референсные инструменты (старые строки layout манифеста могут по-прежнему читаться)
@@ -1814,7 +1814,7 @@ ODP не определяет, как пользователи управляю�
 
 WalletConnect полагается на инфраструктуру **relay** и приложение кошелька (сканирование QR или deep link); **доступность, приватность и доверие** к этому каналу — вопрос между пользователем, вендором кошелька и WalletConnect — **здесь не специфицируется**. On-chain семантика не меняется: авторитетны по-прежнему `**msg.sender`**, кошелёк создателя и `**chainId`**.
 
-Про **сборку репозитория** (Project ID в Reown Cloud, ленивая загрузка бандла, восстановление сессии после перезагрузки) см. `**web/odp-wc-config.js`**, `**web/odp-wallet-wc-loader.js`** и `**[docs/V0.4.md](../../docs/V0.4.md)**`.
+Про **сборку репозитория** (Project ID в Reown Cloud, ленивая загрузка бандла, восстановление сессии после перезагрузки) см. [`backend/config/odp-wc-config.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/config/odp-wc-config.js) и [`backend/js/odp-wallet-wc-loader.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/js/odp-wallet-wc-loader.js) в репозитории сайта, а также [`docs/V0.4.md`](../../docs/V0.4.md) здесь.
 
 ### Принцип генерации ключа
 

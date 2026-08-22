@@ -5,7 +5,7 @@
 ## Track B — Shipped in this repo (reference bytecode)
 
 - **Mint agent (v0.3 extension):** delegated mint after two-step handshake; `Passport.mintAgent`, `mintOnBehalfOfCreatorId`; see **SPEC** (v0.3 summary + ACL tables).
-- **Tooling / ABI:** `web/backend/js/odp-contract.js`, `web/frontend/passport.html`, `chain/tools/mint.py`, tests under `chain/deploy/test/`.
+- **Tooling / ABI:** [`backend/js/odp-contract.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/js/odp-contract.js) and [`frontend/passport.html`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/passport.html) in the website repository; `chain/tools/mint.py` and tests under `chain/deploy/test/` here.
 
 ## Track A — After-audit backlog (documentation and future bytecode)
 
