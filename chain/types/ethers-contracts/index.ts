@@ -48,14 +48,14 @@ export type { IODPRegistryForRelations } from './ODPRegistryRelations.sol/IODPRe
 export { IODPRegistryForRelations__factory } from './factories/ODPRegistryRelations.sol/IODPRegistryForRelations__factory.js';
 export type { ODPRegistryRelations } from './ODPRegistryRelations.sol/ODPRegistryRelations.js';
 export { ODPRegistryRelations__factory } from './factories/ODPRegistryRelations.sol/ODPRegistryRelations__factory.js';
-export type { IODPWalletLookup } from './ODPWalletDocumentAnchor.sol/IODPWalletLookup.js';
-export { IODPWalletLookup__factory } from './factories/ODPWalletDocumentAnchor.sol/IODPWalletLookup__factory.js';
-export type { ODPWalletDocumentAnchor } from './ODPWalletDocumentAnchor.sol/ODPWalletDocumentAnchor.js';
-export { ODPWalletDocumentAnchor__factory } from './factories/ODPWalletDocumentAnchor.sol/ODPWalletDocumentAnchor__factory.js';
 export type { IODPRelationsLookup } from './ObjectDigitalPassport.sol/IODPRelationsLookup.js';
 export { IODPRelationsLookup__factory } from './factories/ObjectDigitalPassport.sol/IODPRelationsLookup__factory.js';
 export type { ObjectDigitalPassport } from './ObjectDigitalPassport.sol/ObjectDigitalPassport.js';
 export { ObjectDigitalPassport__factory } from './factories/ObjectDigitalPassport.sol/ObjectDigitalPassport__factory.js';
+export type { IODPWalletLookup } from './ODPWalletDocumentAnchor.sol/IODPWalletLookup.js';
+export { IODPWalletLookup__factory } from './factories/ODPWalletDocumentAnchor.sol/IODPWalletLookup__factory.js';
+export type { ODPWalletDocumentAnchor } from './ODPWalletDocumentAnchor.sol/ODPWalletDocumentAnchor.js';
+export { ODPWalletDocumentAnchor__factory } from './factories/ODPWalletDocumentAnchor.sol/ODPWalletDocumentAnchor__factory.js';
 export type { ODPPassThroughDigitalExtension } from './examples/ODPPassThroughDigitalExtension.js';
 export { ODPPassThroughDigitalExtension__factory } from './factories/examples/ODPPassThroughDigitalExtension__factory.js';
 export type { ODPPassThroughPhysicalExtension } from './examples/ODPPassThroughPhysicalExtension.js';

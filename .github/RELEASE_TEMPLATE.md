@@ -38,13 +38,29 @@ Sections in this order. Do not rename them, do not reorder them, do not drop one
 felt empty — an empty-looking section usually means the answer is "no", and the reader still
 needs to be told "no".
 
+The header block is **fixed line for line** — copy it from an existing note rather than
+retyping it. Line 3 is one source line however long it runs; wrapping it in one file and not
+another produces a diff that looks like an edit and is not one. Both links on line 5 are the
+canonical ones, and when the site moves they move in all eight notes together.
+
+**The standfirst is optional, and its shape is not.** If a note needs a sentence before the
+sections — this version was never released, this one is a pre-release, this one went live on a
+date — it goes directly after the "New here?" line, as **one paragraph**, and **opens with a
+bold clause**. That bold opening is what makes it read as a standfirst rather than stray body
+text. A note that skips it looks like a different document to anyone scanning the list, which
+is exactly the complaint that produced this rule.
+
+**Headings are `##` and nothing else.** Never `###`, never bold-as-a-heading. One `#` for the
+title, five `##` for the sections, and no other heading anywhere in the note.
+
 ```markdown
 # ODP vX.Y — <plain-language subtitle, six words at most>
 
-ODP is a free, open digital passport for real objects — art, limited runs, archives —
-that anyone can verify. Forever.
+ODP is a free, open digital passport for real objects — art, limited runs, archives — that anyone can verify. Forever.
 
 **New here?** [What this is](https://…) · [Verify something — free, no wallet](https://…)
+
+**Optional standfirst.** One paragraph, bold opening clause, or leave it out entirely.
 
 ## What changed
 
