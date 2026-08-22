@@ -13,7 +13,11 @@ its own history; what is recorded here from now on is the protocol.
 
 ## [Unreleased]
 
-Will ship as **0.7**. Edition passports and per-unit activation keys: one passport for a production run, with a key under a scratch layer on each item. Contracts and tests are done; no issuer tooling or activation page exists yet. Rationale in [`docs/EDITION_UNIT_KEYS.md`](docs/EDITION_UNIT_KEYS.md) and eleven ADRs under [`docs/adr/`](docs/adr/).
+Nothing yet.
+
+## [0.7] - 2026-08-22 — pre-release
+
+**Not deployed.** No v0.7 registry exists on any network, so nothing can be registered against this line yet; the date is the pre-release tag, not a deployment. Edition passports and per-unit activation keys: one passport for a production run, with a key under a scratch layer on each item. Contracts and tests are done, no issuer tooling or activation page exists. Rationale in [`docs/EDITION_UNIT_KEYS.md`](docs/EDITION_UNIT_KEYS.md) and eleven records under [`docs/adr/`](docs/adr/).
 
 ### Added
 
@@ -25,9 +29,24 @@ Will ship as **0.7**. Edition passports and per-unit activation keys: one passpo
 
 ### Changed
 
-- Packed `CONTRACT_VERSION` = **7**; `PassportMintInputs` gains `initialOwner`.
-- Code entropy floor is per-target: `≥ 80 + ceil(log2(unitCount))` bits.
-- The unit address list must travel in the `.odpass` bundle, not only at a URL.
+- **Breaking:** packed `CONTRACT_VERSION` = **7**. A separate registry from v0.6; passports do not migrate. `PassportMintInputs` gains `initialOwner`.
+- **Breaking:** the reference website moved to [its own repository](https://github.com/object-digital-passport/object-digital-passport.github.io) and now publishes at <https://object-digital-passport.github.io/>. Every previous address redirects, query string intact. This repository is the protocol: specification, contracts, schema, vectors.
+- No hostname is printed on an object (§12.2). The QR carries the `odp://` URI and the readable Passport ID; a website address is one implementation's convenience and was removed from the normative minimum.
+- Code entropy floor is per-target: `≥ 80 + ceil(log2(unitCount))` bits, since a forger needs any valid code at any index and the address list is public.
+- The unit address list must travel in the `.odpass` bundle, not only at a URL — a proof, and therefore activation itself, is impossible without it.
+- Russian translations moved from the website's tree to [`docs/ru/`](docs/ru/); a translation of the standard belongs with the standard.
+- `CHANGELOG.md` and every release note were rewritten: one template, one home under [`docs/releases/`](docs/releases/), and a linter that enforces the jargon rules.
+
+### Fixed
+
+- 27 dead relative links across the documentation, and a `dependabot.yml` that watched three directories containing no manifest — which is why npm version updates had never run.
+- Both JSON Schema `$id`s pointed at a URL that had never resolved; they now match where the schema is published.
+- The published specification site shipped the 0.5 schema under a page titled v0.5 while CI validated 0.6.
+
+### Security
+
+- Cleared the alert backlog: `axios` to ≥1.18.0 and `js-yaml` to ≥4.3.1 through `overrides`, with `elliptic` dismissed as no patch exists. Nothing vulnerable ever shipped — `axios` is absent from the built bundle — but the noise was hiding real findings.
+- CodeQL runs from a checked-in configuration that excludes the generated WalletConnect bundle, so thirteen unfixable alerts against third-party build output stop recurring.
 
 ## [0.6] - 2026-07-24
 
@@ -176,7 +195,8 @@ First tagged release of the reference implementation: specification, Solidity co
 - Static web UI: `creator.html`, `passport.html`, `verify.html`.
 - Hardhat deploy scripts and CLI minting tool.
 
-[Unreleased]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.6...HEAD
+[Unreleased]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.7...HEAD
+[0.7]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.6...v0.7
 [0.6]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.5...v0.6
 [0.5]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4.1...v0.5
 [0.4.1]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4...v0.4.1
