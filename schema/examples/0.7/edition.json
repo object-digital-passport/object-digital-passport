@@ -90,7 +90,7 @@
         "merkleRoot": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
         "unitCount": 100000,
         "hashAlg": "sha256",
-        "leafFormat": "sha256(uint32be(index) || utf8(variant) || salt)"
+        "leafFormat": "sha256(uint32be(index) || uint16be(len(variant)) || utf8(variant) || salt32)"
       },
       "verification": "Open the box, take the salt from the card inside, recompute the commitment (SPEC 20.4)."
     }
