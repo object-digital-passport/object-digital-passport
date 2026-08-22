@@ -16,6 +16,12 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const dir = path.join(root, "docs", "releases");
 
+const INTRO =
+  "ODP is a free, open digital passport for real objects — art, limited runs, archives — that anyone can verify. Forever.";
+const NEW_HERE =
+  "**New here?** [What this is](https://github.com/object-digital-passport/object-digital-passport#readme) · " +
+  "[Verify something — free, no wallet](https://object-digital-passport.github.io/verify.html)";
+
 const SECTIONS = ["## What changed", "## Do I need to do anything?", "## Where it lives", "## Full detail", "## Status"];
 
 // Rule 2 of the template. Each entry is [pattern, what to write instead].
@@ -60,13 +66,36 @@ for (const file of files) {
     note(file, 1, `subtitle is ${title[2].split(/\s+/).length} words — the template allows six`);
   }
 
-  const head = lines.slice(0, 8).join("\n");
-  if (!head.includes("ODP is a free, open digital passport for real objects")) {
-    note(file, null, "missing the opening sentence, which is identical in every note");
+  // The header block is fixed line for line. Byte-identical, not merely similar: a sentence
+  // wrapped differently in one file is a different file to a reviewer reading a diff.
+  if (lines[1] !== "") note(file, 2, "line 2 must be blank");
+  if (lines[2] !== INTRO) {
+    note(file, 3, "line 3 must be the opening sentence, on one line, identical in every note");
   }
-  if (!lines.slice(0, 8).some((l) => l.startsWith("**New here?**"))) {
-    note(file, null, 'missing the "**New here?**" line');
+  if (lines[3] !== "") note(file, 4, "line 4 must be blank");
+  if (lines[4] !== NEW_HERE) {
+    note(file, 5, 'line 5 must be the "**New here?**" line, with both canonical links');
   }
+
+  // An optional standfirst: one paragraph, at line 7, opening with a bold clause so the eye
+  // knows it is not body text. Present in some notes and absent in others — but never
+  // formatted two different ways, which is what makes one note look unlike its neighbours.
+  if (lines[6] && !lines[6].startsWith("## ")) {
+    if (!lines[6].startsWith("**")) {
+      note(file, 7, "a standfirst must open with a bold clause, or be dropped");
+    }
+    if (lines[7] !== "") note(file, 8, "the standfirst must be a single paragraph");
+    if (!(lines[8] || "").startsWith("## ")) note(file, 9, "only one paragraph may precede the sections");
+  }
+
+  // Headings are ## and nothing else: a ### renders smaller and makes one note look unlike
+  // its neighbours, which is the class of drift this whole file exists to stop.
+  lines.forEach((l, i) => {
+    const h = /^(#{1,6})\s/.exec(l);
+    if (!h) return;
+    if (i === 0 && h[1] !== "#") note(file, 1, "the title is a single #");
+    if (i > 0 && h[1] !== "##") note(file, i + 1, `"${h[1]}" heading — sections are ## only`);
+  });
 
   // Sections are fixed: not reordered, not renamed, not dropped, and not added to.
   const found = lines.filter((l) => l.startsWith("## ")).map((l) => l.trim());
