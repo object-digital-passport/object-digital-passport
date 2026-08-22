@@ -18,7 +18,7 @@
 | **[`chain/deploy/README.md`](../chain/deploy/README.md)** | Hardhat deploy (`.env`, compile, Polygon mainnet). |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix vs feature branches. |
 | **[`SECURITY.md`](SECURITY.md)** | Threat model & trust boundaries. RU: [`ru/SECURITY.md`](ru/SECURITY.md). |
-| **[`ANDROID.md`](../web/docs/ANDROID.md)** | Web handoff + trust boundaries; app code in [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion). |
+| **[`ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md)** | Web handoff + trust boundaries; app code in [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion). |
 | **[`ANDROID_NTAG424DNA_TAGTAMPER.md`](ANDROID_NTAG424DNA_TAGTAMPER.md)** | Practical NTAG424 TagTamper workflow (ODP web + carrier + companion). |
 | **[`PROTOCOL_TRACKS.md`](PROTOCOL_TRACKS.md)** | Track A (audit) vs Track B (mint agent); EIP-170 pointer. |
 | **[`EIP170_STRATEGY.md`](EIP170_STRATEGY.md)** | Bytecode size limit options before mainnet deploy. |
@@ -32,12 +32,12 @@
 | [`V0.4.md`](V0.4.md) | Historical v0.4 line notes. |
 | [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md) | v0.4.1 patch notes. RU: [`ru/RELEASE_v0.4.1.md`](ru/RELEASE_v0.4.1.md). |
 | [`archive/DOCS_REVIEW_PLAN_v0.5.md`](archive/DOCS_REVIEW_PLAN_v0.5.md) | Completed planning note (README/SPEC/docs pass). |
-| [`ANDROID_VERIFIER_MVP.md`](ANDROID_VERIFIER_MVP.md) | Short MVP scope; [`ANDROID_COMPANION_APP.md`](../web/docs/ANDROID_COMPANION_APP.md) redirects to companion repo. |
+| [`ANDROID_VERIFIER_MVP.md`](ANDROID_VERIFIER_MVP.md) | Short MVP scope; [`ANDROID_COMPANION_APP.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID_COMPANION_APP.md) redirects to companion repo. |
 | [`research/UNIT_CODE_AUTHENTICATION_LANDSCAPE.md`](research/UNIT_CODE_AUTHENTICATION_LANDSCAPE.md) | How mass-market unit codes actually work (Pop Mart and peers), how v0.7 §20 compares, and what to change. Primary sources; unverified claims marked in place. |
 | [`EDITION_ISSUER_TOOL.md`](EDITION_ISSUER_TOOL.md) | **Implementation handoff** for the issuer-side edition tool: algorithms, byte-level encodings, outputs, ceremony, contract call, and the known-answer vectors to check against. |
 | [`EDITION_UNIT_KEYS.md`](EDITION_UNIT_KEYS.md) | **v0.7 draft** — edition passports + per-unit activation keys for mass-produced series (B profile). RU: [`ru/EDITION_UNIT_KEYS.md`](ru/EDITION_UNIT_KEYS.md). |
 | [`IDEAS_V1.md`](IDEAS_V1.md) | Informal v1 directions (not spec). |
-| [`community/discussion-passport-ui-v0.4-EN.md`](../web/docs/community/discussion-passport-ui-v0.4-EN.md) | Draft GitHub Discussion (EN). |
+| [`community/discussion-passport-ui-v0.4-EN.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/community/discussion-passport-ui-v0.4-EN.md) | Draft GitHub Discussion (EN). |
 
 ## `.odpass` bundle (quick pointer)
 

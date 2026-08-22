@@ -19,25 +19,9 @@ updates:
     open-pull-requests-limit: 5
     labels: ["dependencies"]
 
-  # Browser-side registry client; source of the committed WalletConnect bundle.
-  - package-ecosystem: "npm"
-    directory: "/web/backend"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    labels: ["dependencies"]
-
   # Specification site builder.
   - package-ecosystem: "npm"
     directory: "/tools"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    labels: ["dependencies"]
-
-  # Playwright smoke tests.
-  - package-ecosystem: "npm"
-    directory: "/web/frontend/e2e"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5

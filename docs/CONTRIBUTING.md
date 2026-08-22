@@ -10,7 +10,7 @@ This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By part
 
 ## Language (GitHub and the community)
 
-**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is `**[SPEC.md](../SPEC.md)`** (English). Translations under `[web/frontend/localization/](../web/frontend/localization/)` are informational; discussion that changes the protocol should still be tracked in English on GitHub.
+**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is `**[SPEC.md](../SPEC.md)`** (English). Translations under `[web/frontend/localization/](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization)` are informational; discussion that changes the protocol should still be tracked in English on GitHub.
 
 ## Where to start
 
@@ -31,7 +31,7 @@ This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By part
 
 ## Beyond code
 
-Reviews of English and translated copy, UX, visual design, accessibility, and localization (`[web/frontend/localization/](../web/frontend/localization/)`) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on `[SPEC.md](../SPEC.md)` and the static pages helps.
+Reviews of English and translated copy, UX, visual design, accessibility, and localization (`[web/frontend/localization/](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization)`) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on `[SPEC.md](../SPEC.md)` and the static pages helps.
 
 ## Areas of the repo
 

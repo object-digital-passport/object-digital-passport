@@ -123,8 +123,9 @@ Live addresses: [`docs/GUIDE.md` → Current Release](docs/GUIDE.md#current-rele
 The UI is plain static HTML — no build step, no server framework:
 
 ```bash
-git clone https://github.com/object-digital-passport/object-digital-passport.git
-cd object-digital-passport/web/frontend
+git clone https://github.com/object-digital-passport/object-digital-passport.github.io.git
+cd object-digital-passport.github.io
+TMP=$(mktemp -d) && cp -r frontend/. "$TMP/" && cp -r backend "$TMP/backend" && cd "$TMP"
 python3 -m http.server 8000    # then open http://localhost:8000/verify.html
 ```
 
@@ -184,7 +185,7 @@ Start at the [**Wiki**](https://github.com/object-digital-passport/object-digita
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | How to contribute |
 | [Live demo →](https://object-digital-passport.github.io/object-digital-passport/) | Try everything online |
 
-**Repository layout:** [`docs/`](docs/) — documentation · [`web/frontend/`](web/frontend/) — UI · [`web/backend/`](web/backend/) — on-chain client · [`chain/`](chain/) — contracts & tests
+**Repository layout:** [`SPEC.md`](SPEC.md) — the standard · [`chain/`](chain/) — contracts & tests · [`schema/`](schema/) — JSON Schema & vectors · [`docs/`](docs/) — documentation. The reference website is a separate repository: [object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io).
 
 ---
 

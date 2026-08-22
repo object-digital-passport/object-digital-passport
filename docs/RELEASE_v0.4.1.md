@@ -21,7 +21,7 @@ Patch release **v0.4.1** focuses on **security hardening** of the static web UI,
 ## Community & GitHub
 
 - New issue template **Standard gap** — propose what is missing or unclear in `**SPEC.md`**.
-- `**[CONTRIBUTING.md](CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[web/frontend/localization/](../web/frontend/localization/)**` copies are informational.
+- `**[CONTRIBUTING.md](CONTRIBUTING.md)`:** **English** for issues, pull requests, and maintainer replies on GitHub; normative spec remains `**[SPEC.md](../SPEC.md)`** (English). Russian `**[web/frontend/localization/](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization)**` copies are informational.
 - Pull request template: reminder to use **English** for title and description.
 - Optional **rulesets** guidance: `**[.github/BRANCH_PROTECTION.md](../.github/BRANCH_PROTECTION.md)`** (local `rulesets/` path is gitignored — templates for import only).
 

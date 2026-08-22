@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.
 
 This file is drafted from commit history and existing release notes; entries are curated, not auto-generated — corrections welcome.
 
+Entries up to and including 0.6 cover the protocol **and** the reference website, which shared
+one repository until the 0.7 line. The website now has [its own
+repository](https://github.com/object-digital-passport/object-digital-passport.github.io) and
+its own history; what is recorded here from now on is the protocol.
+
 ## [Unreleased]
 
 Will ship as **0.7**. Edition passports and per-unit activation keys: one passport for a production run, with a key under a scratch layer on each item. Contracts and tests are done; no issuer tooling or activation page exists yet. Rationale in [`docs/EDITION_UNIT_KEYS.md`](docs/EDITION_UNIT_KEYS.md) and eleven ADRs under [`docs/adr/`](docs/adr/).

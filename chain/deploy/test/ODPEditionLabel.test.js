@@ -1,23 +1,43 @@
 /**
- * Proves the browser module's label-payload construction against Solidity.
+ * Pins the §20.7 label payload against Solidity.
  *
- * The bytes a page hashes and the bytes the contract publishes must be identical, or a
- * genuine label reads as forged. Asserting the JS against the contract is the only way to
- * know; the browser test cannot do it, because ethers is not installed there.
+ * The bytes a verifier hashes and the bytes the contract publishes must be identical, or a
+ * genuine label reads as forged. This used to load the reference website's own module and
+ * compare the two directly; the website is a separate repository now, so instead the payload
+ * is constructed here from the specification text and asserted against the contract. Any
+ * implementation that produces these bytes agrees with the contract — which is the property
+ * that actually matters, and it no longer requires one repository to read the other's source.
  */
 import { expect } from "chai";
 import { network } from "hardhat";
-import fs from "node:fs";
 
 const { ethers } = await network.connect();
 
-// the module is an IIFE bound to `window || globalThis`; give it the ethers it expects
-globalThis.ethers = ethers;
-const src = fs.readFileSync(new URL("../../../web/backend/js/odp-contract.js", import.meta.url), "utf8");
-new Function(src)();
-const { odpLabelPayloadHash, odpVerifyLabelSignature } = globalThis;
+/** SPEC §20.7, written out field by field rather than imported from anywhere. */
+function odpLabelPayloadHash(chainId, unitsAddress, editionPassportId, unitIndex, merkleRoot) {
+  return ethers.keccak256(
+    ethers.solidityPacked(
+      ["string", "uint256", "address", "string", "uint32", "bytes32"],
+      ["ODP-UNIT-LABEL-v1", BigInt(chainId), unitsAddress, editionPassportId, unitIndex, merkleRoot],
+    ),
+  );
+}
 
-describe("signed outer labels — browser module against Solidity (§20.7)", function () {
+/** The reader side of §20.7: recover, and compare with the key the edition published. */
+function odpVerifyLabelSignature(o) {
+  if (!o.labelSigner) return "unsigned_edition";
+  if (!o.signature) return "absent";
+  if (!o.merkleRoot || o.unitIndex == null || !o.unitsAddress || o.chainId == null) return "unknown";
+  try {
+    const digest = odpLabelPayloadHash(o.chainId, o.unitsAddress, o.editionPassportId, o.unitIndex, o.merkleRoot);
+    const recovered = ethers.verifyMessage(ethers.getBytes(digest), o.signature);
+    return String(recovered).toLowerCase() === String(o.labelSigner).toLowerCase() ? "valid" : "invalid";
+  } catch {
+    return "invalid";
+  }
+}
+
+describe("signed outer labels — payload pinned against Solidity (§20.7)", function () {
   async function openedEdition() {
     const Lib = await ethers.getContractFactory("ODPPassportLib");
     const lib = await Lib.deploy();
@@ -62,7 +82,7 @@ describe("signed outer labels — browser module against Solidity (§20.7)", fun
     return { units, editionId, root, signer, chainId: Number(chainId) };
   }
 
-  it("the module's payload hash equals the contract's", async function () {
+  it("the specified payload hash equals the contract's", async function () {
     const { units, editionId, root, chainId } = await openedEdition();
     for (const idx of [0, 1, 9]) {
       expect(odpLabelPayloadHash(chainId, units.target, editionId, idx, root))

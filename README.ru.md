@@ -123,8 +123,9 @@ flowchart TB
 Интерфейс — обычный статический HTML, без сборки и серверного фреймворка:
 
 ```bash
-git clone https://github.com/object-digital-passport/object-digital-passport.git
-cd object-digital-passport/web/frontend
+git clone https://github.com/object-digital-passport/object-digital-passport.github.io.git
+cd object-digital-passport.github.io
+TMP=$(mktemp -d) && cp -r frontend/. "$TMP/" && cp -r backend "$TMP/backend" && cd "$TMP"
 python3 -m http.server 8000    # затем откройте http://localhost:8000/verify.html
 ```
 
@@ -184,7 +185,7 @@ cd chain/deploy && npm ci && npm test
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Как участвовать ([по-русски](docs/ru/CONTRIBUTING.md)) |
 | [Живое демо →](https://object-digital-passport.github.io/object-digital-passport/) | Попробовать всё онлайн |
 
-**Структура репозитория:** [`docs/`](docs/) — документация · [`web/frontend/`](web/frontend/) — интерфейс · [`web/backend/`](web/backend/) — on-chain клиент · [`chain/`](chain/) — контракты и тесты
+**Структура репозитория:** [`SPEC.md`](SPEC.md) — стандарт · [`chain/`](chain/) — контракты и тесты · [`schema/`](schema/) — схема и векторы · [`docs/`](docs/) — документация. Сайт-пример живёт в отдельном репозитории: [object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io).
 
 ---
 

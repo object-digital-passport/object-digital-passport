@@ -13,4 +13,4 @@ Optional **one-off** helper used during Solidity development to replace `require
 
 ## End-to-end smoke
 
-Lightweight Playwright checks live under [`e2e/`](../../web/frontend/e2e/) (static `serve` of the repo root + a few page loads). They do **not** drive a wallet or full mint flows.
+Lightweight Playwright checks live under [`e2e/`](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/e2e) (static `serve` of the repo root + a few page loads). They do **not** drive a wallet or full mint flows.

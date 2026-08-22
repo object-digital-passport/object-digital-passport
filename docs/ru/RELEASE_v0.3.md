@@ -21,7 +21,7 @@
 - **Создатель или governance:** `revokePassport(humanId, reasonHash)` с ненулевым `reasonHash`.
 - **Только governance:** `transferGovernance`, `setMintExtension` — **`mintDigitalViaExtension`** / **`mintPhysicalViaExtension`** и **`ExtensionMintUsed`** (см. [`SPEC.md`](SPEC.md)); примеры: **[`../../../chain/contracts/examples/ODPPassThroughDigitalExtension.sol`](../../chain/contracts/examples/ODPPassThroughDigitalExtension.sol)**, **[`../../../chain/contracts/examples/ODPPassThroughPhysicalExtension.sol`](../../chain/contracts/examples/ODPPassThroughPhysicalExtension.sol)**.
 - **Создатель или governance:** **`updatePassportAuxCommitment`** — **`PassportAuxCommitmentUpdated`**.
-- **Родитель P:** `detachPAffiliation`; предложение/подтверждение/отмена аффилиации — в **Профиле** ([`../../creator.html`](../../web/frontend/creator.html)).
+- **Родитель P:** `detachPAffiliation`; предложение/подтверждение/отмена аффилиации — в **Профиле** ([`../../creator.html`](https://object-digital-passport.github.io/creator.html)).
 
 ## См. также
 
