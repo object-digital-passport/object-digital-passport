@@ -2168,15 +2168,17 @@ An edition whose list exists only at a URL is one expired domain away from being
 For blind-box products, the packer knows which variant went into which unit. Disclosing that at mint destroys the product; committing to it does not.
 
 ```
-commitment_i = SHA-256( uint32be(i) || utf8(variant_i) || salt_i )
+commitment_i = SHA-256( uint32be(i) || uint16be(len(utf8(variant_i))) || utf8(variant_i) || salt_i )
 ```
 
-with `salt_i` at least 128 bits, unique per unit. The anchor carries a second Merkle root over these commitments, with the same tree rules as §20.3.
+`salt_i` is **exactly 32 bytes**, unique per unit, from a CSPRNG. The anchor carries a second Merkle root over these commitments, with the same tree rules as §20.3.
+
+**Why the length prefix and the fixed salt size (normative rationale).** An earlier draft concatenated a variable-length variant with a variable-length salt and hashed the result. That is not a binding commitment: the boundary between the two fields is not recoverable from the bytes, so one commitment opens to more than one variant. With `variant = "chase"` and a 16-byte salt, `variant = "chas"` with the salt `"e"` prepended hashes to exactly the same value — an issuer could commit once and later prove whichever variant suited it, which is precisely what this anchor exists to prevent. Prefixing the variant's length and fixing the salt at 32 bytes makes the encoding unambiguous, so a commitment opens to one variant and no other.
 
 - The issuer MUST NOT publish `salt_i` before the unit is opened.
 - **`salt_i` MUST NOT be derivable from the unit key, from the unit index, or from anything readable without opening the sealed package.** The variant vocabulary of a blind-box product is tiny — a dozen figures plus a chase — so the commitment is protected by the secrecy of the salt and by nothing else. Anyone holding the salt can compute the commitment for every candidate variant and learn the contents in microseconds. Since the tamper-evident layer (§20.7) sits on the *outside* of the package, deriving the salt from the unit key would let a reseller scratch the label, learn what is inside without opening the box, keep the rare units, and sell the rest as sealed.
 - **`salt_i` MUST be carried inside the sealed package** — for example printed on a card enclosed with the object. The secrecy of the variant is then protected by the same physical barrier that protects the surprise itself, and the issuer is not in the reveal path at all: nothing needs to be requested from it, and rarity stays provable after the issuer is gone.
-- A mismatched or substituted salt card is **fail-safe**: the commitment simply does not verify. It cannot be used to prove a variant the unit does not have, only to fail to prove the one it does.
+- A mismatched or substituted salt card is **fail-safe**: the commitment simply does not verify. It cannot be used to prove a variant the unit does not have, only to fail to prove the one it does — which holds only because the encoding above is unambiguous.
 - An issuer MAY retain its salts as an optional recovery path for buyers who lose the card. This MUST remain optional — no part of the mechanism may depend on the issuer being reachable.
 - A verifier that receives `variant_i` and `salt_i` recomputes the commitment and its Merkle proof; success proves the variant was recorded at mint, not chosen afterwards.
 
