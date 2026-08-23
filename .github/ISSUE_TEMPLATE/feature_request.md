@@ -15,7 +15,7 @@ labels: ["enhancement"]
 
 ## Scope
 
-- [ ] Reference web UI (`web/frontend/`)
+- [ ] Reference web UI (`frontend/`)
 - [ ] Contract (`chain/contracts/`) — note: on-chain changes need a new deployment / version line
 - [ ] Tooling (`chain/tools/`, `chain/deploy/`)
 - [ ] Specification (`SPEC.md`) — breaking changes need maintainer discussion

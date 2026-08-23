@@ -263,7 +263,7 @@ async function main() {
     const abiPath  = path.join(deploymentsDir, "abi.json");
     fs.writeFileSync(abiPath, JSON.stringify(artifact.abi, null, 2));
     console.log(`  ✅ Saved: deployments/abi.json`);
-    console.log(`\n  📋 Copy contract address to web/frontend/creator.html, web/frontend/passport.html, web/frontend/verify.html`);
+    console.log(`\n  📋 Copy contract address to frontend/creator.html, frontend/passport.html, frontend/verify.html`);
     console.log(`     Look for: contract: "",  // ← paste after deploy`);
   }
 

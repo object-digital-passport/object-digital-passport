@@ -7,7 +7,7 @@
  *   ODP_REGISTRY_ADDRESS=0x... npx hardhat run scripts/deploy-author-attestation-only.js --network polygon
  *   npx hardhat run scripts/deploy-author-attestation-only.js --network amoy -- --registry 0x...
  *
- * After deploy: set NET.authorAttestation in web/frontend/verify.html to the printed address.
+ * After deploy: set NET.authorAttestation in frontend/verify.html to the printed address.
  *
  * Author: Andrei Chernikov
  */
@@ -74,7 +74,7 @@ async function main() {
   console.log(`  EIP-712 domainSeparator: ${domain}`);
   console.log();
   console.log("  Next steps:");
-  console.log(`    1. Set NET.authorAttestation: "${attestationAddress}" in web/frontend/verify.html.`);
+  console.log(`    1. Set NET.authorAttestation: "${attestationAddress}" in frontend/verify.html.`);
   console.log("    2. Signing clients use domain { name: \"Object Digital Passport\", version: \"1\",");
   console.log(`       chainId: ${network.chainId}, verifyingContract: "${attestationAddress}" }.`);
   console.log("    3. Redeploy static site or bump cache so clients load the new config.");

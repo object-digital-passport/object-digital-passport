@@ -8,7 +8,7 @@
  *   npx hardhat run scripts/deploy.js --network polygon  ← mainnet
  *
  * After deploy:
- *   1. Copy contract address into web/frontend/creator.html, web/frontend/passport.html, web/frontend/verify.html
+ *   1. Copy contract address into frontend/creator.html, frontend/passport.html, frontend/verify.html
  *   2. Copy ABI from artifacts/ into chain/tools/abi.json
  *   3. Upload §15 `.odpass` ZIP bundles to your dataUrl (not bare passport.json)
  */
@@ -175,7 +175,7 @@ async function main() {
     const creatorId = await contract.getCreatorByWallet(deployer.address);
     console.log(`     ✅ Profile ID: ${creatorId}`);
 
-    // 2. Mint a digital passport (v0.6 unified inputs; the file hash is the binding).
+    // 2. Mint a digital passport (v0.7 unified inputs; the file hash is the binding).
     //    For a digital object the anchor minimum is the exact file hash → mask bit 32.
     console.log("\n  2. Minting digital passport...");
     const nz = (s) => ethers.keccak256(ethers.toUtf8Bytes(s));
@@ -223,7 +223,7 @@ async function main() {
     }
     console.log(`     ✅ Passport ID: ${passportId}`);
 
-    // 3. Read back header + creator + proofs (v0.6 split views)
+    // 3. Read back header + creator + proofs (v0.7 split views)
     console.log("\n  3. Resolving passport (multi-call)...");
     const header = await contract.getPassportHeader(passportId);
     await contract.getCreator(header.creatorId);
@@ -277,7 +277,8 @@ async function main() {
     const abiPath  = path.join(deploymentsDir, "abi.json");
     fs.writeFileSync(abiPath, JSON.stringify(artifact.abi, null, 2));
     console.log(`  ✅ Saved: deployments/abi.json`);
-    console.log(`\n  📋 Copy contract address to web/frontend/creator.html, web/frontend/passport.html, web/frontend/verify.html`);
+    console.log(`\n  📋 Copy contract address to frontend/creator.html, frontend/passport.html, frontend/verify.html`);
+    console.log(`     (in the website repository: object-digital-passport/object-digital-passport.github.io)`);
     console.log(`     Look for: contract: "",  // ← paste after deploy`);
   }
 

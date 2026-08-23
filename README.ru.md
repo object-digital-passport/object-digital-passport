@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="Лицензия MIT"></a>
-  <a href="SPEC.md"><img src="https://img.shields.io/badge/spec-v0.6%20alpha-orange.svg" alt="Спека v0.6 alpha"></a>
+  <a href="SPEC.md"><img src="https://img.shields.io/badge/spec-v0.7%20alpha-orange.svg" alt="Спека v0.7 alpha"></a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://object-digital-passport.github.io/object-digital-passport/"><img src="https://img.shields.io/badge/live-demo-2ea44f.svg" alt="Живое демо"></a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/wiki"><img src="https://img.shields.io/badge/docs-wiki-blue.svg" alt="Вики"></a>
