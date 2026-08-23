@@ -17,7 +17,8 @@ the schema and vectors that make it checkable. The reference website is a separa
 | | |
 |---|---|
 | **Reference website** | [object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io) — the pages at <https://object-digital-passport.github.io/>, and everything that runs in a browser |
-| **Android NFC app** | [odp-android-companion](https://github.com/object-digital-passport/odp-android-companion) |
+| **ODP app for iOS** | `ios-app` — issues, carries and checks passports; scans NFC seals. **Private while it is pre-release**, so the name is given without a link |
+| **Android verifier** | `android-verifier` — an NFC verifier that was started and not finished. Private, and not the reference implementation of anything |
 
 The split is deliberate. A standard that ships inside one implementation reads as that
 implementation's documentation, and the two ended up entangled enough that the website's
