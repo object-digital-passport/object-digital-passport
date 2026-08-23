@@ -67,7 +67,7 @@ jobs:
             '<p>An open standard for giving a real object a passport anyone can verify.</p>' \
             '<p><a href="spec/">Read the specification →</a></p>' \
             "<p><a href=\"$SITE/verify.html\">Verify something — free, no wallet →</a></p>" \
-            '<p><a href="https://github.com/object-digital-passport/object-digital-passport">Source, contracts and schema on GitHub</a></p>' > _site/index.html
+            '<p><a href="https://github.com/object-digital-passport/specifications">Source, contracts and schema on GitHub</a></p>' > _site/index.html
 
       - uses: actions/upload-pages-artifact@v5
         with:

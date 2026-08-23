@@ -16,7 +16,7 @@ import { dirname, join, resolve } from "node:path";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const readme = join(repoRoot, ".github", "profile", "README.md");
-const REPO = "object-digital-passport/object-digital-passport";
+const REPO = "object-digital-passport/specifications";
 
 const text = readFileSync(readme, "utf8");
 

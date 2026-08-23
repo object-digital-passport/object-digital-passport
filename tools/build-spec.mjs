@@ -42,7 +42,7 @@ const NAV = [
   ["security.html", "Security Model"],
   ["schema/passport-0.6.schema.json", "JSON Schema"],
   // Absolute: the demo is a separate deployment, and will be a separate repository.
-  ["https://object-digital-passport.github.io/object-digital-passport/demo/", "Live demo →"],
+  ["https://object-digital-passport.github.io/specifications/demo/", "Live demo →"],
 ];
 
 const CSS = `
@@ -111,7 +111,7 @@ function wrap(title, current, bodyHtml) {
 ${bodyHtml}
   </main>
   <footer class="site">Generated from repository markdown at deploy time ·
-    <a href="https://github.com/object-digital-passport/object-digital-passport">source on GitHub</a> · MIT License</footer>
+    <a href="https://github.com/object-digital-passport/specifications">source on GitHub</a> · MIT License</footer>
 </body>
 </html>
 `;
@@ -119,7 +119,7 @@ ${bodyHtml}
 
 // Repo-relative markdown links don't exist on the rendered site — send them to GitHub blob URLs.
 const GITHUB_BLOB =
-  "https://github.com/object-digital-passport/object-digital-passport/blob/main/";
+  "https://github.com/object-digital-passport/specifications/blob/main/";
 const LOCAL_TARGETS = new Map([
   ["SPEC.md", "index.html"],
   ["docs/OBJECTID_PROFILE.md", "objectid-profile.html"],

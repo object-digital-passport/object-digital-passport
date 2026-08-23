@@ -19,7 +19,7 @@ const dir = path.join(root, "docs", "releases");
 const INTRO =
   "ODP is a free, open digital passport for real objects — art, limited runs, archives — that anyone can verify. Forever.";
 const NEW_HERE =
-  "**New here?** [What this is](https://github.com/object-digital-passport/object-digital-passport#readme) · " +
+  "**New here?** [What this is](https://github.com/object-digital-passport/specifications#readme) · " +
   "[Verify something — free, no wallet](https://object-digital-passport.github.io/verify.html)";
 
 const SECTIONS = ["## What changed", "## Do I need to do anything?", "## Where it lives", "## Full detail", "## Status"];
