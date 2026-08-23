@@ -1,6 +1,37 @@
 # Repository names and the site address
 
-A proposal, not a change. Nothing here has been applied. It exists because the names the
+**Most of this was applied on 2026-08-22 and 2026-08-23.** What follows is kept as the
+reasoning, with an outcome section at the top recording what actually happened and where
+the reasoning turned out to be wrong.
+
+## Outcome
+
+| Proposed | What happened |
+|---|---|
+| `object-digital-passport` → `specification` | **Done on 2026-08-23, as `specifications`** (plural, matching c2pa-org). §4 warned that Pages does not redirect and it was right: `…github.io/object-digital-passport/spec/` went to 404 the moment the rename landed, taking 37 published addresses with it. Repaired in the same day's link sweep; the specification now serves from `…github.io/specifications/spec/`. Anyone holding an older link has a dead one. |
+| `odp-apple-app` → `ios-app` | Renamed to `ios-app`, then **corrected to `apple-app`**. See below. |
+| `odp-android-companion` → `android-verifier` | Done. |
+| `demo-repository` → delete | Done. |
+| `object-digital-passport.github.io` unchanged | Unchanged. |
+| §5: rename the organization for a shorter address | **Ruled out.** Renaming an organization does not redirect Pages either — every published site and specification URL would 404 — and the freed name can be claimed by anyone, who would then control the address this project published for months. A purchased domain remains the only route that breaks nothing. |
+
+**What the rename actually cost.** Thirty-seven addresses died, of which three were the
+specification itself and thirty-four were the doubled site path that this repository's Pages
+build had been propping up with redirect stubs. A further 162 links to
+`github.com/object-digital-passport/object-digital-passport` survived only because GitHub
+redirects repository URLs — until the freed name is claimed. All were rewritten. The lesson
+§4 stated in advance held exactly: **plan the link rewrite as part of the rename, not after
+it.**
+
+**Where §3 was wrong.** It argued for `ios-app` because "`apple` is ambiguous now that the
+same target builds for macOS". That is backwards. The app builds for iPhone, iPad and Mac,
+which is exactly why `apple` is the accurate word and `ios` is the narrow one. Corrected to
+`apple-app` on 2026-08-23. The mistake is left visible here rather than edited out of §3,
+because a naming document that hides its own bad call teaches nothing.
+
+---
+
+The original proposal follows. It exists because the names the
 organization grew into describe how the code was written rather than what each piece is, and
 because the published address is longer than the thing it names.
 
