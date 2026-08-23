@@ -1,6 +1,12 @@
 # https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: Read SECURITY.md (vulnerabilities)
-    url: https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/SECURITY.md
-    about: How to report security issues — avoid public issues for exploitable bugs.
+  - name: A question about using ODP
+    url: https://github.com/object-digital-passport/specifications/discussions
+    about: Questions, ideas and design arguments belong in Discussions, not in an issue.
+  - name: Something about the website rather than the standard
+    url: https://github.com/object-digital-passport/object-digital-passport.github.io/issues
+    about: The reference website is a separate repository. If a different implementation would not have to change too, it belongs there.
+  - name: A security problem
+    url: https://github.com/object-digital-passport/specifications/security/advisories/new
+    about: Do not open a public issue for anything exploitable. This form keeps the report private.
