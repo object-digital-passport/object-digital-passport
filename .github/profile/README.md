@@ -16,7 +16,7 @@
 
 <p align="center">
   <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
-  <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md"><img src="https://img.shields.io/badge/spec-v0.6%20draft-orange.svg" alt="Spec v0.6 draft"></a>
+  <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md"><img src="https://img.shields.io/badge/spec-v0.7%20draft-orange.svg" alt="Spec v0.7 draft"></a>
   <a href="https://polygonscan.com/address/0x012aC6393464A73EC16131D701ff2e000695b91b"><img src="https://img.shields.io/badge/registry-Polygon%20mainnet-8247e5.svg" alt="Deployed on Polygon mainnet"></a>
   <a href="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>

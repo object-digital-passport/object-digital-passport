@@ -1,4 +1,10 @@
-# ODP Security Model · v0.6 reference line
+# ODP Security Model · v0.7 reference line
+
+> **Which line this describes.** The properties below are those of the **v0.7**
+> contract in this repository. They are unchanged from v0.6, which is the line
+> **deployed on Polygon mainnet** and the one every existing passport was minted
+> under — where a statement is about a deployment rather than about the code, it
+> says v0.6 and means it.
 
 *Author: Andrei Chernikov*
 
@@ -12,9 +18,9 @@ This document describes the threat model, known limitations, and recommendations
 
 - A passport or profile record exists on-chain at a specific timestamp (within the chosen deployment).
 - **Integrity anchors:** `dataHash`, `anchorsHash`, `imageHash`, and `fileHash` recorded at mint are **immutable** on-chain.
-- **Card immutability (v0.6):** `title`, `authorName`, `shortDescription`, and `domain` are written once at mint and have **no edit path** — a typo means revoke and re-issue. A verifier that finds any byte of difference against `passport.json` MUST report the passport as tampered, not merely "changed".
-- **Identification minimum enforced at mint (v0.6):** a physical object cannot be minted without `photo` + `dimensions` + `materials` + `distinguishing_features` anchors; a digital object cannot be minted without an exact `fileHash`. This is a **contract-level** check, not a UI convention.
-- **Append-only history (v0.6):** status, location, rights, condition, damage, and restoration are recorded as events that can be added but **never rewritten**; the current value of any aspect is the latest event of that kind.
+- **Card immutability (v0.7):** `title`, `authorName`, `shortDescription`, and `domain` are written once at mint and have **no edit path** — a typo means revoke and re-issue. A verifier that finds any byte of difference against `passport.json` MUST report the passport as tampered, not merely "changed".
+- **Identification minimum enforced at mint (v0.7):** a physical object cannot be minted without `photo` + `dimensions` + `materials` + `distinguishing_features` anchors; a digital object cannot be minted without an exact `fileHash`. This is a **contract-level** check, not a UI convention.
+- **Append-only history (v0.7):** status, location, rights, condition, damage, and restoration are recorded as events that can be added but **never rewritten**; the current value of any aspect is the latest event of that kind.
 - The profile ID (`creatorId`) is tied to the **registered wallet** for that profile at registration time.
 - **No one** — including the deployer — can delete or rewrite immutable fields on existing passports.
 - **Contract version:** deployments expose `CONTRACT_VERSION` / generation; verifiers should confirm they read the intended registry (address + chain).

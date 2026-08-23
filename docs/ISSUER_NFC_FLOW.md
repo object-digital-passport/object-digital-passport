@@ -13,20 +13,25 @@ Minting before scanning the chip lets you publish the wrong `nfcPublicKey` or `u
       → ODP Android Companion: Provision new NTAG 424 tag (factory key only)
       → or NXP TagWriter / PC tooling
       → yields 16-byte EV2 application key (nfcPublicKey) + UID
+      → the published key MUST be 01h..04h, never 00h — see SPEC §6 step 1
 2. ODP web — passport.html
       → paste EV2 key
       → Android companion issuer scan
       → import chip setup JSON (locks UID + key)
 3. Complete passport form + images/files
 4. Mint on-chain
-5. Write NDEF carrier (Verify URL + optional odp:off) — after passport ID exists
+5. Write NDEF carrier (odp:// URI, per SPEC §12.2 — no hostname) — after passport ID exists
+6. Lock the carrier file: Write and ReadWrite access conditions to Fh
 ```
 
 ## ODP web (passport.html)
 
 In the NFC section:
 
-1. Paste the **EV2 application key** from provisioning (32 hex chars).
+1. Paste the **EV2 application key** from provisioning (32 hex chars). This must be a
+   non-master key — `01h`..`04h`. Key `00h` is the AppMasterKey and authorises `ChangeKey`
+   over every key on the tag; publishing it in the passport lets any reader re-key a
+   genuine seal and lock its holder out. Keep `00h`; publish the other.
 2. Tap **Scan chip with Android companion** (handoff includes `route.mintPageUrl` for return).
 3. After the scan, tap **Open mint page in browser** on the companion result (Pixel / one-phone flow), or **Copy chip setup JSON** and paste into **Import chip setup**.
 4. Chrome returns to `passport.html?chipSetup=…` — UID and `nfcPublicKey` auto-fill; the query param is stripped from the URL.

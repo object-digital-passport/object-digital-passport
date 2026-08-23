@@ -6,7 +6,7 @@
  *   ODP_REGISTRY_ADDRESS=0x... npx hardhat run scripts/deploy-counterfeit-concern-only.js --network polygon
  *   npx hardhat run scripts/deploy-counterfeit-concern-only.js --network amoy -- --registry 0x...
  *
- * After deploy: set NET.counterfeitConcern in web/frontend/passport.html and web/frontend/verify.html (paired with NET.contract).
+ * After deploy: set NET.counterfeitConcern in frontend/passport.html and frontend/verify.html (paired with NET.contract).
  *
  * Author: Andrei Chernikov
  */
@@ -68,7 +68,7 @@ async function main() {
   console.log(`  ✅ ODPCounterfeitConcern: ${cfAddress}`);
   console.log();
   console.log("  Next steps:");
-  console.log(`    1. Set NET.counterfeitConcern: "${cfAddress}" in web/frontend/passport.html, web/frontend/verify.html (same NET.contract as this registry).`);
+  console.log(`    1. Set NET.counterfeitConcern: "${cfAddress}" in frontend/passport.html, frontend/verify.html (same NET.contract as this registry).`);
   console.log("    2. Redeploy static site or bump cache so clients load the new config.");
   console.log();
 

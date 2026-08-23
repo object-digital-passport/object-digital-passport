@@ -73,7 +73,7 @@ npm run deploy:mainnet
 4. Попытается задеплоить **`ODPRegistryRelations`**, **`ODPPassportProofRegistry`** и **`ODPExtensionMintRouter`**; для relations/router также выполнит wiring вызовами `setRelationsSatellite(...)` и `setExtensionRouter(...)`.
 5. Запишет **`deployments/polygon.json`** и **`deployments/abi.json`**.
 
-После деплоя пропишите адреса в **`web/frontend/creator.html`**, **`web/frontend/passport.html`**, **`web/frontend/verify.html`**: как минимум **`NET.contract`**, а также **`NET.docAnchor`**, **`NET.counterfeitConcern`**, **`NET.relations`** и **`NET.proofRegistry`** (если соответствующие спутники задеплоены), и **`NET.contractGenerationFallback: 6`**. Перед mainnet-раскаткой сверьтесь с отчётом **EIP-170** из `npm run compile` (линия v0.6: реестр ≈ 13 309 байт из 24 576). Текущая линия: **[`docs/V0.6.md`](../../docs/V0.6.md)**; исторические указатели: **[`docs/V0.5.md`](../../docs/V0.5.md)**, **[`docs/V0.4.md`](../../docs/V0.4.md)**, **[`docs/V0.3.md`](../../docs/V0.3.md)**.
+После деплоя пропишите адреса в **`frontend/creator.html`**, **`frontend/passport.html`**, **`frontend/verify.html`** (в репозитории сайта): как минимум **`NET.contract`**, а также **`NET.docAnchor`**, **`NET.counterfeitConcern`**, **`NET.relations`** и **`NET.proofRegistry`** (если соответствующие спутники задеплоены), и **`NET.contractGenerationFallback: 6`**. Перед mainnet-раскаткой сверьтесь с отчётом **EIP-170** из `npm run compile` (линия v0.6: реестр ≈ 13 309 байт из 24 576). Текущая линия: **[`docs/V0.6.md`](../../docs/V0.6.md)**; исторические указатели: **[`docs/V0.5.md`](../../docs/V0.5.md)**, **[`docs/V0.4.md`](../../docs/V0.4.md)**, **[`docs/V0.3.md`](../../docs/V0.3.md)**.
 
 ---
 
@@ -109,7 +109,7 @@ ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run chain/deploy/sc
 npx hardhat run chain/deploy/scripts/deploy-doc-anchor-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
 ```
 
-Скрипт проверит, что по адресу есть байткод, задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`walletDocumentAnchorAddress`**). Дальше пропишите этот адрес в **`NET.docAnchor`** в **`web/frontend/verify.html`**.
+Скрипт проверит, что по адресу есть байткод, задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`walletDocumentAnchorAddress`**). Дальше пропишите этот адрес в **`NET.docAnchor`** в **`frontend/verify.html`**.
 
 Адреса эталонного деплоя — в таблице «Current Release» в **[`docs/GUIDE.md`](../../docs/GUIDE.md#current-release)** и в **[`SPEC.md`](../../SPEC.md)** §7. Файл **`deployments/polygon.json`** создаётся локально при вашем деплое и в репозиторий не коммитится.
 
@@ -129,7 +129,7 @@ ODP_REGISTRY_ADDRESS=0xYourObjectDigitalPassport npx hardhat run chain/deploy/sc
 npx hardhat run chain/deploy/scripts/deploy-counterfeit-concern-only.js --network polygon -- --registry 0xYourObjectDigitalPassport
 ```
 
-Скрипт задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`counterfeitConcernAddress`**). Пропишите адрес в **`NET.counterfeitConcern`** в **`web/frontend/passport.html`**, **`web/frontend/verify.html`** (тот же **`NET.contract`**, что и у этого реестра).
+Скрипт задеплоит спутник с **`constructor(registry)`**, обновит **`deployments/polygon.json`** (поле **`counterfeitConcernAddress`**). Пропишите адрес в **`NET.counterfeitConcern`** в **`frontend/passport.html`**, **`frontend/verify.html`** (тот же **`NET.contract`**, что и у этого реестра).
 
 ---
 

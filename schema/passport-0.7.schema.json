@@ -25,7 +25,7 @@
   "properties": {
     "version": {
       "const": "0.7",
-      "description": "Document schema line. MUST be \"0.6\" for this schema."
+      "description": "Document schema line. MUST be \"0.7\" for this schema."
     },
     "passportId": {
       "type": "string",

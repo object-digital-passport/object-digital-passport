@@ -22,7 +22,7 @@ const PAGES = [
   {
     src: "SPEC.md",
     out: "index.html",
-    title: "ODP Specification v0.6",
+    title: "ODP Specification v0.7",
   },
   {
     src: "docs/OBJECTID_PROFILE.md",
