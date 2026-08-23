@@ -222,6 +222,14 @@ What a verifier must do is specified without reference to any of this: the EV2 c
 
 Groundwork that does exist in the website repository: the web-to-app handoff in [`frontend/js/odp-android-companion.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/js/odp-android-companion.js) and its [`docs/ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md), plus the chip workflow in [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md). They were written for an Android verifier that was never finished, and are kept because the handoff shape is worth reusing.
 
+**Status: there is no public implementation yet, on any platform.** Of every anchor type in [SPEC.md](../SPEC.md) §9, `nfc` is the only one you cannot check today with something you can install. If you are deciding whether to buy NTAG 424 DNA tags for a run, weigh that before you order.
+
+The reference implementation is in development as the **ODP app for iOS**. It scans on iPhone. No Mac has NFC hardware, so on macOS the app receives an already-verified result from the phone instead of scanning — a transfer, not a scan.
+
+What a verifier must do is specified without reference to any of this: the EV2 challenge-response, the TagTamper conditions and the high-assurance profile are in [SPEC.md](../SPEC.md) §6, and anyone can implement them.
+
+Groundwork that does exist in the website repository: the web-to-app handoff in [`frontend/js/odp-android-companion.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/frontend/js/odp-android-companion.js) and its [`docs/ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md), plus the chip workflow in [ANDROID_NTAG424DNA_TAGTAMPER.md](ANDROID_NTAG424DNA_TAGTAMPER.md). They were written for an Android verifier that was never finished, and are kept because the handoff shape is worth reusing.
+
 **What goes on the tag is the `odp://` URI**, and `SPEC.md` §12.2 is normative that no hostname is printed. A URL on an object is a promise about a server, fixed onto a thing that will outlive it.
 
 The consequence is worth stating plainly: **scanning an ODP tag or QR does nothing today**. A custom URI scheme has no handler registered on any phone, and iOS routes background NFC taps only to `https` universal links and a short list of system schemes. The identifier printed as text is the layer that always works — a person reads it and types it into Verify — and the ODP app in development will make the scan work as well. An HTTPS record on the tag remains available as a deliberate choice with a permanent consequence, not as the default.
