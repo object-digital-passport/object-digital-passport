@@ -35,7 +35,7 @@
 - [9. Passport JSON](#9-passport-json)
 - [10. Hashing](#10-hashing)
 - [11. Verification Algorithm](#11-verification-algorithm)
-- [12. QR Code](#12-qr-code)
+- [12. QR Code and protocol URI schemes](#12-qr-code-and-protocol-uri-schemes)
 - [13. SDK Requirements](#13-sdk-requirements)
 - [14. Versioning](#14-versioning)
 - [15. `.odpass` bundle (offline container)](#15-odpass-bundle-offline-container)
@@ -555,8 +555,14 @@ Recommended for high-value objects, artwork, and collectibles.
 
 ```
 Registration (required order for issuers):
-  1. Provision the tag so the EV2 application key you will publish
-     is loaded into the chip (typically 16-byte AES key 0x00)
+  1. Provision the tag so that the key you will publish is a NON-MASTER
+     application key — 01h..04h, configured as the SDMFileReadKey used for
+     verification. Key 00h is the AppMasterKey: a successful authentication
+     with it authorises ChangeKey over all five keys. Publishing 00h
+     therefore lets anyone who reads the passport re-key a genuine tag,
+     rewrite its carrier, and lock its holder out of their own seal
+     permanently. Key 00h MUST be retained by the issuer and MUST NOT be
+     written into the nfc anchor
   2. Before minting, confirm against the live tag: its UID, that the EV2
      application key from step 1 authenticates, and — for TagTamper models —
      that the tamper state reads INTACT. A passport whose nfc anchor was
@@ -568,7 +574,13 @@ Registration (required order for issuers):
   4. Passport is hashed and registered on-chain as usual — the anchor
      bytes are bound by dataHash and anchorsHash, and the nfc bit is
      set in anchorTypesMask
-  5. Write the NFC carrier (Verify URL) after the passport ID exists
+  5. Write the carrier after the passport ID exists. What goes on the
+     tag is the odp:// URI of §12 — no hostname is printed (§12.2)
+  6. Restrict the carrier file against further writes: set its Write and
+     ReadWrite access conditions to Fh (no access). Leave the Change
+     condition under key 00h while the carrier layer is still settling,
+     or set it to Fh to freeze the tag permanently — the second is
+     irreversible and forecloses adding a record later
 
 Verification (primary profile: odp-ntag424-ev2-symmetric-cr-v1):
   1. Verifier obtains the nfc anchor from passport.json and confirms
@@ -602,6 +614,16 @@ For `NTAG424DNA_TAGTAMPER`, a verifier treats a scan as **high assurance** only 
 
 A verifier reports this outcome as `highAssuranceSeal`. It is **not** checked for plain `NTAG424DNA` passports.
 
+**Publishing the bundle publishes the key (normative consequence).** The
+verification key lives in the `nfc` anchor inside `passport.json`, not on-chain;
+the registry holds only `dataHash` and `anchorsHash`. Hosting the bundle at
+`dataUrl` therefore makes that key readable by everyone, which is what allows a
+reader of the passport to program a second tag that answers identically. An
+issuer who does not host the bundle keeps the key among the parties holding the
+file, at the cost that a verifier without the file cannot complete the seal
+check at all. **This is a security decision made per passport, and an issuer
+of a high-value object should be told it is one.**
+
 **Honest limits:** No verifier can be perfectly uncheatable. A thief with the original tag and key, a dishonest provisioning step, or a leaked EV2 key still defeats trust. This profile **does** block common cheats: URL-only fake tags, wrong chips with another key, and physically opened TagTamper seals (visible as `TAMPERED`).
 
 **Physical installation:**
@@ -618,6 +640,24 @@ visible destruction. Installation method is described in the anchor's `data.note
 | `model`       | yes      | `NTAG424DNA` or `NTAG424DNA_TAGTAMPER` (SPEC vocabulary) |
 | `installedAt` | yes      | ISO 8601 installation date (e.g. `2026-03-15`)        |
 | `notes`       | no       | Installation method, location, encapsulation material |
+
+**The field is named `publicKey`, and for NTAG 424 DNA it holds a symmetric
+key.** That is not a contradiction to be read past: the AES application key is
+symmetric, and it is called `publicKey` because the field carries whatever
+material a verifier needs in public, whatever its shape — for an asymmetric IC
+it will hold an actual public key, and the name is chosen for that future. Two
+consequences follow for NTAG 424 DNA and only for it, and an implementation
+that misses them is unsafe:
+
+- **Anyone who can read this value can compute the tag's answers.** It is the
+  shared secret of a symmetric protocol, not a public half that gives nothing
+  away. See the publication note in §6.
+- **It must never be key `00h`** (§6, registration step 1). The field name
+  invites the assumption that publishing it is harmless. For the AppMasterKey
+  it is not.
+
+The field name is fixed: it appears in the conformance vectors whose hashes are
+asserted against the contract, so renaming it would change canonical bytes.
 
 
 ### Method B — Numbered Physical Seal
