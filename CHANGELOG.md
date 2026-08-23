@@ -114,7 +114,7 @@ Deployed to Polygon mainnet and **never tagged** — the mutable current-state m
 
 ## [0.4.1] - 2026-04-05
 
-Patch release: tooling and community-workflow fixes, no protocol change (still packed `CONTRACT_VERSION = 4`). Full notes: [GitHub Release](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.4.1).
+Patch release: tooling and community-workflow fixes, no protocol change (still packed `CONTRACT_VERSION = 4`). Full notes: [GitHub Release](https://github.com/object-digital-passport/specifications/releases/tag/v0.4.1).
 
 ### Added
 
@@ -139,7 +139,7 @@ Static-analysis findings inside the generated WalletConnect bundle (`web/backend
 
 ## [0.4] - 2026-04-05
 
-On-chain generation 4. Full notes: [GitHub Release](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.4).
+On-chain generation 4. Full notes: [GitHub Release](https://github.com/object-digital-passport/specifications/releases/tag/v0.4).
 
 ### Added
 
@@ -158,7 +158,7 @@ On-chain generation 4. Full notes: [GitHub Release](https://github.com/object-di
 
 ## [0.3] - 2026-03-29
 
-On-chain generation 3. Full notes: [GitHub Release](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.3).
+On-chain generation 3. Full notes: [GitHub Release](https://github.com/object-digital-passport/specifications/releases/tag/v0.3).
 
 ### Added
 
@@ -183,7 +183,7 @@ On-chain generation 3. Full notes: [GitHub Release](https://github.com/object-di
 
 ## [0.2] - 2026-03-27
 
-On-chain generation 2. Full notes: [GitHub Release](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.2).
+On-chain generation 2. Full notes: [GitHub Release](https://github.com/object-digital-passport/specifications/releases/tag/v0.2).
 
 ### Added
 
@@ -199,7 +199,7 @@ On-chain generation 2. Full notes: [GitHub Release](https://github.com/object-di
 
 ## [0.1] - 2026-03-22
 
-First tagged release of the reference implementation: specification, Solidity contract, static web UI, and helper tooling. Full notes: [GitHub Release](https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.1).
+First tagged release of the reference implementation: specification, Solidity contract, static web UI, and helper tooling. Full notes: [GitHub Release](https://github.com/object-digital-passport/specifications/releases/tag/v0.1).
 
 ### Added
 
@@ -207,12 +207,12 @@ First tagged release of the reference implementation: specification, Solidity co
 - Static web UI: `creator.html`, `passport.html`, `verify.html`.
 - Hardhat deploy scripts and CLI minting tool.
 
-[Unreleased]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.7...HEAD
-[0.7]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.6...v0.7
-[0.6]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.5...v0.6
-[0.5]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4.1...v0.5
-[0.4.1]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.4...v0.4.1
-[0.4]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.3...v0.4
-[0.3]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.2...v0.3
-[0.2]: https://github.com/object-digital-passport/object-digital-passport/compare/v0.1...v0.2
-[0.1]: https://github.com/object-digital-passport/object-digital-passport/releases/tag/v0.1
+[Unreleased]: https://github.com/object-digital-passport/specifications/compare/v0.7...HEAD
+[0.7]: https://github.com/object-digital-passport/specifications/compare/v0.6...v0.7
+[0.6]: https://github.com/object-digital-passport/specifications/compare/v0.5...v0.6
+[0.5]: https://github.com/object-digital-passport/specifications/compare/v0.4.1...v0.5
+[0.4.1]: https://github.com/object-digital-passport/specifications/compare/v0.4...v0.4.1
+[0.4]: https://github.com/object-digital-passport/specifications/compare/v0.3...v0.4
+[0.3]: https://github.com/object-digital-passport/specifications/compare/v0.2...v0.3
+[0.2]: https://github.com/object-digital-passport/specifications/compare/v0.1...v0.2
+[0.1]: https://github.com/object-digital-passport/specifications/releases/tag/v0.1

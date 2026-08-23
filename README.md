@@ -9,14 +9,14 @@
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
   <a href="SPEC.md"><img src="https://img.shields.io/badge/spec-v0.7%20alpha-orange.svg" alt="Spec v0.7 alpha"></a>
-  <a href="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://object-digital-passport.github.io/object-digital-passport/"><img src="https://img.shields.io/badge/live-demo-2ea44f.svg" alt="Live demo"></a>
-  <a href="https://github.com/object-digital-passport/object-digital-passport/wiki"><img src="https://img.shields.io/badge/docs-wiki-blue.svg" alt="Wiki"></a>
-  <a href="https://github.com/object-digital-passport/object-digital-passport/discussions"><img src="https://img.shields.io/github/discussions/object-digital-passport/object-digital-passport?color=blueviolet" alt="Discussions"></a>
+  <a href="https://github.com/object-digital-passport/specifications/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/specifications/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://object-digital-passport.github.io/"><img src="https://img.shields.io/badge/live-demo-2ea44f.svg" alt="Live demo"></a>
+  <a href="https://github.com/object-digital-passport/specifications/wiki"><img src="https://img.shields.io/badge/docs-wiki-blue.svg" alt="Wiki"></a>
+  <a href="https://github.com/object-digital-passport/specifications/discussions"><img src="https://img.shields.io/github/discussions/object-digital-passport/object-digital-passport?color=blueviolet" alt="Discussions"></a>
 </p>
 
 <p align="center">
-  🇬🇧 English · 🇷🇺 <a href="README.ru.md">Русский</a> — want another language? <a href="https://github.com/object-digital-passport/object-digital-passport/discussions">Tell us in Discussions</a>
+  🇬🇧 English · 🇷🇺 <a href="README.ru.md">Русский</a> — want another language? <a href="https://github.com/object-digital-passport/specifications/discussions">Tell us in Discussions</a>
 </p>
 
 ---
@@ -43,7 +43,7 @@ No company in the middle. No subscription. Verifying is **always free** and will
 >
 > That's exactly why the project needs **real people**: developers to review and harden what exists, testers to break it, designers, translators, artists and collectors to try it on real objects — and skeptics to tell us where we're wrong.
 >
-> You don't need to be a blockchain expert. If this page made you curious, there is a task for you: start in [**Discussions → "We need your help!"**](https://github.com/object-digital-passport/object-digital-passport/discussions), or just open an issue.
+> You don't need to be a blockchain expert. If this page made you curious, there is a task for you: start in [**Discussions → "We need your help!"**](https://github.com/object-digital-passport/specifications/discussions), or just open an issue.
 >
 > **Object Digital Passport is for people and by people.** With a real community around it, we can make the world just a little bit harder to counterfeit.
 
@@ -51,9 +51,9 @@ No company in the middle. No subscription. Verifying is **always free** and will
 
 ## Try it in 2 minutes
 
-- **Verify an object** — open the [**Verify page**](https://object-digital-passport.github.io/object-digital-passport/verify.html), enter a Passport ID or drop an `.odpass` file. No wallet, no cost.
-- **Create your first passport** — the [**Quick Start**](https://github.com/object-digital-passport/object-digital-passport/wiki/Quick-Start) walks you through it (a throwaway wallet and a few cents of POL is all it takes).
-- **Just look around** — the [**live demo**](https://object-digital-passport.github.io/object-digital-passport/) runs the full UI in your browser.
+- **Verify an object** — open the [**Verify page**](https://object-digital-passport.github.io/verify.html), enter a Passport ID or drop an `.odpass` file. No wallet, no cost.
+- **Create your first passport** — the [**Quick Start**](https://github.com/object-digital-passport/specifications/wiki/Quick-Start) walks you through it (a throwaway wallet and a few cents of POL is all it takes).
+- **Just look around** — the [**live demo**](https://object-digital-passport.github.io/) runs the full UI in your browser.
 
 ---
 
@@ -168,7 +168,7 @@ The core — never. That's what makes it trustworthy. What changes over time (ow
 ~$0.01–0.03 in Polygon network fees per registration or passport. Verification is free. The standard itself takes no commission — by design, forever.
 
 **Where's the technical meat?**
-Start at the [**Wiki**](https://github.com/object-digital-passport/object-digital-passport/wiki) for friendly explanations, then go normative: [`SPEC.md`](SPEC.md).
+Start at the [**Wiki**](https://github.com/object-digital-passport/specifications/wiki) for friendly explanations, then go normative: [`SPEC.md`](SPEC.md).
 
 ---
 
@@ -176,20 +176,20 @@ Start at the [**Wiki**](https://github.com/object-digital-passport/object-digita
 
 | Where | What |
 |---|---|
-| [**Wiki**](https://github.com/object-digital-passport/object-digital-passport/wiki) | Friendly guides: Quick Start, how verification works, NFC seals, Object ID, FAQ — 🇬🇧/🇷🇺 |
+| [**Wiki**](https://github.com/object-digital-passport/specifications/wiki) | Friendly guides: Quick Start, how verification works, NFC seals, Object ID, FAQ — 🇬🇧/🇷🇺 |
 | [`SPEC.md`](SPEC.md) | The full protocol specification (normative, English) |
 | [`docs/GUIDE.md`](docs/GUIDE.md) | The detailed long-form guide |
 | [`docs/V0.6.md`](docs/V0.6.md) | What's new in v0.6 — the storage-model redesign |
 | [`CHANGELOG.md`](CHANGELOG.md) | Notable changes across protocol lines |
 | [`docs/SECURITY.md`](docs/SECURITY.md) | Threat model and security recommendations |
 | [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | How to contribute |
-| [Live demo →](https://object-digital-passport.github.io/object-digital-passport/) | Try everything online |
+| [Live demo →](https://object-digital-passport.github.io/) | Try everything online |
 
 **Repository layout:** [`SPEC.md`](SPEC.md) — the standard · [`chain/`](chain/) — contracts & tests · [`schema/`](schema/) — JSON Schema & vectors · [`docs/`](docs/) — documentation. The reference website is a separate repository: [object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io).
 
 ---
 
 <p align="center">
-  <b>💬 <a href="https://github.com/object-digital-passport/object-digital-passport/discussions">Join the Discussion</a></b> — head to <b>"We need your help!"</b> and we'll find the task where you can contribute most.<br><br>
+  <b>💬 <a href="https://github.com/object-digital-passport/specifications/discussions">Join the Discussion</a></b> — head to <b>"We need your help!"</b> and we'll find the task where you can contribute most.<br><br>
   Thanks for reading this far. If you want to help — or know someone who might — <b>we're waiting for you!</b>
 </p>

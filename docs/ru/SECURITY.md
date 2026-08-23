@@ -159,7 +159,7 @@ Object Digital Passport — это **реестр утверждений**, а �
 
 ## Сообщить о проблеме безопасности
 
-- Issues: [https://github.com/object-digital-passport/object-digital-passport/issues](https://github.com/object-digital-passport/object-digital-passport/issues)
-- Чувствительные сообщения: **[private security advisories](https://github.com/object-digital-passport/object-digital-passport/security/advisories)** для этого репозитория.
+- Issues: [https://github.com/object-digital-passport/specifications/issues](https://github.com/object-digital-passport/specifications/issues)
+- Чувствительные сообщения: **[private security advisories](https://github.com/object-digital-passport/specifications/security/advisories)** для этого репозитория.
 
 Полный текст на английском: **[`../../../docs/SECURITY.md`](../../docs/SECURITY.md)**.

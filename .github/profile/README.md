@@ -9,16 +9,16 @@
 <p align="center">
   <a href="https://object-digital-passport.github.io/verify.html"><b>Verify something</b></a> ·
   <a href="https://object-digital-passport.github.io/">Website</a> ·
-  <a href="https://object-digital-passport.github.io/object-digital-passport/spec/">Specification</a> ·
-  <a href="https://github.com/object-digital-passport/object-digital-passport/wiki">Wiki</a> ·
-  <a href="https://github.com/object-digital-passport/object-digital-passport/discussions">Discussions</a>
+  <a href="https://object-digital-passport.github.io/specifications/spec/">Specification</a> ·
+  <a href="https://github.com/object-digital-passport/specifications/wiki">Wiki</a> ·
+  <a href="https://github.com/object-digital-passport/specifications/discussions">Discussions</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
-  <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md"><img src="https://img.shields.io/badge/spec-v0.7%20draft-orange.svg" alt="Spec v0.7 draft"></a>
+  <a href="https://github.com/object-digital-passport/specifications/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="MIT License"></a>
+  <a href="https://github.com/object-digital-passport/specifications/blob/main/SPEC.md"><img src="https://img.shields.io/badge/spec-v0.7%20draft-orange.svg" alt="Spec v0.7 draft"></a>
   <a href="https://polygonscan.com/address/0x012aC6393464A73EC16131D701ff2e000695b91b"><img src="https://img.shields.io/badge/registry-Polygon%20mainnet-8247e5.svg" alt="Deployed on Polygon mainnet"></a>
-  <a href="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/object-digital-passport/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/object-digital-passport/specifications/actions/workflows/ci.yml"><img src="https://github.com/object-digital-passport/specifications/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 ---
@@ -42,7 +42,7 @@ Verifying is **free, forever, and needs no wallet**. Registering costs the netwo
 
 | | |
 |:--|:--|
-| **[object-digital-passport](https://github.com/object-digital-passport/object-digital-passport)** | **The standard.** `SPEC.md`, Solidity contracts, JSON Schema, conformance vectors, deploy tooling. |
+| **[object-digital-passport](https://github.com/object-digital-passport/specifications)** | **The standard.** `SPEC.md`, Solidity contracts, JSON Schema, conformance vectors, deploy tooling. |
 | **[object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io)** | **The reference website.** Everything that runs in a browser: verify, profile and passport pages. |
 | **odp-apple-app** | iOS app — issue, carry and check passports; NFC seals and a non-custodial wallet. *Private while it is pre-release.* |
 | **odp-android-companion** | Android NFC verifier — NTAG 424 DNA / TagTamper scans. *Private while it is pre-release.* |
@@ -64,14 +64,14 @@ Verifying is **free, forever, and needs no wallet**. Registering costs the netwo
 
 ## Start here
 
-- **Friendly guides** — [Wiki](https://github.com/object-digital-passport/object-digital-passport/wiki): Quick Start, how verification works, NFC seals, Object ID, FAQ (🇬🇧 / 🇷🇺)
-- **The standard** — [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) · [rendered](https://object-digital-passport.github.io/object-digital-passport/spec/)
-- **Detailed guide and addresses** — [`docs/GUIDE.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md)
-- **What is in v0.7** — [release note](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/releases/v0.7.md) · [full changelog](https://github.com/object-digital-passport/object-digital-passport/blob/main/CHANGELOG.md)
-- **Repository layout** — [`docs/REPOSITORY_LAYOUT.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/REPOSITORY_LAYOUT.md)
-- **NFC seals on Android** — [`docs/ANDROID_NTAG424DNA_TAGTAMPER.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/ANDROID_NTAG424DNA_TAGTAMPER.md)
-- **Security model** — [`docs/SECURITY.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/SECURITY.md)
-- **Contributing** — [`docs/CONTRIBUTING.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/CONTRIBUTING.md) · [Code of Conduct](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/CODE_OF_CONDUCT.md)
+- **Friendly guides** — [Wiki](https://github.com/object-digital-passport/specifications/wiki): Quick Start, how verification works, NFC seals, Object ID, FAQ (🇬🇧 / 🇷🇺)
+- **The standard** — [`SPEC.md`](https://github.com/object-digital-passport/specifications/blob/main/SPEC.md) · [rendered](https://object-digital-passport.github.io/specifications/spec/)
+- **Detailed guide and addresses** — [`docs/GUIDE.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/GUIDE.md)
+- **What is in v0.7** — [release note](https://github.com/object-digital-passport/specifications/blob/main/docs/releases/v0.7.md) · [full changelog](https://github.com/object-digital-passport/specifications/blob/main/CHANGELOG.md)
+- **Repository layout** — [`docs/REPOSITORY_LAYOUT.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/REPOSITORY_LAYOUT.md)
+- **NFC seals on Android** — [`docs/ANDROID_NTAG424DNA_TAGTAMPER.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/ANDROID_NTAG424DNA_TAGTAMPER.md)
+- **Security model** — [`docs/SECURITY.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/SECURITY.md)
+- **Contributing** — [`docs/CONTRIBUTING.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/CONTRIBUTING.md) · [Code of Conduct](https://github.com/object-digital-passport/specifications/blob/main/docs/CODE_OF_CONDUCT.md)
 
 ---
 
@@ -83,7 +83,7 @@ Verifying is **free, forever, and needs no wallet**. Registering costs the netwo
 | **Main registry** (v0.6) | [`0x012aC6393464A73EC16131D701ff2e000695b91b`](https://polygonscan.com/address/0x012aC6393464A73EC16131D701ff2e000695b91b) |
 
 Satellite contracts and the superseded v0.5 registry are listed under
-[Current Release](https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/GUIDE.md#current-release).
+[Current Release](https://github.com/object-digital-passport/specifications/blob/main/docs/GUIDE.md#current-release).
 
 ---
 
@@ -97,10 +97,10 @@ it on actual objects, and skeptics to say where it is wrong.
 
 You do not need to be a blockchain expert. If this page made you curious, there is a task for you.
 
-**[→ Start in Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions)**
+**[→ Start in Discussions](https://github.com/object-digital-passport/specifications/discussions)**
 
 ---
 
 <p align="center">
-  <sub>MIT-licensed · Free to verify, forever · <a href="https://github.com/object-digital-passport/object-digital-passport/blob/main/docs/SECURITY.md">Report a vulnerability</a></sub>
+  <sub>MIT-licensed · Free to verify, forever · <a href="https://github.com/object-digital-passport/specifications/blob/main/docs/SECURITY.md">Report a vulnerability</a></sub>
 </p>

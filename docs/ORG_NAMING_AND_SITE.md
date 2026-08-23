@@ -51,7 +51,7 @@ GitHub keeps a redirect from the old name — for the web UI, the API, and `git 
 as nothing else claims it. That covers most of the damage, but not all of it:
 
 - **GitHub Pages does not redirect.** Renaming `object-digital-passport` moves the rendered
-  specification from `…github.io/object-digital-passport/spec/` to `…github.io/specification/spec/`.
+  specification from `…github.io/specifications/spec/` to `…github.io/specification/spec/`.
   Every legacy `.html` redirect stub built by [`pages.yml`](../.github/workflows/pages.yml) moves
   with it. Any QR or `.odpass` file that was ever printed with a `/object-digital-passport/` URL in
   it stops resolving.
@@ -113,7 +113,7 @@ and this buys nothing.
 ### C. Change nothing, and shorten what is *published* instead
 
 The address that is actually long in practice is
-`object-digital-passport.github.io/object-digital-passport/verify.html` — the org name twice and a
+`object-digital-passport.github.io/verify.html` — the org name twice and a
 file extension. But that is the **legacy** path: the website moved out in the 0.7 line, and the
 live address is already `object-digital-passport.github.io/verify.html`.
 
