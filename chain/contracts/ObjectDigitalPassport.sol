@@ -24,7 +24,7 @@ import "./ODPPassportLib.sol";
  *   2. Passport Registry — physical, digital, and mixed object records
  * (Proofs, counterfeit flags, relations, extension mints live in satellites.)
  *
- * STORAGE MODEL 0.6 (docs/REQUIREMENTS_FIELDS_V0.6.md):
+ * STORAGE MODEL 0.6 (docs/ru/REQUIREMENTS_FIELDS_V0.6.md):
  *   Layer A — immutable on-chain core: a human-readable card (`title`, `authorName`,
  *   `shortDescription`, `domain`) readable without the `.odpass` bundle, classification,
  *   and content anchors (`dataHash`, `anchorsHash` + `anchorTypesMask`, `imageHash`, `fileHash`).

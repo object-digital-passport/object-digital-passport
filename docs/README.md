@@ -15,7 +15,7 @@
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |
 | **[`V0.6.md`](V0.6.md)** | Current v0.6 line (on-chain generation **6**, deployed on Polygon mainnet): on-chain card, `anchors[]`, append-only events. RU: [`ru/RELEASE_v0.6.md`](ru/RELEASE_v0.6.md). |
 | **[`RELEASE_v0.6.md`](RELEASE_v0.6.md)** | v0.6 release notes: deployed addresses, EIP-170 numbers, `ODPAuthorAttestation`, JSON Schema and docs updates. |
-| **[`REQUIREMENTS_FIELDS_V0.6.md`](REQUIREMENTS_FIELDS_V0.6.md)** | v0.6 storage-model design rationale and field tables (in Russian). |
+| **[`REQUIREMENTS_FIELDS_V0.6.md`](ru/REQUIREMENTS_FIELDS_V0.6.md)** | v0.6 storage-model design rationale and field tables (in Russian). |
 | **[`chain/deploy/README.md`](../chain/deploy/README.md)** | Hardhat deploy (`.env`, compile, Polygon mainnet). |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix vs feature branches. |
 | **[`SECURITY.md`](SECURITY.md)** | Threat model & trust boundaries. RU: [`ru/SECURITY.md`](ru/SECURITY.md). |

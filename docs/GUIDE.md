@@ -8,7 +8,7 @@
 
 ![Object Digital Passport cover](images/odp-cover-en.png)
 
-*Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**), **deployed on Polygon mainnet** — see [Current Release](#current-release) for addresses. Release notes: [docs/V0.6.md](V0.6.md); design rationale: [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md).*
+*Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**), **deployed on Polygon mainnet** — see [Current Release](#current-release) for addresses. Release notes: [docs/V0.6.md](V0.6.md); design rationale: [docs/ru/REQUIREMENTS_FIELDS_V0.6.md](ru/REQUIREMENTS_FIELDS_V0.6.md).*
 
 [License: MIT](../LICENSE)
 [GitHub Repo stars](https://github.com/object-digital-passport/specifications/stargazers)
@@ -137,7 +137,7 @@ If you are new, follow this order:
 1. **Wallet.** You need a crypto wallet (browser extension or app) to write to the network. Use a **separate** wallet for experiments — not the one that holds your main savings. Save your recovery phrase and store it offline. When a site asks to "connect", pause: that is normal for these pages, but scammers use the same trick — read **your** wallet's help, e.g. [MetaMask](https://support.metamask.io/) or [Rabby](https://rabby.io/) (brand is not important). On **[Profile](https://object-digital-passport.github.io/creator.html)** and **[Passport](https://object-digital-passport.github.io/passport.html)** you can also sign from a phone via QR. You pay a small **network fee** (on Polygon that is usually **POL**); there is **no separate ODP protocol fee** — see [Costs and Network](#costs-and-network). If you **self-host** a copy of the site, you may need extra settings — see [`backend/config/odp-wc-config.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/config/odp-wc-config.js) and [docs/V0.6.md](V0.6.md).
 2. **This guide.** Read it through for a practical "how to use" picture — no code required. For gentler explanations, the [Wiki](https://github.com/object-digital-passport/specifications/wiki) covers verification, seals, and the Object ID principle in plain words.
 3. **Rules in full.** The normative protocol text is [SPEC.md](../SPEC.md).
-4. **Going deeper.** What is new in this line: [docs/V0.6.md](V0.6.md) and [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md). Historical notes: [docs/V0.5.md](V0.5.md), [docs/V0.4.md](V0.4.md), [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md). To **deploy your own** registry (for developers): [chain/deploy/README.md](../chain/deploy/README.md).
+4. **Going deeper.** What is new in this line: [docs/V0.6.md](V0.6.md) and [docs/ru/REQUIREMENTS_FIELDS_V0.6.md](ru/REQUIREMENTS_FIELDS_V0.6.md). Historical notes: [docs/V0.5.md](V0.5.md), [docs/V0.4.md](V0.4.md), [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md). To **deploy your own** registry (for developers): [chain/deploy/README.md](../chain/deploy/README.md).
 
 **Still early days.** ODP is in **development, testing, and gathering feedback** — rules and deployments can still change. We aim for a **stable 1.x release around January 2027** as the long-term baseline. If you need a **record meant to last many years** with minimal rule churn, **consider waiting for that stable release**. Each contract address is its **own** registry; records do **not** move between deployments by themselves. More on versioning: [docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md).
 
@@ -334,7 +334,7 @@ Exact fee amounts fluctuate with network load; there is no separate ODP markup.
 Pointers:
 
 - [docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)
-- [docs/V0.6.md](V0.6.md) · [docs/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md)
+- [docs/V0.6.md](V0.6.md) · [docs/ru/REQUIREMENTS_FIELDS_V0.6.md](ru/REQUIREMENTS_FIELDS_V0.6.md)
 - Historical: [docs/V0.5.md](V0.5.md) · [docs/V0.4.md](V0.4.md) / [docs/RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [ru/RELEASE_v0.4.md](ru/RELEASE_v0.4.md) / [ru/RELEASE_v0.4.1.md](ru/RELEASE_v0.4.1.md) (deployed Polygon addresses are listed in [Current Release](#current-release))
 
 ## Contributing

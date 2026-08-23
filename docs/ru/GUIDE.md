@@ -8,7 +8,7 @@
 
 ![Обложка Object Digital Passport](../images/odp-cover-ru.png)
 
-*Снимок эталонной реализации · линия протокола **v0.6** (on-chain поколение **6**), **задеплоена в основной сети Polygon** — адреса в [Текущем релизе](#текущий-релиз). Заметки к релизу: [docs/V0.6.md](../V0.6.md) ([по-русски](RELEASE_v0.6.md)); обоснование модели данных: [docs/REQUIREMENTS_FIELDS_V0.6.md](../REQUIREMENTS_FIELDS_V0.6.md) (на русском).*
+*Снимок эталонной реализации · линия протокола **v0.6** (on-chain поколение **6**), **задеплоена в основной сети Polygon** — адреса в [Текущем релизе](#текущий-релиз). Заметки к релизу: [docs/V0.6.md](../V0.6.md) ([по-русски](RELEASE_v0.6.md)); обоснование модели данных: [docs/ru/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md) (на русском).*
 
 [Лицензия: MIT](../../LICENSE)
 [Звёзды репозитория](https://github.com/object-digital-passport/specifications/stargazers)
@@ -137,7 +137,7 @@ ODP **не заменяет** человеческую экспертизу, и�
 1. **Кошелёк.** Чтобы писать в сеть, нужен криптокошелёк (расширение браузера или приложение). Заведите **отдельный** кошелёк для экспериментов — не тот, где основные сбережения. Сохраните фразу восстановления и храните её офлайн. Когда сайт просит «подключиться», сделайте паузу: для этих страниц это нормально, но мошенники используют тот же приём — читайте справку **вашего** кошелька, например [MetaMask](https://support.metamask.io/) или [Rabby](https://rabby.io/) (конкретная марка не важна). На страницах **[профиля](https://object-digital-passport.github.io/creator.html)** и **[паспорта](https://object-digital-passport.github.io/passport.html)** можно подписывать и с телефона по QR. Вы платите небольшую **комиссию сети** (на Polygon это обычно **POL**); отдельного **сбора ODP нет** — см. [Сеть и стоимость](#сеть-и-стоимость). Если вы **сами размещаете** копию сайта, могут понадобиться настройки — см. [`backend/config/odp-wc-config.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/config/odp-wc-config.js) и [docs/V0.6.md](../V0.6.md).
 2. **Этот гайд.** Прочитайте его целиком — практическая картина «как пользоваться» без кода. Для более мягких объяснений на [вики](https://github.com/object-digital-passport/specifications/wiki/Home-ru) простыми словами разобраны проверка, пломбы и принцип Object ID.
 3. **Правила по букве.** Нормативный текст протокола: [SPEC.md (EN)](../../SPEC.md); справочный перевод: [SPEC.md (RU)](SPEC.md).
-4. **Если копаете глубже.** Что нового в этой линии: [docs/V0.6.md](../V0.6.md) ([по-русски](RELEASE_v0.6.md)) и [docs/REQUIREMENTS_FIELDS_V0.6.md](../REQUIREMENTS_FIELDS_V0.6.md) (на русском). Исторические заметки: [docs/V0.5.md](../V0.5.md), [docs/V0.4.md](../V0.4.md), [RELEASE_v0.4.1.md](RELEASE_v0.4.1.md). **Развернуть свой** реестр (для разработчиков): [chain/deploy/README.md](../../chain/deploy/README.md).
+4. **Если копаете глубже.** Что нового в этой линии: [docs/V0.6.md](../V0.6.md) ([по-русски](RELEASE_v0.6.md)) и [docs/ru/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md) (на русском). Исторические заметки: [docs/V0.5.md](../V0.5.md), [docs/V0.4.md](../V0.4.md), [RELEASE_v0.4.1.md](RELEASE_v0.4.1.md). **Развернуть свой** реестр (для разработчиков): [chain/deploy/README.md](../../chain/deploy/README.md).
 
 **Пока рано для «навсегда».** ODP в фазе **разработки, тестирования и сбора отзывов** — правила и деплои ещё могут меняться. Цель — **стабильный релиз линии 1.x примерно к январю 2027** как долгосрочная база. Если вам нужна **запись на много лет** с минимальной сменой правил — **лучше дождаться стабильного релиза**. Каждый адрес контракта — **свой** реестр; записи **сами не переезжают** между деплоями. Подробнее о версиях: [docs/VERSIONING_AND_RELEASES.md](../VERSIONING_AND_RELEASES.md).
 
@@ -336,7 +336,7 @@ ODP **не заменяет** человеческую экспертизу, и�
 Подробности:
 
 - [docs/VERSIONING_AND_RELEASES.md](../VERSIONING_AND_RELEASES.md)
-- [docs/V0.6.md](../V0.6.md) · [docs/REQUIREMENTS_FIELDS_V0.6.md](../REQUIREMENTS_FIELDS_V0.6.md)
+- [docs/V0.6.md](../V0.6.md) · [docs/ru/REQUIREMENTS_FIELDS_V0.6.md](REQUIREMENTS_FIELDS_V0.6.md)
 - Исторические: [docs/V0.5.md](../V0.5.md) · [docs/V0.4.md](../V0.4.md) / [RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · [RELEASE_v0.4.md](RELEASE_v0.4.md) (эталонные адреса Polygon — в разделе [Текущий релиз](#текущий-релиз))
 
 ## Как вносить вклад
