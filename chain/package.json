@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",
-    "hardhat": "^3.12.0"
+    "hardhat": "^3.13.0"
   },
   "dependencies": {
     "dotenv": "^17.4.2"
