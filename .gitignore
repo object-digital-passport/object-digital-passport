@@ -51,3 +51,8 @@ tmp-*/
 
 # Local HTTPS dev certs (openssl / mkcert)
 web/.certs/
+
+# Research notes are kept locally, not published. They are working material —
+# vendor datasheets, prices, competitor analysis — and the decisions they support
+# are recorded in commit messages and in the documents those decisions changed.
+docs/research/
