@@ -106,3 +106,20 @@ jobs:
       # in the .github repository, where nothing reports a rotted link.
       - name: Check .github/profile/README.md against the tree
         run: node tools/check-profile-links.mjs
+
+  translations:
+    name: translation parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          # The freshness check reads `git log` per file, so it needs the history.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # Full parity doubles the surface where a translation can quietly fall behind.
+      # docs/TRANSLATIONS.md records what is translated; this enforces that record.
+      - name: Check docs/ru against docs/TRANSLATIONS.md
+        run: node tools/check-translations.mjs --all

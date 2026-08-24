@@ -8,10 +8,11 @@
 
 | Документ | Назначение |
 |----------|------------|
-| **[`SPEC.md`](../../SPEC.md)** (корень, EN — нормативный) | Протокол, **§15 `.odpass`**. RU (справочный, линия v0.5): [`../SPEC.md`](SPEC.md). |
+| **[`TRANSLATIONS.md`](../TRANSLATIONS.md)** | У каких документов есть русская версия, какие запланированы и какие намеренно не переводятся. Проверяется `tools/check-translations.mjs` в CI. |
+| **[`SPEC.md`](../../SPEC.md)** (корень, EN — нормативный) | Протокол, **§15 `.odpass`**. RU (справочный, линия v0.7): [`../SPEC.md`](SPEC.md). |
 | **[`V0.6.md`](../../docs/V0.6.md)** | Текущая линия v0.6 (on-chain поколение **6**, задеплоена в Polygon mainnet): карточка on-chain, `anchors[]`, append-only события. RU: [`../RELEASE_v0.6.md`](RELEASE_v0.6.md). |
 | **[`REQUIREMENTS_FIELDS_V0.6.md`](REQUIREMENTS_FIELDS_V0.6.md)** | Обоснование модели хранения v0.6 и таблицы полей (на русском). |
-| **[`GUIDE.md`](../GUIDE.md)** (EN) | Подробный гайд. RU: [`../README.md`](../README.md). |
+| **[`GUIDE.md`](../GUIDE.md)** (EN) | Подробный гайд. RU: [`GUIDE.md`](GUIDE.md). |
 | **[`chain/deploy/README.md`](../../chain/deploy/README.md)** | Деплой Hardhat. |
 | **[`SECURITY.md`](SECURITY.md)** | Модель угроз. EN: [`../../docs/SECURITY.md`](../../docs/SECURITY.md). |
 | **[`ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md)** | Handoff и границы доверия для приложения-верификатора NFC. Опубликованного приложения пока нет — см. [GUIDE.md](GUIDE.md#как-читают-nfc-пломбу). |

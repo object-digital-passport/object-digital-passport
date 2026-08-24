@@ -2,12 +2,13 @@
 
 *Author: Andrei Chernikov*
 
-*Friendly explainers (Quick Start, verification, NFC seals, Object ID, FAQ — 🇬🇧/🇷🇺) live on the [project Wiki](https://github.com/object-digital-passport/object-digital-passport/wiki).*
+*Friendly explainers (Quick Start, verification, NFC seals, Object ID, FAQ — 🇬🇧/🇷🇺) live on the [project Wiki](https://github.com/object-digital-passport/specifications/wiki).*
 
 ## Start here
 
 | Document | Purpose |
 |----------|---------|
+| **[`TRANSLATIONS.md`](TRANSLATIONS.md)** | Which documents have a Russian version, which are planned, and which deliberately do not. Enforced by `tools/check-translations.mjs` in CI. |
 | **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `SPEC.md`, `schema/`, `chain/`, `docs/` and `tools/` live, and what moved out. |
 | **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Proposal: repository names in the c2pa-org style, and how to shorten the published site address. Nothing applied. |
 | **[`releases/`](releases/)** | **Start here for “what changed and does it affect me”** — one short, jargon-free note per version. Written to [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md). |
