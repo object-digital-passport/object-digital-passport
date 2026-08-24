@@ -1,7 +1,7 @@
 ---
 name: Community task
 about: A clear, beginner-friendly task for community contributors
-title: "[community] "
+title: ""
 labels: "community"
 assignees: ""
 ---
@@ -16,7 +16,7 @@ assignees: ""
 
 - [ ] <!-- Add a specific, verifiable outcome. -->
 - [ ] <!-- Add another outcome if needed. -->
-- [ ] A pull request is opened and linked to this issue.
+- [ ] <!-- Add the final deliverable: PR, report, test result, design, etc. -->
 
 ## Where to look
 
