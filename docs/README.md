@@ -10,7 +10,7 @@
 |----------|---------|
 | **[`TRANSLATIONS.md`](TRANSLATIONS.md)** | Which documents have a Russian version, which are planned, and which deliberately do not. Enforced by `tools/check-translations.mjs` in CI. |
 | **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `SPEC.md`, `schema/`, `chain/`, `docs/` and `tools/` live, and what moved out. |
-| **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Proposal: repository names in the c2pa-org style, and how to shorten the published site address. Nothing applied. |
+| **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Repository names in the c2pa-org style, and how to shorten the published site address. Mostly applied on 2026-08-22/23 — the outcome section records what it cost and where the reasoning was wrong. RU: [`ru/ORG_NAMING_AND_SITE.md`](ru/ORG_NAMING_AND_SITE.md). |
 | **[`releases/`](releases/)** | **Start here for “what changed and does it affect me”** — one short, jargon-free note per version. Written to [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md). |
 | **[`GUIDE.md`](GUIDE.md)** | Long-form overview: quick start, live demo, costs, deployment table, glossary. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |
@@ -38,6 +38,7 @@
 | [`EDITION_ISSUER_TOOL.md`](EDITION_ISSUER_TOOL.md) | **Implementation handoff** for the issuer-side edition tool: algorithms, byte-level encodings, outputs, ceremony, contract call, and the known-answer vectors to check against. RU: [`ru/EDITION_ISSUER_TOOL.md`](ru/EDITION_ISSUER_TOOL.md). |
 | [`EDITION_UNIT_KEYS.md`](EDITION_UNIT_KEYS.md) | **v0.7 draft** — edition passports + per-unit activation keys for mass-produced series (B profile). RU: [`ru/EDITION_UNIT_KEYS.md`](ru/EDITION_UNIT_KEYS.md). |
 | [`IDEAS_V1.md`](IDEAS_V1.md) | Informal v1 directions (not spec). |
+| [`OBJECTID_PROFILE.md`](OBJECTID_PROFILE.md) | Optional profile mapping the nine Object ID categories onto `passport.json`, plus the publish-on-incident privacy model. RU: [`ru/OBJECTID_PROFILE.md`](ru/OBJECTID_PROFILE.md). |
 | [`community/discussion-passport-ui-v0.4-EN.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/community/discussion-passport-ui-v0.4-EN.md) | Draft GitHub Discussion (EN). |
 
 ## `.odpass` bundle (quick pointer)
