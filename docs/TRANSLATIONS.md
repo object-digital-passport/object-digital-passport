@@ -62,13 +62,13 @@ promoted to hard.
 | `docs/PROTOCOL_TRACKS.md` | `docs/ru/PROTOCOL_TRACKS.md` | translated |
 | `docs/README.md` | `docs/ru/README-docs.md` | translated |
 | `docs/RELEASE_v0.4.1.md` | `docs/ru/RELEASE_v0.4.1.md` | translated |
-| `docs/RELEASE_v0.6.md` | — | planned |
+| `docs/RELEASE_v0.6.md` | `docs/ru/RELEASE_v0.6.md` | translated |
 | `docs/REPOSITORY_LAYOUT.md` | `docs/ru/REPOSITORY_LAYOUT.md` | translated |
 | `docs/SECURITY.md` | `docs/ru/SECURITY.md` | translated |
 | `docs/V0.3.md` | `docs/ru/V0.3.md` | translated |
 | `docs/V0.4.md` | `docs/ru/V0.4.md` | translated |
 | `docs/V0.5.md` | `docs/ru/V0.5.md` | translated |
-| `docs/V0.6.md` | `docs/ru/RELEASE_v0.6.md` | translated |
+| `docs/V0.6.md` | `docs/ru/V0.6.md` | translated |
 | `docs/VERSIONING_AND_RELEASES.md` | `docs/ru/VERSIONING_AND_RELEASES.md` | translated |
 | `docs/TRANSLATIONS.md` | — | none: a file list this script reads; a second copy in Russian would be one more pair to keep in step, which is the problem this file exists to solve |
 | `docs/adr/*` | — | none: decision records are engineering history, and the reasoning a reader needs is in `docs/ru/EDITION_UNIT_KEYS.md` |
