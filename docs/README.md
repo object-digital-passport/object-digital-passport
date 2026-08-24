@@ -9,13 +9,13 @@
 | Document | Purpose |
 |----------|---------|
 | **[`TRANSLATIONS.md`](TRANSLATIONS.md)** | Which documents have a Russian version, which are planned, and which deliberately do not. Enforced by `tools/check-translations.mjs` in CI. |
-| **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `SPEC.md`, `schema/`, `chain/`, `docs/` and `tools/` live, and what moved out. RU: [`ru/REPOSITORY_LAYOUT.md`](ru/REPOSITORY_LAYOUT.md). |
-| **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Repository names in the c2pa-org style, and how to shorten the published site address. Mostly applied on 2026-08-22/23 — the outcome section records what it cost and where the reasoning was wrong. RU: [`ru/ORG_NAMING_AND_SITE.md`](ru/ORG_NAMING_AND_SITE.md). |
+| **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Where `SPEC.md`, `schema/`, `chain/`, `docs/` and `tools/` live, and what moved out. |
+| **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Proposal: repository names in the c2pa-org style, and how to shorten the published site address. Nothing applied. |
 | **[`releases/`](releases/)** | **Start here for “what changed and does it affect me”** — one short, jargon-free note per version. Written to [`.github/RELEASE_TEMPLATE.md`](../.github/RELEASE_TEMPLATE.md). |
 | **[`GUIDE.md`](GUIDE.md)** | Long-form overview: quick start, live demo, costs, deployment table, glossary. |
 | **[`SPEC.md`](../SPEC.md)** (root) | **Normative** protocol: `passport.json`, on-chain fields, verification, **§15 `.odpass`**. |
-| **[`V0.6.md`](V0.6.md)** | Current v0.6 line (on-chain generation **6**, deployed on Polygon mainnet): on-chain card, `anchors[]`, append-only events. RU: [`ru/V0.6.md`](ru/V0.6.md). |
-| **[`RELEASE_v0.6.md`](RELEASE_v0.6.md)** | v0.6 release notes: deployed addresses, EIP-170 numbers, `ODPAuthorAttestation`, JSON Schema and docs updates. RU: [`ru/RELEASE_v0.6.md`](ru/RELEASE_v0.6.md). |
+| **[`V0.6.md`](V0.6.md)** | Current v0.6 line (on-chain generation **6**, deployed on Polygon mainnet): on-chain card, `anchors[]`, append-only events. RU: [`ru/RELEASE_v0.6.md`](ru/RELEASE_v0.6.md). |
+| **[`RELEASE_v0.6.md`](RELEASE_v0.6.md)** | v0.6 release notes: deployed addresses, EIP-170 numbers, `ODPAuthorAttestation`, JSON Schema and docs updates. |
 | **[`REQUIREMENTS_FIELDS_V0.6.md`](ru/REQUIREMENTS_FIELDS_V0.6.md)** | v0.6 storage-model design rationale and field tables (in Russian). |
 | **[`chain/deploy/README.md`](../chain/deploy/README.md)** | Hardhat deploy (`.env`, compile, Polygon mainnet). |
 | **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Git tags, `main`, hotfix vs feature branches. RU: [`ru/VERSIONING_AND_RELEASES.md`](ru/VERSIONING_AND_RELEASES.md). |
