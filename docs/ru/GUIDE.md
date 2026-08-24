@@ -1,6 +1,6 @@
 # Object Digital Passport — подробный гайд (русский)
 
-*Это длинный обзор проекта (бывшая большая главная страница). Короткая точка входа — [корневой README на русском](../../README.ru.md). Дружелюбные объяснения — на [вики проекта](https://github.com/object-digital-passport/object-digital-passport/wiki/Home-ru). Нормативный протокол: [SPEC.md (EN)](../../SPEC.md), справочный перевод: [SPEC.md (RU)](SPEC.md). Индекс документации: [docs/README.md](README-docs.md).*
+*Это длинный обзор проекта (бывшая большая главная страница). Короткая точка входа — [корневой README на русском](../../README.ru.md). Дружелюбные объяснения — на [вики проекта](https://github.com/object-digital-passport/specifications/wiki/Home-ru). Нормативный протокол: [SPEC.md (EN)](../../SPEC.md), справочный перевод: [SPEC.md (RU)](SPEC.md). Индекс документации: [docs/README.md](README-docs.md).*
 
 ---
 
@@ -11,7 +11,7 @@
 *Снимок эталонной реализации · линия протокола **v0.6** (on-chain поколение **6**), **задеплоена в основной сети Polygon** — адреса в [Текущем релизе](#текущий-релиз). Заметки к релизу: [docs/V0.6.md](../V0.6.md) ([по-русски](RELEASE_v0.6.md)); обоснование модели данных: [docs/REQUIREMENTS_FIELDS_V0.6.md](../REQUIREMENTS_FIELDS_V0.6.md) (на русском).*
 
 [Лицензия: MIT](../../LICENSE)
-[Звёзды репозитория](https://github.com/object-digital-passport/object-digital-passport/stargazers)
+[Звёзды репозитория](https://github.com/object-digital-passport/specifications/stargazers)
 
 ## Что такое ODP
 
@@ -41,9 +41,9 @@
 | 🇷🇺 **Русский**           | Вы читаете русскую версию подробного гайда (этот файл). Короткая главная: [README.ru.md](../../README.ru.md). |
 
 
-**Мы рады переводам README и интерфейса на любой язык.** Добавьте файлы в `frontend/localization/<код-языка>/` **в [репозитории сайта](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization)** (ориентир — структура [../ru/](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization/ru)). Откройте **[Pull Request](https://github.com/object-digital-passport/object-digital-passport/pulls)** или **[Issue](https://github.com/object-digital-passport/object-digital-passport/issues)** — мейнтейнеры посмотрят. Правила: **[CONTRIBUTING.md](CONTRIBUTING.md)** (редактура, локализация, как предлагать изменения). **Issues и PR на GitHub — на английском**, чтобы всё сообщество участвовало в одних и тех же ветках.
+**Мы рады переводам README и интерфейса на любой язык.** Добавьте файлы в `frontend/localization/<код-языка>/` **в [репозитории сайта](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization)** (ориентир — структура [../ru/](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization/ru)). Откройте **[Pull Request](https://github.com/object-digital-passport/specifications/pulls)** или **[Issue](https://github.com/object-digital-passport/specifications/issues)** — мейнтейнеры посмотрят. Правила: **[CONTRIBUTING.md](CONTRIBUTING.md)** (редактура, локализация, как предлагать изменения). **Issues и PR на GitHub — на английском**, чтобы всё сообщество участвовало в одних и тех же ветках.
 
-**Помогите проекту:** переводите, делитесь **[ссылкой на репозиторий](https://github.com/object-digital-passport/object-digital-passport)**, расскажите сообществам, которым может быть важно открытое происхождение объектов.
+**Помогите проекту:** переводите, делитесь **[ссылкой на репозиторий](https://github.com/object-digital-passport/specifications)**, расскажите сообществам, которым может быть важно открытое происхождение объектов.
 
 ---
 
@@ -59,7 +59,7 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 ## Как работает ODP
 
-**В двух словах:** вы один раз регистрируете, **кто выпускает** (профиль), затем создаёте **паспорт** для каждого объекта. Блокчейн хранит читаемую **карточку**, **отпечатки** вашего файла и якорей идентификации — плюс опциональную **публичную ссылку** на ZIP **§15 `.odpass`** (не «голый» JSON по этому адресу) — а не всю историю внутри транзакции. Для проверки достаточно открыть [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html), сравнить файл с реестром — и **кошелёк не нужен**.
+**В двух словах:** вы один раз регистрируете, **кто выпускает** (профиль), затем создаёте **паспорт** для каждого объекта. Блокчейн хранит читаемую **карточку**, **отпечатки** вашего файла и якорей идентификации — плюс опциональную **публичную ссылку** на ZIP **§15 `.odpass`** (не «голый» JSON по этому адресу) — а не всю историю внутри транзакции. Для проверки достаточно открыть [Verify](https://object-digital-passport.github.io/verify.html), сравнить файл с реестром — и **кошелёк не нужен**.
 
 **Четыре шага по порядку**
 
@@ -134,8 +134,8 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 Если вы здесь впервые, идите по порядку:
 
-1. **Кошелёк.** Чтобы писать в сеть, нужен криптокошелёк (расширение браузера или приложение). Заведите **отдельный** кошелёк для экспериментов — не тот, где основные сбережения. Сохраните фразу восстановления и храните её офлайн. Когда сайт просит «подключиться», сделайте паузу: для этих страниц это нормально, но мошенники используют тот же приём — читайте справку **вашего** кошелька, например [MetaMask](https://support.metamask.io/) или [Rabby](https://rabby.io/) (конкретная марка не важна). На страницах **[профиля](https://object-digital-passport.github.io/object-digital-passport/creator.html)** и **[паспорта](https://object-digital-passport.github.io/object-digital-passport/passport.html)** можно подписывать и с телефона по QR. Вы платите небольшую **комиссию сети** (на Polygon это обычно **POL**); отдельного **сбора ODP нет** — см. [Сеть и стоимость](#сеть-и-стоимость). Если вы **сами размещаете** копию сайта, могут понадобиться настройки — см. [`backend/config/odp-wc-config.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/config/odp-wc-config.js) и [docs/V0.6.md](../V0.6.md).
-2. **Этот гайд.** Прочитайте его целиком — практическая картина «как пользоваться» без кода. Для более мягких объяснений на [вики](https://github.com/object-digital-passport/object-digital-passport/wiki/Home-ru) простыми словами разобраны проверка, пломбы и принцип Object ID.
+1. **Кошелёк.** Чтобы писать в сеть, нужен криптокошелёк (расширение браузера или приложение). Заведите **отдельный** кошелёк для экспериментов — не тот, где основные сбережения. Сохраните фразу восстановления и храните её офлайн. Когда сайт просит «подключиться», сделайте паузу: для этих страниц это нормально, но мошенники используют тот же приём — читайте справку **вашего** кошелька, например [MetaMask](https://support.metamask.io/) или [Rabby](https://rabby.io/) (конкретная марка не важна). На страницах **[профиля](https://object-digital-passport.github.io/creator.html)** и **[паспорта](https://object-digital-passport.github.io/passport.html)** можно подписывать и с телефона по QR. Вы платите небольшую **комиссию сети** (на Polygon это обычно **POL**); отдельного **сбора ODP нет** — см. [Сеть и стоимость](#сеть-и-стоимость). Если вы **сами размещаете** копию сайта, могут понадобиться настройки — см. [`backend/config/odp-wc-config.js`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/backend/config/odp-wc-config.js) и [docs/V0.6.md](../V0.6.md).
+2. **Этот гайд.** Прочитайте его целиком — практическая картина «как пользоваться» без кода. Для более мягких объяснений на [вики](https://github.com/object-digital-passport/specifications/wiki/Home-ru) простыми словами разобраны проверка, пломбы и принцип Object ID.
 3. **Правила по букве.** Нормативный текст протокола: [SPEC.md (EN)](../../SPEC.md); справочный перевод: [SPEC.md (RU)](SPEC.md).
 4. **Если копаете глубже.** Что нового в этой линии: [docs/V0.6.md](../V0.6.md) ([по-русски](RELEASE_v0.6.md)) и [docs/REQUIREMENTS_FIELDS_V0.6.md](../REQUIREMENTS_FIELDS_V0.6.md) (на русском). Исторические заметки: [docs/V0.5.md](../V0.5.md), [docs/V0.4.md](../V0.4.md), [RELEASE_v0.4.1.md](RELEASE_v0.4.1.md). **Развернуть свой** реестр (для разработчиков): [chain/deploy/README.md](../../chain/deploy/README.md).
 
@@ -151,7 +151,7 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 ### 2) Регистрация профиля
 
-- Откройте [страницу профиля](https://object-digital-passport.github.io/object-digital-passport/creator.html).
+- Откройте [страницу профиля](https://object-digital-passport.github.io/creator.html).
 - Зарегистрируйтесь один раз и получите **ID профиля** — строку, начинающуюся с `**C-`**, `**B-`**, `**P-**` или `**M-**` (тип вы выбираете при регистрации; сам по себе он потом не меняется).
 
 **Что означает буква**
@@ -171,7 +171,7 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 Коротко: вы заполняете форму — **включая якоря идентификации**, — один раз подтверждаете в кошельке и **скачиваете** пакет. Без файла полной картины при проверке не будет.
 
-1. Откройте [страницу «Паспорт»](https://object-digital-passport.github.io/object-digital-passport/passport.html) и заполните поля. Для **физического объекта** линия v0.6 требует минимум опознания: хотя бы одно **фото**, **размеры**, **материалы** и **отличительные особенности** (детали, которые копия не воспроизведёт). Цифровому объекту нужен его точный **хэш файла**. Пломба (NFC-чип / нумерованная) — опционально сверху.
+1. Откройте [страницу «Паспорт»](https://object-digital-passport.github.io/passport.html) и заполните поля. Для **физического объекта** линия v0.6 требует минимум опознания: хотя бы одно **фото**, **размеры**, **материалы** и **отличительные особенности** (детали, которые копия не воспроизведёт). Цифровому объекту нужен его точный **хэш файла**. Пломба (NFC-чип / нумерованная) — опционально сверху.
 2. Подтвердите транзакцию в кошельке — это **запишет паспорт в блокчейн**: читаемую карточку, отпечатки и обязательство по якорям (спишется небольшая комиссия сети; отдельного «сбора ODP» нет).
 3. **Скачайте** файл `**.odpass`** на экране успеха и **сохраните его в надёжном месте**. Демо **не хранит** ваш файл: ушли со страницы без сохранения — получить тот же пакет с этого сайта позже нельзя.
 
@@ -183,15 +183,15 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 ### 4) Выложить тот же файл по ссылке (по желанию — помогает незнакомым людям проверять)
 
-Нужно, когда вы хотите, чтобы любой открыл [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html), ввёл `ODP-…` и **автоматически получил** паспорт из интернета — без пересылки `.odpass` по почте.
+Нужно, когда вы хотите, чтобы любой открыл [Verify](https://object-digital-passport.github.io/verify.html), ввёл `ODP-…` и **автоматически получил** паспорт из интернета — без пересылки `.odpass` по почте.
 
-- То, что лежит по `**dataUrl`**, должно возвращать **ZIP §15 `.odpass`**, из которого извлечённый `passport.json` совпадает с `**dataHash`** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) скачивает этот ZIP и **не** считает «голый» `.json` по URL допустимым хостингом.
+- То, что лежит по `**dataUrl`**, должно возвращать **ZIP §15 `.odpass`**, из которого извлечённый `passport.json` совпадает с `**dataHash`** — [Verify](https://object-digital-passport.github.io/verify.html) скачивает этот ZIP и **не** считает «голый» `.json` по URL допустимым хостингом.
 - Ссылка должна быть **HTTPS** и возвращать **сам файл**, а не страницу входа, HTML-обёртку или облачный «предпросмотр» без выдачи сырых байтов.
 - Когда URL записан on-chain, **не подменяйте** размещённый файл другим содержимым — хэш перестанет совпадать с `**dataHash`**.
 
 ### 5) Проверка
 
-- Откройте [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html).
+- Откройте [Verify](https://object-digital-passport.github.io/verify.html).
 - Введите Passport ID, вставьте ссылку `odp://...` или перетащите файл `**.odpass`**.
 - На реестре v0.6 верификатор дополнительно сравнивает **карточку** on-chain байт-в-байт с файлом и пересчитывает `**anchorsHash**` — любое расхождение показывается как подделка, а не предупреждение.
 - В текущем эталонном сценарии носителя/экспорта первая ссылка ведёт на страницу Verify на GitHub (выше). `odp://...` остаётся нормативным URI-слоем в `SPEC.md` и целевой первой ссылкой для стабильной v1, когда появится контекст резолвера/приложения.
@@ -200,13 +200,13 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 Базовый URL:
 
-- [https://object-digital-passport.github.io/object-digital-passport/](https://object-digital-passport.github.io/object-digital-passport/)
+- [https://object-digital-passport.github.io/](https://object-digital-passport.github.io/)
 
 Страницы:
 
-- Verify (без кошелька): [verify.html](https://object-digital-passport.github.io/object-digital-passport/verify.html)
-- Профиль (кошелёк + комиссии сети): [creator.html](https://object-digital-passport.github.io/object-digital-passport/creator.html)
-- Паспорт (кошелёк + комиссии сети): [passport.html](https://object-digital-passport.github.io/object-digital-passport/passport.html)
+- Verify (без кошелька): [verify.html](https://object-digital-passport.github.io/verify.html)
+- Профиль (кошелёк + комиссии сети): [creator.html](https://object-digital-passport.github.io/creator.html)
+- Паспорт (кошелёк + комиссии сети): [passport.html](https://object-digital-passport.github.io/passport.html)
 
 *Живые страницы работают с задеплоенным реестром **v0.6** (см. [Текущий релиз](#текущий-релиз)) и определяют поколение в цепи автоматически; прежний реестр v0.5 остаётся читаемым через `previousContracts` в Verify.*
 
@@ -272,7 +272,7 @@ ODP **не заменяет** человеческую экспертизу, и�
 
 Задеплоено в сети `chainId` 137 24.07.2026 (деплойер `0xefB9f9Fa39965Ab1df3D244ecAEDef23D5242587`).
 
-**Прежняя линия — v0.5 (вытеснена).** Прежний реестр [`0x413aEeBB…2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) (поколение **5**) больше не цель эталонного UI. Он остаётся **читаемым** — [Verify](https://object-digital-passport.github.io/object-digital-passport/verify.html) резолвит v0.5-паспорта через `previousContracts`, — но новые паспорта там не выпускаются. Он **не заморожен**: именно в **линии v0.5 убрали** деплойерский `freeze()`, который был в более ранних линиях (вырезали ради лимита байткода EIP-170 при разделении реестра на поверхности), поэтому у этого конкретного реестра нет on-chain способа остановить запись — вывод из обращения тут по соглашению и по тому, что UI смотрит вперёд. `freeze()` был вплоть до **v0.4** (ранние реестры можно было заморозить, и вы их замораживали при переходах) и **возвращён в v0.6**, так что начиная с v0.6 реестр снова можно заморозить деплойером.
+**Прежняя линия — v0.5 (вытеснена).** Прежний реестр [`0x413aEeBB…2a4B346`](https://polygonscan.com/address/0x413aEeBB2ac437483Bc68791EaAab492C2a4B346) (поколение **5**) больше не цель эталонного UI. Он остаётся **читаемым** — [Verify](https://object-digital-passport.github.io/verify.html) резолвит v0.5-паспорта через `previousContracts`, — но новые паспорта там не выпускаются. Он **не заморожен**: именно в **линии v0.5 убрали** деплойерский `freeze()`, который был в более ранних линиях (вырезали ради лимита байткода EIP-170 при разделении реестра на поверхности), поэтому у этого конкретного реестра нет on-chain способа остановить запись — вывод из обращения тут по соглашению и по тому, что UI смотрит вперёд. `freeze()` был вплоть до **v0.4** (ранние реестры можно было заморозить, и вы их замораживали при переходах) и **возвращён в v0.6**, так что начиная с v0.6 реестр снова можно заморозить деплойером.
 
 **Заметки к релизам:** [docs/V0.6.md](../V0.6.md) · исторические [docs/V0.5.md](../V0.5.md) / [docs/V0.4.md](../V0.4.md) / [RELEASE_v0.4.1.md](RELEASE_v0.4.1.md) · **ранняя линия (v0.3 vs v0.2):** [RELEASE_v0.3.md](RELEASE_v0.3.md).
 

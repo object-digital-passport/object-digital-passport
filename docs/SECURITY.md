@@ -233,6 +233,6 @@ succeeds, not merely that the job appears.
 ## Reporting security issues
 
 Open an issue at:
-[https://github.com/object-digital-passport/object-digital-passport/issues](https://github.com/object-digital-passport/object-digital-passport/issues)
+[https://github.com/object-digital-passport/specifications/issues](https://github.com/object-digital-passport/specifications/issues)
 
-For sensitive disclosures, use **[GitHub private security advisories](https://github.com/object-digital-passport/object-digital-passport/security/advisories)** for this repository.
+For sensitive disclosures, use **[GitHub private security advisories](https://github.com/object-digital-passport/specifications/security/advisories)** for this repository.

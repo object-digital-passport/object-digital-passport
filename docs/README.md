@@ -34,9 +34,6 @@
 | [`RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md) | v0.4.1 patch notes. RU: [`ru/RELEASE_v0.4.1.md`](ru/RELEASE_v0.4.1.md). |
 | [`archive/DOCS_REVIEW_PLAN_v0.5.md`](archive/DOCS_REVIEW_PLAN_v0.5.md) | Completed planning note (README/SPEC/docs pass). |
 | [`ANDROID_VERIFIER_MVP.md`](ANDROID_VERIFIER_MVP.md) | Short MVP scope; [`ANDROID_COMPANION_APP.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID_COMPANION_APP.md) redirects to companion repo. |
-| [`research/UNIT_CODE_AUTHENTICATION_LANDSCAPE.md`](research/UNIT_CODE_AUTHENTICATION_LANDSCAPE.md) | How mass-market unit codes actually work (Pop Mart and peers), how v0.7 §20 compares, and what to change. Primary sources; unverified claims marked in place. |
-| [`research/NFC_SEAL_CHIP_AND_PUBLIC_VERIFICATION_LANDSCAPE.md`](research/NFC_SEAL_CHIP_AND_PUBLIC_VERIFICATION_LANDSCAPE.md) | What the NTAG 424 can still do, which asymmetric NFC silicon is actually buyable, and why a verifier cannot check a symmetric response without the key. Evidence behind the §6 key-hygiene rules. **Non-normative.** |
-| [`research/ADJACENT_PROJECTS_WATERQRCODE_OPENWAYMARK.md`](research/ADJACENT_PROJECTS_WATERQRCODE_OPENWAYMARK.md) | Assessment of two adjacent projects and where ODP overlaps or differs. **Non-normative.** |
 | [`EDITION_ISSUER_TOOL.md`](EDITION_ISSUER_TOOL.md) | **Implementation handoff** for the issuer-side edition tool: algorithms, byte-level encodings, outputs, ceremony, contract call, and the known-answer vectors to check against. |
 | [`EDITION_UNIT_KEYS.md`](EDITION_UNIT_KEYS.md) | **v0.7 draft** — edition passports + per-unit activation keys for mass-produced series (B profile). RU: [`ru/EDITION_UNIT_KEYS.md`](ru/EDITION_UNIT_KEYS.md). |
 | [`IDEAS_V1.md`](IDEAS_V1.md) | Informal v1 directions (not spec). |

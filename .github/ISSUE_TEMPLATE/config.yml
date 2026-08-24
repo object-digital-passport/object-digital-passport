@@ -10,3 +10,6 @@ contact_links:
   - name: A security problem
     url: https://github.com/object-digital-passport/specifications/security/advisories/new
     about: Do not open a public issue for anything exploitable. This form keeps the report private.
+  - name: Read SECURITY.md (vulnerabilities)
+    url: https://github.com/object-digital-passport/specifications/blob/main/docs/SECURITY.md
+    about: How to report security issues — avoid public issues for exploitable bugs.

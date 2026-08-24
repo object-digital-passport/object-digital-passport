@@ -2,7 +2,7 @@
 
 *Автор: Андрей Черников*
 
-*Дружелюбные объяснения (быстрый старт, проверка, NFC-пломбы, Object ID, FAQ — 🇬🇧/🇷🇺) — на [вики проекта](https://github.com/object-digital-passport/object-digital-passport/wiki/Home-ru).*
+*Дружелюбные объяснения (быстрый старт, проверка, NFC-пломбы, Object ID, FAQ — 🇬🇧/🇷🇺) — на [вики проекта](https://github.com/object-digital-passport/specifications/wiki/Home-ru).*
 
 ## С чего начать
 
