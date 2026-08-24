@@ -226,7 +226,7 @@ contract ObjectDigitalPassport {
     address public immutable deployer;
 
     /// v0.x safety hatch: once frozen the registry accepts no new writes (reads stay open).
-    /// Irreversible. PLANNED FOR REMOVAL IN STABLE v1 (see docs/IDEAS_V1.md).
+    /// Irreversible. PLANNED FOR REMOVAL IN STABLE v1 (see docs/ru/IDEAS_V1.md).
     bool public frozen;
 
     /// SPEC 0.7 §20.13 — paired `ODPEditionUnits` satellite, set by governance.
@@ -320,7 +320,7 @@ contract ObjectDigitalPassport {
      * Irreversibly freeze the registry: no further mints, events, transfers,
      * revocations, URL updates, or registrations. All reads remain available.
      * Only the deploying wallet may call this. This is a v0.x safety hatch and
-     * is planned to be removed in stable v1 (docs/IDEAS_V1.md).
+     * is planned to be removed in stable v1 (docs/ru/IDEAS_V1.md).
      */
     function freeze() external {
         if (!(msg.sender == deployer)) revert EC(57);

@@ -827,7 +827,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 - `**deployer`**: `immutable`, задаётся в конструкторе как адрес, выполнивший деплой; **единственный** кошелёк, которому разрешено `freeze()`.
 - `**governance`**: `address`; **конструктор задаёт `governance = msg.sender`**. Используйте `**transferGovernance(newAddr)**` (вызывающий должен быть текущим `governance`), чтобы передать управление мультисигу/DAO.
 - Governance подключает спутники: `**setRelationsSatellite(addr)`**, `**setExtensionRouter(addr)`**.
-- `**freeze()**`: **только `deployer`**; **необратимо**; устанавливает `**frozen = true`** и блокирует каждый изменяющий состояние пользовательский путь основного реестра (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) с откатом `**EC(58)`**; все **чтения** остаются доступны. Это **предохранитель линии v0.x**, и он **планируется к удалению в стабильном v1** (`[docs/IDEAS_V1.md](../../docs/IDEAS_V1.md)`). Freeze затрагивает только основной реестр; спутники сохраняют своё состояние.
+- `**freeze()**`: **только `deployer`**; **необратимо**; устанавливает `**frozen = true`** и блокирует каждый изменяющий состояние пользовательский путь основного реестра (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) с откатом `**EC(58)`**; все **чтения** остаются доступны. Это **предохранитель линии v0.x**, и он **планируется к удалению в стабильном v1** (`[docs/ru/IDEAS_V1.md](IDEAS_V1.md)`). Freeze затрагивает только основной реестр; спутники сохраняют своё состояние.
 
 ### Reverts (откаты)
 

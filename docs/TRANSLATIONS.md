@@ -56,8 +56,7 @@ promoted to hard.
 | `docs/EDITION_UNIT_KEYS.md` | `docs/ru/EDITION_UNIT_KEYS.md` | translated |
 | `docs/EIP170_STRATEGY.md` | — | planned |
 | `docs/GUIDE.md` | `docs/ru/GUIDE.md` | translated |
-| `docs/IDEAS_V1.md` | — | planned |
-| `docs/ISSUER_NFC_FLOW.md` | — | planned |
+| `docs/ISSUER_NFC_FLOW.md` | `docs/ru/ISSUER_NFC_FLOW.md` | translated |
 | `docs/OBJECTID_PROFILE.md` | `docs/ru/OBJECTID_PROFILE.md` | translated |
 | `docs/ORG_NAMING_AND_SITE.md` | `docs/ru/ORG_NAMING_AND_SITE.md` | translated |
 | `docs/PROTOCOL_TRACKS.md` | — | planned |
@@ -70,12 +69,13 @@ promoted to hard.
 | `docs/V0.4.md` | — | planned |
 | `docs/V0.5.md` | — | planned |
 | `docs/V0.6.md` | `docs/ru/RELEASE_v0.6.md` | translated |
-| `docs/VERSIONING_AND_RELEASES.md` | — | planned |
+| `docs/VERSIONING_AND_RELEASES.md` | `docs/ru/VERSIONING_AND_RELEASES.md` | translated |
 | `docs/TRANSLATIONS.md` | — | none: a file list this script reads; a second copy in Russian would be one more pair to keep in step, which is the problem this file exists to solve |
 | `docs/adr/*` | — | none: decision records are engineering history, and the reasoning a reader needs is in `docs/ru/EDITION_UNIT_KEYS.md` |
 | `docs/releases/*` | — | none: short announcements published to GitHub Releases in English, generated against `.github/RELEASE_TEMPLATE.md` |
 | `docs/archive/*` | — | none: superseded working documents, kept for history |
 | — | `docs/ru/REQUIREMENTS_FIELDS_V0.6.md` | russian only |
+| — | `docs/ru/IDEAS_V1.md` | russian only |
 | — | `docs/ru/RELEASE_v0.3.md` | russian only |
 | — | `docs/ru/RELEASE_v0.4.md` | russian only |
 

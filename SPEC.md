@@ -860,7 +860,7 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 - `**deployer`**: `immutable`, set in the constructor to the deploying address; the **only** wallet allowed to `freeze()`.
 - `**governance`**: `address`; **constructor sets `governance = msg.sender`**. Use `**transferGovernance(newAddr)**` (caller must be current `governance`) to point at a multisig/DAO.
 - Governance wires satellites: `**setRelationsSatellite(addr)`**, `**setExtensionRouter(addr)`**.
-- `**freeze()**`: **only `deployer`**; **irreversible**; sets `**frozen = true`** and blocks every state-changing user path on the main registry (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) with revert `**EC(58)`**; all **reads** stay available. This is a **v0.x safety hatch** and is **planned for removal in stable v1** (`[docs/IDEAS_V1.md](docs/IDEAS_V1.md)`). Freeze affects the main registry only; satellites keep their own state.
+- `**freeze()**`: **only `deployer`**; **irreversible**; sets `**frozen = true`** and blocks every state-changing user path on the main registry (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) with revert `**EC(58)`**; all **reads** stay available. This is a **v0.x safety hatch** and is **planned for removal in stable v1** (`[docs/ru/IDEAS_V1.md](docs/ru/IDEAS_V1.md)`). Freeze affects the main registry only; satellites keep their own state.
 
 ### Reverts
 

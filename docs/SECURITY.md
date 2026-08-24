@@ -55,7 +55,7 @@ This document describes the threat model, known limitations, and recommendations
 
 - **`governance`** is one `address` (constructor defaults to deployer; should be moved to a multisig/Safe via **`transferGovernance`**).
 - A compromised **`governance`** can affect **policy-level** actions allowed by the contract (e.g. revoke passports alongside creator, register mint extensions, point the relations/extension satellites elsewhere). There is **no** on-chain timelock in the reference bytecode — operate multisig and procedures off-chain.
-- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes; reads keep working). History note: `freeze()` existed through **v0.4**, was **removed in the v0.5 line** to fit the EIP-170 bytecode limit, and is **restored in v0.6** — so the superseded v0.5 registry has no on-chain way to stop writes. **Stable v1 is planned to omit this mechanism** (see [`IDEAS_V1.md`](IDEAS_V1.md)).
+- **`deployer`** alone can **`freeze()`** (irreversible stop to new writes; reads keep working). History note: `freeze()` existed through **v0.4**, was **removed in the v0.5 line** to fit the EIP-170 bytecode limit, and is **restored in v0.6** — so the superseded v0.5 registry has no on-chain way to stop writes. **Stable v1 is planned to omit this mechanism** (see [`ru/IDEAS_V1.md`](ru/IDEAS_V1.md)).
 - **Satellite pointers:** `setRelationsSatellite` / `setExtensionRouter` accept `address(0)` **by design** — that is the documented way to clear a satellite. Governance pointing them at a hostile contract is a **high-privilege** action, same class as extension registration.
 
 ### Mint agent (delegated mint)

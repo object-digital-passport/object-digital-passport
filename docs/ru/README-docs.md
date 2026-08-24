@@ -17,6 +17,9 @@
 | **[`SECURITY.md`](SECURITY.md)** | Модель угроз. EN: [`../../docs/SECURITY.md`](../../docs/SECURITY.md). |
 | **[`ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md)** | Handoff и границы доверия для приложения-верификатора NFC. Опубликованного приложения пока нет — см. [GUIDE.md](GUIDE.md#как-читают-nfc-пломбу). |
 | **[`ANDROID_NTAG424DNA_TAGTAMPER.md`](ANDROID_NTAG424DNA_TAGTAMPER.md)** | Практический workflow TagTamper. |
+| **[`ISSUER_NFC_FLOW.md`](ISSUER_NFC_FLOW.md)** | Обязательный порядок минта физического паспорта с пломбой NTAG 424: сканировать чип до минта, публиковать немастер-ключ. EN: [`../ISSUER_NFC_FLOW.md`](../ISSUER_NFC_FLOW.md). |
+| **[`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)** | Теги git, `main`, хотфиксы против веток с возможностями. EN: [`../VERSIONING_AND_RELEASES.md`](../VERSIONING_AND_RELEASES.md). |
+| **[`IDEAS_V1.md`](IDEAS_V1.md)** | Неформальные направления к v1 (не спецификация). Написан по-русски; английской версии нет. |
 | **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Имена репозиториев по образцу c2pa-org и как укоротить опубликованный адрес сайта. В основном применено 22–23.08.2026 — раздел «Итог» фиксирует цену и где рассуждение было неверным. EN: [`../ORG_NAMING_AND_SITE.md`](../ORG_NAMING_AND_SITE.md). |
 | **[`OBJECTID_PROFILE.md`](OBJECTID_PROFILE.md)** | Опциональный профиль: девять категорий Object ID на поля `passport.json` плюс модель приватности «публикуем при происшествии». EN: [`../OBJECTID_PROFILE.md`](../OBJECTID_PROFILE.md). |
 | **[`EDITION_ISSUER_TOOL.md`](EDITION_ISSUER_TOOL.md)** | **Передача в реализацию** инструмента эмитента выпуска: алгоритмы, побайтовые кодировки, выходные файлы, церемония, вызов контракта и контрольные векторы. EN: [`../EDITION_ISSUER_TOOL.md`](../EDITION_ISSUER_TOOL.md). |
