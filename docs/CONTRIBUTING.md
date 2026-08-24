@@ -12,6 +12,30 @@ This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By part
 
 **Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is `**[SPEC.md](../SPEC.md)`** (English). Translations under [`frontend/localization/`](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization) **in the website repository** are informational; discussion that changes the protocol should still be tracked in English on GitHub.
 
+### Documentation is translated into Russian, and CI enforces it
+
+Every document in this repository has a Russian version under [`docs/ru/`](ru/), or a written
+reason why it does not. The record is [`docs/TRANSLATIONS.md`](TRANSLATIONS.md), and
+`tools/check-translations.mjs` reads it as its own CI job.
+
+Three rules follow from that:
+
+1. **English is normative.** Where a translation disagrees with the English text, the translation
+   is the bug. Every Russian file says so at its top.
+2. **Adding an English document means adding a row.** CI fails on a document that no row accounts
+   for — the row is where you decide whether it gets translated, is planned, or deliberately does
+   not. The same applies to a new file under `docs/ru/`.
+3. **Changing an English document means checking its translation.** The job reports identifiers
+   present in the English and missing from the Russian — addresses, `v0.N` strings, field and
+   status-code names. That report is not fatal yet, because it describes a backlog older than the
+   check; do not add to it.
+
+Names that a machine reads are never translated: `dataHash`, `anchorsHash`, `passportId`,
+`unitKey`, `anchorTypesMask`, `.odpass`, and the `ODP-…` / `C-…` / `B-…` / `P-…` / `M-…` formats.
+A translated identifier is a file that stops validating.
+
+Translations into **other** languages are welcome and are tracked separately — see the open issues.
+
 ## Where to start
 
 - Read the normative protocol in `**[SPEC.md](../SPEC.md)**` and the overview in `**[README.md](README.md)**`.
