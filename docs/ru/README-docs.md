@@ -17,6 +17,7 @@
 | **[`SECURITY.md`](SECURITY.md)** | Модель угроз. EN: [`../../docs/SECURITY.md`](../../docs/SECURITY.md). |
 | **[`ANDROID.md`](https://github.com/object-digital-passport/object-digital-passport.github.io/blob/main/docs/ANDROID.md)** | Handoff и границы доверия для приложения-верификатора NFC. Опубликованного приложения пока нет — см. [GUIDE.md](GUIDE.md#как-читают-nfc-пломбу). |
 | **[`ANDROID_NTAG424DNA_TAGTAMPER.md`](ANDROID_NTAG424DNA_TAGTAMPER.md)** | Практический workflow TagTamper. |
+| **[`EDITION_ISSUER_TOOL.md`](EDITION_ISSUER_TOOL.md)** | **Передача в реализацию** инструмента эмитента выпуска: алгоритмы, побайтовые кодировки, выходные файлы, церемония, вызов контракта и контрольные векторы. EN: [`../EDITION_ISSUER_TOOL.md`](../EDITION_ISSUER_TOOL.md). |
 
 ## Исторические
 
