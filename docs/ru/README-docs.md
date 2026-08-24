@@ -8,6 +8,7 @@
 
 | Документ | Назначение |
 |----------|------------|
+| **[`CHANGELOG.md`](CHANGELOG.md)** | Журнал изменений проекта по формату Keep a Changelog. EN: [`../../CHANGELOG.md`](../../CHANGELOG.md). |
 | **[`TRANSLATIONS.md`](../TRANSLATIONS.md)** | У каких документов есть русская версия, какие запланированы и какие намеренно не переводятся. Проверяется `tools/check-translations.mjs` в CI. |
 | **[`SPEC.md`](../../SPEC.md)** (корень, EN — нормативный) | Протокол, **§15 `.odpass`**. RU (справочный, линия v0.7): [`../SPEC.md`](SPEC.md). |
 | **[`V0.6.md`](../../docs/V0.6.md)** | Текущая линия v0.6 (on-chain поколение **6**, задеплоена в Polygon mainnet): карточка on-chain, `anchors[]`, append-only события. RU: [`V0.6.md`](V0.6.md). |
