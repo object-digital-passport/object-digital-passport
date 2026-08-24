@@ -1,86 +1,99 @@
 # Contributing
 
-Thanks for your interest in Object Digital Passport.
+Thanks for looking. A first contribution does not have to be big.
 
-**Author:** Andrei Chernikov — original specification, contract, web UI, and tooling in this repository unless otherwise noted in a file.
+**This repository is the standard** — `SPEC.md`, the contracts, the schema, the vectors. The reference website is [a separate repository](https://github.com/object-digital-passport/object-digital-passport.github.io) with its own issues. A useful test: if a different implementation would have to change too, it belongs here; if the website could fix it alone and stay conformant, it belongs there.
 
-## Code of conduct
+## Find something to do
 
-This project follows the **[Contributor Covenant](CODE_OF_CONDUCT.md)**. By participating, you agree to uphold it. Reports: see **Enforcement** in that file.
+- [**`good first issue`**](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) — small, prepared, with a stated done-condition. Start here.
+- [**`help wanted`**](../../issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22) — we want help; **not necessarily easy**.
+- **`ready to work`** — scope settled, no open design question.
+- **`mentor available`** — a maintainer will answer questions in the issue.
+- **`needs info`** — not ready. Do not pick it up.
 
-## Language (GitHub and the community)
+**You do not need permission to start.** A short "taking this" comment only helps avoid two people doing the same work. If you stop, say so — that is normal and nobody minds.
 
-**Issues, pull requests, and maintainer replies on GitHub are in English** so everyone in the community can follow the same thread. The normative specification is `**[SPEC.md](../SPEC.md)`** (English). Translations under [`frontend/localization/`](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization) **in the website repository** are informational; discussion that changes the protocol should still be tracked in English on GitHub.
+## Run what you need
+
+### Documentation is translated into Russian, and CI enforces it
+
+Every document in this repository has a Russian version under [`docs/ru/`](ru/), or a written
+reason why it does not. The record is [`docs/TRANSLATIONS.md`](TRANSLATIONS.md), and
+`tools/check-translations.mjs` reads it as its own CI job.
+
+Three rules follow from that:
+
+1. **English is normative.** Where a translation disagrees with the English text, the translation
+   is the bug. Every Russian file says so at its top.
+2. **Adding an English document means adding a row.** CI fails on a document that no row accounts
+   for — the row is where you decide whether it gets translated, is planned, or deliberately does
+   not. The same applies to a new file under `docs/ru/`.
+3. **Changing an English document means checking its translation.** The job reports identifiers
+   present in the English and missing from the Russian — addresses, `v0.N` strings, field and
+   status-code names. That report is not fatal yet, because it describes a backlog older than the
+   check; do not add to it.
+
+Names that a machine reads are never translated: `dataHash`, `anchorsHash`, `passportId`,
+`unitKey`, `anchorTypesMask`, `.odpass`, and the `ODP-…` / `C-…` / `B-…` / `P-…` / `M-…` formats.
+A translated identifier is a file that stops validating.
+
+Translations into **other** languages are welcome and are tracked separately — see the open issues.
 
 ## Where to start
+Most documentation tasks need nothing installed. For the rest:
 
-- Read the normative protocol in `**[SPEC.md](../SPEC.md)**` and the overview in `**[README.md](README.md)**`.
-- **Good first issues:** look for issues labeled `**good first issue`** or `**help wanted**` (maintainers apply these when tasks are suitable for newcomers).
-- **Gaps in the standard:** if something feels **missing or underspecified** in `**SPEC.md`**, open a **Standard gap** issue (template) — short proposals welcome.
-- **Spec / protocol ideas:** open a **Specification / protocol discussion** issue (template) for questions or changes to existing rules, or discuss before large PRs.
-- **Security:** do **not** post exploitable details in public issues — follow `**[SECURITY.md](SECURITY.md)`** (Russian: `[ru/SECURITY.md](ru/SECURITY.md)`).
+```sh
+git clone https://github.com/object-digital-passport/specifications.git
+cd specifications
 
-## Fork and pull request (short)
+cd chain && npm install && npm test   # 103 Hardhat tests
+node tools/check-profile-links.mjs    # links in the organization profile
+node chain/tools/lint_release_notes.mjs
+```
 
-1. **Fork** this repository on GitHub (or ask for **collaborator** access on the org if you work closely with maintainers).
-2. **Branch** from `main` with a descriptive name, e.g. `fix/verify-mobile`, `docs/contributing-typos`.
-3. **Change** with focused commits; match existing style in each area (`chain/contracts/`, `chain/tools/`, `schema/`, Markdown). The web interface is a **[separate repository](https://github.com/object-digital-passport/object-digital-passport.github.io)** with its own contributing guide.
-4. **Test** what you can locally (static pages, Hardhat, `mint.py`) — there may not be CI for every path yet.
-5. **Open a PR** into `**main`** — the PR template will prompt for summary and checklist.
-6. **Respond** to review feedback; maintainers aim to reply within a few days (small projects vary by availability).
+## Before a pull request
 
-## Beyond code
+- The change matches the **Done when** list in the issue.
+- The checks above pass.
+- The pull request contains only what the issue asked for — no drive-by reformatting.
+- The description says `Fixes #123`.
 
-Reviews of English and translated copy, UX, visual design, accessibility, and localization ([`frontend/localization/`](https://github.com/object-digital-passport/object-digital-passport.github.io/tree/main/frontend/localization), in the website repository) are as valuable as patches to contracts or JS. The project aims for a **stable protocol and product line toward January 2027**; broad feedback on `[SPEC.md](../SPEC.md)` and the static pages helps.
+`main` takes pull requests only, and CI must be green. Details in [`.github/BRANCH_PROTECTION.md`](../.github/BRANCH_PROTECTION.md).
 
-## Areas of the repo
+## Language
 
+**Issues, pull requests and Discussions are in English**, so everyone follows the same thread. Not a judgement about anyone's language — a rule about where the conversation happens.
 
-| Area             | Notes                                                                                         |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-| `**SPEC.md`**    | Breaking changes need discussion; pin spec version for implementers.                          |
-| `**chain/contracts/**` | On-chain immutability: many fixes require a **new deployment** and version line — note in PR. |
-| `schema/`        | JSON Schema, conformance examples, known-answer vectors. `passport.json` `registration.*` must stay **UTC-only** (no device-local IANA zone; `localIso8601` only `+00:00`) — [SPEC.md](../SPEC.md) (registration instant). |
-| `**chain/deploy/**`    | Hardhat; never commit private keys.                                                           |
-| `**chain/tools/**`     | Python CLI; document new flags in `--help` or README.                                         |
+**`SPEC.md` in English is the only normative text.** Everything under `docs/ru/` and every other translation is informational: where a translation disagrees with the specification, the translation is the bug.
 
+## Where the code lives
 
-## Style
+| | |
+|---|---|
+| `SPEC.md` | The standard. Breaking changes need discussion first |
+| `chain/contracts/` | Solidity. Many fixes need a **new deployment**, not a patch — say so in the pull request |
+| `schema/` | JSON Schema, examples, known-answer vectors |
+| `chain/tools/`, `tools/` | Node ESM tooling |
+| `docs/`, `docs/ru/` | Everything else, and its Russian translation |
 
-- **Markdown:** follow existing headings and tone in nearby files.
-- **JavaScript:** the tooling here is Node ESM (`chain/tools/`, `tools/`). Browser JavaScript lives in the [website repository](https://github.com/object-digital-passport/object-digital-passport.github.io).
-- **Solidity:** match `ObjectDigitalPassport.sol` style and comments.
+Never commit a private key. `chain/deploy/` is where that mistake would happen.
 
-## Issue labels (for maintainers)
+## Stuck?
 
-Suggested labels to create in **Issues → Labels** (helps contributors find work):
+**Ask in the issue you are working on.** It is expected, and especially fine when:
 
+- you cannot find the code the issue refers to;
+- a check will not run;
+- the **Done when** list can be read more than one way — that means it is written badly and we want to know.
 
-| Label              | Use                                   |
-| ------------------ | ------------------------------------- |
-| `good first issue` | Small, well-scoped, good for first PR |
-| `help wanted`      | Maintainer would like community help  |
-| `bug`              | Something broken                      |
-| `enhancement`      | Feature or improvement                |
-| `spec`             | Protocol / SPEC.md related            |
-| `documentation`    | Docs / copy only                      |
+## Review
 
+Review comments are a normal part of contributing, not a verdict. A maintainer will try to say why, not only what.
 
-GitHub’s default `**good first issue`** and `**help wanted**` are widely recognized ([community health](https://docs.github.com/en/communities/setting-up-your-project-for-healthy-contributions)).
+## Other things
 
-## Versions and “freezing” a line
-
-This project ties **released** work to **git tags** (e.g. `**v0.1`**).  
-How `**main**`, tags, and patch releases interact is documented in `**[docs/VERSIONING_AND_RELEASES.md](VERSIONING_AND_RELEASES.md)**`.
-
-## Maintainer setup (branch protection) — optional, enable later
-
-If you want `**main**` to accept changes only via pull requests, follow `**[.github/BRANCH_PROTECTION.md](../.github/BRANCH_PROTECTION.md)**` and turn the rules on in **GitHub → Settings**. Not required for contributors day-to-day.
-
-## Optional: GitHub Discussions
-
-**Discussions** can be enabled under **Settings → Features** for Q&A and ideas that are not yet actionable issues. Optional for small projects.
-
----
-
-*License: see [LICENSE](../LICENSE) and [README](README.md).*
+- Questions and design arguments → [Discussions](https://github.com/object-digital-passport/specifications/discussions)
+- Security → [`SECURITY.md`](SECURITY.md). Never a public issue for anything exploitable
+- Conduct → [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)
+- How versions and tags work → [`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)
