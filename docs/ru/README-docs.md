@@ -23,13 +23,17 @@
 | **[`ORG_NAMING_AND_SITE.md`](ORG_NAMING_AND_SITE.md)** | Имена репозиториев по образцу c2pa-org и как укоротить опубликованный адрес сайта. В основном применено 22–23.08.2026 — раздел «Итог» фиксирует цену и где рассуждение было неверным. EN: [`../ORG_NAMING_AND_SITE.md`](../ORG_NAMING_AND_SITE.md). |
 | **[`OBJECTID_PROFILE.md`](OBJECTID_PROFILE.md)** | Опциональный профиль: девять категорий Object ID на поля `passport.json` плюс модель приватности «публикуем при происшествии». EN: [`../OBJECTID_PROFILE.md`](../OBJECTID_PROFILE.md). |
 | **[`EDITION_ISSUER_TOOL.md`](EDITION_ISSUER_TOOL.md)** | **Передача в реализацию** инструмента эмитента выпуска: алгоритмы, побайтовые кодировки, выходные файлы, церемония, вызов контракта и контрольные векторы. EN: [`../EDITION_ISSUER_TOOL.md`](../EDITION_ISSUER_TOOL.md). |
+| **[`REPOSITORY_LAYOUT.md`](REPOSITORY_LAYOUT.md)** | Где лежат `SPEC.md`, `schema/`, `chain/`, `docs/` и `tools/` и что выехало наружу. EN: [`../REPOSITORY_LAYOUT.md`](../REPOSITORY_LAYOUT.md). |
+| **[`PROTOCOL_TRACKS.md`](PROTOCOL_TRACKS.md)** | Направление A (после аудита) против направления B (выпущено); указатель на EIP-170. EN: [`../PROTOCOL_TRACKS.md`](../PROTOCOL_TRACKS.md). |
+| **[`EIP170_STRATEGY.md`](EIP170_STRATEGY.md)** | Варианты по лимиту размера байткода до деплоя в основную сеть. EN: [`../EIP170_STRATEGY.md`](../EIP170_STRATEGY.md). |
+| **[`ANDROID_VERIFIER_MVP.md`](ANDROID_VERIFIER_MVP.md)** | Область MVP отдельного NFC-верификатора. Не реализована; граница по-прежнему верна. EN: [`../ANDROID_VERIFIER_MVP.md`](../ANDROID_VERIFIER_MVP.md). |
 
 ## Исторические
 
 | Документ | Назначение |
 |----------|------------|
-| [`V0.5.md`](../../docs/V0.5.md) | Историческая линия v0.5 (поколение **5** — вытеснена деплоем v0.6; остаётся читаемой в Verify). |
-| [`V0.3.md`](../../docs/V0.3.md) … [`V0.4.md`](../../docs/V0.4.md) | Исторические линии. RU: [`../RELEASE_v0.3.md`](RELEASE_v0.3.md), [`../RELEASE_v0.4.md`](RELEASE_v0.4.md). |
+| [`V0.5.md`](V0.5.md) | Историческая линия v0.5 (поколение **5** — вытеснена деплоем v0.6; остаётся читаемой в Verify). EN: [`../V0.5.md`](../V0.5.md). |
+| [`V0.3.md`](V0.3.md) … [`V0.4.md`](V0.4.md) | Исторические линии. Заметки к релизам: [`RELEASE_v0.3.md`](RELEASE_v0.3.md), [`RELEASE_v0.4.md`](RELEASE_v0.4.md). |
 | [`RELEASE_v0.4.1.md`](../../docs/RELEASE_v0.4.1.md) | Патч v0.4.1. RU: [`../RELEASE_v0.4.1.md`](RELEASE_v0.4.1.md). |
 
 Полный EN-индекс: [`../../docs/README.md`](../../docs/README.md).
