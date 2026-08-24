@@ -2,7 +2,7 @@
 
 *Plain-language summary of this version: [**v0.6 release note**](releases/v0.6.md). This page is the long-form detail behind it.*
 
-*Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**, packed `CONTRACT_VERSION` = **6**). Deployed on **Polygon mainnet** (`chainId` 137) on **2026-07-24**. Narrative summary: [`V0.6.md`](V0.6.md); design rationale: [`REQUIREMENTS_FIELDS_V0.6.md`](REQUIREMENTS_FIELDS_V0.6.md); full rules: `**[SPEC.md](../SPEC.md)`**.*
+*Reference implementation snapshot · protocol line **v0.6** (on-chain generation **6**, packed `CONTRACT_VERSION` = **6**). Deployed on **Polygon mainnet** (`chainId` 137) on **2026-07-24**. Narrative summary: [`V0.6.md`](V0.6.md); design rationale: [`REQUIREMENTS_FIELDS_V0.6.md`](ru/REQUIREMENTS_FIELDS_V0.6.md); full rules: `**[SPEC.md](../SPEC.md)`**.*
 
 ## Summary
 
@@ -69,7 +69,7 @@ Profiles (C/B/P/M), monthly mint caps, mint-agent delegation, the relations / pr
 ## See also
 
 - **v0.6 narrative:** [`V0.6.md`](V0.6.md)
-- **Design rationale / field tables:** [`REQUIREMENTS_FIELDS_V0.6.md`](REQUIREMENTS_FIELDS_V0.6.md)
+- **Design rationale / field tables:** [`REQUIREMENTS_FIELDS_V0.6.md`](ru/REQUIREMENTS_FIELDS_V0.6.md)
 - **Full deployment table & terms:** [`GUIDE.md`](GUIDE.md#current-release)
 - **Changelog:** [`../CHANGELOG.md`](../CHANGELOG.md)
 - **Versioning & tags:** [`VERSIONING_AND_RELEASES.md`](VERSIONING_AND_RELEASES.md)

@@ -63,7 +63,7 @@ In plain terms:
 - A **deployment** means one specific contract address (**one registry instance**).
 - Your `creatorId` and passport records belong to **that** deployment only.
 - Launching another deployment — even for a newer 0.X line — does **not** move existing records; the same wallet may receive a **different** `creatorId` in the new registry.
-- **This specification describes the reference v0.7 *branch*** in this repository (storage-model redesign — see `docs/REQUIREMENTS_FIELDS_V0.6.md`): on-chain packed `**CONTRACT_VERSION` = 7** (EIP-170 split: linked `**ODPPassportLib`**, optional satellites — see §14). The 0.6 model stores an **immutable on-chain card** (`title`, `authorName`, `shortDescription`, `domain`), anchors the identification block via `**anchorsHash`** + `**anchorTypesMask`**, and replaces all overwritable current-state fields with **append-only passport events**. Other addresses = separate registries; pair **chain + contract + ABI** + `**CONTRACT_VERSION`**.
+- **This specification describes the reference v0.7 *branch*** in this repository (storage-model redesign — see `docs/ru/REQUIREMENTS_FIELDS_V0.6.md`): on-chain packed `**CONTRACT_VERSION` = 7** (EIP-170 split: linked `**ODPPassportLib`**, optional satellites — see §14). The 0.6 model stores an **immutable on-chain card** (`title`, `authorName`, `shortDescription`, `domain`), anchors the identification block via `**anchorsHash`** + `**anchorTypesMask`**, and replaces all overwritable current-state fields with **append-only passport events**. Other addresses = separate registries; pair **chain + contract + ABI** + `**CONTRACT_VERSION`**.
 
 If your goal is **one wallet + one long-lived `creatorId`** as canonical storage across protocol generations, wait for stable **v1**, which may define migration or dual-read explicitly.
 
@@ -775,7 +775,7 @@ Earlier lines (v0.5 and before) were each canonical for their own line and remai
 
 ## 8. On-Chain Record
 
-This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 6** at mint in this line). ABI tuple order may differ from this table; field **names** are normative. See `docs/REQUIREMENTS_FIELDS_V0.6.md` for the design rationale (storage layers A/B/C).
+This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 6** at mint in this line). ABI tuple order may differ from this table; field **names** are normative. See `docs/ru/REQUIREMENTS_FIELDS_V0.6.md` for the design rationale (storage layers A/B/C).
 
 
 | Field                  | Type      | Required | Description                                                                                                                                                                                                         |
@@ -810,7 +810,7 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 | `lastEventAt`          | `uint256` | yes      | Block time of the most recent passport event; **0** if none                                                                                                                                                          |
 
 
-**Removed relative to v0.5** (see the migration table in `docs/REQUIREMENTS_FIELDS_V0.6.md`): `sealType` / `sealHash` / `nfcPublicKey` / `nfcModel` (→ `nfc` / `numbered_seal` anchors), `imageHash2/3` + `imageUrl2/3` (→ `photo` anchors), `currentLocation` / `rightsNote` / `conditionNote` / `damageHistoryHash` / `damageHistoryUrl` (→ append-only events), `auxCommitment*` (→ attestation `documentHash` or a document anchor), `ndppCommitment*` (offline carriers verify against `dataHash` / `anchorsHash` directly).
+**Removed relative to v0.5** (see the migration table in `docs/ru/REQUIREMENTS_FIELDS_V0.6.md`): `sealType` / `sealHash` / `nfcPublicKey` / `nfcModel` (→ `nfc` / `numbered_seal` anchors), `imageHash2/3` + `imageUrl2/3` (→ `photo` anchors), `currentLocation` / `rightsNote` / `conditionNote` / `damageHistoryHash` / `damageHistoryUrl` (→ append-only events), `auxCommitment*` (→ attestation `documentHash` or a document anchor), `ndppCommitment*` (offline carriers verify against `dataHash` / `anchorsHash` directly).
 
 **Derived:** chain time is interpreted in **UTC** for off-chain display; no separate `timestampTimeZone` field.
 
@@ -860,7 +860,7 @@ This section matches the reference `**ObjectDigitalPassport`** `Passport` struct
 - `**deployer`**: `immutable`, set in the constructor to the deploying address; the **only** wallet allowed to `freeze()`.
 - `**governance`**: `address`; **constructor sets `governance = msg.sender`**. Use `**transferGovernance(newAddr)**` (caller must be current `governance`) to point at a multisig/DAO.
 - Governance wires satellites: `**setRelationsSatellite(addr)`**, `**setExtensionRouter(addr)`**.
-- `**freeze()**`: **only `deployer`**; **irreversible**; sets `**frozen = true`** and blocks every state-changing user path on the main registry (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) with revert `**EC(58)`**; all **reads** stay available. This is a **v0.x safety hatch** and is **planned for removal in stable v1** (`[docs/IDEAS_V1.md](docs/IDEAS_V1.md)`). Freeze affects the main registry only; satellites keep their own state.
+- `**freeze()**`: **only `deployer`**; **irreversible**; sets `**frozen = true`** and blocks every state-changing user path on the main registry (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) with revert `**EC(58)`**; all **reads** stay available. This is a **v0.x safety hatch** and is **planned for removal in stable v1** (`[docs/ru/IDEAS_V1.md](docs/ru/IDEAS_V1.md)`). Freeze affects the main registry only; satellites keep their own state.
 
 ### Reverts
 

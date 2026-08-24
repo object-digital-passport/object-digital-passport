@@ -731,7 +731,7 @@ def cmd_mint(args):
         print(f"  File SHA-256: {file_hash_bytes.hex()}")
         file_size = Path(file_path).stat().st_size
 
-    # Identification anchors (docs/REQUIREMENTS_FIELDS_V0.6.md §5.2).
+    # Identification anchors (docs/ru/REQUIREMENTS_FIELDS_V0.6.md §5.2).
     # Hard minimum enforced by the contract: physical = photo + dimensions +
     # materials + distinguishing features; digital = exact file hash.
     anchors = []

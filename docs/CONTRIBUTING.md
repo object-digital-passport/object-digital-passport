@@ -16,6 +16,31 @@ Thanks for looking. A first contribution does not have to be big.
 
 ## Run what you need
 
+### Documentation is translated into Russian, and CI enforces it
+
+Every document in this repository has a Russian version under [`docs/ru/`](ru/), or a written
+reason why it does not. The record is [`docs/TRANSLATIONS.md`](TRANSLATIONS.md), and
+`tools/check-translations.mjs` reads it as its own CI job.
+
+Three rules follow from that:
+
+1. **English is normative.** Where a translation disagrees with the English text, the translation
+   is the bug. Every Russian file says so at its top.
+2. **Adding an English document means adding a row.** CI fails on a document that no row accounts
+   for — the row is where you decide whether it gets translated, is planned, or deliberately does
+   not. The same applies to a new file under `docs/ru/`.
+3. **Changing an English document means checking its translation.** The job reports identifiers
+   present in the English and missing from the Russian — addresses, `v0.N` strings, field and
+   status-code names. That report is not fatal yet, because it describes a backlog older than the
+   check; do not add to it.
+
+Names that a machine reads are never translated: `dataHash`, `anchorsHash`, `passportId`,
+`unitKey`, `anchorTypesMask`, `.odpass`, and the `ODP-…` / `C-…` / `B-…` / `P-…` / `M-…` formats.
+A translated identifier is a file that stops validating.
+
+Translations into **other** languages are welcome and are tracked separately — see the open issues.
+
+## Where to start
 Most documentation tasks need nothing installed. For the rest:
 
 ```sh

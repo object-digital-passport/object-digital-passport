@@ -65,7 +65,7 @@
 - **Деплоймент** — один адрес контракта (**один экземпляр реестра**).
 - Ваш `creatorId` и паспортные записи относятся **только** к этому деплойменту.
 - Новый деплоймент — даже в рамках новой линии 0.X — **не переносит** старые записи; тот же кошелёк в новом реестре может получить **другой** `creatorId`.
-- **Эта спецификация описывает эталонную *ветку* v0.7** в этом репозитории (редизайн модели хранения — см. `docs/REQUIREMENTS_FIELDS_V0.6.md`): упакованный on-chain `**CONTRACT_VERSION` = 7** (разбиение по EIP-170: линкуемая `**ODPPassportLib`**, опциональные спутники — см. §14). Модель 0.6 хранит **неизменяемую on-chain карточку** (`title`, `authorName`, `shortDescription`, `domain`), якорит блок идентификации через `**anchorsHash`** + `**anchorTypesMask`**, и заменяет все перезаписываемые поля текущего состояния на **append-only события паспорта**. Другие адреса = отдельные реестры; сопоставляйте **сеть + контракт + ABI** + `**CONTRACT_VERSION`**.
+- **Эта спецификация описывает эталонную *ветку* v0.7** в этом репозитории (редизайн модели хранения — см. `docs/ru/REQUIREMENTS_FIELDS_V0.6.md`): упакованный on-chain `**CONTRACT_VERSION` = 7** (разбиение по EIP-170: линкуемая `**ODPPassportLib`**, опциональные спутники — см. §14). Модель 0.6 хранит **неизменяемую on-chain карточку** (`title`, `authorName`, `shortDescription`, `domain`), якорит блок идентификации через `**anchorsHash`** + `**anchorTypesMask`**, и заменяет все перезаписываемые поля текущего состояния на **append-only события паспорта**. Другие адреса = отдельные реестры; сопоставляйте **сеть + контракт + ABI** + `**CONTRACT_VERSION`**.
 
 Если вам нужен сценарий **«один кошелёк + один долгоживущий `creatorId`»** как канонический через все поколения протокола, ориентируйтесь на будущий стабильный **v1**, который может явно описать миграцию или двойное чтение.
 
@@ -739,7 +739,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 
 ## 8. On-chain запись
 
-Этот раздел соответствует структуре `Passport` эталонного `**ObjectDigitalPassport`** (упакованный `**contractVersion` = 6** при минте в этой линии). Порядок полей в tuple ABI может отличаться от таблицы ниже; нормативны **имена** полей. Обоснование дизайна (слои хранения A/B/C) — в `docs/REQUIREMENTS_FIELDS_V0.6.md`.
+Этот раздел соответствует структуре `Passport` эталонного `**ObjectDigitalPassport`** (упакованный `**contractVersion` = 6** при минте в этой линии). Порядок полей в tuple ABI может отличаться от таблицы ниже; нормативны **имена** полей. Обоснование дизайна (слои хранения A/B/C) — в `docs/ru/REQUIREMENTS_FIELDS_V0.6.md`.
 
 
 | Поле                    | Тип       | Обязательное | Описание                                                                                                                                                                                                             |
@@ -774,7 +774,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 | `lastEventAt`           | `uint256` | да       | Время блока последнего события паспорта; **0**, если событий нет                                                                                                                                                     |
 
 
-**Убрано относительно v0.5** (см. таблицу миграции в `docs/REQUIREMENTS_FIELDS_V0.6.md`): `sealType` / `sealHash` / `nfcPublicKey` / `nfcModel` (→ якоря `nfc` / `numbered_seal`), `imageHash2/3` + `imageUrl2/3` (→ якоря `photo`), `currentLocation` / `rightsNote` / `conditionNote` / `damageHistoryHash` / `damageHistoryUrl` (→ append-only события), `auxCommitment*` (→ `documentHash` подтверждения или якорь-документ), `ndppCommitment*` (офлайн-носители сверяются напрямую с `dataHash` / `anchorsHash`).
+**Убрано относительно v0.5** (см. таблицу миграции в `docs/ru/REQUIREMENTS_FIELDS_V0.6.md`): `sealType` / `sealHash` / `nfcPublicKey` / `nfcModel` (→ якоря `nfc` / `numbered_seal`), `imageHash2/3` + `imageUrl2/3` (→ якоря `photo`), `currentLocation` / `rightsNote` / `conditionNote` / `damageHistoryHash` / `damageHistoryUrl` (→ append-only события), `auxCommitment*` (→ `documentHash` подтверждения или якорь-документ), `ndppCommitment*` (офлайн-носители сверяются напрямую с `dataHash` / `anchorsHash`).
 
 **Производное:** время сети для оффчейн-отображения интерпретируется в **UTC**; отдельного поля `timestampTimeZone` нет.
 
@@ -825,7 +825,7 @@ ODP v0.x развёрнут исключительно в **Polygon PoS**.
 - `**deployer`**: `immutable`, задаётся в конструкторе как адрес, выполнивший деплой; **единственный** кошелёк, которому разрешено `freeze()`.
 - `**governance`**: `address`; **конструктор задаёт `governance = msg.sender`**. Используйте `**transferGovernance(newAddr)**` (вызывающий должен быть текущим `governance`), чтобы передать управление мультисигу/DAO.
 - Governance подключает спутники: `**setRelationsSatellite(addr)`**, `**setExtensionRouter(addr)`**.
-- `**freeze()**`: **только `deployer`**; **необратимо**; устанавливает `**frozen = true`** и блокирует каждый изменяющий состояние пользовательский путь основного реестра (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) с откатом `**EC(58)`**; все **чтения** остаются доступны. Это **предохранитель линии v0.x**, и он **планируется к удалению в стабильном v1** (`[docs/IDEAS_V1.md](../../docs/IDEAS_V1.md)`). Freeze затрагивает только основной реестр; спутники сохраняют своё состояние.
+- `**freeze()**`: **только `deployer`**; **необратимо**; устанавливает `**frozen = true`** и блокирует каждый изменяющий состояние пользовательский путь основного реестра (`registerCreator`, `mintPhysical` / `mintDigital` / `mintMixed`, `recordPassportEvent`, `updatePassportUrls`, `transferPassport`, `revokePassport`) с откатом `**EC(58)`**; все **чтения** остаются доступны. Это **предохранитель линии v0.x**, и он **планируется к удалению в стабильном v1** (`[docs/ru/IDEAS_V1.md](IDEAS_V1.md)`). Freeze затрагивает только основной реестр; спутники сохраняют своё состояние.
 
 ### Reverts (откаты)
 

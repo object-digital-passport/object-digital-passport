@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+All notable changes to this project will be documented in this file. Russian translation: [`docs/ru/CHANGELOG.md`](docs/ru/CHANGELOG.md).
 
 The format is based on [Keep a Changelog 2.0.0](https://keepachangelog.com/en/2.0.0/) — the six change types only, with the optional per-release summary that 2.0.0 introduced. Versioning here follows the project's own model rather than plain SemVer: each `v0.x` is a **separate on-chain registry generation** (packed `CONTRACT_VERSION`), not backward compatible with the previous one. **The versioned interface is the registry ABI plus the `passport.json` schema** — a new `v0.x` may change either, and passports do not migrate between generations. **Dates are the day a version became usable**: the mainnet deployment date for a protocol line, the GitHub Release date for a tooling-only patch — see [`docs/VERSIONING_AND_RELEASES.md`](docs/VERSIONING_AND_RELEASES.md) and `SPEC.md`. Patch tags (e.g. `v0.4.1`) are reserved for tooling/docs-only fixes that do not change the deployed registry.
 
