@@ -24,6 +24,7 @@ its own history; what is recorded here from now on is the protocol.
 ### Removed
 
 - **`schema/passport-0.6.schema.json` and `schema/examples/{physical,digital,mixed}.json`**, together with the CI job that validated one against the other. The 0.6 line is superseded; its release notes stay as written, and a passport issued under it still verifies against its on-chain hashes, which do not depend on the schema file. The 0.7 corpus gains `physical`, `digital` and `mixed` alongside the existing `edition`.
+- **`schema/passport-0.5.schema.json`**, for the same reason and on the same terms: 0.5 is superseded exactly as 0.6 is, and leaving one dead line in `schema/` while removing the other only invites the question of which of them is live. Its one dependant was [`docs/OBJECTID_PROFILE.md`](docs/OBJECTID_PROFILE.md), which cited the file as the machine-readable check for its `objectId` block. That block belongs to the v0.5 document shape; the v0.7 line has no `objectId` at all, because the Object ID identification categories became first-class fields and anchors of `passport.json` itself (§9). Both language versions of the profile now open by naming the line they describe and point at `schema/passport-0.7.schema.json` for validation on the current one.
 
 ### Changed
 
