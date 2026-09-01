@@ -4,9 +4,15 @@ pragma solidity ^0.8.20;
 import "./ODPErrors.sol";
 
 /**
- * Satellite: P-affiliation, mint-agent delegation, and creator publishing delegation.
+ * Satellite: affiliation, mint-agent delegation, and creator publishing delegation.
  * Deploy after `ObjectDigitalPassport`; constructor takes the registry address.
  * The main registry may consult this contract for mint-agent and publishing-agent reads.
+ *
+ * Affiliation links one organisation profile to a parent organisation profile through a
+ * two-step handshake (child proposes, parent confirms). Eligible types are `B`, `M` and `P`
+ * in any combination; `C` is excluded — an individual has no divisions, and `C -> C` would
+ * only be a way to attach oneself to somebody else's name. The link is display-only: it
+ * grants no rights, no mint allowance and no inherited trust (see SPEC.md section 4).
  */
 interface IODPRegistryForRelations {
     struct CreatorRecord {
@@ -23,19 +29,30 @@ interface IODPRegistryForRelations {
 contract ODPRegistryRelations {
     IODPRegistryForRelations public immutable odpRegistry;
 
+    bytes1 private constant TYPE_B = "B";
+    bytes1 private constant TYPE_M = "M";
     bytes1 private constant TYPE_P = "P";
 
-    uint16 private constant MAX_P_ACTIVE_CHILDREN_PER_PARENT = 100;
-    uint16 private constant MAX_P_PENDING_PARENTS_PER_CHILD = 100;
+    uint16 private constant MAX_ACTIVE_CHILDREN_PER_PARENT = 100;
+    uint16 private constant MAX_PENDING_PARENTS_PER_CHILD = 100;
 
-    mapping(bytes32 => bool) private _pendingPAffiliation;
-    mapping(string => string) private _pParentOf;
-    mapping(string => string[]) private _pChildrenOf;
-    mapping(string => uint16) private _pActiveChildrenCountByParent;
-    mapping(string => uint16) private _pPendingParentsCountByChild;
-    mapping(string => uint256) private _pAffiliationJoinedAt;
-    mapping(string => uint256) private _pAffiliationDetachedAt;
-    mapping(string => string) private _pLastDetachedParent;
+    /**
+     * Hops the cycle check walks upward from a proposed parent before giving up.
+     * Affiliation is multi-level on purpose (a school under a university under a
+     * consortium), so depth cannot be forbidden outright — but an unbounded walk is an
+     * unbounded gas cost, so a chain whose ancestors do not terminate within this many
+     * hops is rejected instead of traversed.
+     */
+    uint256 private constant MAX_AFFILIATION_WALK = 8;
+
+    mapping(bytes32 => bool) private _pendingAffiliation;
+    mapping(string => string) private _parentOf;
+    mapping(string => string[]) private _childrenOf;
+    mapping(string => uint16) private _activeChildrenCountByParent;
+    mapping(string => uint16) private _pendingParentsCountByChild;
+    mapping(string => uint256) private _affiliationJoinedAt;
+    mapping(string => uint256) private _affiliationDetachedAt;
+    mapping(string => string) private _lastDetachedParent;
 
     struct DelegationInfo {
         address agent;
@@ -47,9 +64,9 @@ contract ODPRegistryRelations {
     mapping(bytes32 => bool) private _mintAgentDelegationPending;
 
     event MintAgentUpdate(string indexed principalCreatorId, address indexed agent, uint8 kind, uint256 timestamp);
-    event PAffiliationProposed(string indexed parentPId, string indexed childPId, uint256 timestamp);
-    event PAffiliationConfirmed(string indexed parentPId, string indexed childPId, uint256 timestamp);
-    event PAffiliationDetached(string indexed parentPId, string indexed childPId, uint256 timestamp);
+    event AffiliationProposed(string indexed parentId, string indexed childId, uint256 timestamp);
+    event AffiliationConfirmed(string indexed parentId, string indexed childId, uint256 timestamp);
+    event AffiliationDetached(string indexed parentId, string indexed childId, uint256 timestamp);
     event CreatorPublishingDelegated(address indexed creator, address indexed agent, uint256 expiresAt);
     event CreatorPublishingDelegationRevoked(address indexed creator, uint256 timestamp);
 
@@ -57,71 +74,75 @@ contract ODPRegistryRelations {
         odpRegistry = IODPRegistryForRelations(registry_);
     }
 
-    function proposePAffiliation(string calldata parentPId) external {
-        string memory childPId = _requireRegistered();
-        _requireTypeP(childPId);
-        if (!(bytes(parentPId).length > 0)) revert EC(49);
-        if (!(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)))) revert EC(46);
-        _requireTypeP(parentPId);
-        if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
-        if (!(_pPendingParentsCountByChild[childPId] < MAX_P_PENDING_PARENTS_PER_CHILD)) revert EC(48);
+    function proposeAffiliation(string calldata parentId) external {
+        string memory childId = _requireRegistered();
+        _requireAffiliationType(childId);
+        if (!(bytes(parentId).length > 0)) revert EC(49);
+        if (!(keccak256(bytes(parentId)) != keccak256(bytes(childId)))) revert EC(46);
+        _requireAffiliationType(parentId);
+        if (!(bytes(_parentOf[childId]).length == 0)) revert EC(45);
+        if (!(_pendingParentsCountByChild[childId] < MAX_PENDING_PARENTS_PER_CHILD)) revert EC(48);
+        // Early feedback only. State can move between propose and confirm, so the
+        // authoritative cycle check is the one in confirmAffiliation.
+        _requireNoCycle(parentId, childId);
 
-        // Triaged encodePacked collision: both IDs are validated registered P profiles with
-        // the fixed contract-generated format P-NNN-NNN-NNN-NNN (17 chars) — fixed-length
+        // Triaged encodePacked collision: both IDs are validated registered profiles with
+        // the fixed contract-generated format T-NNN-NNN-NNN-NNN (17 chars) — fixed-length
         // concatenation is unambiguous. Next contract generation should use abi.encode.
         // slither-disable-next-line encode-packed-collision
-        bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
-        if (!(!_pendingPAffiliation[k])) revert EC(47);
-        _pendingPAffiliation[k] = true;
-        _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] + 1;
+        bytes32 k = keccak256(abi.encodePacked(parentId, childId));
+        if (!(!_pendingAffiliation[k])) revert EC(47);
+        _pendingAffiliation[k] = true;
+        _pendingParentsCountByChild[childId] = _pendingParentsCountByChild[childId] + 1;
 
-        emit PAffiliationProposed(parentPId, childPId, block.timestamp);
+        emit AffiliationProposed(parentId, childId, block.timestamp);
     }
 
-    function confirmPAffiliation(string calldata childPId) external {
-        string memory parentPId = _requireRegistered();
-        _requireTypeP(parentPId);
-        _requireTypeP(childPId);
-        if (!(keccak256(bytes(parentPId)) != keccak256(bytes(childPId)))) revert EC(46);
-        if (!(bytes(_pParentOf[childPId]).length == 0)) revert EC(45);
+    function confirmAffiliation(string calldata childId) external {
+        string memory parentId = _requireRegistered();
+        _requireAffiliationType(parentId);
+        _requireAffiliationType(childId);
+        if (!(keccak256(bytes(parentId)) != keccak256(bytes(childId)))) revert EC(46);
+        if (!(bytes(_parentOf[childId]).length == 0)) revert EC(45);
 
-        // Triaged: fixed-format registered P IDs — see proposePAffiliation note.
+        // Triaged: fixed-format registered IDs — see proposeAffiliation note.
         // slither-disable-next-line encode-packed-collision
-        bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
-        if (!(_pendingPAffiliation[k])) revert EC(42);
-        delete _pendingPAffiliation[k];
-        _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] - 1;
+        bytes32 k = keccak256(abi.encodePacked(parentId, childId));
+        if (!(_pendingAffiliation[k])) revert EC(42);
+        delete _pendingAffiliation[k];
+        _pendingParentsCountByChild[childId] = _pendingParentsCountByChild[childId] - 1;
 
-        if (!(_pActiveChildrenCountByParent[parentPId] < MAX_P_ACTIVE_CHILDREN_PER_PARENT)) revert EC(44);
+        if (!(_activeChildrenCountByParent[parentId] < MAX_ACTIVE_CHILDREN_PER_PARENT)) revert EC(44);
+        _requireNoCycle(parentId, childId);
 
-        _pParentOf[childPId] = parentPId;
-        _pChildrenOf[parentPId].push(childPId);
-        _pActiveChildrenCountByParent[parentPId] = _pActiveChildrenCountByParent[parentPId] + 1;
+        _parentOf[childId] = parentId;
+        _childrenOf[parentId].push(childId);
+        _activeChildrenCountByParent[parentId] = _activeChildrenCountByParent[parentId] + 1;
 
-        _pAffiliationJoinedAt[childPId] = block.timestamp;
-        delete _pAffiliationDetachedAt[childPId];
-        delete _pLastDetachedParent[childPId];
+        _affiliationJoinedAt[childId] = block.timestamp;
+        delete _affiliationDetachedAt[childId];
+        delete _lastDetachedParent[childId];
 
-        emit PAffiliationConfirmed(parentPId, childPId, block.timestamp);
+        emit AffiliationConfirmed(parentId, childId, block.timestamp);
     }
 
-    function detachPAffiliation(string calldata childPId) external {
-        string memory parentPId = _requireRegistered();
-        _requireTypeP(parentPId);
-        _requireTypeP(childPId);
-        if (!(keccak256(bytes(_pParentOf[childPId])) == keccak256(bytes(parentPId)))) revert EC(43);
+    function detachAffiliation(string calldata childId) external {
+        string memory parentId = _requireRegistered();
+        _requireAffiliationType(parentId);
+        _requireAffiliationType(childId);
+        if (!(keccak256(bytes(_parentOf[childId])) == keccak256(bytes(parentId)))) revert EC(43);
 
-        _removeChildFromParentList(parentPId, childPId);
-        delete _pParentOf[childPId];
-        _pActiveChildrenCountByParent[parentPId] = _pActiveChildrenCountByParent[parentPId] - 1;
+        _removeChildFromParentList(parentId, childId);
+        delete _parentOf[childId];
+        _activeChildrenCountByParent[parentId] = _activeChildrenCountByParent[parentId] - 1;
 
-        _pAffiliationDetachedAt[childPId] = block.timestamp;
-        _pLastDetachedParent[childPId] = parentPId;
+        _affiliationDetachedAt[childId] = block.timestamp;
+        _lastDetachedParent[childId] = parentId;
 
-        emit PAffiliationDetached(parentPId, childPId, block.timestamp);
+        emit AffiliationDetached(parentId, childId, block.timestamp);
     }
 
-    function getPAffiliationAudit(string calldata childPId)
+    function getAffiliationAudit(string calldata childId)
         external
         view
         returns (
@@ -131,47 +152,47 @@ contract ODPRegistryRelations {
             string memory lastDetachedFromParent
         )
     {
-        activeParent = _pParentOf[childPId];
-        joinedAt = _pAffiliationJoinedAt[childPId];
-        detachedAt = _pAffiliationDetachedAt[childPId];
-        lastDetachedFromParent = _pLastDetachedParent[childPId];
+        activeParent = _parentOf[childId];
+        joinedAt = _affiliationJoinedAt[childId];
+        detachedAt = _affiliationDetachedAt[childId];
+        lastDetachedFromParent = _lastDetachedParent[childId];
     }
 
-    function cancelPAffiliationRequest(string calldata parentPId) external {
-        string memory childPId = _requireRegistered();
-        _requireTypeP(childPId);
-        // Triaged: fixed-format registered P IDs — see proposePAffiliation note.
+    function cancelAffiliationRequest(string calldata parentId) external {
+        string memory childId = _requireRegistered();
+        _requireAffiliationType(childId);
+        // Triaged: fixed-format registered IDs — see proposeAffiliation note.
         // slither-disable-next-line encode-packed-collision
-        bytes32 k = keccak256(abi.encodePacked(parentPId, childPId));
-        if (!(_pendingPAffiliation[k])) revert EC(42);
-        delete _pendingPAffiliation[k];
-        _pPendingParentsCountByChild[childPId] = _pPendingParentsCountByChild[childPId] - 1;
+        bytes32 k = keccak256(abi.encodePacked(parentId, childId));
+        if (!(_pendingAffiliation[k])) revert EC(42);
+        delete _pendingAffiliation[k];
+        _pendingParentsCountByChild[childId] = _pendingParentsCountByChild[childId] - 1;
     }
 
-    function isPAffiliationPending(string calldata parentPId, string calldata childPId)
+    function isAffiliationPending(string calldata parentId, string calldata childId)
         external
         view
         returns (bool)
     {
-        // Triaged: view over the same fixed-format key space — see proposePAffiliation note.
+        // Triaged: view over the same fixed-format key space — see proposeAffiliation note.
         // slither-disable-next-line encode-packed-collision
-        return _pendingPAffiliation[keccak256(abi.encodePacked(parentPId, childPId))];
+        return _pendingAffiliation[keccak256(abi.encodePacked(parentId, childId))];
     }
 
-    function getPAffiliatedParent(string calldata childPId) external view returns (string memory) {
-        return _pParentOf[childPId];
+    function getAffiliatedParent(string calldata childId) external view returns (string memory) {
+        return _parentOf[childId];
     }
 
-    function getPAffiliatedChildren(string calldata parentPId) external view returns (string[] memory) {
-        return _pChildrenOf[parentPId];
+    function getAffiliatedChildren(string calldata parentId) external view returns (string[] memory) {
+        return _childrenOf[parentId];
     }
 
-    function getPAffiliatedChildrenPaged(string calldata parentPId, uint256 offset, uint256 limit)
+    function getAffiliatedChildrenPaged(string calldata parentId, uint256 offset, uint256 limit)
         external
         view
         returns (string[] memory result, uint256 total)
     {
-        return _stringArraySlice(_pChildrenOf[parentPId], offset, limit);
+        return _stringArraySlice(_childrenOf[parentId], offset, limit);
     }
 
     function requestMintAgentRole(string calldata principalCreatorId) external {
@@ -261,15 +282,35 @@ contract ODPRegistryRelations {
         if (!(bytes(creatorId).length > 0)) revert EC(3);
     }
 
-    function _requireTypeP(string memory creatorId) internal view {
+    function _requireAffiliationType(string memory creatorId) internal view {
         IODPRegistryForRelations.CreatorRecord memory c = odpRegistry.getCreator(creatorId);
-        if (!(c.typePrefix == TYPE_P)) revert EC(71);
+        bytes1 t = c.typePrefix;
+        if (!(t == TYPE_B || t == TYPE_M || t == TYPE_P)) revert EC(71);
     }
 
-    function _removeChildFromParentList(string memory parentPId, string memory childPId) internal {
-        string[] storage ch = _pChildrenOf[parentPId];
+    /**
+     * Rejects a link that would close a loop: `A` under `B` under `A` leaves every client
+     * that walks the chain spinning forever. Walks upward from the proposed parent and
+     * reverts if the child is already an ancestor. The walk is capped so gas stays bounded;
+     * a chain that does not reach a root within the cap is rejected rather than traversed.
+     */
+    function _requireNoCycle(string memory parentId, string memory childId) internal view {
+        bytes32 childKey = keccak256(bytes(childId));
+        string memory cursor = parentId;
+        for (uint256 hops = 0; hops < MAX_AFFILIATION_WALK; hops++) {
+            if (bytes(cursor).length == 0) {
+                return; // reached a root — the child is not an ancestor
+            }
+            if (keccak256(bytes(cursor)) == childKey) revert EC(67);
+            cursor = _parentOf[cursor];
+        }
+        revert EC(69);
+    }
+
+    function _removeChildFromParentList(string memory parentId, string memory childId) internal {
+        string[] storage ch = _childrenOf[parentId];
         for (uint256 i = 0; i < ch.length; i++) {
-            if (keccak256(bytes(ch[i])) == keccak256(bytes(childPId))) {
+            if (keccak256(bytes(ch[i])) == keccak256(bytes(childId))) {
                 ch[i] = ch[ch.length - 1];
                 ch.pop();
                 return;
