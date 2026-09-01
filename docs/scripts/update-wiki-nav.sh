@@ -2,7 +2,7 @@
 # Update the GitHub Wiki navigation (_Sidebar.md and _Footer.md).
 #
 # Why a script: the wiki lives in a SEPARATE git repository
-# (object-digital-passport.wiki.git) that is not a submodule of this repo and
+# (specifications.wiki.git) that is not a submodule of this repo and
 # cannot be edited through a pull request. Run this locally, where your git
 # credentials can push to it.
 #
@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-WIKI_URL="https://github.com/object-digital-passport/object-digital-passport.wiki.git"
+WIKI_URL="https://github.com/object-digital-passport/specifications.wiki.git"
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
@@ -48,13 +48,14 @@ cat > _Sidebar.md <<'SIDEBAR'
 
 ---
 
-[Demo](https://object-digital-passport.github.io/object-digital-passport/) ·
-[Spec](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) ·
-[Repo](https://github.com/object-digital-passport/object-digital-passport)
+[Verify something](https://object-digital-passport.github.io/verify.html) ·
+[Spec](https://github.com/object-digital-passport/specifications/blob/main/SPEC.md)
+([по-русски](https://github.com/object-digital-passport/specifications/blob/main/docs/ru/SPEC.md)) ·
+[Repo](https://github.com/object-digital-passport/specifications)
 SIDEBAR
 
 cat > _Footer.md <<'FOOTER'
-**Object Digital Passport** — open standard, MIT licensed. These wiki pages are friendly explanations; the normative source is [`SPEC.md`](https://github.com/object-digital-passport/object-digital-passport/blob/main/SPEC.md) (English). Questions and corrections → [Discussions](https://github.com/object-digital-passport/object-digital-passport/discussions) (in English, so everyone can follow).
+**Object Digital Passport** — open standard, MIT licensed. These wiki pages are friendly explanations; the normative source is [`SPEC.md`](https://github.com/object-digital-passport/specifications/blob/main/SPEC.md) (English; [русский перевод](https://github.com/object-digital-passport/specifications/blob/main/docs/ru/SPEC.md) is informational). Questions and corrections → [Discussions](https://github.com/object-digital-passport/specifications/discussions) (in English, so everyone can follow).
 FOOTER
 
 # Guard: a sidebar link pointing at a page that does not exist renders as a
@@ -91,7 +92,7 @@ case "$reply" in
     git commit -q -m "wiki: bilingual sidebar (both language trees) and a footer"
     # The wiki's default branch is master, not main.
     git push origin master
-    echo "  Pushed. Check https://github.com/object-digital-passport/object-digital-passport/wiki"
+    echo "  Pushed. Check https://github.com/object-digital-passport/specifications/wiki"
     ;;
   *)
     echo "  Aborted — nothing pushed."

@@ -1,4 +1,4 @@
-<!-- Use **English** for the PR title and description so everyone in the community can follow (see [CONTRIBUTING.md](../docs/CONTRIBUTING.md#language-github-and-the-community)). -->
+<!-- Use **English** for the PR title and description so everyone in the community can follow (see [CONTRIBUTING.md](../docs/CONTRIBUTING.md#language)). -->
 
 ## Summary
 
