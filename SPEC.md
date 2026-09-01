@@ -2138,6 +2138,19 @@ They are not part of the ODP protocol and are not standardized here:
 
 ODP is intended as a **cryptographic trust layer** that can sit alongside — not replace — regulatory **Digital Product Passport (DPP)** initiatives, **GS1** identifiers, **IIIF** manifests, **C2PA** content credentials, and other supply-chain or media standards.
 
+### 18.0 Position relative to the EU DPP (ESPR)
+
+The regulatory DPP referred to above is the one established by **Regulation (EU) 2024/1781** (Ecodesign for Sustainable Products Regulation, "ESPR"), Chapter III.
+
+> **An ODP passport is not an ESPR DPP.** ODP is not a conformity route, product-group delegated acts do not apply to it, it carries no unique identifier registered with the Commission, it is not connected to the DPP registry (Art. 13) or the web portal (Art. 14), and it makes no claim about the sustainability attributes ESPR mandates. Nothing in this specification helps an economic operator meet an ESPR obligation, and an implementation **MUST NOT** present an ODP passport as satisfying one.
+
+Two points of ESPR Art. 11 (technical design and operation) describe properties ODP happens to have, and they are the only substantive overlap worth naming:
+
+- **Art. 11(e)** — a passport remains available for the period set in the delegated act, *including after insolvency, liquidation, or the economic operator ceasing activity in the Union.* An ODP record survives its issuer by construction: the registry entry is on-chain and needs no operator to answer for it (§7, §16). What does not survive on its own is the off-chain bundle behind `dataUrl` — see §16.
+- **Art. 11(g)** — authentication, reliability and integrity of the data must be ensured. This is what `dataHash` / `anchorsHash` and the byte-for-byte card check exist to do (§10, §11).
+
+Where ESPR expects a service-provider and registry model, ODP deliberately does not have one. That is a difference in kind, not a gap to be closed later, and it is the reason the overlap stops at these two points.
+
 ### 18.1 Optional `passport.json` fields (draft)
 
 Implementations MAY include optional namespaces (all off-chain unless hashed into `dataHash`):
