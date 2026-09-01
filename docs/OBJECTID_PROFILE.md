@@ -2,6 +2,13 @@
 
 *Optional profile. Normative core rules remain in [`SPEC.md`](../SPEC.md).*
 
+> **This profile describes the closed v0.5 line.** It maps the Object ID categories onto a
+> separate `objectId` block, which existed only in the v0.5 document shape. The v0.7 line does
+> not carry that block: the same identification categories are first-class fields and anchors of
+> `passport.json` itself — see [`SPEC.md` §9](../SPEC.md#9-passport-json) and
+> [`schema/passport-0.7.schema.json`](../schema/passport-0.7.schema.json). The text below is kept
+> as written for the line it documents.
+
 ## Purpose
 
 This profile makes an ODP passport serve **two complementary goals** with one document:
@@ -65,8 +72,9 @@ documentation standard for cultural goods: **nine information categories** plus 
 
 Both fields are part of the canonical document and are covered by `dataHash`:
 after mint they cannot be edited without the change being detectable (SPEC §10).
-Machine-readable validation: [`schema/passport-0.5.schema.json`](../schema/passport-0.5.schema.json)
-(the `objectId` block and its conditional requirements are enforced there).
+Machine-readable validation of the `objectId` block lived in the v0.5 schema, which is no longer
+carried in this repository; on the v0.7 line the same fields are validated directly by
+[`schema/passport-0.7.schema.json`](../schema/passport-0.7.schema.json).
 
 ## Profile conformance rules
 
