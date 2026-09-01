@@ -634,24 +634,129 @@ describe("ObjectDigitalPassport", function () {
       );
     });
 
-    it("detachPAffiliation sets audit timestamps and clears active parent", async function () {
+    it("detachAffiliation sets audit timestamps and clears active parent", async function () {
       const c = await deployFixture();
       const [_, __, wChild, wParent] = await ethers.getSigners();
       await c.connect(wChild).registerCreator(TYPE_P);
       await c.connect(wParent).registerCreator(TYPE_P);
       const childId = await c.getCreatorByWallet(wChild.address);
       const parentId = await c.getCreatorByWallet(wParent.address);
-      await c.relations.connect(wChild).proposePAffiliation(parentId);
-      await c.relations.connect(wParent).confirmPAffiliation(childId);
-      expect(await c.relations.getPAffiliatedParent(childId)).to.equal(parentId);
-      let a = await c.relations.getPAffiliationAudit(childId);
+      await c.relations.connect(wChild).proposeAffiliation(parentId);
+      await c.relations.connect(wParent).confirmAffiliation(childId);
+      expect(await c.relations.getAffiliatedParent(childId)).to.equal(parentId);
+      let a = await c.relations.getAffiliationAudit(childId);
       expect(a.joinedAt > 0n).to.equal(true);
       expect(a.detachedAt).to.equal(0n);
-      await c.relations.connect(wParent).detachPAffiliation(childId);
-      expect(await c.relations.getPAffiliatedParent(childId)).to.equal("");
-      a = await c.relations.getPAffiliationAudit(childId);
+      await c.relations.connect(wParent).detachAffiliation(childId);
+      expect(await c.relations.getAffiliatedParent(childId)).to.equal("");
+      a = await c.relations.getAffiliationAudit(childId);
       expect(a.detachedAt > 0n).to.equal(true);
       expect(a.lastDetachedFromParent).to.equal(parentId);
+    });
+  });
+
+  describe("affiliation (B / M / P, display-only)", function () {
+    /** Registers `count` fresh B profiles and returns [signer, creatorId] pairs. */
+    async function bProfiles(c, signers) {
+      const out = [];
+      for (const w of signers) {
+        await c.connect(w).registerCreator(TYPE_B);
+        out.push([w, await c.getCreatorByWallet(w.address)]);
+      }
+      return out;
+    }
+
+    it("links across types: a B sub-brand may sit under an M collection", async function () {
+      const c = await deployFixture();
+      const [, , wChild, wParent] = await ethers.getSigners();
+      await c.connect(wChild).registerCreator(TYPE_B);
+      await c.connect(wParent).registerCreator(TYPE_M);
+      const childId = await c.getCreatorByWallet(wChild.address);
+      const parentId = await c.getCreatorByWallet(wParent.address);
+      await c.relations.connect(wChild).proposeAffiliation(parentId);
+      expect(await c.relations.isAffiliationPending(parentId, childId)).to.equal(true);
+      await c.relations.connect(wParent).confirmAffiliation(childId);
+      expect(await c.relations.getAffiliatedParent(childId)).to.equal(parentId);
+      expect(await c.relations.getAffiliatedChildren(parentId)).to.deep.equal([childId]);
+    });
+
+    it("rejects C on either side of the link with EC(71)", async function () {
+      const c = await deployFixture();
+      const [, , wIndividual, wBrand] = await ethers.getSigners();
+      await c.connect(wIndividual).registerCreator(TYPE_C);
+      await c.connect(wBrand).registerCreator(TYPE_B);
+      const individualId = await c.getCreatorByWallet(wIndividual.address);
+      const brandId = await c.getCreatorByWallet(wBrand.address);
+      // C proposing a parent
+      await expect(c.relations.connect(wIndividual).proposeAffiliation(brandId))
+        .to.be.revertedWithCustomError(c.relations, "EC")
+        .withArgs(71n);
+      // C named as the parent
+      await expect(c.relations.connect(wBrand).proposeAffiliation(individualId))
+        .to.be.revertedWithCustomError(c.relations, "EC")
+        .withArgs(71n);
+    });
+
+    it("a parent may itself gain a parent later: school -> university -> consortium", async function () {
+      const c = await deployFixture();
+      const [, , wSchool, wUniversity, wConsortium] = await ethers.getSigners();
+      const [[, schoolId], [wUni, universityId], [wCons, consortiumId]] = await bProfiles(c, [
+        wSchool,
+        wUniversity,
+        wConsortium,
+      ]);
+      await c.relations.connect(wSchool).proposeAffiliation(universityId);
+      await c.relations.connect(wUni).confirmAffiliation(schoolId);
+      // The university now has a child; a consortium appearing above must still be possible.
+      await c.relations.connect(wUni).proposeAffiliation(consortiumId);
+      await c.relations.connect(wCons).confirmAffiliation(universityId);
+      expect(await c.relations.getAffiliatedParent(schoolId)).to.equal(universityId);
+      expect(await c.relations.getAffiliatedParent(universityId)).to.equal(consortiumId);
+    });
+
+    it("refuses a direct cycle: a child cannot become its own parent's parent — EC(67)", async function () {
+      const c = await deployFixture();
+      const [, , wA, wB] = await ethers.getSigners();
+      const [[, idA], [wParentB, idB]] = await bProfiles(c, [wA, wB]);
+      await c.relations.connect(wA).proposeAffiliation(idB);
+      await c.relations.connect(wParentB).confirmAffiliation(idA);
+      // B is A's parent; B now tries to sit under A.
+      await expect(c.relations.connect(wParentB).proposeAffiliation(idA))
+        .to.be.revertedWithCustomError(c.relations, "EC")
+        .withArgs(67n);
+    });
+
+    it("refuses a cycle through three profiles — EC(67)", async function () {
+      const c = await deployFixture();
+      const [, , wA, wB, wC] = await ethers.getSigners();
+      const [[wChildA, idA], [wMidB, idB], [wTopC, idC]] = await bProfiles(c, [wA, wB, wC]);
+      await c.relations.connect(wChildA).proposeAffiliation(idB);
+      await c.relations.connect(wMidB).confirmAffiliation(idA);
+      await c.relations.connect(wMidB).proposeAffiliation(idC);
+      await c.relations.connect(wTopC).confirmAffiliation(idB);
+      // Chain is A -> B -> C. C sitting under A would close the loop.
+      await expect(c.relations.connect(wTopC).proposeAffiliation(idA))
+        .to.be.revertedWithCustomError(c.relations, "EC")
+        .withArgs(67n);
+    });
+
+    it("caps the ancestor walk: an 8-deep chain links, the 9th link reverts EC(69)", async function () {
+      const c = await deployFixture();
+      const signers = (await ethers.getSigners()).slice(2, 12);
+      const profiles = await bProfiles(c, signers);
+      // Grow downward: profiles[i] sits under profiles[i - 1].
+      for (let i = 1; i < 8; i++) {
+        const [wChild, childId] = profiles[i];
+        const [wParent, parentId] = profiles[i - 1];
+        await c.relations.connect(wChild).proposeAffiliation(parentId);
+        await c.relations.connect(wParent).confirmAffiliation(childId);
+      }
+      expect(await c.relations.getAffiliatedParent(profiles[7][1])).to.equal(profiles[6][1]);
+      // profiles[7] already has 7 ancestors; one more level exceeds the walk limit.
+      const [wNext] = profiles[8];
+      await expect(c.relations.connect(wNext).proposeAffiliation(profiles[7][1]))
+        .to.be.revertedWithCustomError(c.relations, "EC")
+        .withArgs(69n);
     });
   });
 

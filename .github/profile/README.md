@@ -44,6 +44,8 @@ Verifying is **free, forever, and needs no wallet**. Registering costs the netwo
 |:--|:--|
 | **[object-digital-passport](https://github.com/object-digital-passport/specifications)** | **The standard.** `SPEC.md`, Solidity contracts, JSON Schema, conformance vectors, deploy tooling. |
 | **[object-digital-passport.github.io](https://github.com/object-digital-passport/object-digital-passport.github.io)** | **The reference website.** Everything that runs in a browser: verify, profile and passport pages. |
+| **[odp-profile-directory](https://github.com/object-digital-passport/odp-profile-directory)** | **The directory format.** A CSV schema, a validator and a daily re-check bot for listing profile IDs against the domains their owners publish them on — with a worked example. |
+| **[odp-directory-v0.6](https://github.com/object-digital-passport/odp-directory-v0.6)** | **A working directory** for the v0.6 registry: curated entries an application can read instead of solving the same lookup itself. |
 | **odp-apple-app** | iOS app — issue, carry and check passports; NFC seals and a non-custodial wallet. *Private while it is pre-release.* |
 | **odp-android-companion** | Android NFC verifier — NTAG 424 DNA / TagTamper scans. *Private while it is pre-release.* |
 
@@ -68,6 +70,7 @@ Verifying is **free, forever, and needs no wallet**. Registering costs the netwo
 - **The standard** — [`SPEC.md`](https://github.com/object-digital-passport/specifications/blob/main/SPEC.md) · [rendered](https://object-digital-passport.github.io/specifications/spec/)
 - **Detailed guide and addresses** — [`docs/GUIDE.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/GUIDE.md)
 - **What is in v0.7** — [release note](https://github.com/object-digital-passport/specifications/blob/main/docs/releases/v0.7.md) · [full changelog](https://github.com/object-digital-passport/specifications/blob/main/CHANGELOG.md)
+- **Publishing your profile ID** — [`SPEC.md` §3](https://github.com/object-digital-passport/specifications/blob/main/SPEC.md#3-profile-id): where to put it, and the `/.well-known/odp.json` endpoint that lets software confirm it without guessing
 - **Repository layout** — [`docs/REPOSITORY_LAYOUT.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/REPOSITORY_LAYOUT.md)
 - **NFC seals on Android** — [`docs/ANDROID_NTAG424DNA_TAGTAMPER.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/ANDROID_NTAG424DNA_TAGTAMPER.md)
 - **Security model** — [`docs/SECURITY.md`](https://github.com/object-digital-passport/specifications/blob/main/docs/SECURITY.md)

@@ -6,47 +6,47 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
   
 
   export interface ODPRegistryRelationsInterface extends Interface {
-    getFunction(nameOrSignature: "cancelMintAgentRequest" | "cancelPAffiliationRequest" | "confirmMintAgentRole" | "confirmPAffiliation" | "delegateCreatorPublishing" | "detachPAffiliation" | "getCreatorPublishingDelegation" | "getPAffiliatedChildren" | "getPAffiliatedChildrenPaged" | "getPAffiliatedParent" | "getPAffiliationAudit" | "isPAffiliationPending" | "mintAgentDelegationPending" | "mintAgentForCreator" | "odpRegistry" | "proposePAffiliation" | "renounceMintAgentRole" | "requestMintAgentRole" | "revokeCreatorPublishing" | "revokeMintAgentRole"): FunctionFragment;
+    getFunction(nameOrSignature: "cancelAffiliationRequest" | "cancelMintAgentRequest" | "confirmAffiliation" | "confirmMintAgentRole" | "delegateCreatorPublishing" | "detachAffiliation" | "getAffiliatedChildren" | "getAffiliatedChildrenPaged" | "getAffiliatedParent" | "getAffiliationAudit" | "getCreatorPublishingDelegation" | "isAffiliationPending" | "mintAgentDelegationPending" | "mintAgentForCreator" | "odpRegistry" | "proposeAffiliation" | "renounceMintAgentRole" | "requestMintAgentRole" | "revokeCreatorPublishing" | "revokeMintAgentRole"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "CreatorPublishingDelegated" | "CreatorPublishingDelegationRevoked" | "MintAgentUpdate" | "PAffiliationConfirmed" | "PAffiliationDetached" | "PAffiliationProposed"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "AffiliationConfirmed" | "AffiliationDetached" | "AffiliationProposed" | "CreatorPublishingDelegated" | "CreatorPublishingDelegationRevoked" | "MintAgentUpdate"): EventFragment;
 
-    encodeFunctionData(functionFragment: 'cancelMintAgentRequest', values: [string]): string;
-encodeFunctionData(functionFragment: 'cancelPAffiliationRequest', values: [string]): string;
+    encodeFunctionData(functionFragment: 'cancelAffiliationRequest', values: [string]): string;
+encodeFunctionData(functionFragment: 'cancelMintAgentRequest', values: [string]): string;
+encodeFunctionData(functionFragment: 'confirmAffiliation', values: [string]): string;
 encodeFunctionData(functionFragment: 'confirmMintAgentRole', values: [AddressLike]): string;
-encodeFunctionData(functionFragment: 'confirmPAffiliation', values: [string]): string;
 encodeFunctionData(functionFragment: 'delegateCreatorPublishing', values: [AddressLike, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'detachPAffiliation', values: [string]): string;
+encodeFunctionData(functionFragment: 'detachAffiliation', values: [string]): string;
+encodeFunctionData(functionFragment: 'getAffiliatedChildren', values: [string]): string;
+encodeFunctionData(functionFragment: 'getAffiliatedChildrenPaged', values: [string, BigNumberish, BigNumberish]): string;
+encodeFunctionData(functionFragment: 'getAffiliatedParent', values: [string]): string;
+encodeFunctionData(functionFragment: 'getAffiliationAudit', values: [string]): string;
 encodeFunctionData(functionFragment: 'getCreatorPublishingDelegation', values: [AddressLike]): string;
-encodeFunctionData(functionFragment: 'getPAffiliatedChildren', values: [string]): string;
-encodeFunctionData(functionFragment: 'getPAffiliatedChildrenPaged', values: [string, BigNumberish, BigNumberish]): string;
-encodeFunctionData(functionFragment: 'getPAffiliatedParent', values: [string]): string;
-encodeFunctionData(functionFragment: 'getPAffiliationAudit', values: [string]): string;
-encodeFunctionData(functionFragment: 'isPAffiliationPending', values: [string, string]): string;
+encodeFunctionData(functionFragment: 'isAffiliationPending', values: [string, string]): string;
 encodeFunctionData(functionFragment: 'mintAgentDelegationPending', values: [BytesLike]): string;
 encodeFunctionData(functionFragment: 'mintAgentForCreator', values: [string]): string;
 encodeFunctionData(functionFragment: 'odpRegistry', values?: undefined): string;
-encodeFunctionData(functionFragment: 'proposePAffiliation', values: [string]): string;
+encodeFunctionData(functionFragment: 'proposeAffiliation', values: [string]): string;
 encodeFunctionData(functionFragment: 'renounceMintAgentRole', values: [string]): string;
 encodeFunctionData(functionFragment: 'requestMintAgentRole', values: [string]): string;
 encodeFunctionData(functionFragment: 'revokeCreatorPublishing', values?: undefined): string;
 encodeFunctionData(functionFragment: 'revokeMintAgentRole', values?: undefined): string;
 
-    decodeFunctionResult(functionFragment: 'cancelMintAgentRequest', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'cancelPAffiliationRequest', data: BytesLike): Result;
+    decodeFunctionResult(functionFragment: 'cancelAffiliationRequest', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'cancelMintAgentRequest', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'confirmAffiliation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'confirmMintAgentRole', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'confirmPAffiliation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'delegateCreatorPublishing', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'detachPAffiliation', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'detachAffiliation', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getAffiliatedChildren', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getAffiliatedChildrenPaged', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getAffiliatedParent', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'getAffiliationAudit', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'getCreatorPublishingDelegation', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliatedChildren', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliatedChildrenPaged', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliatedParent', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'getPAffiliationAudit', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'isPAffiliationPending', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'isAffiliationPending', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintAgentDelegationPending', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintAgentForCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'odpRegistry', data: BytesLike): Result;
-decodeFunctionResult(functionFragment: 'proposePAffiliation', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'proposeAffiliation', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'renounceMintAgentRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'requestMintAgentRole', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'revokeCreatorPublishing', data: BytesLike): Result;
@@ -54,6 +54,42 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
   }
 
   
+    export namespace AffiliationConfirmedEvent {
+      export type InputTuple = [parentId: string, childId: string, timestamp: BigNumberish];
+      export type OutputTuple = [parentId: string, childId: string, timestamp: bigint];
+      export interface OutputObject {parentId: string, childId: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace AffiliationDetachedEvent {
+      export type InputTuple = [parentId: string, childId: string, timestamp: BigNumberish];
+      export type OutputTuple = [parentId: string, childId: string, timestamp: bigint];
+      export interface OutputObject {parentId: string, childId: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace AffiliationProposedEvent {
+      export type InputTuple = [parentId: string, childId: string, timestamp: BigNumberish];
+      export type OutputTuple = [parentId: string, childId: string, timestamp: bigint];
+      export interface OutputObject {parentId: string, childId: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
     export namespace CreatorPublishingDelegatedEvent {
       export type InputTuple = [creator: AddressLike, agent: AddressLike, expiresAt: BigNumberish];
       export type OutputTuple = [creator: string, agent: string, expiresAt: bigint];
@@ -82,42 +118,6 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
       export type InputTuple = [principalCreatorId: string, agent: AddressLike, kind: BigNumberish, timestamp: BigNumberish];
       export type OutputTuple = [principalCreatorId: string, agent: string, kind: bigint, timestamp: bigint];
       export interface OutputObject {principalCreatorId: string, agent: string, kind: bigint, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace PAffiliationConfirmedEvent {
-      export type InputTuple = [parentPId: string, childPId: string, timestamp: BigNumberish];
-      export type OutputTuple = [parentPId: string, childPId: string, timestamp: bigint];
-      export interface OutputObject {parentPId: string, childPId: string, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace PAffiliationDetachedEvent {
-      export type InputTuple = [parentPId: string, childPId: string, timestamp: BigNumberish];
-      export type OutputTuple = [parentPId: string, childPId: string, timestamp: bigint];
-      export interface OutputObject {parentPId: string, childPId: string, timestamp: bigint };
-      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
-      export type Filter = TypedDeferredTopicFilter<Event>
-      export type Log = TypedEventLog<Event>
-      export type LogDescription = TypedLogDescription<Event>
-    }
-
-  
-
-    export namespace PAffiliationProposedEvent {
-      export type InputTuple = [parentPId: string, childPId: string, timestamp: BigNumberish];
-      export type OutputTuple = [parentPId: string, childPId: string, timestamp: bigint];
-      export interface OutputObject {parentPId: string, childPId: string, timestamp: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -160,6 +160,14 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
 
     
     
+    cancelAffiliationRequest: TypedContractMethod<
+      [parentId: string, ],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
     cancelMintAgentRequest: TypedContractMethod<
       [principalCreatorId: string, ],
       [void],
@@ -168,8 +176,8 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
     
 
     
-    cancelPAffiliationRequest: TypedContractMethod<
-      [parentPId: string, ],
+    confirmAffiliation: TypedContractMethod<
+      [childId: string, ],
       [void],
       'nonpayable'
     >
@@ -184,14 +192,6 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
     
 
     
-    confirmPAffiliation: TypedContractMethod<
-      [childPId: string, ],
-      [void],
-      'nonpayable'
-    >
-    
-
-    
     delegateCreatorPublishing: TypedContractMethod<
       [agent: AddressLike, expiresAt: BigNumberish, ],
       [void],
@@ -200,10 +200,42 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
     
 
     
-    detachPAffiliation: TypedContractMethod<
-      [childPId: string, ],
+    detachAffiliation: TypedContractMethod<
+      [childId: string, ],
       [void],
       'nonpayable'
+    >
+    
+
+    
+    getAffiliatedChildren: TypedContractMethod<
+      [parentId: string, ],
+      [string[]],
+      'view'
+    >
+    
+
+    
+    getAffiliatedChildrenPaged: TypedContractMethod<
+      [parentId: string, offset: BigNumberish, limit: BigNumberish, ],
+      [[string[], bigint] & {result: string[], total: bigint }],
+      'view'
+    >
+    
+
+    
+    getAffiliatedParent: TypedContractMethod<
+      [childId: string, ],
+      [string],
+      'view'
+    >
+    
+
+    
+    getAffiliationAudit: TypedContractMethod<
+      [childId: string, ],
+      [[string, bigint, bigint, string] & {activeParent: string, joinedAt: bigint, detachedAt: bigint, lastDetachedFromParent: string }],
+      'view'
     >
     
 
@@ -216,40 +248,8 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
     
 
     
-    getPAffiliatedChildren: TypedContractMethod<
-      [parentPId: string, ],
-      [string[]],
-      'view'
-    >
-    
-
-    
-    getPAffiliatedChildrenPaged: TypedContractMethod<
-      [parentPId: string, offset: BigNumberish, limit: BigNumberish, ],
-      [[string[], bigint] & {result: string[], total: bigint }],
-      'view'
-    >
-    
-
-    
-    getPAffiliatedParent: TypedContractMethod<
-      [childPId: string, ],
-      [string],
-      'view'
-    >
-    
-
-    
-    getPAffiliationAudit: TypedContractMethod<
-      [childPId: string, ],
-      [[string, bigint, bigint, string] & {activeParent: string, joinedAt: bigint, detachedAt: bigint, lastDetachedFromParent: string }],
-      'view'
-    >
-    
-
-    
-    isPAffiliationPending: TypedContractMethod<
-      [parentPId: string, childPId: string, ],
+    isAffiliationPending: TypedContractMethod<
+      [parentId: string, childId: string, ],
       [boolean],
       'view'
     >
@@ -280,8 +280,8 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
     
 
     
-    proposePAffiliation: TypedContractMethod<
-      [parentPId: string, ],
+    proposeAffiliation: TypedContractMethod<
+      [parentId: string, ],
       [void],
       'nonpayable'
     >
@@ -322,13 +322,18 @@ decodeFunctionResult(functionFragment: 'revokeMintAgentRole', data: BytesLike): 
 
     getFunction<T extends ContractMethod = ContractMethod>(key: string | FunctionFragment): T;
 
-    getFunction(nameOrSignature: 'cancelMintAgentRequest'): TypedContractMethod<
+    getFunction(nameOrSignature: 'cancelAffiliationRequest'): TypedContractMethod<
+      [parentId: string, ],
+      [void],
+      'nonpayable'
+    >;
+getFunction(nameOrSignature: 'cancelMintAgentRequest'): TypedContractMethod<
       [principalCreatorId: string, ],
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'cancelPAffiliationRequest'): TypedContractMethod<
-      [parentPId: string, ],
+getFunction(nameOrSignature: 'confirmAffiliation'): TypedContractMethod<
+      [childId: string, ],
       [void],
       'nonpayable'
     >;
@@ -337,48 +342,43 @@ getFunction(nameOrSignature: 'confirmMintAgentRole'): TypedContractMethod<
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'confirmPAffiliation'): TypedContractMethod<
-      [childPId: string, ],
-      [void],
-      'nonpayable'
-    >;
 getFunction(nameOrSignature: 'delegateCreatorPublishing'): TypedContractMethod<
       [agent: AddressLike, expiresAt: BigNumberish, ],
       [void],
       'nonpayable'
     >;
-getFunction(nameOrSignature: 'detachPAffiliation'): TypedContractMethod<
-      [childPId: string, ],
+getFunction(nameOrSignature: 'detachAffiliation'): TypedContractMethod<
+      [childId: string, ],
       [void],
       'nonpayable'
+    >;
+getFunction(nameOrSignature: 'getAffiliatedChildren'): TypedContractMethod<
+      [parentId: string, ],
+      [string[]],
+      'view'
+    >;
+getFunction(nameOrSignature: 'getAffiliatedChildrenPaged'): TypedContractMethod<
+      [parentId: string, offset: BigNumberish, limit: BigNumberish, ],
+      [[string[], bigint] & {result: string[], total: bigint }],
+      'view'
+    >;
+getFunction(nameOrSignature: 'getAffiliatedParent'): TypedContractMethod<
+      [childId: string, ],
+      [string],
+      'view'
+    >;
+getFunction(nameOrSignature: 'getAffiliationAudit'): TypedContractMethod<
+      [childId: string, ],
+      [[string, bigint, bigint, string] & {activeParent: string, joinedAt: bigint, detachedAt: bigint, lastDetachedFromParent: string }],
+      'view'
     >;
 getFunction(nameOrSignature: 'getCreatorPublishingDelegation'): TypedContractMethod<
       [creatorWallet: AddressLike, ],
       [[string, bigint] & {agent: string, expiresAt: bigint }],
       'view'
     >;
-getFunction(nameOrSignature: 'getPAffiliatedChildren'): TypedContractMethod<
-      [parentPId: string, ],
-      [string[]],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPAffiliatedChildrenPaged'): TypedContractMethod<
-      [parentPId: string, offset: BigNumberish, limit: BigNumberish, ],
-      [[string[], bigint] & {result: string[], total: bigint }],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPAffiliatedParent'): TypedContractMethod<
-      [childPId: string, ],
-      [string],
-      'view'
-    >;
-getFunction(nameOrSignature: 'getPAffiliationAudit'): TypedContractMethod<
-      [childPId: string, ],
-      [[string, bigint, bigint, string] & {activeParent: string, joinedAt: bigint, detachedAt: bigint, lastDetachedFromParent: string }],
-      'view'
-    >;
-getFunction(nameOrSignature: 'isPAffiliationPending'): TypedContractMethod<
-      [parentPId: string, childPId: string, ],
+getFunction(nameOrSignature: 'isAffiliationPending'): TypedContractMethod<
+      [parentId: string, childId: string, ],
       [boolean],
       'view'
     >;
@@ -397,8 +397,8 @@ getFunction(nameOrSignature: 'odpRegistry'): TypedContractMethod<
       [string],
       'view'
     >;
-getFunction(nameOrSignature: 'proposePAffiliation'): TypedContractMethod<
-      [parentPId: string, ],
+getFunction(nameOrSignature: 'proposeAffiliation'): TypedContractMethod<
+      [parentId: string, ],
       [void],
       'nonpayable'
     >;
@@ -423,15 +423,27 @@ getFunction(nameOrSignature: 'revokeMintAgentRole'): TypedContractMethod<
       'nonpayable'
     >;
 
-    getEvent(key: 'CreatorPublishingDelegated'): TypedContractEvent<CreatorPublishingDelegatedEvent.InputTuple, CreatorPublishingDelegatedEvent.OutputTuple, CreatorPublishingDelegatedEvent.OutputObject>;
+    getEvent(key: 'AffiliationConfirmed'): TypedContractEvent<AffiliationConfirmedEvent.InputTuple, AffiliationConfirmedEvent.OutputTuple, AffiliationConfirmedEvent.OutputObject>;
+getEvent(key: 'AffiliationDetached'): TypedContractEvent<AffiliationDetachedEvent.InputTuple, AffiliationDetachedEvent.OutputTuple, AffiliationDetachedEvent.OutputObject>;
+getEvent(key: 'AffiliationProposed'): TypedContractEvent<AffiliationProposedEvent.InputTuple, AffiliationProposedEvent.OutputTuple, AffiliationProposedEvent.OutputObject>;
+getEvent(key: 'CreatorPublishingDelegated'): TypedContractEvent<CreatorPublishingDelegatedEvent.InputTuple, CreatorPublishingDelegatedEvent.OutputTuple, CreatorPublishingDelegatedEvent.OutputObject>;
 getEvent(key: 'CreatorPublishingDelegationRevoked'): TypedContractEvent<CreatorPublishingDelegationRevokedEvent.InputTuple, CreatorPublishingDelegationRevokedEvent.OutputTuple, CreatorPublishingDelegationRevokedEvent.OutputObject>;
 getEvent(key: 'MintAgentUpdate'): TypedContractEvent<MintAgentUpdateEvent.InputTuple, MintAgentUpdateEvent.OutputTuple, MintAgentUpdateEvent.OutputObject>;
-getEvent(key: 'PAffiliationConfirmed'): TypedContractEvent<PAffiliationConfirmedEvent.InputTuple, PAffiliationConfirmedEvent.OutputTuple, PAffiliationConfirmedEvent.OutputObject>;
-getEvent(key: 'PAffiliationDetached'): TypedContractEvent<PAffiliationDetachedEvent.InputTuple, PAffiliationDetachedEvent.OutputTuple, PAffiliationDetachedEvent.OutputObject>;
-getEvent(key: 'PAffiliationProposed'): TypedContractEvent<PAffiliationProposedEvent.InputTuple, PAffiliationProposedEvent.OutputTuple, PAffiliationProposedEvent.OutputObject>;
 
     filters: {
       
+      'AffiliationConfirmed(string,string,uint256)': TypedContractEvent<AffiliationConfirmedEvent.InputTuple, AffiliationConfirmedEvent.OutputTuple, AffiliationConfirmedEvent.OutputObject>;
+      AffiliationConfirmed: TypedContractEvent<AffiliationConfirmedEvent.InputTuple, AffiliationConfirmedEvent.OutputTuple, AffiliationConfirmedEvent.OutputObject>;
+    
+
+      'AffiliationDetached(string,string,uint256)': TypedContractEvent<AffiliationDetachedEvent.InputTuple, AffiliationDetachedEvent.OutputTuple, AffiliationDetachedEvent.OutputObject>;
+      AffiliationDetached: TypedContractEvent<AffiliationDetachedEvent.InputTuple, AffiliationDetachedEvent.OutputTuple, AffiliationDetachedEvent.OutputObject>;
+    
+
+      'AffiliationProposed(string,string,uint256)': TypedContractEvent<AffiliationProposedEvent.InputTuple, AffiliationProposedEvent.OutputTuple, AffiliationProposedEvent.OutputObject>;
+      AffiliationProposed: TypedContractEvent<AffiliationProposedEvent.InputTuple, AffiliationProposedEvent.OutputTuple, AffiliationProposedEvent.OutputObject>;
+    
+
       'CreatorPublishingDelegated(address,address,uint256)': TypedContractEvent<CreatorPublishingDelegatedEvent.InputTuple, CreatorPublishingDelegatedEvent.OutputTuple, CreatorPublishingDelegatedEvent.OutputObject>;
       CreatorPublishingDelegated: TypedContractEvent<CreatorPublishingDelegatedEvent.InputTuple, CreatorPublishingDelegatedEvent.OutputTuple, CreatorPublishingDelegatedEvent.OutputObject>;
     
@@ -442,18 +454,6 @@ getEvent(key: 'PAffiliationProposed'): TypedContractEvent<PAffiliationProposedEv
 
       'MintAgentUpdate(string,address,uint8,uint256)': TypedContractEvent<MintAgentUpdateEvent.InputTuple, MintAgentUpdateEvent.OutputTuple, MintAgentUpdateEvent.OutputObject>;
       MintAgentUpdate: TypedContractEvent<MintAgentUpdateEvent.InputTuple, MintAgentUpdateEvent.OutputTuple, MintAgentUpdateEvent.OutputObject>;
-    
-
-      'PAffiliationConfirmed(string,string,uint256)': TypedContractEvent<PAffiliationConfirmedEvent.InputTuple, PAffiliationConfirmedEvent.OutputTuple, PAffiliationConfirmedEvent.OutputObject>;
-      PAffiliationConfirmed: TypedContractEvent<PAffiliationConfirmedEvent.InputTuple, PAffiliationConfirmedEvent.OutputTuple, PAffiliationConfirmedEvent.OutputObject>;
-    
-
-      'PAffiliationDetached(string,string,uint256)': TypedContractEvent<PAffiliationDetachedEvent.InputTuple, PAffiliationDetachedEvent.OutputTuple, PAffiliationDetachedEvent.OutputObject>;
-      PAffiliationDetached: TypedContractEvent<PAffiliationDetachedEvent.InputTuple, PAffiliationDetachedEvent.OutputTuple, PAffiliationDetachedEvent.OutputObject>;
-    
-
-      'PAffiliationProposed(string,string,uint256)': TypedContractEvent<PAffiliationProposedEvent.InputTuple, PAffiliationProposedEvent.OutputTuple, PAffiliationProposedEvent.OutputObject>;
-      PAffiliationProposed: TypedContractEvent<PAffiliationProposedEvent.InputTuple, PAffiliationProposedEvent.OutputTuple, PAffiliationProposedEvent.OutputObject>;
     
     };
   }
