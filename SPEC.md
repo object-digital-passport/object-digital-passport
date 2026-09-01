@@ -82,7 +82,7 @@ Deploy **library first**, then **registry** (with linker metadata), then **docum
 
 The **v0.7** reference implementation in this repository and this specification are written so that a future **stable v1** can define a clear **forward** path without pretending 0.x registries silently interoperate:
 
-- On-chain records carry packed `**contractVersion`** at mint (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). **This branch’s reference mints byte `6`.** Older 0.x deployments at other addresses are **not** interchangeable; **peripheral** contracts (satellites) are wired by configuration.
+- On-chain records carry packed `**contractVersion`** at mint (`SPEC_MAJOR * 16 + SPEC_MINOR`, each **< 16**). **This branch’s reference mints byte `7`.** Older 0.x deployments at other addresses are **not** interchangeable; **peripheral** contracts (satellites) are wired by configuration.
 - `**passportId`** (Passport ID string; legacy ABIs may use `**humanId`** for the same field), `**creatorId`**, and `**passport.json**` versioning rules aim to stay stable enough that **v1** can specify **migration or dual-read** (e.g. tooling that verifies old deployments alongside a v1 registry) rather than ad-hoc field drift.
 - **v1** is not specified here; when it ships, it will define any **migration**, **bridging**, or **freeze** of v0.x registries explicitly. Until then, this paragraph states **engineering intent**, not a promise of in-place upgrade for any particular deployment.
 
@@ -105,7 +105,7 @@ The following describes the **reference stack in this repository (v0.7)**. At mi
 
 > **Deployable v0.7 split-line note:** the deployable reference line in this repository keeps the **main registry** focused on creator records, the immutable passport core (card + hashes), minting, transfer, revocation, and append-only passport events. To stay within `EIP-170`, several optional surfaces are served by **paired satellites** instead of the main registry ABI:
 > - `**ODPRegistryRelations`** — affiliation (`B` / `M` / `P`), mint-agent delegation, creator publishing delegation
-> - `**ODPPassportProofRegistry`** — `**submitProof`** and proof reads
+> - `**ODPPassportProofRegistry`** — `**submitProof`** and proof reads. Like the main registry, it packs `**CONTRACT_VERSION` = 7** on this line; a satellite and the registry it is wired to **MUST** report the same packed byte.
 > - `**ODPExtensionMintRouter`** — `**setMintExtension`** and `**mint*ViaExtension`**
 > - optional `**ODPWalletDocumentAnchor`** and `**ODPCounterfeitConcern`**
 >
@@ -550,7 +550,7 @@ Example: `PRF-2031-03-07392018`
 | Field             | Type      | Required | Description                                                                                                                  |
 | ----------------- | --------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `proofId`         | `string`  | yes      | Auto-generated: `PRF-YYYY-MM-` + fixed-width numeric suffix (see algorithm above)                                            |
-| `contractVersion` | `uint8`   | yes      | Packed spec line at submission (must match registry; reference deployment → **6**)                                           |
+| `contractVersion` | `uint8`   | yes      | Packed spec line at submission (must match registry; reference deployment → **7**)                                           |
 | `prover`          | `string`  | yes      | profile ID of the institution (e.g. `P-029-384-751-224`)                                                                     |
 | `passportId`      | `string`  | yes      | Passport ID of the attested object (same string as `Passport.passportId`; ABI field name `passportId` in the reference ABI) |
 | `documentHash`    | `bytes32` | no       | SHA-256 of the signed expertise document. `bytes32(0)` if none                                                               |
@@ -812,7 +812,7 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | Network                          | Polygon PoS (mainnet)                                                                                         |
 | Chain ID                         | 137                                                                                                           |
-| Canonical registry               | Source in-repo; packed `**CONTRACT_VERSION` 7** at mint; main registry + optional satellites (§4, `chain/deploy/`). **Addresses below — normative.** |
+| Canonical registry               | Source in-repo; packed `**CONTRACT_VERSION` 7** at mint; main registry + optional satellites (§4, `chain/deploy/`). **Not yet deployed — see the address table below.** |
 | Other Polygon addresses          | Separate, **non-canonical** registries — **bytecode / ABI** may differ; always pair **address + ABI + `CONTRACT_VERSION`**, and name the registry when presenting their records. |
 | Testnet                          | Polygon Amoy (chain ID 80002)                                                                                 |
 | Gas token                        | POL (ex-POL)                                                                                                  |
@@ -825,46 +825,64 @@ Multi-network support is reserved for a future version.
 
 ### Canonical registry addresses (normative)
 
-The addresses below are the **canonical ODP v0.6 registry** on Polygon mainnet.
-**They are v0.6 deliberately** — no v0.7 registry has been deployed, so there is no
-v0.7 address to be canonical. When one exists, this table gains it and the v0.6 line
-becomes superseded but stays readable, exactly as v0.5 did.
- They are **normative**: an object described as holding "an ODP passport", or an identifier presented as an ODP **Passport ID** (§2) or **Profile ID** (§3) without further qualification, refers to a record in **this** registry.
-
-Consequently:
-
-- Verifiers **SHOULD** resolve against these addresses by default, and **MUST** state plainly which registry produced a result when they resolve anywhere else.
-- Deployments of this source to other addresses remain **valid instances of the protocol** — the source is MIT-licensed and self-hosting is expressly supported — but they are **separate, non-canonical registries**. Anything presenting records from them as ODP passports **MUST** identify the registry (chain ID + address) alongside the record.
-- Correct decoding still requires pairing **chain + contract address + ABI + `CONTRACT_VERSION`** (§8); canonicity settles *which* registry is meant by default, not how to read it.
-
+**No v0.7 registry is deployed on any network.** This specification describes the v0.7
+line, and the canonical address table for that line is therefore empty:
 
 | Contract                             | Address (Polygon PoS, chain ID 137)          |
 | ------------------------------------ | -------------------------------------------- |
-| `ObjectDigitalPassport` (main)       | `0x012aC6393464A73EC16131D701ff2e000695b91b` |
-| `ODPPassportLib` (linked library)    | `0xB7D7B8485eeb385c375ABd91035F5a6914171ccE` |
-| `ODPWalletDocumentAnchor` (§11 L1C)  | `0x35df3773919D9F10e5F8838abaa453DE120e6Cb4` |
-| `ODPCounterfeitConcern` (§4)         | `0x692935d6c1532b47cE0459bF1E9549991d0eD2C9` |
-| `ODPRegistryRelations` (§3, §4)      | `0x2ea6f05a050973afa14E61b1Ea19De92621e3661` |
-| `ODPPassportProofRegistry` (§4)      | `0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49` |
-| `ODPExtensionMintRouter` (§8)        | `0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822` |
-| `ODPAuthorAttestation` (§8 B)        | `0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7` |
+| `ObjectDigitalPassport` (main)       | *TBD — not deployed*                         |
+| `ODPPassportLib` (linked library)    | *TBD — not deployed*                         |
+| `ODPWalletDocumentAnchor` (§11 L1C)  | *TBD — not deployed*                         |
+| `ODPCounterfeitConcern` (§4)         | *TBD — not deployed*                         |
+| `ODPRegistryRelations` (§3, §4)      | *TBD — not deployed*                         |
+| `ODPPassportProofRegistry` (§4)      | *TBD — not deployed*                         |
+| `ODPExtensionMintRouter` (§8)        | *TBD — not deployed*                         |
+| `ODPAuthorAttestation` (§8 B)        | *TBD — not deployed*                         |
 
+When a v0.7 registry is deployed, its addresses land in this table and become
+**normative**: an object described as holding "an ODP passport", or an identifier
+presented as an ODP **Passport ID** (§2) or **Profile ID** (§3) without further
+qualification, will refer to a record in **that** registry.
 
-Earlier lines (v0.5 and before) were each canonical for their own line and remain **separate registries** at different addresses with incompatible ABIs; records do not migrate between deployments. The previous v0.5 main registry `0x413aEeBB2ac437483Bc68791EaAab492C2a4B346` is **superseded** but stays readable, so passports issued under it continue to verify against it.
+Until then:
 
-**Registry context for links:** Human-readable protocol links (`odp://…`; see §12 and §19) **do not** encode which **chain ID** or **registry contract** produced a record. Clients **MUST** pair **chain + contract address + ABI** as elsewhere in this specification; absent an explicit context, they **SHOULD** default to the **canonical registry** above and **MUST** name the registry when resolving against any other. See §12.3 and §19.
+- **There is no canonical registry to resolve against.** A client **MUST** be given an explicit registry context (chain ID + address + ABI) and **MUST** name that registry alongside any result it presents. §12.3 and §19.2's fallback to "the canonical registry of §7" has no target on this line.
+- Deployments of this source to any address remain **valid instances of the protocol** — the source is MIT-licensed and self-hosting is expressly supported — but none of them is canonical, and anything presenting their records as ODP passports **MUST** identify the registry.
+- Correct decoding still requires pairing **chain + contract address + ABI + `CONTRACT_VERSION`** (§8); canonicity settles *which* registry is meant by default, not how to read it.
+
+### Superseded lines (informative)
+
+Each earlier line was canonical for itself and remains a **separate registry** with an
+incompatible ABI; records do not migrate between deployments. Superseded registries stay
+readable, so passports issued under them continue to verify against them.
+
+| Line | Registry | Address (Polygon PoS, chain ID 137) |
+| --- | --- | --- |
+| **v0.6** — deployed 2026-07-24, packed `CONTRACT_VERSION` **6** | `ObjectDigitalPassport` (main) | `0x012aC6393464A73EC16131D701ff2e000695b91b` |
+| | `ODPPassportLib` (linked library) | `0xB7D7B8485eeb385c375ABd91035F5a6914171ccE` |
+| | `ODPWalletDocumentAnchor` | `0x35df3773919D9F10e5F8838abaa453DE120e6Cb4` |
+| | `ODPCounterfeitConcern` | `0x692935d6c1532b47cE0459bF1E9549991d0eD2C9` |
+| | `ODPRegistryRelations` | `0x2ea6f05a050973afa14E61b1Ea19De92621e3661` |
+| | `ODPPassportProofRegistry` | `0x990FCc2E587d9f2cDb9c73083E9f90793CeF7F49` |
+| | `ODPExtensionMintRouter` | `0x3fa8f213399a2A9f7Da4bF7D8a9D7D42E8AEF822` |
+| | `ODPAuthorAttestation` | `0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7` |
+| **v0.5** and before | `ObjectDigitalPassport` (main) | `0x413aEeBB2ac437483Bc68791EaAab492C2a4B346` |
+
+Release notes for the superseded lines are kept as written: [`docs/RELEASE_v0.6.md`](docs/RELEASE_v0.6.md), [`docs/V0.6.md`](docs/V0.6.md). Their `passport.json` schema and examples were removed when this line became the only one; a document issued under a superseded line still verifies against its on-chain hashes, which do not depend on the schema file.
+
+**Registry context for links:** Human-readable protocol links (`odp://…`; see §12 and §19) **do not** encode which **chain ID** or **registry contract** produced a record. Clients **MUST** pair **chain + contract address + ABI** as elsewhere in this specification; absent an explicit context there is **no** default on this line, because no v0.7 registry is deployed (table above); a client **MUST** obtain a registry context rather than guess, and **MUST** name the registry it used. When a v0.7 registry exists, the default becomes that registry. See §12.3 and §19.
 
 ---
 
 ## 8. On-Chain Record
 
-This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 6** at mint in this line). ABI tuple order may differ from this table; field **names** are normative. See `docs/ru/REQUIREMENTS_FIELDS_V0.6.md` for the design rationale (storage layers A/B/C).
+This section matches the reference `**ObjectDigitalPassport`** `Passport` struct (packed `**contractVersion` = 7** at mint in this line). ABI tuple order may differ from this table; field **names** are normative. See `docs/ru/REQUIREMENTS_FIELDS_V0.6.md` for the design rationale (storage layers A/B/C).
 
 
 | Field                  | Type      | Required | Description                                                                                                                                                                                                         |
 | ---------------------- | --------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `passportId`           | `string`  | yes      | Passport ID, e.g. `ODP-2026-03-004829301` (legacy `humanId` in some older ABIs)                                                                                                                                     |
-| `contractVersion`      | `uint8`   | yes      | Packed at mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (reference line in this repo → **6**)                                                                                                                                |
+| `contractVersion`      | `uint8`   | yes      | Packed at mint: `SPEC_MAJOR * 16 + SPEC_MINOR` (reference line in this repo → **7**)                                                                                                                                |
 | `creator`              | `address` | yes      | **Immutable** issuer wallet (**principal** profile wallet; same when minting via agent)                                                                                                                             |
 | `owner`                | `address` | yes      | Current holder; **starts as `creator`** (principal); changes only via `**transferPassport**`                                                                                                                        |
 | `creatorId`            | `string`  | yes      | Profile ID (wallet must be registered before mint)                                                                                                                                                                  |
@@ -951,7 +969,7 @@ The reference bytecode uses `**error EC(uint16 code)`** only (no string messages
 
 ### Protocol extensions beyond the main registry semantics
 
-The following items are **not** enforced by the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics** — they live outside the main registry, not inside it. **(A)** is a forward-looking idea with no implementation. **(B)** ships as an optional **satellite** and is **deployed** on the canonical registry’s network (address in §7); it is enforced by that satellite, never by the main registry. *(The EIP-170 split — linked `**ODPPassportLib`** and satellites — is **already shipped** in the reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
+The following items are **not** enforced by the current reference `[ObjectDigitalPassport.sol](chain/contracts/ObjectDigitalPassport.sol)` **semantics** — they live outside the main registry, not inside it. **(A)** is a forward-looking idea with no implementation. **(B)** ships as an optional **satellite**; a v0.6 instance is deployed on Polygon mainnet (superseded-lines table in §7), and a v0.7 instance is not yet deployed; it is enforced by that satellite, never by the main registry. *(The EIP-170 split — linked `**ODPPassportLib`** and satellites — is **already shipped** in the reference stack; see §11 Level 1C and deploy docs.)* See `**[docs/PROTOCOL_TRACKS.md](docs/PROTOCOL_TRACKS.md)`** and `**[docs/EIP170_STRATEGY.md](docs/EIP170_STRATEGY.md)`** before scheduling further on-chain work.
 
 #### A) Global uniqueness of passport `dataHash` (planned)
 
@@ -965,7 +983,7 @@ The following items are **not** enforced by the current reference `[ObjectDigita
 
 **Intent:** allow an **optional** cryptographic binding between a **separate author key** and the integrity anchor (`dataHash`) and issuer profile, without replacing trust in the registered minter when the feature is unused. It gives verifiers two independent signals — *this wallet minted it* and *this author key signed exactly these bytes* — so a compromised minting wallet cannot forge the second.
 
-**Status:** implemented as the optional satellite `**ODPAuthorAttestation`** (`chain/contracts/ODPAuthorAttestation.sol`) and **deployed** on Polygon mainnet at `**0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7`** (§7). The main registry bytecode is **unchanged** — adopting this feature did **not** re-deploy or move the canonical registry. Attestation remains **optional**: a passport without one is not deficient, and the absence of an attestation is **not** a negative signal (see the verifier rule below).
+**Status:** implemented as the optional satellite `**ODPAuthorAttestation`** (`chain/contracts/ODPAuthorAttestation.sol`); the v0.6 instance is at `**0x1972E68D0A5B19C5ee2af54F8b792c426985F7d7`** on Polygon mainnet (superseded-lines table in §7) and no v0.7 instance is deployed. The main registry bytecode is **unchanged** — adopting this feature did **not** re-deploy or move the registry. Attestation remains **optional**: a passport without one is not deficient, and the absence of an attestation is **not** a negative signal (see the verifier rule below).
 
 **Normative shape (reference implementation):**
 
@@ -1038,7 +1056,7 @@ The canonical `passport.json` for the current line is the **v0.7 shape** used by
 
 | Field / group | Required | Type | Notes |
 | --- | --- | --- | --- |
-| `version` | yes | `string` | MUST be `"0.6"` for this line. |
+| `version` | yes | `string` | MUST be `"0.7"` for this line. |
 | `passportId` | yes | `string` | MUST equal the on-chain Passport ID. |
 | `title` | yes | `string` | 1–128 bytes. **On-chain card field** — MUST equal the on-chain `title` byte-for-byte. |
 | `authorName` | yes | `string` | 1–128 bytes. **On-chain card field** — human-readable author / brand name; MUST equal on-chain byte-for-byte. |
@@ -1184,7 +1202,7 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
 
 ```json
 {
-  "version": "0.6",
+  "version": "0.7",
   "passportId": "ODP-2026-03-004829301",
   "title": "Object Community #1",
   "authorName": "Example Holder",
@@ -1260,7 +1278,7 @@ On-chain for this example: `anchorTypesMask = 1|2|4|8|16|256 = 287`; `imageHash`
 
 ```json
 {
-  "version": "0.6",
+  "version": "0.7",
   "passportId": "ODP-2026-03-000193847",
   "title": "Untitled #7",
   "authorName": "Example Holder",
@@ -1317,7 +1335,7 @@ On-chain for this example: `anchorTypesMask = 32|64|128 = 224`; `fileHash` = the
 
 ```json
 {
-  "version": "0.6",
+  "version": "0.7",
   "passportId": "ODP-2026-03-000555120",
   "title": "Executable Sculpture #2",
   "authorName": "Example Holder",
@@ -1807,7 +1825,7 @@ Hierarchical paths (`/passports`, `/proofs`) and query parameters beyond a futur
 
 An `odp://` URI **does not** identify **chain ID** or **registry contract address**. Any client that resolves these URIs to on-chain reads **MUST** obtain **registry context** (`chainId`, main registry `address`, ABI, optional satellite addresses) from configuration, a **trusted** deeplink, or a **trusted** resolver (§19).
 
-**Default context:** absent an explicit registry context, a client **SHOULD** resolve the URI against the **canonical registry** of §7 (Polygon PoS, chain ID 137), and **MUST** show which registry produced the result whenever it resolves against any other. A URI is therefore no longer ambiguous by default — but a client that silently resolves against a non-canonical registry, without saying so, is misleading its user.
+**Default context:** absent an explicit registry context, a client **SHOULD** resolve the URI against the **canonical registry** of §7 (Polygon PoS, chain ID 137), and **MUST** show which registry produced the result whenever it resolves against any other. **On this line §7 has no canonical registry**, so a client without an explicit context **MUST** say it cannot resolve rather than pick one. A client that silently resolves against a non-canonical registry, without saying so, is misleading its user.
 
 ---
 
@@ -2144,14 +2162,23 @@ Minimal integration pattern:
 
 `**identifiers.gtin`** in `**passport.json`** is a natural off-chain place to align ODP records with GS1 identifiers. GS1 Digital Link by itself does **not** prove authenticity and does **not** replace the ODP registry, Passport ID, or hash verification.
 
-### 18.2 Decentralized identifiers (`did:odp`)
+### 18.2 The `did:odp` naming convention (informative)
 
-**Normative string:** institutions and tooling MAY expose:
+> **What this is not.** `odp` is **not a registered DID method**. There is no method
+> specification, no resolver, and no entry in the W3C DID Specification Registries.
+> A `did:odp:…` string is a **naming convention for documents produced by this
+> project**, nothing more. Software that requires a resolvable DID — a Verifiable
+> Credentials issuer or verifier, a wallet, the UN/CEFACT UNTP profile, anything
+> mandating `did:web` or `did:webvh` — **cannot** consume a `did:odp` string, and an
+> implementation **MUST NOT** present ODP as offering DID support. Registering a real
+> method is a possible future work item, not a property of this specification.
+
+Within that limit, institutions and tooling MAY expose:
 
 - `did:odp:passport:<Passport ID>` — e.g. `did:odp:passport:ODP-2026-03-004829301`
 - `did:odp:profile:<Profile ID>` — e.g. `did:odp:profile:P-482-930-174-005`
 
-A minimal **DID document** (JSON) SHOULD contain `id`, `verificationMethod` pointing at the creator’s Ethereum address (or separate keys if used for VC proofs), and `alsoKnownAs` linking to `passport.json` / deployment metadata. There is **no** requirement for a global on-chain DID resolver; HTTP `.well-known` discovery is implementation-specific. For **URI-layer** linking (`odp://`), registry context, and optional HTTP resolver profiles, see **§19**.
+A minimal **DID-document-shaped** JSON file MAY contain `id`, `verificationMethod` pointing at the creator’s Ethereum address (or separate keys if used for VC proofs), and `alsoKnownAs` linking to `passport.json` / deployment metadata. Such a file is a convenience for catalogs that already parse that shape; it is not resolvable by a DID resolver, and its presence asserts nothing the on-chain record does not already assert. For **URI-layer** linking (`odp://`), registry context, and optional HTTP resolver profiles, see **§19** — that layer, unlike this one, is normative.
 
 #### 18.2.1 Optional DID registration flow (informative)
 
@@ -2185,11 +2212,11 @@ Resolving `odp://…` to chain state requires a **registry context**: at minimum
 - A **trusted** transport that carries metadata (e.g. HTTPS page that embeds `chainId` + address), and/or  
 - A **trusted** off-chain resolver response (§19.4).
 
-An **unsourced** URI **without** registry metadata resolves against the **canonical registry** of §7 by default. It is not ambiguous in the common case, but it is also not self-describing: incompatible registries may exist at other addresses, so a client resolving anywhere other than the canonical registry **MUST** say which one it used.
+An **unsourced** URI **without** registry metadata resolves against the **canonical registry** of §7 by default — and on this line that table is empty, so such a URI is unresolvable until a v0.7 registry exists. It is also not self-describing: incompatible registries may exist at other addresses, so a client resolving anywhere other than the canonical registry **MUST** say which one it used.
 
 ### 19.3 Relationship to `did:odp` (§18.2)
 
-The `**odp://`** scheme is convenient for QR and paste targets. `**did:odp:passport:`** / `**did:odp:profile:`** are **W3C DID**-shaped identifiers for documents and VC tooling. The same Passport ID / Profile ID may appear in both layers; DID documents remain **optional** (§18.2).
+The `**odp://`** scheme is convenient for QR and paste targets and is **normative** (§12). `**did:odp:passport:`** / `**did:odp:profile:`** merely *look* like W3C DIDs: `odp` is not a registered DID method and nothing resolves it (§18.2). The same Passport ID / Profile ID may appear in both layers, but only the `odp://` layer carries protocol meaning.
 
 ### 19.4 Optional HTTP “resolver” profile (non-normative)
 

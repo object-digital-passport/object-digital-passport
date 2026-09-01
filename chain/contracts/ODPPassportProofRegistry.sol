@@ -47,7 +47,12 @@ contract ODPPassportProofRegistry {
 
     bytes1 private constant TYPE_P = "P";
     bytes1 private constant TYPE_M = "M";
-    uint8 private constant CONTRACT_VERSION = 6;
+    // Must match the registry this satellite is wired to (SPEC §8): packed
+    // `SPEC_MAJOR * 16 + SPEC_MINOR`, each < 16. Derived rather than written out so
+    // the two cannot drift the way they did between the 0.6 and 0.7 lines.
+    uint8 private constant SPEC_MAJOR = 0;
+    uint8 private constant SPEC_MINOR = 7;
+    uint8 private constant CONTRACT_VERSION = SPEC_MAJOR * 16 + SPEC_MINOR;
 
     struct ProofRecord {
         string proofId;

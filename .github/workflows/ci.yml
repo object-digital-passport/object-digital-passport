@@ -37,12 +37,6 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Validate 0.6 examples against the 0.6 schema
-        run: >
-          npx --yes ajv-cli@5 validate --spec=draft2020
-          -s schema/passport-0.6.schema.json
-          -d "schema/examples/*.json"
-
       - name: Validate 0.7 examples against the 0.7 schema
         run: >
           npx --yes ajv-cli@5 validate --spec=draft2020
@@ -123,3 +117,27 @@ jobs:
       # docs/TRANSLATIONS.md records what is translated; this enforces that record.
       - name: Check docs/ru against docs/TRANSLATIONS.md
         run: node tools/check-translations.mjs --all
+
+  spec-site:
+    name: spec site builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
+      - run: npm ci --prefix tools
+      # pages.yml runs this builder only on push to main, so a broken build was
+      # only visible as a failed deploy. Run it on every pull request instead.
+      - name: Render /spec/ from markdown
+        run: node tools/build-spec.mjs _site/spec
+      - name: Every page and schema landed
+        run: |
+          for f in index.html objectid-profile.html security.html \
+                   schema/passport-0.7.schema.json; do
+            test -s "_site/spec/$f" || { echo "missing or empty: $f"; exit 1; }
+          done

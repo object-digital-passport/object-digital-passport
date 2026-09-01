@@ -29,7 +29,7 @@
 2. **Who** registered it — a public profile ID you can cross-check on the issuer's own website;
 3. **That its description hasn't changed since** — cryptographic fingerprints of every photo, measurement, and distinguishing feature.
 
-No company in the middle. No subscription. Verifying is **always free** and will still work in 50, 100, or 250 years — because the registry lives on a public blockchain (Polygon), not on anyone's server. Registering costs only the network fee (~$0.01–0.03). The protocol itself charges **nothing, ever**. MIT-licensed, end to end.
+No company in the middle. No subscription. Verifying is **always free** and will still work in 50, 100, or 250 years — because the registry lives on a public blockchain (Polygon), not on anyone's server. **What that promise is:** a registry, once deployed, keeps answering for as long as the chain does. **What it is not:** a promise that one address serves every generation — each `v0.x` line is a separate registry and passports do not migrate between them, so a passport verifies forever against *its own* line (SPEC.md §7). Registering costs only the network fee (~$0.01–0.03). The protocol itself charges **nothing, ever**. MIT-licensed, end to end.
 
 **The goal: make faking an object's history as hard as possible — for pennies.**
 
