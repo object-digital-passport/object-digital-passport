@@ -11,7 +11,7 @@ from a hashing bug without guessing.
 
 | File | What it is |
 |---|---|
-| `physical.passport.json` | The input document — a copy of `schema/examples/physical.json`. |
+| `physical.passport.json` | The input document — a copy of `schema/examples/0.7/physical.json`, on the **v0.7** line (`"version": "0.7"`). |
 | `physical.canonical.json` | Exact canonical bytes of the **`dataHash` input**: the document with `passportId` set to `null` per §15.2 step 2. No trailing newline. |
 | `physical.anchors.canonical.json` | Exact canonical bytes of the standalone `anchors` array. No trailing newline. |
 | `physical.expected.json` | The two resulting SHA-256 values. |

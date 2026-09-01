@@ -40,7 +40,7 @@ const NAV = [
   ["index.html", "Specification"],
   ["objectid-profile.html", "Object ID Profile"],
   ["security.html", "Security Model"],
-  ["schema/passport-0.6.schema.json", "JSON Schema"],
+  ["schema/passport-0.7.schema.json", "JSON Schema"],
   // Absolute: the demo is a separate deployment, and will be a separate repository.
   ["https://object-digital-passport.github.io/specifications/demo/", "Live demo →"],
 ];
@@ -128,8 +128,8 @@ const LOCAL_TARGETS = new Map([
   ["OBJECTID_PROFILE.md", "objectid-profile.html"],
   ["SECURITY.md", "security.html"],
   ["docs/SECURITY.md", "security.html"],
-  ["../schema/passport-0.6.schema.json", "schema/passport-0.6.schema.json"],
-  ["schema/passport-0.6.schema.json", "schema/passport-0.6.schema.json"],
+  ["../schema/passport-0.7.schema.json", "schema/passport-0.7.schema.json"],
+  ["schema/passport-0.7.schema.json", "schema/passport-0.7.schema.json"],
 ]);
 
 function rewriteHref(href, srcDir) {
@@ -159,8 +159,11 @@ for (const page of PAGES) {
   marked.use(gfmHeadingId());
   marked.use({
     renderer: {
-      link(href, title, text) {
+      // marked >= 16 hands renderers a single token; the link text arrives as
+      // child tokens rather than pre-rendered HTML.
+      link({ href, title, tokens }) {
         const t = title ? ` title="${title}"` : "";
+        const text = this.parser.parseInline(tokens);
         return `<a href="${rewriteHref(href, srcDir)}"${t}>${text}</a>`;
       },
     },
