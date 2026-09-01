@@ -98,13 +98,13 @@ The following describes the **reference stack in this repository (v0.7)**. At mi
 - **On-chain card** at mint: `**title`**, `**authorName`**, `**shortDescription`**, `**domain`** — immutable, no edit path (typo = revoke + re-mint), MUST equal the same `passport.json` fields byte-for-byte
 - **Identification anchors**: on-chain `**anchorsHash`** (SHA-256 of the canonical `anchors` array in `passport.json`) + `**anchorTypesMask`** (bit set of anchor types, §9); one primary `**imageHash`** / `**imageUrl`** on-chain — additional photos are `photo` anchors inside `anchors[]`
 - **Append-only events**: `**recordPassportEvent(passportId, kind, value, note, attachmentHash, attachmentUrl)`** (status / location / rights / condition / damage / restoration / custom) — replaces the v0.5 overwritable current-state setters and aux/NDPP commitment updaters
-- **P-affiliation audit**: `**getPAffiliationAudit`**, `**detachPAffiliation`** (parent P); timestamps for join / detach
+- **Affiliation audit**: `**getAffiliationAudit`**, `**detachAffiliation`** (active parent); timestamps for join / detach
 - **Compact reverts**: failures use `**error EC(uint16 code)`** — decode against the deployed contract source (string messages were removed to save bytecode). The reference `**ObjectDigitalPassport`** is deployed **with a linked library** `**ODPPassportLib`** (shared `**error EC`**) so the registry creation bytecode stays within the 24 KiB (EIP-170) limit; deploy library first, then the registry (see repository deploy scripts). Local Hardhat tests may use `**allowUnlimitedContractSize`**; verify `**[ODP] EIP-170:`** output after compile before mainnet deploy.
 
 **Counterfeit / institutional authenticity concern (v0.4):** `**ODPCounterfeitConcern`** (**satellite**) — not on the main registry bytecode. Semantics and `**NET.counterfeitConcern`** are in this SPEC and the v0.4 pointer **[`docs/V0.4.md`](docs/V0.4.md)** / **[`docs/ru/RELEASE_v0.4.md`](docs/ru/RELEASE_v0.4.md)**. `**P`** and `**M`** wallets may `**raiseCounterfeitConcern(passportId, reasonHash)`** (`reasonHash` must be non-zero); only the **same** `proverCreatorId` may `**clearCounterfeitConcern`**. `**getCounterfeitConcern`** returns `**(active, proverCreatorId, reasonHash, timestamp)**` (inactive → `active == false`, other fields zero/`""`). Verifiers and Passport UI SHOULD call the satellite when `**NET.counterfeitConcern**` is configured for the **same** main registry address.
 
 > **Deployable v0.7 split-line note:** the deployable reference line in this repository keeps the **main registry** focused on creator records, the immutable passport core (card + hashes), minting, transfer, revocation, and append-only passport events. To stay within `EIP-170`, several optional surfaces are served by **paired satellites** instead of the main registry ABI:
-> - `**ODPRegistryRelations`** — P-affiliation, mint-agent delegation, creator publishing delegation
+> - `**ODPRegistryRelations`** — affiliation (`B` / `M` / `P`), mint-agent delegation, creator publishing delegation
 > - `**ODPPassportProofRegistry`** — `**submitProof`** and proof reads
 > - `**ODPExtensionMintRouter`** — `**setMintExtension`** and `**mint*ViaExtension`**
 > - optional `**ODPWalletDocumentAnchor`** and `**ODPCounterfeitConcern`**
@@ -368,6 +368,42 @@ existing public reputation becomes the proof of their identity. Anyone can
 register — but only legitimate participants will have their ID findable
 on a trusted public website.
 
+### Machine-readable identity endpoint (`.well-known/odp.json`)
+
+Publishing the ID on a human-readable page is the requirement above. This endpoint is how
+software checks that publication without guessing where to look.
+
+Organizations registered as `B`, `M`, or `P` **MUST** serve, on the same domain as their official
+website:
+
+```
+https://<domain>/.well-known/odp.json
+```
+
+```json
+{
+  "odp": 1,
+  "chainId": 137,
+  "registry": "0x012aC6393464A73EC16131D701ff2e000695b91b",
+  "profiles": [
+    { "profileId": "B-029-384-751-224", "wallet": "0x742d35Cc…4438f44e" }
+  ]
+}
+```
+
+Rules:
+
+- HTTPS only, `Content-Type: application/json`, served from the organization's **own** domain — not a hosting provider's shared domain, and not a social network.
+- `odp` is the format version (`1`). `chainId` and `registry` name the deployment the listed profiles belong to (§7, §8) — a profile ID means nothing without the registry it was issued by. An entry in `profiles` **MAY** carry its own `chainId` and `registry` to override the top-level pair, which is how one organization lists profiles across registry generations.
+- `profiles` **MUST** contain only IDs the organization controls. An entry whose `wallet` does not match the registry's record for that `profileId` is invalid and **MUST** be ignored by whoever reads it.
+- The endpoint is **advisory for the protocol**. No mint, proof, transfer, or verification result depends on it, and a missing file invalidates nothing — it only means the organization's identity cannot be confirmed automatically.
+- `C` profiles **SHOULD** serve the same file where they control a domain. Where they do not, a public social profile carrying the ID remains valid evidence under the requirement above — it simply cannot be machine-checked.
+
+Why a fixed path instead of "somewhere on the site": a page rendered by JavaScript hides the ID
+from any non-browser checker, and a page anyone can post to — a forum, a community section — puts
+an attacker's text on an official domain. A static file at a reserved path (RFC 8615) is readable
+without a browser engine and writable only by whoever controls the server.
+
 ### On packaging and physical objects
 
 ```
@@ -415,24 +451,71 @@ Verifiers display only the profile ID, never a self-declared name.
 
 **Off-chain / proof metadata:** disputes, methodology, and reports remain appropriate in `**passport.json`**, linked documents, and `**submitProof`** (`documentHash` / `documentUrl`).
 
-### Optional public allowlist of institution IDs (off-chain, anti-spam)
+### Public directory of profile IDs (off-chain, informative)
 
-Implementers of verifiers, marketplaces, or institutional UIs **may** maintain an **off-chain** allowlist or directory of `P` (and optionally `M`) profile IDs they choose to **highlight** or **show by default**, as a **spam-reduction** or UX convenience measure. This is **not** enforced by the smart contract and **does not** change open registration on-chain.
+Implementers of verifiers, marketplaces, or institutional UIs **may** maintain an **off-chain** directory of profile IDs they choose to **highlight** or **show by default**, as a spam-reduction or UX convenience. This is **not** enforced by the smart contract and **does not** change open registration on-chain: anyone may register, and absence from any directory means nothing.
 
-**Normative guidance for any published directory marketed as trustworthy:** each listed profile ID **must** be accompanied by at least one **HTTPS URL** on the **organization’s own official website** — specifically a page (or stable section) where that **same** profile ID is visibly published, so end users can confirm the mapping without relying solely on the directory operator. Directories that list IDs **without** such verifiable on-site links **must not** be presented as authoritative; they are at best informal curation.
+**Normative guidance for any published directory marketed as trustworthy:** each listed profile ID **must** be accompanied by at least one **HTTPS URL** on the **organization's own official website** — specifically a page (or stable section) where that **same** profile ID is visibly published, so end users can confirm the mapping without relying solely on the directory operator. Directories that list IDs **without** such verifiable on-site links **must not** be presented as authoritative; they are at best informal curation.
 
-### Optional P-affiliation (one parent per child)
+A directory operator **must not** present curation as protocol truth. Any published directory **must** state plainly that its rows are selected by its operator, that absence from the list carries no meaning, and that presence in it is not a guarantee.
 
-When two Proof Institutions should appear linked in a simple hierarchy (head office
-and a unit, an umbrella body and a member, a network and a node — the real-world
-meaning is off-chain convention), the protocol allows an optional **one-level**
-affiliation between `P` entities:
+**Reference format.** A CSV interchange format for such directories, with an example file and the re-checking tooling, is published separately at [`object-digital-passport/odp-profile-directory`](https://github.com/object-digital-passport/odp-profile-directory). It is **informative**: nothing here requires a directory to exist, or to use that format.
 
-- Child `P` proposes a parent `P`
-- Parent `P` confirms on-chain
-- Child `P` can have **at most one active parent `P`**
+**Status semantics any consuming application MUST honour** — whatever directory format it reads:
 
-This two-step handshake reduces spam and prevents unilateral trust claims.
+
+| Directory state                                                                   | What the application shows                                                                          |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Evidence checked and present                                                      | The organization's identity may be displayed                                                        |
+| Evidence unreachable (network error, 5xx, 404)                                    | **No owner identity at all** — no name, and no warning either. Missing data is not an accusation    |
+| Evidence page loads, but the ID is **gone or changed** where it was present before | A prominent warning on the entry                                                                    |
+| Never machine-checkable (social profile, client-rendered page)                     | Display together with the date a human last checked it                                              |
+
+
+The difference between rows two and three is the whole point. A site that fails to load says nothing about the organization; an ID deliberately removed from a page that still loads is a deliberate act. Collapsing the first into the second publicly accuses honest organizations of forgery over a weekend of downtime.
+
+A warning **must never** be raised for evidence that was never machine-readable in the first place. Absence of a finding is not a finding.
+
+### Optional affiliation (one parent per child)
+
+When two organization profiles should appear linked in a hierarchy — a head office and a unit, a
+university and its schools, an umbrella body and a member, a brand and a sub-brand — the protocol
+allows an optional **affiliation** between profiles of type `B`, `M`, and `P`, in any combination:
+
+- Child proposes a parent
+- Parent confirms on-chain
+- A child has **at most one active parent**
+
+`C` profiles cannot take part on either side. An individual has no divisions, and a `C → C` link
+would be nothing but a way to attach oneself to a better-known name.
+
+**Multi-level, but never circular.** A profile that already has children may still gain a parent
+later: schools sit under a university, and a consortium can appear above that university a year
+later without any restructuring below it. The contract refuses any link that would close a loop —
+it walks upward from the proposed parent and rejects the proposal if the child is already an
+ancestor (`EC(67)`). The walk is bounded: an ancestor chain that does not reach a root within
+**8** hops is rejected rather than traversed (`EC(69)`), which also caps how deep a chain can be
+grown downward.
+
+**Affiliation grants nothing.** It is a display relation and only that:
+
+- **No mint allowance is inherited.** Monthly caps (§3) always count against the wallet that mints.
+- **No proof authority is inherited.** A child's `submitProof` is the child's statement, never the parent's.
+- **No trust is inherited.** Verifiers **MUST NOT** present a child as endorsed, certified, or vouched for by its parent.
+
+A parent confirms **belonging**, not **quality**. If a sub-brand starts issuing worthless passports,
+its parent must be able to detach it (`detachAffiliation`) without having already lent it a
+reputation it never granted.
+
+**What verifiers display.** A verifier **SHOULD** show only the **immediate** parent of a profile by
+default; the full chain **MAY** be shown on explicit request. Rendering "school → university →
+consortium" as one line reads as inherited standing, which this relation does not carry.
+
+The real-world meaning of a link — subsidiary, department, member, franchise — is **off-chain
+convention**. The protocol records only that two profiles agreed to be linked, and in which
+direction. Verifiers **MUST NOT** invent or display a relationship type the contract does not store.
+
+The two-step handshake reduces spam and prevents unilateral trust claims.
 
 ```
 ODP-2026-03-004829301  (original passport, 2026)
@@ -1754,7 +1837,7 @@ Optional — **proof satellite (`ODPPassportProofRegistry`):**
 Optional — **relations satellite (`ODPRegistryRelations`):**
 
 - `getCreatorPublishingDelegation(creatorWallet) -> (agent, expiresAt)`
-- `getPAffiliationAudit(childPId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
+- `getAffiliationAudit(childId) -> (activeParent, joinedAt, detachedAt, lastDetachedFromParent)`
 - `delegateCreatorPublishing(agent, expiresAt)`
 - `revokeCreatorPublishing()`
 - `requestMintAgentRole(principalCreatorId)` / `confirmMintAgentRole(agent)` / `revokeMintAgentRole()`
@@ -1785,10 +1868,10 @@ Core guarantees (invariants)
 - `updatePassportUrls()` may change **only** `dataUrl` and `**imageUrl`** (hosting hints) and requires `confirmedDataHash == on-chain dataHash`; caller must be `**creator` or `owner`**, or the **issuer’s active publishing agent** (`getCreatorPublishingDelegation(passport.creator)`).
 - `**submitProof` and `recordPassportEvent` revert** if the passport is **revoked**.
 
-Affiliation note (P → P, one-level)
+Affiliation note (`B` / `M` / `P`, one parent per child)
 
-- `getPAffiliatedChildren(parentPId) -> string[]` returns the full list; verifiers/frontends MUST treat the result as potentially large and apply **client-side** pagination or caps, or use `**getPAffiliatedChildrenPaged(parentPId, offset, limit)`** on the relations satellite.
-- Hard caps: a single parent `P` can have at most **100 active child `P`**, and a single child `P` can have at most **100 pending parent proposals** at any moment.
+- `getAffiliatedChildren(parentId) -> string[]` returns the full list; verifiers/frontends MUST treat the result as potentially large and apply **client-side** pagination or caps, or use `**getAffiliatedChildrenPaged(parentId, offset, limit)`** on the relations satellite.
+- Hard caps: a single parent can have at most **100 active children**, and a single child at most **100 pending parent proposals**, at any moment. Cycle checking walks at most **8** ancestors; a proposal whose chain exceeds that reverts `EC(69)`.
 
 Document anchoring
 
@@ -1831,13 +1914,13 @@ registerCreator(type) → creatorId
 submitProof(passportId, documentHash, documentUrl, year, month) → proofId
   // caller must be registered as type P or M; year/month are proof-event calendar values for the PRF id
 
-proposePAffiliation(parentPId)
-confirmPAffiliation(childPId)
-detachPAffiliation(childPId)   // active parent P only
-cancelPAffiliationRequest(parentPId)
-isPAffiliationPending(parentPId, childPId) → bool
-getPAffiliatedParent(childPId) → string
-getPAffiliatedChildren(parentPId) → string[]
+proposeAffiliation(parentId)
+confirmAffiliation(childId)
+detachAffiliation(childId)   // active parent only
+cancelAffiliationRequest(parentId)
+isAffiliationPending(parentId, childId) → bool
+getAffiliatedParent(childId) → string
+getAffiliatedChildren(parentId) → string[]
 
 transferPassport(passportId, newOwner)
 delegateCreatorPublishing(agent, expiresAt)
