@@ -1073,6 +1073,7 @@ The canonical `passport.json` for the current line is the **v0.7 shape** used by
 | `aiStatus` | yes | `string` | One of the controlled values below. |
 | `verificationMethod` | yes | `string` | One of the controlled values below. |
 | `edition` | yes | `object` | MUST contain `model`; MAY include `number` and `total` when meaningful. |
+| `idGranularity` | yes | `string` | One of `model`, `batch`, `item` — **what this passport identifies**: a design (any unit of it), one production run, or one physical object. Independent of `edition`, which says how large the run is, not what the record points at: an `item` passport may describe unit 1 of 3, and a `batch` passport may cover a run of 100 000. A verifier comparing an object against a `model` or `batch` passport is matching the class, not the individual, and **MUST NOT** present the result as identifying that specific object. |
 | `translations` | optional | `object` | Language-keyed translations / transliterations of `title`, `shortDescription`, `description` (e.g. `{"en": {"title": "…"}}`). The on-chain card stays in the author's original language. |
 | `year`, `month` | yes | integer | UTC mint year/month; MUST match on-chain mint inputs. |
 | `registeredAt`, `registration` | yes | number / object | UTC-only registration instant representation; see below. |
@@ -1095,7 +1096,7 @@ An **anchor** is a verifiable property that binds the passport to the specific o
 | Bit | `type` | Object ID category | `data` / `hash` content |
 | --- | --- | --- | --- |
 | 1 | `photo` | Photographs | reference to the shot (e.g. `role`: `primary` / `detail`); `hash` = SHA-256 of the image file |
-| 2 | `dimensions` | Measurements | dimensions with units and precision |
+| 2 | `dimensions` | Measurements | measures (`width`, `height`, `depth`, `diameter`) plus a required `unit`, and optional `upperTolerance` / `lowerTolerance` — see the unit rule below |
 | 4 | `materials` | Materials & techniques | materials list / technique |
 | 8 | `distinguishing_features` | Distinguishing features | defects, craquelure, repairs — what a copy would not reproduce |
 | 16 | `marks` | Inscriptions & markings | signatures, stamps, serials + where they are |
@@ -1111,6 +1112,10 @@ An **anchor** is a verifiable property that binds the passport to the specific o
 | 2^31 | `custom` | — | anchor outside the registry; actual type in `data.customType` |
 
 Bits 14–30 are **reserved** for future SPEC revisions; new types are added by a SPEC update without changing the schema shape.
+
+**Measurement units (normative).** The `dimensions` anchor **MUST** carry `data.unit`, and its value **MUST** be a **UN/CEFACT Recommendation 20** common code — `MMT` (millimetre), `CMT` (centimetre), `MTR` (metre), `INH` (inch), `FOT` (foot). Every measure in that anchor is expressed in that one unit. Free text such as `"cm"` or `"centimetres"` is **not** conforming: measures that software cannot compare are measures that cannot identify an object, and the canonical bytes are frozen at mint, so the unit cannot be tightened afterwards.
+
+The code is what the document carries; it is not what a person should be shown. A client displaying a `dimensions` anchor **SHOULD** render the unit in the reader's language — `60 × 40 CMT` is a machine's sentence, `60 × 40 cm` is a human's. Optional `upperTolerance` and `lowerTolerance` are expressed in the same unit and state how far a measured object may fall outside the stated figures and still match; absent them, a verifier applies its own judgement and **MUST NOT** treat a small discrepancy as a failed check on its own (§11).
 
 `unit_key_set` and `unit_variant_commit` are **not** part of the hard identification minimum and never substitute for it: an edition passport MUST still carry `photo` + `dimensions` + `materials` + `distinguishing_features` describing the edition.
 
@@ -1216,6 +1221,7 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
   "aiStatus": "assisted",
   "verificationMethod": "nfc",
   "edition": { "model": "limited", "number": 1, "total": 3 },
+  "idGranularity": "item",
   "authorship": {
     "author": {
       "name": "Example Holder",
@@ -1232,7 +1238,7 @@ Implementations MUST **not** record the user’s **device-local IANA time zone**
     },
     {
       "type": "dimensions",
-      "data": { "width": 60, "height": 40, "unit": "cm", "depth": 2 }
+      "data": { "width": 60, "height": 40, "unit": "CMT", "depth": 2 }
     },
     {
       "type": "materials",
@@ -1292,6 +1298,7 @@ On-chain for this example: `anchorTypesMask = 1|2|4|8|16|256 = 287`; `imageHash`
   "aiStatus": "generated",
   "verificationMethod": "c2pa",
   "edition": { "model": "unique" },
+  "idGranularity": "item",
   "anchors": [
     {
       "type": "file_hash",
@@ -1349,6 +1356,7 @@ On-chain for this example: `anchorTypesMask = 32|64|128 = 224`; `fileHash` = the
   "aiStatus": "assisted",
   "verificationMethod": "hybrid",
   "edition": { "model": "dynamic" },
+  "idGranularity": "item",
   "authorship": {
     "author": {
       "name": "Example Holder",
@@ -1359,7 +1367,7 @@ On-chain for this example: `anchorTypesMask = 32|64|128 = 224`; `fileHash` = the
   },
   "anchors": [
     { "type": "photo", "data": { "role": "primary" }, "hash": "sha256:1122bb..." },
-    { "type": "dimensions", "data": { "width": 120, "height": 80, "depth": 40, "unit": "cm" } },
+    { "type": "dimensions", "data": { "width": 120, "height": 80, "depth": 40, "unit": "CMT" } },
     { "type": "materials", "data": { "list": ["aluminium", "custom electronics"] } },
     { "type": "distinguishing_features", "data": { "text": "Hand-soldered controller board, serial ES-2 engraved inside base" } },
     { "type": "marks", "data": { "text": "Internal serial ES-2" } },
@@ -2049,6 +2057,18 @@ Paths under `manifest.originals` MUST be rejected if they contain `..` or do not
 - Human-readable names — profile ID is a number, not a name
 - Which specific seal product to use — any seal meeting the requirements is valid
 - Full C2PA integration beyond hash compatibility (reserved for a future extension)
+
+### 16.1 Durable hosting for `dataUrl` (normative SHOULD)
+
+Not defining who hosts the bundle is not the same as having no opinion about how. An issuer **SHOULD** publish the `.odpass` at a location with three properties:
+
+- **Content-addressed or otherwise integrity-bound**, so that the bytes at the URL cannot silently change under a stable address. `dataHash` already catches a substitution, but only for a verifier who bothers to check; a content-addressed store makes the substitution impossible instead of detectable.
+- **Independent of any single operator's continued goodwill**, including the issuer's own. A passport whose bundle lives only on a personal domain stops resolving when the domain lapses, which is a matter of *when*, not *if*.
+- **Reachable over plain HTTPS without an account, a key, or a client-side gateway**, because §9 requires `dataUrl` to serve the ZIP to any verifier, and a verifier that must first sign up somewhere is not a verifier the protocol can rely on.
+
+A static host serving a file that a hash names — a repository's published pages, a content-addressed store fronted by an HTTPS gateway, an institutional repository with a preservation commitment — satisfies all three. A link to a personal file-sharing account satisfies none.
+
+**What is lost when `dataUrl` dies is bounded, and worth stating plainly:** the on-chain card (§9's card fields — title, author, short description, domain) is on-chain, in the clear, and outlives any host. What goes is the identification evidence — the photos, measurements, materials, distinguishing features carried in `anchors[]`. A passport whose bundle is gone still names its object and its issuer; it can no longer prove that the object in front of you is that one. That is a degradation, not a revocation, and a verifier **MUST** present it as such (§11).
 
 ---
 

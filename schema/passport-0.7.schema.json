@@ -17,6 +17,7 @@
     "aiStatus",
     "verificationMethod",
     "edition",
+    "idGranularity",
     "year",
     "month",
     "registeredAt",
@@ -111,6 +112,10 @@
         "number": { "type": "integer", "minimum": 1 },
         "total": { "type": "integer", "minimum": 1 }
       }
+    },
+    "idGranularity": {
+      "enum": ["model", "batch", "item"],
+      "description": "What this passport identifies: a model (a design; any unit of it), a batch (one production run), or an item (one physical object). SPEC §9. Independent of `edition.model`, which describes how large the run is, not what the record points at."
     },
     "translations": {
       "type": "object",
@@ -282,6 +287,31 @@
         }
       },
       "allOf": [
+        {
+          "$comment": "SPEC 0.7 §9 — dimensions. Measures carry a UN/CEFACT Rec 20 common code so software can compare them; a client renders the human-readable unit.",
+          "if": { "properties": { "type": { "const": "dimensions" } }, "required": ["type"] },
+          "then": {
+            "required": ["data"],
+            "properties": {
+              "data": {
+                "type": "object",
+                "required": ["unit"],
+                "properties": {
+                  "unit": {
+                    "enum": ["MMT", "CMT", "MTR", "INH", "FOT"],
+                    "description": "UN/CEFACT Recommendation 20 common code: MMT millimetre, CMT centimetre, MTR metre, INH inch, FOT foot. Every measure in this anchor is in this unit."
+                  },
+                  "width": { "type": "number", "exclusiveMinimum": 0 },
+                  "height": { "type": "number", "exclusiveMinimum": 0 },
+                  "depth": { "type": "number", "exclusiveMinimum": 0 },
+                  "diameter": { "type": "number", "exclusiveMinimum": 0 },
+                  "upperTolerance": { "type": "number", "minimum": 0, "description": "How much larger than the stated measures the object may be and still match, in the same unit." },
+                  "lowerTolerance": { "type": "number", "minimum": 0, "description": "How much smaller than the stated measures the object may be and still match, in the same unit." }
+                }
+              }
+            }
+          }
+        },
         {
           "$comment": "SPEC 0.7 §20.3 — unit_key_set. B profiles only; the same Merkle root is registered on-chain in ODPEditionUnits and a verifier compares the two.",
           "if": { "properties": { "type": { "const": "unit_key_set" } }, "required": ["type"] },

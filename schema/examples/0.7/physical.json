@@ -13,6 +13,7 @@
   "aiStatus": "assisted",
   "verificationMethod": "nfc",
   "edition": { "model": "limited", "number": 1, "total": 3 },
+  "idGranularity": "item",
   "authorship": {
     "author": {
       "name": "Example Holder",
@@ -29,7 +30,7 @@
     },
     {
       "type": "dimensions",
-      "data": { "width": 60, "height": 40, "unit": "cm", "depth": 2 }
+      "data": { "width": 60, "height": 40, "unit": "CMT", "depth": 2 }
     },
     {
       "type": "materials",

@@ -13,6 +13,7 @@
   "aiStatus": "assisted",
   "verificationMethod": "hybrid",
   "edition": { "model": "dynamic" },
+  "idGranularity": "item",
   "authorship": {
     "author": {
       "name": "Example Holder",
@@ -23,7 +24,7 @@
   },
   "anchors": [
     { "type": "photo", "data": { "role": "primary" }, "hash": "sha256:1122bb33cc44dd55ee66ff778899aabbccddeeff001122334455667788990011" },
-    { "type": "dimensions", "data": { "width": 120, "height": 80, "depth": 40, "unit": "cm" } },
+    { "type": "dimensions", "data": { "width": 120, "height": 80, "depth": 40, "unit": "CMT" } },
     { "type": "materials", "data": { "list": ["aluminium", "custom electronics"] } },
     { "type": "distinguishing_features", "data": { "text": "Hand-soldered controller board, serial ES-2 engraved inside base" } },
     { "type": "marks", "data": { "text": "Internal serial ES-2" } },

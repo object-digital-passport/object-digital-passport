@@ -16,6 +16,7 @@
     "model": "limited",
     "total": 100000
   },
+  "idGranularity": "batch",
   "authorship": {
     "author": {
       "name": "Example Holder",
@@ -37,8 +38,10 @@
       "data": {
         "width": 60,
         "height": 40,
-        "unit": "cm",
-        "depth": 2
+        "unit": "CMT",
+        "depth": 2,
+        "upperTolerance": 0.3,
+        "lowerTolerance": 0.3
       }
     },
     {

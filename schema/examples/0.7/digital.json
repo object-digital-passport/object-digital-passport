@@ -13,6 +13,7 @@
   "aiStatus": "generated",
   "verificationMethod": "c2pa",
   "edition": { "model": "unique" },
+  "idGranularity": "item",
   "anchors": [
     {
       "type": "file_hash",
