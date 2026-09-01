@@ -39,7 +39,14 @@ its own history; what is recorded here from now on is the protocol.
 
 ### Added
 
+- **`idGranularity` — what a passport identifies.** A required top-level field: `model` (a design, any unit of it), `batch` (one production run), or `item` (one physical object). ODP had folded this into `edition.model`, which answers a different question — how large the run is, not what the record points at — and then needed the distinction anyway in §20, where it was encoded implicitly through the presence of a `unit_key_set` anchor. §9 also states the consequence a verifier must respect: matching an object against a `model` or `batch` passport matches the class, not the individual, and must not be presented as identifying that specific object.
+- **Measurement units are a code list.** The `dimensions` anchor now requires `data.unit`, and the value must be a UN/CEFACT Rec 20 common code — `MMT`, `CMT`, `MTR`, `INH`, `FOT`. It was free text, so `"cm"` and `"centimetres"` were equally valid and neither was comparable by software; a measure software cannot compare cannot identify an object. Optional `upperTolerance` / `lowerTolerance` state how far a measured object may fall outside the figures and still match. The code is what the document carries — §9 says a client SHOULD render the unit in the reader's language, because `60 × 40 CMT` is a machine's sentence.
+- **[`SPEC.md` §16.1](SPEC.md) — durable hosting for `dataUrl`, a normative SHOULD.** Three properties: content-addressed or otherwise integrity-bound, independent of any single operator including the issuer, and reachable over plain HTTPS without an account or gateway. The section also bounds what a dead `dataUrl` costs: the on-chain card outlives any host, and what goes is the identification evidence in `anchors[]` — a degradation to be shown as such, not a revocation.
 - [`docs/ORG_NAMING_AND_SITE.md`](docs/ORG_NAMING_AND_SITE.md) — a proposal, applied nowhere: repository names in the c2pa-org style, what each rename would break, and why `odp.github.io` cannot be obtained.
+
+### Changed — canonical bytes
+
+- **The vector hashes move again, and this supersedes the figures given above in this same section.** `idGranularity` is part of the hashed document and the `dimensions` unit is part of the `anchors` array, so both hashes change this time: `dataHash` is now `0x7ded6c222ad15be7adfa55602c90ae5138d518fd635f566ca6371efb77d3c043` and `anchorsHash` is now `0xa0be7545063f44f42ee6b759d432fc8e9155c81e48dc31e539c6248e47aa267b`. Regenerated from the document, not edited by hand. Both of these changes were made now precisely because they cannot be made later: the canonical bytes freeze at the first mint, and no passport has been issued on any line.
 
 ## [0.7] - 2026-08-22 — pre-release
 
