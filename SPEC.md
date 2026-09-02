@@ -127,7 +127,7 @@ any centralized platform, subscription, or third-party dependency.
 
 - **Open** — anyone can implement the protocol in any language or platform
 - **Decentralized** — no single company controls the registry
-- **Offline-friendly** — authenticity can be verified without internet using only hashes
+- **Offline-capable, not offline-complete** — a bundle can be opened and checked against itself with no internet, but confirming that the document is the registered one needs the on-chain hash. What survives a lost connection, and what does not, is stated in §15.3
 - **Free to read** — verification never costs anything
 - **Minimal on-chain** — no images or large data stored on blockchain
 
@@ -862,6 +862,8 @@ ODP v0.x is deployed exclusively on **Polygon PoS**.
 
 A single canonical network eliminates ambiguity in verification.
 Multi-network support is reserved for a future version.
+
+It also concentrates a dependency: every verification path in this specification ends at a read from this one chain, and the offline bundle of §15 is no exception. §15.3 states normatively what a verifier may still do when it cannot reach the chain, why *could not reach the registry* must never be shown as *invalid*, and why no verifier may rest on a single RPC endpoint.
 
 ### Canonical registry addresses (normative)
 
@@ -1830,6 +1832,8 @@ A verifier MAY summarize the strength of the evidence bound to a passport as a s
 
 **Downgrade rule (normative):** an active institutional counterfeit concern (§4) does not remove a tier but MUST be displayed at least as prominently as the tier itself. A revoked passport has no tier regardless of anchors or proofs.
 
+**No chain, no tier (normative):** a verifier that could not read the registry **MUST NOT** show a tier at all, and **MUST** say that it could not reach it. A bundle that is internally consistent is not a verified passport; see §15.3 for what an offline check does and does not establish.
+
 **Revoked issuer (normative):** a passport whose issuing profile carries a non-zero `revokedAt` (§3.1) keeps its tier — the anchors and proofs are what they were, and the object did not change. The verifier **MUST** show that the issuing profile was stopped, and **MUST NOT** present the stop as a verdict on the object. Where the issuer publishes a `compromised` statement naming that profile (§3.1), the verifier **SHOULD** compare the passport's mint time with `since` and say plainly which side of it the record falls on; where no statement is available, it **MUST NOT** invent a date or imply the whole history is suspect. A stopped profile is a fact about an issuer, not a defect in every object that issuer ever registered.
 
 **Verified vs declared (normative):** when the verifier could not obtain the passport bundle (`UNVERIFIABLE` / no public URL), the tier reflects **on-chain declarations only** and MUST be visually marked as such (e.g. "declared"). When the bundle checks passed, the tier MAY be marked as verified. A web verifier MUST NOT imply that a **Sealed** tier means a live chip check happened — the EV2 challenge-response (§6, Level 2A) runs only in an NFC-capable verifier, and its result is reported separately (`SEAL_NFC_*`).
@@ -2088,6 +2092,22 @@ Paths under `manifest.originals` MUST be rejected if they contain `..` or do not
 
 - Bundles are untrusted input and MUST be treated as data only (no code execution).
 - A bundle does not replace on-chain truth. Verification is anchored by on-chain hashes (`dataHash`, and optionally `fileHash` / `imageHash` / additional image hashes).
+
+#### What a verifier can and cannot do without the chain (normative)
+
+Every verification path in this specification — web, app, and the `.odpass` bundle of this section — ends at a read from one chain. That is a real dependency and it is stated here rather than left for an implementer to discover in the field.
+
+With **no chain access at all**, a verifier can still:
+
+- open the bundle and confirm it is well-formed;
+- recompute the hashes of sidecar files under `originals/` and check them against the `sha256:` values inside `passport.json` — that is, confirm the bundle is **internally consistent**;
+- recompute `localDataHash` and `anchorsHash` and display them for a human to compare against a value obtained some other way.
+
+It **cannot** establish that this document was ever registered, by whom, when, whether the passport was revoked (§8) or its issuing profile stopped (§3.1), or who holds it now. A verifier in this state **MUST** present the result as *unconfirmed*, **MUST NOT** show an assurance tier (§11), and **MUST NOT** use wording that a reader could mistake for a positive verdict. An internally consistent bundle is a well-made document, and a forger can make one.
+
+**Reading the chain (normative).** A verifier **MUST NOT** depend on a single RPC endpoint. It **MUST** be able to try more than one, and **SHOULD** let the operator supply their own — a self-hosted node is the only path that depends on nobody. A single provider being unreachable is an ordinary event, not a verification failure, and a verifier **MUST** distinguish the two in what it shows: *could not reach the registry* is not *this passport is invalid*.
+
+**If the chain itself ends.** ODP is deployed on one network (§7) and multi-network support is reserved for a future version. Should Polygon PoS cease to operate, records already written remain in its history, but live verification stops for everyone at once. There is no fallback anchor in this line, and pretending otherwise would be worse than saying it plainly.
 
 ---
 
