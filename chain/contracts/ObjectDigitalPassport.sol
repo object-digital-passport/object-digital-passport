@@ -110,6 +110,7 @@ contract ObjectDigitalPassport {
         address wallet;
         bytes1  typePrefix;   // "C", "B", "P", or "M" — stored as bytes1 for gas efficiency
         uint256 timestamp;
+        uint256 revokedAt;    // 0 = active; otherwise the block time the owner stopped this profile (SPEC §3)
     }
 
     struct Passport {
@@ -247,6 +248,21 @@ contract ObjectDigitalPassport {
         string  indexed creatorId,
         address indexed wallet,
         bytes1          typePrefix,
+        uint256         timestamp
+    );
+
+    /**
+     * A profile owner stopped their own profile (SPEC §3). Irreversible, and carries no
+     * date the caller chooses: the only timestamp is when the call landed. Whoever holds
+     * the key can call this — including a thief — so the deliberate limit is that it can
+     * only stop future issuance. It cannot reach back and mark passports already minted,
+     * because a thief would use that to discredit the owner's entire history. Dating a
+     * compromise is done off-chain, where the key alone is not enough to speak: the
+     * issuer's own domain (§3).
+     */
+    event CreatorRevoked(
+        string  indexed creatorId,
+        address indexed wallet,
         uint256         timestamp
     );
 
@@ -434,7 +450,8 @@ contract ObjectDigitalPassport {
             creatorId:  creatorId,
             wallet:     msg.sender,
             typePrefix: typePrefix,
-            timestamp:  block.timestamp
+            timestamp:  block.timestamp,
+            revokedAt:  0
         });
 
         _walletToCreatorId[msg.sender] = creatorId;
@@ -442,6 +459,22 @@ contract ObjectDigitalPassport {
 
         emit CreatorRegistered(creatorId, msg.sender, typePrefix, block.timestamp);
         return creatorId;
+    }
+
+    /**
+     * Stop this wallet's own profile. Irreversible: there is no un-revoke, because a
+     * thief holding the key would call it first. Already-minted passports are untouched —
+     * an object does not stop being genuine because its issuer lost a wallet (§3, §11).
+     * After this the wallet can no longer mint; the owner registers a new profile from a
+     * new wallet and links the two on their own domain.
+     */
+    function revokeCreator() external notFrozen {
+        string memory creatorId = _walletToCreatorId[msg.sender];
+        if (!(bytes(creatorId).length > 0)) revert EC(3);
+        CreatorRecord storage cr = _creators[creatorId];
+        if (!(cr.revokedAt == 0)) revert EC(59);
+        cr.revokedAt = block.timestamp;
+        emit CreatorRevoked(creatorId, msg.sender, block.timestamp);
     }
 
     function getCreator(string calldata creatorId)
@@ -831,6 +864,8 @@ contract ObjectDigitalPassport {
     {
         if (frozen) revert EC(58); // covers all mint paths incl. extension router
         (creatorId, principalWallet, mintAgentAddr) = _resolveMintPrincipal(mintOnBehalfOfCreatorId);
+        // A revoked profile issues nothing, by any path — direct, agent, or extension router.
+        if (!(_creators[creatorId].revokedAt == 0)) revert EC(131);
         _checkAndIncrementMintLimit(creatorId, principalWallet);
     }
 

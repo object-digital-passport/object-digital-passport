@@ -404,6 +404,46 @@ from any non-browser checker, and a page anyone can post to — a forum, a commu
 an attacker's text on an official domain. A static file at a reserved path (RFC 8615) is readable
 without a browser engine and writable only by whoever controls the server.
 
+### 3.1 Stopping a profile, and saying when it went wrong
+
+A profile ID is bound to one wallet for the life of the registry: there is no function that moves it to another address, and every passport records the issuing wallet and profile ID immutably at mint. Losing that key, or having it stolen, is therefore not recoverable inside the registry. The protocol splits the response in two, and the split is the point.
+
+**On-chain: `revokeCreator()` — a stop, and nothing else.** The wallet that owns a profile may stop it. Irreversible: there is no un-revoke, because a thief holding the key would call it first. The record gains `revokedAt`, the block time of the call. Afterwards that profile mints nothing by any path — direct, mint agent, or extension router — and the wallet cannot register a replacement profile either, since one wallet holds at most one.
+
+The call takes **no arguments**, and this is deliberate rather than minimal. Whoever holds the key can make it, including a thief: the key does not distinguish an owner from someone who copied it. So the only safe power to grant is one that reaches forward. If the caller could name a date and have the registry treat earlier passports as suspect, a thief would name the profile's registration date and discredit the issuer's entire history with one transaction. A stop costs the thief the ability to keep minting; it cannot cost the owner their past.
+
+**Off-chain: the compromise statement, where a key alone cannot speak.** A thief holds the key. They do not hold the domain. Dating a compromise therefore belongs in `/.well-known/odp.json`, alongside the profile listing that already establishes identity:
+
+```json
+{
+  "odp": 1,
+  "chainId": 137,
+  "registry": "0x012aC6393464A73EC16131D701ff2e000695b91b",
+  "profiles": [
+    { "profileId": "B-193-002-847-551", "wallet": "0x9f2b41Dc…07ae3c14" }
+  ],
+  "compromised": [
+    {
+      "profileId": "B-029-384-751-224",
+      "since": "2026-09-03T00:00:00Z",
+      "replacedBy": "B-193-002-847-551",
+      "note": "Signing wallet compromised; passports issued after this date are not ours."
+    }
+  ]
+}
+```
+
+Rules for `compromised`:
+
+- Each entry **MUST** carry `profileId` and `since` (RFC 3339, UTC). `replacedBy` and `note` are optional; `replacedBy` **SHOULD** name a profile listed in `profiles` on the same file, which is what makes the succession checkable.
+- A statement is **the domain owner's claim, not a fact the protocol verifies.** `since` can be wrong, or late, or self-serving. Its weight comes from where it is published: an attacker with the private key cannot put it there, and an attacker who can put it there did not need the key.
+- An entry for a profile the domain does not control is **not** authority over someone else's profile. A reader **MUST** treat `compromised` as a statement about the publisher's own identity and ignore claims about profiles listed nowhere in that publisher's `profiles`, current or superseded.
+- The statement **does not** revoke anything. On-chain revocation happens on-chain, and passports are revoked one by one with `revokePassport` (§8). This entry only dates a period a reader should treat with suspicion.
+
+**Where this leaves a `C` profile with no domain.** Publishing the statement on a social account carrying the profile ID is the same trade the identity rule already makes: not machine-checkable, but outside the thief's reach. An issuer with neither a domain nor a public account has nowhere to date a compromise, and only the on-chain stop remains — which tells a reader the profile ended, but not when it stopped being trustworthy.
+
+**Already-issued passports are untouched by any of this.** An object does not stop being genuine because its issuer lost a wallet. What changes is the reader's judgement about records made after the loss, and that judgement is the reader's to make (§11).
+
 ### On packaging and physical objects
 
 ```
@@ -1790,6 +1830,8 @@ A verifier MAY summarize the strength of the evidence bound to a passport as a s
 
 **Downgrade rule (normative):** an active institutional counterfeit concern (§4) does not remove a tier but MUST be displayed at least as prominently as the tier itself. A revoked passport has no tier regardless of anchors or proofs.
 
+**Revoked issuer (normative):** a passport whose issuing profile carries a non-zero `revokedAt` (§3.1) keeps its tier — the anchors and proofs are what they were, and the object did not change. The verifier **MUST** show that the issuing profile was stopped, and **MUST NOT** present the stop as a verdict on the object. Where the issuer publishes a `compromised` statement naming that profile (§3.1), the verifier **SHOULD** compare the passport's mint time with `since` and say plainly which side of it the record falls on; where no statement is available, it **MUST NOT** invent a date or imply the whole history is suspect. A stopped profile is a fact about an issuer, not a defect in every object that issuer ever registered.
+
 **Verified vs declared (normative):** when the verifier could not obtain the passport bundle (`UNVERIFIABLE` / no public URL), the tier reflects **on-chain declarations only** and MUST be visually marked as such (e.g. "declared"). When the bundle checks passed, the tier MAY be marked as verified. A web verifier MUST NOT imply that a **Sealed** tier means a live chip check happened — the EV2 challenge-response (§6, Level 2A) runs only in an NFC-capable verifier, and its result is reported separately (`SEAL_NFC_*`).
 
 **Honesty rule (normative):** the tier label MUST be presented as a measure of *binding evidence*, never as an authenticity verdict. A Base-tier passport from an honest issuer is not "worse" than a Sealed-tier passport from a fraudulent one; the human checks of §11 (issuer identity, distinguishing features) remain decisive at every tier.
@@ -1937,6 +1979,9 @@ recordPassportEvent(passportId, kind, value, note, attachmentHash, attachmentUrl
 registerCreator(type) → creatorId
   // type: "C" | "B" | "P" | "M"
 
+revokeCreator()
+  // caller's own profile; irreversible; stops future issuance only (§3.1)
+
 submitProof(passportId, documentHash, documentUrl, year, month) → proofId
   // caller must be registered as type P or M; year/month are proof-event calendar values for the PRF id
 
@@ -2078,6 +2123,8 @@ ODP does not define how users manage their cryptographic keys.
 The protocol only requires a valid Ethereum-compatible wallet address
 to sign transactions. How the key is generated, stored, and secured
 is entirely the user's responsibility and choice.
+
+**What the protocol does and does not offer when a key goes wrong.** A profile ID cannot move to another wallet — there is no rotation, and adding one would hand a thief the same power it hands an owner, since the key is all the registry can see. What exists is `revokeCreator()` (§3.1): an irreversible stop on future issuance, callable only with the key, plus a dated compromise statement published on the issuer's own domain, which is the one channel a stolen key does not reach. A key that is **lost** rather than stolen cannot even be stopped: nothing in the registry answers for an address whose owner can no longer sign. Treat the ODP wallet's backup accordingly — it is the only copy of an identity that cannot be reissued.
 
 **Operational recommendation:** use a **dedicated wallet only for ODP** — not for holding meaningful balances, DeFi, trading, or day-to-day payments. This limits blast radius if a site is malicious or compromised. ODP does **not** require a second keypair: signing uses the wallet’s Ethereum keys. **Wallet choice:** follow **vendor documentation** for your tool (e.g. [MetaMask Help Center](https://support.metamask.io/)); **no specific wallet brand is normative**. **Reference implementations** in this repository (static web UI) have been **QA’d mainly with MetaMask**; other EIP-1193 wallets are expected to work but are not guaranteed to match every edge case. Optional **DID** documents (see §18) MAY declare extra verification keys for Verifiable Credentials; that is separate from basic register/mint flows.
 
