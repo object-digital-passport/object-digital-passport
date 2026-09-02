@@ -1211,4 +1211,74 @@ describe("ObjectDigitalPassport", function () {
       expect(a.authorSigner).to.equal(wAuthor.address);
     });
   });
+
+  describe("0.7 creator revocation", function () {
+    it("marks the profile and emits CreatorRevoked", async function () {
+      const c = await deployFixture();
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const creatorId = await c.getCreatorByWallet(w.address);
+
+      expect((await c.getCreator(creatorId)).revokedAt).to.equal(0n);
+      await expect(c.connect(w).revokeCreator()).to.emit(c, "CreatorRevoked");
+      expect((await c.getCreator(creatorId)).revokedAt).to.not.equal(0n);
+    });
+
+    it("stops every mint path from the revoked profile (EC 131)", async function () {
+      const c = await deployFixture();
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      await c.connect(w).revokeCreator();
+
+      await expect(c.connect(w).mintPhysical(physicalInputs(7001), false, MINT_SELF))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(131n);
+      await expect(c.connect(w).mintDigital(digitalInputs(7002), false, MINT_SELF))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(131n);
+    });
+
+    it("is one-shot (EC 59) and needs a registered wallet (EC 3)", async function () {
+      const c = await deployFixture();
+      const [w, wStranger] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      await c.connect(w).revokeCreator();
+
+      await expect(c.connect(w).revokeCreator())
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(59n);
+      await expect(c.connect(wStranger).revokeCreator())
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(3n);
+    });
+
+    it("leaves passports minted before the revocation untouched", async function () {
+      const c = await deployFixture();
+      const [w, wNewOwner] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      const passportId = await mintAndId(c, w, "mintPhysical", physicalInputs(7003));
+
+      await c.connect(w).revokeCreator();
+
+      const p = await readPassport(c, passportId);
+      expect(p.revoked).to.equal(false);
+      expect(p.creator).to.equal(w.address);
+
+      // an object does not stop being genuine because its issuer stopped the profile
+      await (await c.connect(w).transferPassport(passportId, wNewOwner.address)).wait();
+      expect((await readPassport(c, passportId)).owner).to.equal(wNewOwner.address);
+    });
+
+    it("does not free the wallet to register a second profile (EC 53)", async function () {
+      const c = await deployFixture();
+      const [w] = await ethers.getSigners();
+      await c.connect(w).registerCreator(TYPE_C);
+      await c.connect(w).revokeCreator();
+
+      // recovery is a new wallet plus a domain statement (SPEC §3), not a fresh profile here
+      await expect(c.connect(w).registerCreator(TYPE_C))
+        .to.be.revertedWithCustomError(c, "EC")
+        .withArgs(53n);
+    });
+  });
 });

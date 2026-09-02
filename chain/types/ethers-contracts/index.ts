@@ -40,6 +40,10 @@ export { IODPRegistryForExtensionMint__factory } from './factories/ODPExtensionM
 export type { ODPExtensionMintRouter } from './ODPExtensionMintRouter.sol/ODPExtensionMintRouter.js';
 export { ODPExtensionMintRouter__factory } from './factories/ODPExtensionMintRouter.sol/ODPExtensionMintRouter__factory.js';
 export { ODPPassportLib__factory } from './factories/ODPPassportLib__factory.js';
+export type { IODPRegistryForRelations } from './ODPRegistryRelations.sol/IODPRegistryForRelations.js';
+export { IODPRegistryForRelations__factory } from './factories/ODPRegistryRelations.sol/IODPRegistryForRelations__factory.js';
+export type { ODPRegistryRelations } from './ODPRegistryRelations.sol/ODPRegistryRelations.js';
+export { ODPRegistryRelations__factory } from './factories/ODPRegistryRelations.sol/ODPRegistryRelations__factory.js';
 export type { IODPRegistryForProofs } from './ODPPassportProofRegistry.sol/IODPRegistryForProofs.js';
 export { IODPRegistryForProofs__factory } from './factories/ODPPassportProofRegistry.sol/IODPRegistryForProofs__factory.js';
 export type { ODPPassportProofRegistry } from './ODPPassportProofRegistry.sol/ODPPassportProofRegistry.js';
@@ -48,15 +52,11 @@ export type { IODPWalletLookup } from './ODPWalletDocumentAnchor.sol/IODPWalletL
 export { IODPWalletLookup__factory } from './factories/ODPWalletDocumentAnchor.sol/IODPWalletLookup__factory.js';
 export type { ODPWalletDocumentAnchor } from './ODPWalletDocumentAnchor.sol/ODPWalletDocumentAnchor.js';
 export { ODPWalletDocumentAnchor__factory } from './factories/ODPWalletDocumentAnchor.sol/ODPWalletDocumentAnchor__factory.js';
-export type { IODPRegistryForRelations } from './ODPRegistryRelations.sol/IODPRegistryForRelations.js';
-export { IODPRegistryForRelations__factory } from './factories/ODPRegistryRelations.sol/IODPRegistryForRelations__factory.js';
-export type { ODPRegistryRelations } from './ODPRegistryRelations.sol/ODPRegistryRelations.js';
-export { ODPRegistryRelations__factory } from './factories/ODPRegistryRelations.sol/ODPRegistryRelations__factory.js';
 export type { IODPRelationsLookup } from './ObjectDigitalPassport.sol/IODPRelationsLookup.js';
 export { IODPRelationsLookup__factory } from './factories/ObjectDigitalPassport.sol/IODPRelationsLookup__factory.js';
 export type { ObjectDigitalPassport } from './ObjectDigitalPassport.sol/ObjectDigitalPassport.js';
 export { ObjectDigitalPassport__factory } from './factories/ObjectDigitalPassport.sol/ObjectDigitalPassport__factory.js';
-export type { ODPPassThroughDigitalExtension } from './examples/ODPPassThroughDigitalExtension.js';
-export { ODPPassThroughDigitalExtension__factory } from './factories/examples/ODPPassThroughDigitalExtension__factory.js';
 export type { ODPPassThroughPhysicalExtension } from './examples/ODPPassThroughPhysicalExtension.js';
 export { ODPPassThroughPhysicalExtension__factory } from './factories/examples/ODPPassThroughPhysicalExtension__factory.js';
+export type { ODPPassThroughDigitalExtension } from './examples/ODPPassThroughDigitalExtension.js';
+export { ODPPassThroughDigitalExtension__factory } from './factories/examples/ODPPassThroughDigitalExtension__factory.js';

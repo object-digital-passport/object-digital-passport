@@ -16,9 +16,9 @@ import type { TypedContractEvent, TypedDeferredTopicFilter, TypedEventLog, Typed
 
 export declare namespace ObjectDigitalPassport {
       
-    export type CreatorRecordStruct = {creatorId: string, wallet: AddressLike, typePrefix: BytesLike, timestamp: BigNumberish}
+    export type CreatorRecordStruct = {creatorId: string, wallet: AddressLike, typePrefix: BytesLike, timestamp: BigNumberish, revokedAt: BigNumberish}
 
-    export type CreatorRecordStructOutput = [creatorId: string, wallet: string, typePrefix: string, timestamp: bigint] & {creatorId: string, wallet: string, typePrefix: string, timestamp: bigint }
+    export type CreatorRecordStructOutput = [creatorId: string, wallet: string, typePrefix: string, timestamp: bigint, revokedAt: bigint] & {creatorId: string, wallet: string, typePrefix: string, timestamp: bigint, revokedAt: bigint }
   
 
     export type PassportClassificationViewStruct = {contentClass: BigNumberish, lifecycleStatus: BigNumberish, aiStatus: BigNumberish, verificationMethod: BigNumberish, editionModel: BigNumberish, timestamp: BigNumberish, revoked: boolean, revokedAt: BigNumberish, revocationReasonHash: BytesLike, mintAgent: AddressLike}
@@ -43,9 +43,9 @@ export declare namespace ObjectDigitalPassport {
     }
 
   export interface ObjectDigitalPassportInterface extends Interface {
-    getFunction(nameOrSignature: "CONTRACT_VERSION" | "deployer" | "editionUnits" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "isRevocationLocked" | "lockEditionRevocation" | "mintDigital" | "mintMixed" | "mintPhysical" | "mintUnitPassport" | "recordPassportEvent" | "registerCreator" | "revokePassport" | "setEditionUnits" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
+    getFunction(nameOrSignature: "CONTRACT_VERSION" | "deployer" | "editionUnits" | "freeze" | "frozen" | "getCreator" | "getCreatorByWallet" | "getPassportClassification" | "getPassportEvents" | "getPassportHeader" | "getPassportMedia" | "getPassportsByCreatorPaged" | "governance" | "isRevocationLocked" | "lockEditionRevocation" | "mintDigital" | "mintMixed" | "mintPhysical" | "mintUnitPassport" | "recordPassportEvent" | "registerCreator" | "revokeCreator" | "revokePassport" | "setEditionUnits" | "setExtensionRouter" | "setRelationsSatellite" | "transferGovernance" | "transferPassport" | "updatePassportUrls"): FunctionFragment;
 
-    getEvent(nameOrSignatureOrTopic: "CreatorRegistered" | "PassportEventRecorded" | "PassportMinted" | "PassportRevoked" | "PassportTransferred" | "PassportUrlsUpdated" | "RegistryFrozen"): EventFragment;
+    getEvent(nameOrSignatureOrTopic: "CreatorRegistered" | "CreatorRevoked" | "PassportEventRecorded" | "PassportMinted" | "PassportRevoked" | "PassportTransferred" | "PassportUrlsUpdated" | "RegistryFrozen"): EventFragment;
 
     encodeFunctionData(functionFragment: 'CONTRACT_VERSION', values?: undefined): string;
 encodeFunctionData(functionFragment: 'deployer', values?: undefined): string;
@@ -68,6 +68,7 @@ encodeFunctionData(functionFragment: 'mintPhysical', values: [PassportMintInputs
 encodeFunctionData(functionFragment: 'mintUnitPassport', values: [PassportMintInputsStruct, string, AddressLike, boolean]): string;
 encodeFunctionData(functionFragment: 'recordPassportEvent', values: [string, BigNumberish, BigNumberish, string, BytesLike, string]): string;
 encodeFunctionData(functionFragment: 'registerCreator', values: [BytesLike]): string;
+encodeFunctionData(functionFragment: 'revokeCreator', values?: undefined): string;
 encodeFunctionData(functionFragment: 'revokePassport', values: [string, BytesLike]): string;
 encodeFunctionData(functionFragment: 'setEditionUnits', values: [AddressLike]): string;
 encodeFunctionData(functionFragment: 'setExtensionRouter', values: [AddressLike]): string;
@@ -97,6 +98,7 @@ decodeFunctionResult(functionFragment: 'mintPhysical', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'mintUnitPassport', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'recordPassportEvent', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'registerCreator', data: BytesLike): Result;
+decodeFunctionResult(functionFragment: 'revokeCreator', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'revokePassport', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setEditionUnits', data: BytesLike): Result;
 decodeFunctionResult(functionFragment: 'setExtensionRouter', data: BytesLike): Result;
@@ -111,6 +113,18 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
       export type InputTuple = [creatorId: string, wallet: AddressLike, typePrefix: BytesLike, timestamp: BigNumberish];
       export type OutputTuple = [creatorId: string, wallet: string, typePrefix: string, timestamp: bigint];
       export interface OutputObject {creatorId: string, wallet: string, typePrefix: string, timestamp: bigint };
+      export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
+      export type Filter = TypedDeferredTopicFilter<Event>
+      export type Log = TypedEventLog<Event>
+      export type LogDescription = TypedLogDescription<Event>
+    }
+
+  
+
+    export namespace CreatorRevokedEvent {
+      export type InputTuple = [creatorId: string, wallet: AddressLike, timestamp: BigNumberish];
+      export type OutputTuple = [creatorId: string, wallet: string, timestamp: bigint];
+      export interface OutputObject {creatorId: string, wallet: string, timestamp: bigint };
       export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>
       export type Filter = TypedDeferredTopicFilter<Event>
       export type Log = TypedEventLog<Event>
@@ -393,6 +407,14 @@ decodeFunctionResult(functionFragment: 'updatePassportUrls', data: BytesLike): R
     
 
     
+    revokeCreator: TypedContractMethod<
+      [],
+      [void],
+      'nonpayable'
+    >
+    
+
+    
     revokePassport: TypedContractMethod<
       [passportId: string, reasonHash: BytesLike, ],
       [void],
@@ -556,6 +578,11 @@ getFunction(nameOrSignature: 'registerCreator'): TypedContractMethod<
       [string],
       'nonpayable'
     >;
+getFunction(nameOrSignature: 'revokeCreator'): TypedContractMethod<
+      [],
+      [void],
+      'nonpayable'
+    >;
 getFunction(nameOrSignature: 'revokePassport'): TypedContractMethod<
       [passportId: string, reasonHash: BytesLike, ],
       [void],
@@ -593,6 +620,7 @@ getFunction(nameOrSignature: 'updatePassportUrls'): TypedContractMethod<
     >;
 
     getEvent(key: 'CreatorRegistered'): TypedContractEvent<CreatorRegisteredEvent.InputTuple, CreatorRegisteredEvent.OutputTuple, CreatorRegisteredEvent.OutputObject>;
+getEvent(key: 'CreatorRevoked'): TypedContractEvent<CreatorRevokedEvent.InputTuple, CreatorRevokedEvent.OutputTuple, CreatorRevokedEvent.OutputObject>;
 getEvent(key: 'PassportEventRecorded'): TypedContractEvent<PassportEventRecordedEvent.InputTuple, PassportEventRecordedEvent.OutputTuple, PassportEventRecordedEvent.OutputObject>;
 getEvent(key: 'PassportMinted'): TypedContractEvent<PassportMintedEvent.InputTuple, PassportMintedEvent.OutputTuple, PassportMintedEvent.OutputObject>;
 getEvent(key: 'PassportRevoked'): TypedContractEvent<PassportRevokedEvent.InputTuple, PassportRevokedEvent.OutputTuple, PassportRevokedEvent.OutputObject>;
@@ -604,6 +632,10 @@ getEvent(key: 'RegistryFrozen'): TypedContractEvent<RegistryFrozenEvent.InputTup
       
       'CreatorRegistered(string,address,bytes1,uint256)': TypedContractEvent<CreatorRegisteredEvent.InputTuple, CreatorRegisteredEvent.OutputTuple, CreatorRegisteredEvent.OutputObject>;
       CreatorRegistered: TypedContractEvent<CreatorRegisteredEvent.InputTuple, CreatorRegisteredEvent.OutputTuple, CreatorRegisteredEvent.OutputObject>;
+    
+
+      'CreatorRevoked(string,address,uint256)': TypedContractEvent<CreatorRevokedEvent.InputTuple, CreatorRevokedEvent.OutputTuple, CreatorRevokedEvent.OutputObject>;
+      CreatorRevoked: TypedContractEvent<CreatorRevokedEvent.InputTuple, CreatorRevokedEvent.OutputTuple, CreatorRevokedEvent.OutputObject>;
     
 
       'PassportEventRecorded(string,uint8,uint8,string,bytes32,string,address,uint256)': TypedContractEvent<PassportEventRecordedEvent.InputTuple, PassportEventRecordedEvent.OutputTuple, PassportEventRecordedEvent.OutputObject>;
